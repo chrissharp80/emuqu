@@ -1,0 +1,62 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapErrorClassifier.swift",
+ "hash": "c5a97d07c6f22461",
+ "role": "Classifies strap errors that mean 'feature not ready yet' (safe to retry on the same link) versus real failures.",
+ "types": [
+  "StrapErrorClassifier: enum — namespace for isNotReadyYet"
+ ],
+ "state": [],
+ "toplevel": "PolarErrors / BleGattException checks compiled only under #if canImport(PolarBleSdk).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapErrorClassifier.isNotReadyYet(_:)",
+   "hash": "735643e6d772edd1",
+   "does": "True for PolarManager.PolarError.featureNotReady, PolarErrors.notificationNotEnabled, PolarErrors.deviceError whose description contains 'notificationNotEnabled', and BleGattException.gattDisconnected; false otherwise.",
+   "entry": "Used as catch-where predicate in StrapLinkCoordinator.whenFeatureUsable (StrapLinkCoordinator.swift:389); tested by EmuquTests/StrapErrorClassifierTests.swift.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is PolarError.featureNotReady",
+     "effect": "true: returns true"
+    },
+    {
+     "at": "+3",
+     "cond": "error casts to PolarErrors",
+     "effect": "true: switch decides; false: next check"
+    },
+    {
+     "at": "+5",
+     "cond": "case .notificationNotEnabled",
+     "effect": "returns true"
+    },
+    {
+     "at": "+6",
+     "cond": "case .deviceError(description)",
+     "effect": "returns whether description contains 'notificationNotEnabled' (string match on SDK text)"
+    },
+    {
+     "at": "+7",
+     "cond": "default PolarErrors case",
+     "effect": "returns false"
+    },
+    {
+     "at": "+10",
+     "cond": "error casts to BleGattException",
+     "effect": "true: inner check; false: falls to return false"
+    },
+    {
+     "at": "+11",
+     "cond": "gatt case is .gattDisconnected",
+     "effect": "true: returns true; false: returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

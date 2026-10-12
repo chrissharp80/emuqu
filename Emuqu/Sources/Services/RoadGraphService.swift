@@ -46,10 +46,9 @@ import Foundation
 //
 // **Throttle policy** (Overpass usage policy):
 //   • Actor (serial fetches by construction, no parallel hammering)
-//   • 1.1 s min-gap between outbound Overpass requests; inside it the
-//     cached tile (or nil) is returned rather than waiting
 //   • Requests go through the `OverpassClient` this service shares with
-//     trail search: one request at a time across the app, identifying
+//     trail search: one request at a time across the app, spaced 1.1 s
+//     apart (a caller inside the gap waits its turn), identifying
 //     User-Agent, a fallback instance when the first fails, and a cooldown
 //     for a host that is busy or refuses
 //   • Hard 8 s timeout
@@ -136,17 +135,12 @@ actor RoadGraphService {
     struct Point: Sendable, Equatable, Hashable {
         let lat: Double
         let lon: Double
-
-        var coord: CLLocationCoordinate2D {
-            CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        }
     }
 
     // MARK: - State
 
     private var cache: [String: Tile] = [:]
     private var inflight: [String: Task<Tile?, Never>] = [:]
-    private var lastRequestAt: Date?
 
     /// Hard ceiling on cached tiles. The 6 h TTL doesn't
     /// bound size on its own: a long point-to-point walk (or several
@@ -175,8 +169,6 @@ actor RoadGraphService {
     /// lake or a field — or Overpass returning nothing for a moment — so it
     /// is asked for again much sooner than a populated tile.
     private let emptyTileTTL: TimeInterval = 10 * 60
-    /// Min gap between outbound Overpass requests (per OSMF fair-use).
-    private let minRequestGapSec: TimeInterval = 1.1
     /// Hard timeout per Overpass request. Overpass-de typically
     /// responds in 200–800 ms for a road query of this size; 8 s
     /// is the give-up.
@@ -194,8 +186,10 @@ actor RoadGraphService {
     /// Coalescing: if a fetch is already running for this cell, wait on its
     /// task instead of issuing a duplicate request.
     ///
-    /// Throttle gate: inside the min-gap window with no cached tile to return,
-    /// this bails with nil so the caller degrades gracefully.
+    /// Spacing: `OverpassClient` holds each request until 1.1 s after the
+    /// previous one, so a lookup that enters a new cell right after a fetch
+    /// waits its turn and gets the tile, rather than nil. A caller with a
+    /// budget (the live fact resolver's 3 s) races this itself.
     func tile(for coordinate: CLLocationCoordinate2D) async -> Tile? {
         let cell = cellKey(latitude: coordinate.latitude, longitude: coordinate.longitude)
         if let cached = cache[cell.key],
@@ -203,9 +197,6 @@ actor RoadGraphService {
             return cached
         }
         if let task = inflight[cell.key] { return await task.value }
-        if let last = lastRequestAt, Date().timeIntervalSince(last) < minRequestGapSec {
-            return cache[cell.key]
-        }
         let task = Task<Tile?, Never> { [centerLat = cell.centerLat, centerLon = cell.centerLon, key = cell.key] in
             await self.fetchTile(
                 cellKey: key, centerLat: centerLat, centerLon: centerLon,
@@ -276,7 +267,6 @@ actor RoadGraphService {
         cellLatIndex: Int,
         cellLonIndex: Int
     ) async -> Tile? {
-        lastRequestAt = Date()
         let started = Date()
         let query = Self.buildQuery(centerLat: centerLat, centerLon: centerLon, radiusMeters: fetchRadiusMeters)
         let data: Data

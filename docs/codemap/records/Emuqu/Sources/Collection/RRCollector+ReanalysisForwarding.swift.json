@@ -1,0 +1,242 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector forwarders onto a per-access SessionReanalysisCoordinator.",
+ "types": [
+  "RRCollector: extension — reanalysis forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RRCollector.reanalysis",
+   "hash": "8a94ef64d8250fba",
+   "does": "Returns a new SessionReanalysisCoordinator for the collector.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.reanalysisService",
+   "hash": "733d2e7fa167803e",
+   "does": "Returns the cached ReanalysisService (used by AppLaunchTasks and SessionDataMigrations).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::var SessionReanalysisCoordinator.reanalysisService"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::var SessionReanalysisCoordinator.reanalysisService": "0b95874d688decae",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.reanalyzeSession(_:method:)",
+   "hash": "6cf3effb9f851d75",
+   "does": "Forwards reanalyzeSession (MainTabView, RecordView, BackupRecovery).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "2031f3f89a9dbdba",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.installRescoreListener()",
+   "hash": "24eb3d9111c9c151",
+   "does": "Forwards installRescoreListener (RRCollector init).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.installCloudKitSnapshotBackfillListener()",
+   "hash": "2cc09a1ab3478c85",
+   "does": "Forwards installCloudKitSnapshotBackfillListener (RRCollector init).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installCloudKitSnapshotBackfillListener()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installCloudKitSnapshotBackfillListener()": "1693a2ea045b9f9d",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.autoRefreshTodaysSleepIfImproved()",
+   "hash": "cfe2377fef619132",
+   "does": "Forwards autoRefreshTodaysSleepIfImproved (MainTabView, Bindings sleep observer).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "56b4191237b0d263",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.unlinkSegment(segmentId:fromSession:)",
+   "hash": "d18a3c49075499ef",
+   "does": "Forwards unlinkSegment (HistoryView, RecordView).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.unlinkSegment(segmentId:fromSession:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.unlinkSegment(segmentId:fromSession:)": "a0d98ddbb089b940",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.reanalyzeAllSessions(from:to:progress:)",
+   "hash": "85d74c9474715b7f",
+   "does": "Forwards reanalyzeAllSessions (Settings diagnostics).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeAllSessions(from:to:progress:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeAllSessions(from:to:progress:)": "2d5174fdeb318d6c",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.retroApplySleepSettings(progress:)",
+   "hash": "4e139a2b0240a3fb",
+   "does": "Forwards retroApplySleepSettings (Settings).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "f3b23a2a421e9bf4",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.reanalyzeAtPosition(_:targetMs:)",
+   "hash": "acb7a92ee93ab4f2",
+   "does": "Forwards reanalyzeAtPosition.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeAtPosition(_:targetMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeAtPosition(_:targetMs:)": "434761de70728516",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.applyManualAnalysis(_:result:)",
+   "hash": "457cb42c6e70fa47",
+   "does": "Forwards applyManualAnalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)": "7630f87b9d238a63",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+   "hash": "4f01ddf104130f00",
+   "does": "Forwards updateSessionSleepBoundaries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "5bb4233b785f36a4",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  },
+  {
+   "key": "func RRCollector.repairTrainingSnapshots(progress:)",
+   "hash": "75ce544bae03021d",
+   "does": "Forwards repairTrainingSnapshots.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "6ad14013793ef97a",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "188678df0173c24a"
+   }
+  }
+ ],
+ "deps": {}
+}

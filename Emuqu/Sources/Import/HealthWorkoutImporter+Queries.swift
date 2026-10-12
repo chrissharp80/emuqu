@@ -65,14 +65,15 @@ extension HealthWorkoutImporter {
         )
     }
 
-    /// HealthKit's own totals win over anything derived from the track, and
+    /// HealthKit's own distance total fills in when the track yields none, and
     /// the weather Apple Watch saved with the workout is kept on it.
     ///
     /// A workout can have a distance and no route at all — a treadmill run, an
     /// indoor bike, a Strava activity synced without GPS. The builder derives
     /// distance by walking the track, so for those it derives zero, and the
-    /// user sees a run they know was 10 km listed as 0 km. The recorded total
-    /// is the better number whenever there is one.
+    /// user sees a run they know was 10 km listed as 0 km. Where the track
+    /// does give a distance it is kept, so the total matches the per-second
+    /// distances the charts and splits are drawn from.
     nonisolated private static func applyTotals(from candidate: Candidate, to session: inout HRVSession) {
         guard var metadata = session.workoutMetadata else { return }
         if let distance = candidate.distanceMeters, distance > 0,
@@ -87,7 +88,8 @@ extension HealthWorkoutImporter {
 
     // MARK: - Queries
 
-    /// Every workout in the window that this app did not write.
+    /// Every workout in the window that this app did not write. A failed or
+    /// timed-out read is logged and comes back empty.
     private func externalWorkouts(from start: Date, to end: Date) async -> [HKWorkout] {
         let inWindow = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
         let notOurs = NSCompoundPredicate(
@@ -95,33 +97,54 @@ extension HealthWorkoutImporter {
         )
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [inWindow, notOurs])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        return await manager.runBoundedQuery(
-            timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
-        ) { resolve in
-            HKSampleQuery(
-                sampleType: HKObjectType.workoutType(),
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [sort]
-            ) { _, samples, _ in
-                resolve((samples as? [HKWorkout]) ?? [])
-            }
-        } ?? []
+        return await workouts(
+            matching: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort], reading: "workout list"
+        ) ?? []
     }
 
+    /// The workout, or nil when it is gone, the read failed or it timed out;
+    /// the last two are logged.
     private func workout(withID id: UUID) async -> HKWorkout? {
-        await manager.runBoundedQuery(
+        await workouts(
+            matching: HKQuery.predicateForObject(with: id), limit: 1, sortDescriptors: nil, reading: "workout"
+        )?.first
+    }
+
+    /// Workouts matching `predicate`, or nil when the read timed out. A read
+    /// error is logged and comes back as an empty list.
+    private func workouts(
+        matching predicate: NSPredicate,
+        limit: Int,
+        sortDescriptors: [NSSortDescriptor]?,
+        reading what: String
+    ) async -> [HKWorkout]? {
+        let found: [HKWorkout]? = await manager.runBoundedQuery(
             timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
-                sampleType: HKObjectType.workoutType(),
-                predicate: HKQuery.predicateForObject(with: id),
-                limit: 1,
-                sortDescriptors: nil
-            ) { _, samples, _ in
-                resolve((samples as? [HKWorkout])?.first)
+                sampleType: HKObjectType.workoutType(), predicate: predicate,
+                limit: limit, sortDescriptors: sortDescriptors
+            ) { _, samples, error in
+                Self.noteFailedRead(what, error: error)
+                resolve((samples as? [HKWorkout]) ?? [])
             }
         }
+        if found == nil { Self.noteTimedOutRead(what) }
+        return found
+    }
+
+    /// Logs a HealthKit read that came back with an error; nothing when
+    /// `error` is nil. The callers still return an empty result, which the
+    /// import screen reads as "nothing there"; the log line is what tells
+    /// the two apart.
+    nonisolated static func noteFailedRead(_ what: String, error: Error?) {
+        guard let error else { return }
+        debugLog("[HealthImport] \(what) read failed: \(error.localizedDescription)", level: .warning)
+    }
+
+    /// Logs a HealthKit read that hit its time limit; see `noteFailedRead`.
+    nonisolated static func noteTimedOutRead(_ what: String) {
+        debugLog("[HealthImport] \(what) read timed out", level: .warning)
     }
 
     /// The workout's GPS track, or empty for an indoor or route-less workout.
@@ -162,7 +185,7 @@ extension HealthWorkoutImporter {
     }
 
     private func cadenceSamples(from start: Date, to end: Date) async -> [(Date, Double)] {
-        Self.cadenceSamples(from: await stepWindows(from: start, to: end))
+        Self.cadenceSamples(from: await stepWindows(from: start, to: end), coveringFrom: start, to: end)
     }
 
     /// Raw step windows in a time range. Shared with the rebuild path, which
@@ -180,7 +203,7 @@ extension HealthWorkoutImporter {
     func stepWindows(from start: Date, to end: Date) async -> [HealthSampleWindow] {
         guard let stepType = HKTypes.quantity(.stepCount) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        return await manager.runBoundedQuery(
+        let windows: [HealthSampleWindow]? = await manager.runBoundedQuery(
             timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
@@ -188,10 +211,16 @@ extension HealthWorkoutImporter {
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
-            ) { _, samples, _ in
+            ) { _, samples, error in
+                Self.noteFailedRead("step", error: error)
                 resolve(Self.stepWindows(samples))
             }
-        } ?? []
+        }
+        guard let windows else {
+            Self.noteTimedOutRead("step")
+            return []
+        }
+        return windows
     }
 
     nonisolated private static func stepWindows(_ samples: [HKSample]?) -> [HealthSampleWindow] {

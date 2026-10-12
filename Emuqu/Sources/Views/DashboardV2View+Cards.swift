@@ -182,6 +182,21 @@ extension DashboardV2View {
                         .allowsHitTesting(false)
                 )
             verdictRow
+            heroAgeCaption
+        }
+    }
+
+    /// Under the verdict when the hero's overnight is not this morning's
+    /// ("yesterday", "3 days ago"): the hero keeps showing the newest
+    /// overnight of any age, and this says how old it is.
+    @ViewBuilder
+    private var heroAgeCaption: some View {
+        if ScoreAppearancePolicy.showsScore(baselineNights: baselineNights),
+           let session = latestOvernightComplete, (session.recoveryScore ?? session.readinessScore) != nil,
+           let age = nightAgeLabel(for: session) {
+            Text(verbatim: age)
+                .font(.caption)
+                .foregroundStyle(AppTheme.textTertiary)
         }
     }
 
@@ -239,9 +254,24 @@ extension DashboardV2View {
             title: String(localized: "Connect Apple Health", bundle: LanguageManager.appBundle),
             subtitle: healthRequested ? String(localized: "Access requested", bundle: LanguageManager.appBundle) : String(localized: "For sleep + vitals", bundle: LanguageManager.appBundle),
             action: {
-                Task { try? await collector.healthKit.requestAuthorization() }
+                Task { await requestHealthAccess() }
             }
         )
+    }
+
+    /// Asks for Apple Health access. A failure is logged and shown as a toast
+    /// rather than leaving the row unchecked with no word.
+    private func requestHealthAccess() async {
+        do {
+            try await collector.healthKit.requestAuthorization()
+        } catch {
+            debugLog("[Dashboard] HK authorization request failed: \(error)", level: .warning)
+            toast = ToastPayload(
+                glyph: "exclamationmark.triangle",
+                message: String(localized: "Apple Health authorization failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle),
+                tint: AppTheme.alert
+            )
+        }
     }
 
     private var firstReadingRow: some View {

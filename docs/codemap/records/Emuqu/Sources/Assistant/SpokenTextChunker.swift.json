@@ -1,0 +1,222 @@
+{
+ "file": "Emuqu/Sources/Assistant/SpokenTextChunker.swift",
+ "hash": "52654a32e2e4d259",
+ "role": "Buffers streamed LLM text deltas and emits whole sentences (markdown stripped) for AVSpeechSynthesizer; finalize() flushes the tail.",
+ "types": [
+  "SpokenTextChunker: final class — sentence-boundary buffer for TTS"
+ ],
+ "state": [
+  "mem:SpokenTextChunker.sentenceEnders (static let '.','!','?','\\n')",
+  "mem:SpokenTextChunker.pendingBuffer (private(set) var, per instance; instance held at VoiceConversationController.textChunker)",
+  "mem:SpokenTextChunker.markdownPatterns (static let regex list, lines 126-134)"
+ ],
+ "toplevel": "Static sentenceEnders set and the ordered markdownPatterns regex list (single * between letters and _ between word chars, *word* emphasis, list markers, numbered markers, ATX headers, [label](url)->label).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SpokenTextChunker.hasPendingContent",
+   "hash": "670d3d32ced3f6df",
+   "does": "True when pendingBuffer is non-empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SpokenTextChunker.append(delta:)",
+   "hash": "732f4164e6280c03",
+   "does": "Appends delta to pendingBuffer and returns drainCompletedSentence() (a speakable chunk up to the last sentence boundary, or nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.drainCompletedSentence()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.drainCompletedSentence()": "64d9912dbb97e263"
+   }
+  },
+  {
+   "key": "func SpokenTextChunker.finalize()",
+   "hash": "cb694e385c8473ef",
+   "does": "Trims the buffer, empties it, and returns the markdown-stripped remainder, or nil when the remainder or the stripped text is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "trimmed remainder non-empty",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+5",
+     "cond": "stripped text empty",
+     "effect": "true: nil; false: stripped text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "3c47bb71462ba089"
+   }
+  },
+  {
+   "key": "func SpokenTextChunker.reset()",
+   "hash": "9e3683cbc8d029ce",
+   "does": "Empties pendingBuffer without emitting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SpokenTextChunker.drainCompletedSentence()",
+   "hash": "2a86f9b6c11c748e",
+   "does": "Finds the last index where isSentenceBoundary is true, cuts the buffer after it, keeps the rest buffered, and returns the trimmed+markdown-stripped head or nil if it is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isSentenceBoundary(at:)",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "any sentence boundary in buffer",
+     "effect": "false: nil, buffer untouched"
+    },
+    {
+     "at": "+7",
+     "cond": "trimmed head non-empty",
+     "effect": "false: nil (buffer still advanced)"
+    },
+    {
+     "at": "+9",
+     "cond": "stripped text empty",
+     "effect": "true: nil; false: stripped chunk"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isSentenceBoundary(at:)": "bab492370b83ca05",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "3c47bb71462ba089"
+   }
+  },
+  {
+   "key": "func SpokenTextChunker.isSentenceBoundary(at:)",
+   "hash": "165ae37fedb92fb9",
+   "does": "Decides whether the character at index ends a sentence: a newline always; '!', '?' and '.' never inside a markdown link or URL; '!' and '?' otherwise always; '.' only when not followed by a digit/letter and (if last char) not preceded by a digit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "character is one of . ! ? \\n",
+     "effect": "false: not a boundary"
+    },
+    {
+     "at": "+3",
+     "cond": "character is a newline",
+     "effect": "true: boundary"
+    },
+    {
+     "at": "+4",
+     "cond": "inside a markdown link or URL",
+     "effect": "true: not a boundary ('.', '!' and '?' alike)"
+    },
+    {
+     "at": "+5",
+     "cond": "character is '.'",
+     "effect": "false ('!', '?'): boundary"
+    },
+    {
+     "at": "+7",
+     "cond": "a next character exists",
+     "effect": "boundary only if next is neither number nor letter"
+    },
+    {
+     "at": "+8",
+     "cond": "'.' is the first buffered character",
+     "effect": "true: boundary; false: boundary only if previous char is not a number (trailing '42.' waits)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)": "6e61789043ffde07"
+   }
+  },
+  {
+   "key": "func SpokenTextChunker.isInsideLinkOrURL(at:)",
+   "hash": "c373520e36b6a946",
+   "does": "True when the text before index ends in a token (from the last whitespace) containing '://' or starting 'www.', or is inside an unclosed '[label' or '[label](url' markdown link. Reads back only to the token start and the last '[', not splitting the whole buffer per candidate ender.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "there is whitespace before index",
+     "effect": "token starts after it; else at the buffer start"
+    },
+    {
+     "at": "+4",
+     "cond": "token contains :// or starts with www.",
+     "effect": "true: inside URL"
+    },
+    {
+     "at": "+5",
+     "cond": "a '[' exists before index",
+     "effect": "false: not inside link"
+    },
+    {
+     "at": "+7",
+     "cond": "']' follows the last '['",
+     "effect": "false: inside link label → true"
+    },
+    {
+     "at": "+8",
+     "cond": "text after ']' starts '](' with no ')'",
+     "effect": "true: inside the link's url part"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SpokenTextChunker.stripMarkdownForSpeech(_:)",
+   "hash": "84a71c29c9a5937f",
+   "does": "Removes '**', '__', backticks, then applies markdownPatterns in order (a single * between letters and _ between word chars removed — never next to a digit, so '5*3' survives —, *word* emphasis unwrapped, list/number/header markers removed, [label](url)->label).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each markdown pattern",
+     "effect": "each regex rewrite applied in order"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

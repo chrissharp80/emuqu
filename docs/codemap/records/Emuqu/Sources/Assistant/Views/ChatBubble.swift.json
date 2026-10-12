@@ -1,0 +1,788 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/ChatBubble.swift",
+ "hash": "aad671cb34ee5df5",
+ "role": "Chat bubble view for one ChatTurn (avatar, subsystem chip, inline-Markdown text with citation links and phonetic stripping, provider·model·tier footer, long-press menu incl. App-Review report mailto to AppConfig.contactEmail) plus SwiftUI-side helpers for AssistantSubsystem / SmartProviderRouter.Tier / ChatTurn and the ChatMarkdown heading normaliser.",
+ "types": [
+  "AssistantSubsystem: private extension — tint, chipName",
+  "SmartProviderRouter.Tier: private extension — indicatorColor, label",
+  "ChatTurn: private extension — routedTier",
+  "ChatBubble: struct View, Equatable — bubble",
+  "ChatBubble.AvailableActions: struct Equatable, Sendable — which menu actions exist",
+  "ChatMarkdown: enum — heading → bold-line rewrite"
+ ],
+ "state": [
+  "@State ChatBubble.reportMailUnavailable"
+ ],
+ "toplevel": "No global code. ChatBubble's nonisolated == compares turn and availableActions only. Declares a View extension (reportMailUnavailableAlert) shared with AssistantChatView.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AssistantSubsystem.tint",
+   "hash": "175722c4b8e0c08d",
+   "does": "Theme tint per subsystem: coach primary, workoutVoiceCoach fitnessAccent, voiceConversation primaryLight, coachReport textSecondary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".coach",
+     "effect": "AppTheme.primary"
+    },
+    {
+     "at": "+3",
+     "cond": ".workoutVoiceCoach",
+     "effect": "AppTheme.fitnessAccent"
+    },
+    {
+     "at": "+4",
+     "cond": ".voiceConversation",
+     "effect": "AppTheme.primaryLight"
+    },
+    {
+     "at": "+5",
+     "cond": ".coachReport",
+     "effect": "AppTheme.textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SmartProviderRouter.Tier.indicatorColor",
+   "hash": "a54c4c6bee946de5",
+   "does": "Dot colour per routing tier: quick sage, auto primary, deep dustyRose.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".quick",
+     "effect": "sage"
+    },
+    {
+     "at": "+3",
+     "cond": ".auto",
+     "effect": "primary"
+    },
+    {
+     "at": "+4",
+     "cond": ".deep",
+     "effect": "dustyRose"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var SmartProviderRouter.Tier.label",
+   "hash": "3fb22394efc30bea",
+   "does": "Localized tier name: 'Quick tier' / 'Auto tier' / 'Deep tier'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".quick",
+     "effect": "'Quick tier'"
+    },
+    {
+     "at": "+3",
+     "cond": ".auto",
+     "effect": "'Auto tier'"
+    },
+    {
+     "at": "+4",
+     "cond": ".deep",
+     "effect": "'Deep tier'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantSubsystem.chipName",
+   "hash": "4f73c0e41f763d60",
+   "does": "Chip name: coach/voiceConversation use displayName; workoutVoiceCoach 'Coach'; coachReport 'Flo Report'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".coach or .voiceConversation",
+     "effect": "displayName"
+    },
+    {
+     "at": "+3",
+     "cond": ".workoutVoiceCoach",
+     "effect": "'Coach'"
+    },
+    {
+     "at": "+4",
+     "cond": ".coachReport",
+     "effect": "'Flo Report'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.displayName": "c799101ae6fddbb9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ChatTurn.routedTier",
+   "hash": "fa14902310e0d80f",
+   "does": "Decodes the persisted routedTierRaw Int into SmartProviderRouter.Tier (nil when absent or unknown).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "routedTierRaw non-nil",
+     "effect": "Tier(rawValue:) (nil for unknown values); nil → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)",
+   "hash": "45e95bdd2fd05dab",
+   "does": "Stores turn and the five optional action closures and records which are non-nil in availableActions.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ChatBubble.==(lhs:rhs:)",
+   "hash": "a4fc3019c86821c3",
+   "does": "Equality for .equatable(): same turn and same set of available actions (closure identity ignored).",
+   "entry": "SwiftUI EquatableView diffing; ChatBubbleEquatableTests",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ChatBubble.body",
+   "hash": "cde3d7d063ae1126",
+   "does": "HStack wrapping the role-ordered avatar + bubble, horizontally padded.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.assistantOrUserBubble"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.assistantOrUserBubble": "5cae2931ea33a628"
+   }
+  },
+  {
+   "key": "var ChatBubble.assistantOrUserBubble",
+   "hash": "becc6b3339093694",
+   "does": "Assistant: avatar, labelled bubble 'Assistant message', trailing spacer; user: leading spacer, 'Your message' bubble, avatar.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.avatar",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.labelledBubble(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "turn.role == .assistant",
+     "effect": "avatar left; else avatar right"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.labelledBubble(_:)": "41c591dd4414f250",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.avatar": "7a64cf806ec41259",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ChatBubble.labelledBubble(_:)",
+   "hash": "9c7d74c5f24db2a2",
+   "does": "Bubble with combined accessibility (label + spokenText value), context menu bubbleMenu and the shared no-mail 'Report response' alert (reportMailUnavailableAlert).",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubble",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.spokenText",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleMenu",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)": "8ded708bdcfe557a",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubble": "54f3b80d964e3c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleMenu": "9713c940fc69bcae",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.spokenText": "b29d84e9dd261ab7",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "6ec67d3b9204e25f"
+   }
+  },
+  {
+   "key": "var ChatBubble.bubbleMenu",
+   "hash": "2ee1361e777836d8",
+   "does": "Context menu: Remember, Copy, Share, Send email, Regenerate (each only when its closure was supplied), then Report response.",
+   "entry": "long-press context menu; item taps",
+   "calls": [
+    "closure:onRemember — AssistantChatView.chatBubble → viewModel.remember",
+    "closure:onCopy — copyToPasteboard",
+    "closure:onShare — presentShare",
+    "closure:onSendEmail — presentEmail",
+    "closure:onRegenerate — viewModel.regenerateLast",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.reportButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onRemember non-nil",
+     "effect": "'Remember this' item"
+    },
+    {
+     "at": "+9",
+     "cond": "onCopy non-nil",
+     "effect": "'Copy' item"
+    },
+    {
+     "at": "+12",
+     "cond": "onShare non-nil",
+     "effect": "'Share' item"
+    },
+    {
+     "at": "+15",
+     "cond": "onSendEmail non-nil",
+     "effect": "'Send email' item"
+    },
+    {
+     "at": "+18",
+     "cond": "onRegenerate non-nil",
+     "effect": "'Regenerate' item"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL's 'Long-Press Any Message' list names only Remember this, Copy and Regenerate; the menu also offers Share, Send email and Report response.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:694-700",
+      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:173-182"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.reportButton": "43911372aa9063df",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "6ec67d3b9204e25f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ChatBubble.reportButton",
+   "hash": "2f6d3bf307f70703",
+   "does": "'Report response' menu item for assistant turns when a mailto URL builds; opens it directly via UIApplication.",
+   "entry": "SwiftUI view body evaluation; menu tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.reportURL",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.openReport(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "assistant turn AND reportURL non-nil",
+     "effect": "item shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.openReport(_:)": "8baec37b2a42d346",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.reportURL": "67d86b536655d143",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "6ec67d3b9204e25f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ChatBubble.openReport(_:)",
+   "hash": "6dd0a4cebe50bc3e",
+   "does": "UIApplication.shared.open(url); if it fails, shows the no-mail alert.",
+   "entry": "menu tap",
+   "calls": [
+    "ext:UIApplication.open"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "open failed",
+     "effect": "reportMailUnavailable = true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ChatBubble.reportURL",
+   "hash": "2ca9dca27f760402",
+   "does": "Report mailto URL quoting this turn's text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "041452b1d4549fed"
+   }
+  },
+  {
+   "key": "func ChatBubble.reportURL(quoting:)",
+   "hash": "1a6c1dbe3283dbb9",
+   "does": "Builds the report mail link via AppConfig.contactMailURL (mailto:<AppConfig.contactEmail>) with subject 'Emuqu: reported AI response' and body 'What is wrong with this response?' + separator + the quoted text with phonetic [[word|IPA]] markup stripped (as the user saw it); nil only if the URL cannot be formed. The user reviews the email (which can quote health details) before sending.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)": "b6b2510f75c158f9"
+   }
+  },
+  {
+   "key": "var ChatBubble.avatar",
+   "hash": "5b4f7f6e73c2f54a",
+   "does": "28pt circular avatar with turn.roleSymbol; white on primaryFilled for user, accent on systemGray5 for assistant.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::var ChatTurn.roleSymbol"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "turn.role == .user",
+     "effect": "white foreground; else accent"
+    },
+    {
+     "at": "+7",
+     "cond": "turn.role == .user",
+     "effect": "primaryFilled fill; else systemGray5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::var ChatTurn.roleSymbol": "d2eb369c3c21f973",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChatBubble.bubble",
+   "hash": "bb2c7bd7ed925ef7",
+   "does": "VStack of subsystem header, text bubble, provider footer; trailing-aligned for user, leading for assistant.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.assistantSubsystemHeader",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleText",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.providerFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "turn.role == .user",
+     "effect": ".trailing; else .leading"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.assistantSubsystemHeader": "a4abca5d4dad045b",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleText": "bb90452bdb2966b0",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.providerFooter": "9e1623af6267f361"
+   }
+  },
+  {
+   "key": "var ChatBubble.assistantSubsystemHeader",
+   "hash": "e6dccfd48fd00be5",
+   "does": "Subsystem chip only for assistant turns.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.subsystemHeader"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "turn.role == .assistant",
+     "effect": "chip shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.subsystemHeader": "0393687579ee004a"
+   }
+  },
+  {
+   "key": "var ChatBubble.bubbleText",
+   "hash": "8e1fb0c9fb8b036f",
+   "does": "renderedText in body font, white on primaryFilled for user / primary on secondarySystemBackground for assistant, rounded background, vertical wrap.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.renderedText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "user turn",
+     "effect": "white text; else primary"
+    },
+    {
+     "at": "+8",
+     "cond": "user turn",
+     "effect": "primaryFilled background; else secondarySystemBackground"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.body": "34d45e00338db6a1",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.renderedText": "d1f79807862b43f8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChatBubble.providerFooter",
+   "hash": "2cf1838a0e73f1ac",
+   "does": "Footer for assistant turns with a providerID: tier dot + 'Provider · Model' caption.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.tierIndicatorDot",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.providerLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "assistant turn AND providerID non-nil",
+     "effect": "footer shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.providerLabel(_:)": "ccbf2e571dfb11d4",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.tierIndicatorDot": "16a6723eae97ebdc"
+   }
+  },
+  {
+   "key": "func ChatBubble.providerLabel(_:)",
+   "hash": "3d9f31e3e6ebe598",
+   "does": "'<Provider displayName> · <model display name>' using ProviderRegistry.displayName(forApiID:) (catalog, retired names, else raw id); just the provider name when no modelID.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.displayName(forApiID:providerID:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "turn.modelID non-nil",
+     "effect": "maps to display name; ?? '' when nil"
+    },
+    {
+     "at": "+4",
+     "cond": "modelLabel empty",
+     "effect": "provider name only; else 'Provider · Model'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.displayName(forApiID:providerID:)": "6e7fa2f06a530080",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry": "011c65c2dc3b4ab7"
+   }
+  },
+  {
+   "key": "var ChatBubble.tierIndicatorDot",
+   "hash": "aa7aeb7ad2a3d4cd",
+   "does": "Coloured 6pt dot + tier label when the turn has a routed tier.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatTurn.routedTier",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.indicatorColor",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "routedTier non-nil",
+     "effect": "dot and label shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatTurn.routedTier": "4e3a2f3328123284",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.indicatorColor": "5e484a693043e8be",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "6ec67d3b9204e25f",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChatBubble.subsystemHeader",
+   "hash": "ecc4ce8c7e3a9533",
+   "does": "Capsule chip with the subsystem glyph and chipName in the subsystem tint (defaults to .coach when turn.subsystem is nil).",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.glyph",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.chipName",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "turn.subsystem ?? .coach",
+     "effect": "uses .coach when the turn has no subsystem tag"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.glyph": "62511344a083b2e9",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.chipName": "1a75a22d7a7572f6",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChatBubble.spokenText",
+   "hash": "8d6aef4c2ab523c4",
+   "does": "VoiceOver value: phonetic-stripped text; for assistant turns additionally parsed as inline Markdown (after heading rewrite) and flattened to plain characters, falling back to the stripped text on parse failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "turn.role == .assistant",
+     "effect": "continues to Markdown flattening; user → stripped text"
+    },
+    {
+     "at": "+9",
+     "cond": "AttributedString(markdown:) throws",
+     "effect": "returns stripped text (error swallowed by design)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "3bb7c5028ae1f29d"
+   }
+  },
+  {
+   "key": "var ChatBubble.renderedText",
+   "hash": "cccafa090d3b94ce",
+   "does": "Assistant non-empty: strip phonetic markup, rewrite headings, annotate session date citations as flowrecovery://session links, parse inline Markdown → Text(attributed); otherwise / on parse failure plain stripped text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.annotate(_:archive:)"
+   ],
+   "reads": [
+    "archive:SessionArchive (citation annotation looks up sessions)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "assistant turn with non-empty text",
+     "effect": "Markdown path; else plain Text"
+    },
+    {
+     "at": "+7",
+     "cond": "Markdown parse succeeds",
+     "effect": "Text(attributed); try? failure → falls through to plain stripped Text"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says Markdown lists render properly in streamed replies; the bubble parses inline-only Markdown (.inlineOnlyPreservingWhitespace) and its own comment says list markers stay as typed.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:498",
+      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:360",
+      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:374"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.annotate(_:archive:)": "ae71766a28756119",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "3bb7c5028ae1f29d"
+   }
+  },
+  {
+   "key": "func View.reportMailUnavailableAlert(isPresented:)",
+   "hash": "95d8022a59008672",
+   "does": "View modifier: the 'Report response' alert telling the user no mail account is set up and to send the report to AppConfig.contactEmail (interpolated into the localized key 'No mail account is set up on this device. Send your report to %@.'), with an OK button. Used by ChatBubble and AssistantChatView.",
+   "entry": "Alert presentation driven by the caller's binding",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ChatMarkdown.displayText(_:)",
+   "hash": "8589881ebbbc009c",
+   "does": "Rewrites each ATX heading line outside fenced code blocks to '**title**' (empty heading → empty line). A ``` or ~~~ line opens a block, and only a fence of the same kind closes it; fence lines and lines inside are kept.",
+   "entry": "also called by ChatMarkdownTests (EmuquTests/ChatBubbleEquatableTests.swift:34)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.fenceMarker(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "line is a fence and (no block open or it matches the open one)",
+     "effect": "open/close the block, keep the line"
+    },
+    {
+     "at": "+7",
+     "cond": "outside a block and line is a heading",
+     "effect": "replace with bold title; else line kept"
+    },
+    {
+     "at": "+8",
+     "cond": "title empty",
+     "effect": "''; else '**title**'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.fenceMarker(_:)": "2008fd67a3642137",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  },
+  {
+   "key": "func ChatMarkdown.fenceMarker(_:)",
+   "hash": "93a579e031605d2d",
+   "does": "\"```\" or \"~~~\" when the whitespace-trimmed line starts with it (a fence line), else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ChatMarkdown.headingTitle(_:)",
+   "hash": "ef01648628906c65",
+   "does": "Returns the heading text of an ATX heading line (≤3 leading spaces, 1–6 '#', then space/tab/end), with closing # sequence and '**' removed; nil when not a heading.",
+   "entry": "ChatMarkdownTests",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "indent ≤ 3 spaces",
+     "effect": "continues; else nil"
+    },
+    {
+     "at": "+5",
+     "cond": "1–6 leading '#'",
+     "effect": "continues; else nil"
+    },
+    {
+     "at": "+7",
+     "cond": "character after the hashes is not space/tab/newline",
+     "effect": "nil (e.g. '#tag'); otherwise continues to trim"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

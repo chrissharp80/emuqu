@@ -141,10 +141,13 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertThrowsError(try importer.parseCSV(""))
     }
 
+    /// A European export separates columns with semicolons. Split on commas,
+    /// each row would be one unparseable column ("0;800") and the file would
+    /// import no beats, so the exact values prove the ';' separator was used.
     func testParseCSV_semicolonSeparator() throws {
-        let csv = "800\n750\n810"
+        let csv = "timestamp;rr\n0;800\n800;750\n1550;810"
         let (intervals, _, _) = try importer.parseCSV(csv)
-        XCTAssertEqual(intervals.count, 3)
+        XCTAssertEqual(intervals, [800, 750, 810])
     }
 
     func testParseCSV_skipsCommentLines() throws {
@@ -409,7 +412,9 @@ final class RRDataImporterTests: XCTestCase {
             recordingDate: Date(timeIntervalSince1970: 1_700_000_000),
             metadata: [:]
         )
-        let session = importer.createSession(from: result)
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let session = importer.createSession(from: result, startingAt: start)
+        XCTAssertEqual(session.startDate, start)
         XCTAssertNotNil(session.rrSeries)
         XCTAssertEqual(session.rrSeries?.points.count, 3)
         XCTAssertEqual(session.rrSeries?.points[0].rr_ms, 800)
@@ -427,7 +432,7 @@ final class RRDataImporterTests: XCTestCase {
             recordingDate: nil,
             metadata: [:]
         )
-        let session = importer.createSession(from: result)
+        let session = importer.createSession(from: result, startingAt: Date(timeIntervalSince1970: 1_700_000_000))
         let points = try XCTUnwrap(session.rrSeries?.points)
         XCTAssertEqual(points[0].t_ms, 0)
         XCTAssertEqual(points[1].t_ms, 800)

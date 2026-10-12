@@ -11,8 +11,8 @@ name: Security
 #
 #   • codeql        — SAST over the Swift we write. Needs a real build, so it
 #                     runs on macOS and takes as long as a normal compile.
-#   • dependency-review — blocks a pull request that introduces a dependency
-#                     with a known advisory, or a licence change.
+#   • dependency-review — fails when the dependencies changed between two refs
+#                     bring in a known advisory or a denied licence.
 #
 # MANUAL ONLY, same reasoning as ci.yml — CodeQL for Swift needs a real macOS
 # compile, which is the single most expensive job in the repository. Run it when
@@ -88,26 +88,56 @@ jobs:
     name: Dependency review
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Diffs two refs. Cheap (Ubuntu, 1x). See the note on the step below for
-    # which refs a manual run compares.
+    # Diffs two refs. Cheap (Ubuntu, 1x). See the note on the steps below for
+    # which refs a manual run compares. No pull request is ever involved, so
+    # it needs no write permission and posts no comment.
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          # The guard below resolves both refs, which a depth-1 checkout cannot.
+          fetch-depth: 0
+
+      # Without inputs, base is the default branch and head is the dispatched
+      # commit. Dispatched from the default branch, those are the same commit
+      # and the review compares nothing, then reports success: an empty result
+      # read as a clean scan. So the run fails unless both refs resolve to
+      # different commits. Pass `base-ref` (an earlier tag or SHA, say the last
+      # release) so the diff covers the dependency changes since then.
+      - name: Refuse an empty comparison
+        env:
+          BASE_REF: ${{ inputs.base-ref || github.event.repository.default_branch }}
+          HEAD_REF: ${{ inputs.head-ref || github.sha }}
+        run: |
+          set -euo pipefail
+          resolve() {
+            git rev-parse --verify --quiet "$1^{commit}" \
+              || git rev-parse --verify --quiet "origin/$1^{commit}"
+          }
+          if ! base="$(resolve "$BASE_REF")"; then
+            echo "base-ref '$BASE_REF' does not resolve to a commit." >&2
+            exit 1
+          fi
+          if ! head="$(resolve "$HEAD_REF")"; then
+            echo "head-ref '$HEAD_REF' does not resolve to a commit." >&2
+            exit 1
+          fi
+          if [[ "$base" == "$head" ]]; then
+            echo "base-ref '$BASE_REF' and head-ref '$HEAD_REF' are the same commit ($base)," >&2
+            echo "so a dependency review would compare nothing and report success." >&2
+            echo "Dispatch again with base-ref set to an earlier tag or SHA (say the last release)." >&2
+            exit 1
+          fi
+          echo "Reviewing dependency changes from $base to $head."
 
       # This job is `workflow_dispatch`-only, and on a manual run the action
       # cannot derive either ref from the event payload: `getRefs` throws when
       # neither is supplied and neither a pull_request nor a push context
-      # exists. So both refs are passed explicitly.
-      #
-      # Without inputs, base is the default branch and head is the dispatched
-      # commit. Dispatched from the default branch, those are the same commit
-      # and the review compares nothing: an empty result is not a clean scan.
-      # For a real review, pass `base-ref` (an earlier tag or SHA, say the last
-      # release) so the diff covers the dependency changes since then.
+      # exists. So both refs are passed explicitly, the same two the step
+      # above checked.
       - name: Review dependencies
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
         with:
@@ -117,7 +147,6 @@ jobs:
           # summary without blocking — this is a solo project and a blocking
           # gate nobody can override becomes a gate somebody disables.
           fail-on-severity: high
-          comment-summary-in-pr: on-failure
           # Copyleft licences would be a problem for App Store distribution.
           # Zip arrives transitively through polar-ble-sdk, so a licence
           # change upstream is a thing worth being told about.

@@ -1,0 +1,420 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift",
+ "hash": "7120bcf43dbc07b3",
+ "role": "Tap-to-talk dictation for the chat input bar: Apple SFSpeechRecognizer (on-device required) fed from an AVAudioEngine tap, with audio-session claims via AudioSessionCoordinator.",
+ "types": [
+  "SpeechInputManager: final class (@Observable @MainActor) — one dictation recorder owned by ChatInputBar @State",
+  "SpeechInputManager.SpeechError: enum LocalizedError — micDenied/speechDenied/unavailable"
+ ],
+ "state": [
+  "mem:SpeechInputManager.transcript/isRecording/lastError (@Observable)",
+  "mem:SpeechInputManager.isStarting (@ObservationIgnored: start() suspended on permissions)",
+  "mem:SpeechInputManager.engine (lazy AVAudioEngine)",
+  "mem:AudioSessionCoordinator claim .dictation"
+ ],
+ "toplevel": "engine is a lazy AVAudioEngine created on first start().",
+ "flags": [],
+ "units": [
+  {
+   "key": "init SpeechInputManager()",
+   "hash": "2af44fbdd134f45d",
+   "does": "Creates an SFSpeechRecognizer for the app locale, falling back to en-US when that locale is unsupported.",
+   "entry": "ChatInputBar @State initializer",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "SFSpeechRecognizer(locale: appLocale) returns nil",
+     "effect": "fallback to en-US recognizer (non-English speaker gets English recognition)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var SpeechInputManager.isAvailable",
+   "hash": "32f1e314a9fc5e2e",
+   "does": "True when the recognizer exists, is available and supports on-device recognition.",
+   "entry": "read by start() before building the request",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recognizer nil or unavailable",
+     "effect": "false; else supportsOnDeviceRecognition"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SpeechInputManager.start()",
+   "hash": "d385273a2a3d89dd",
+   "does": "Ignores a tap while recording or while an earlier start() is still waiting on permissions (isStarting); requests speech+mic permission, requires isAvailable (recognizer available AND on-device recognition supported, since the request sets requiresOnDeviceRecognition), builds an on-device partial-results buffer request, claims the audio session and starts the engine, resets transcript/lastError, sets isRecording and starts the recognition task.",
+   "entry": "mic button tap in ChatInputBar.toggleDictation (AssistantChatSupport.swift:264)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)",
+    "ext:SFSpeechRecognizer.recognitionTask"
+   ],
+   "reads": [
+    "mem:SpeechInputManager.isRecording",
+    "mem:SpeechInputManager.isStarting"
+   ],
+   "writes": [
+    "mem:SpeechInputManager.isRecording",
+    "mem:SpeechInputManager.isStarting",
+    "mem:SpeechInputManager.transcript",
+    "mem:SpeechInputManager.lastError"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "already recording or a start is in progress",
+     "effect": "return"
+    },
+    {
+     "at": "+3",
+     "cond": "defer",
+     "effect": "isStarting cleared on every exit, thrown or not"
+    },
+    {
+     "at": "+5",
+     "cond": "recognizer nil, unavailable or without on-device support",
+     "effect": "throw SpeechError.unavailable (shown in alert)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)": "41c9c42700dbc6a3",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)": "9d38175052529545",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()": "aa6d1a9d8b0e3721",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable": "a64517e452b41ad5"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)",
+   "hash": "f45bfa645ecc865c",
+   "does": "Claims .dictation/.voiceRecord on the coordinator, activates AVAudioSession and starts the engine; on any error releases the claim and rethrows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.startEngine(appendingTo:)",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()",
+    "ext:AVAudioSession.setActive"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "setActive or startEngine throws",
+     "effect": "releaseSessionIfIdle then rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "549ce264679b3059",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.startEngine(appendingTo:)": "213bbf0694d9554f",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.startEngine(appendingTo:)",
+   "hash": "9e083d6075da340e",
+   "does": "Resets engine, removes stale tap, installs a 1024-frame tap appending to the request, prepares and starts the engine via SafeObjC wrappers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resetEngineAndReadFormat(_:)",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.tapBlock(appendingTo:)",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.removeTapAndFail(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "tap install failed",
+     "effect": "throw SpeechError.unavailable"
+    },
+    {
+     "at": "+9",
+     "cond": "prepare failed",
+     "effect": "remove tap, throw unavailable"
+    },
+    {
+     "at": "+11",
+     "cond": "start failed",
+     "effect": "remove tap, throw unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.removeTapAndFail(_:)": "6a7f3d20c389e3be",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resetEngineAndReadFormat(_:)": "20f943d010bc12e7",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.tapBlock(appendingTo:)": "d0b58006e95944d1",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap": "7e6c68b98e72edff",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine": "22735babeeafa906",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine": "2fd985820cf7bd86"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.tapBlock(appendingTo:)",
+   "hash": "8b2f1fe243428769",
+   "does": "Builds a nonisolated tap closure that appends each buffer to the (weak) recognition request.",
+   "entry": "closure invoked by AVAudioEngine on its audio thread",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SpeechInputManager.resetEngineAndReadFormat(_:)",
+   "hash": "d25bba9d20448248",
+   "does": "Stops the engine, removes tap, resets engine (all via SafeObjC, errors ignored) and returns the input node's current output format.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineReset"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineReset": "de1302811e9b0894",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.removeTapAndFail(_:)",
+   "hash": "953652545cc77bea",
+   "does": "Removes the tap (best effort) and returns SpeechError.unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.handleRecognition(result:error:)",
+   "hash": "6c8a6fe8fd11f252",
+   "does": "Recognition callback: publishes the best transcription to transcript on the main actor; a non-benign error (not 203/216/301) ends the recording on the main actor via endRecording(failure:).",
+   "entry": "SFSpeechRecognitionTask result handler",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.transcript"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result present",
+     "effect": "set transcript on MainActor"
+    },
+    {
+     "at": "+5",
+     "cond": "error nil or code 203/216/301",
+     "effect": "return; else endRecording(failure:) with the error text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)": "a8439667d3c00fd8"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.endRecording(failure:)",
+   "hash": "0fc1b8913825a6c5",
+   "does": "Stores the failure text in lastError and calls stop(), which turns the mic off, releases the audio claim, clears isRecording and keeps the transcript so far.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.lastError",
+    "mem:SpeechInputManager.isRecording",
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "241347482ec4b62f"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.stop()",
+   "hash": "88dca47ee8b37ec2",
+   "does": "If recording: removes tap, stops engine, ends audio, finishes task, releases the session if idle, clears isRecording and returns transcript; otherwise returns current transcript.",
+   "entry": "mic button tap while recording",
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.isRecording",
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not recording",
+     "effect": "return transcript without touching audio"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "549ce264679b3059",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.cancel()",
+   "hash": "a1c96f7d0c64ee89",
+   "does": "Removes tap, stops engine, ends audio, cancels task, releases session if idle, clears transcript and isRecording.",
+   "entry": "ChatInputBar.stopDictationIfRecording (view disappear/send)",
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.transcript",
+    "mem:SpeechInputManager.isRecording",
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "549ce264679b3059",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.releaseSessionIfIdle()",
+   "hash": "13c09d98343e0ee2",
+   "does": "Releases the .dictation claim and deactivates AVAudioSession only when no other claimant remains (errors ignored).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()",
+    "ext:AVAudioSession.setActive(false)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "other claims still active",
+     "effect": "return without deactivating; else deactivate with notifyOthersOnDeactivation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "2b1ef60dc554e6ae",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "var SpeechInputManager.SpeechError.errorDescription",
+   "hash": "2e5ab16cf31aa6fe",
+   "does": "Localized message per SpeechError.",
+   "entry": "LocalizedError witness (shown in dictation alert)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .micDenied",
+     "effect": "mic-off message"
+    },
+    {
+     "at": "+3",
+     "cond": "case .speechDenied",
+     "effect": "speech-off message"
+    },
+    {
+     "at": "+4",
+     "cond": "case .unavailable",
+     "effect": "on-device unavailable message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.requestPermissions()",
+   "hash": "5f66896e3476924f",
+   "does": "Requests speech recognition authorization then microphone permission; throws speechDenied/micDenied when refused.",
+   "entry": null,
+   "calls": [
+    "ext:SFSpeechRecognizer.requestAuthorization",
+    "ext:AVAudioApplication.requestRecordPermission"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "speech status != authorized",
+     "effect": "throw speechDenied"
+    },
+    {
+     "at": "+13",
+     "cond": "mic not granted",
+     "effect": "throw micDenied"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,138 @@
+{
+ "file": "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift",
+ "hash": "edf6d254b92eb4da",
+ "role": "Grok-only workarounds used by the tool-use loop: retry with a nudge when Grok announces a tool call without emitting one, and substitute a fallback message when a Grok turn ends blank or announce-only. Also the ChatTurn.roleSymbol UI helper.",
+ "types": [
+  "GrokQuirkPolicy: struct (@MainActor) — per-turn Grok quirk state (owner, provider, turnID, retry counter)",
+  "ChatTurn: extension — roleSymbol for chat bubble"
+ ],
+ "state": [
+  "mem:GrokQuirkPolicy.announceWithoutCallRetries (per-instance, max 2)",
+  "mem:GrokQuirkPolicy.nudgeText (static string)"
+ ],
+ "toplevel": "maxAnnounceWithoutCallRetries = 2 and the static nudgeText are stored-property initializers; instances are created once per tool-use loop at AssistantViewModel+Tools.swift:63.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init GrokQuirkPolicy(owner:provider:turnID:)",
+   "hash": "b4128da94d493b66",
+   "does": "Memberwise init storing owner view model, provider and the assistant turn id.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)",
+   "hash": "a56c84978b533fe2",
+   "does": "After a text-only round: computes the round's new text for the live turn; if provider is Grok, under 2 retries, text looks like an announce-without-call, and the last outbound user turn asked for live data, increments the retry count, rewinds the buffer to round start and returns a synthetic user nudge turn; else nil. Called from AssistantToolRunner.runToolUseLoop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.lastUserAskedForLiveData(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "mem:GrokQuirkPolicy.announceWithoutCallRetries",
+    "mem:AssistantViewModel.turns"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "liveTurnIndex(for: turnID) resolves",
+     "effect": "true: roundText = turn text after roundStartTextLen; nil (turn gone): ?? '' empty string"
+    },
+    {
+     "at": "+7",
+     "cond": "provider is .grok AND retries < 2 AND announce pattern AND last user turn exists AND it asked for live data",
+     "effect": "false: returns nil (normal exit); true: retry++, log, rewind, return nudge ChatTurn"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.lastUserAskedForLiveData(_:)": "fd11b96f3d140762",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "6f12300ab9e33386",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "9615c9c70ebcdbdd",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()",
+   "hash": "10bfb80376e304c1",
+   "does": "At normal end of a turn: for Grok only, if the live turn's trimmed text is empty or looks like an announce-without-call, replaces it with a localized 'Sorry — I didn't finish that answer' message and saves the conversation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "file:conversation.json"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "provider is .grok AND live turn index resolves",
+     "effect": "false: return; true: continue"
+    },
+    {
+     "at": "+8",
+     "cond": "text empty OR announce pattern",
+     "effect": "true: substitute fallback text, save, warn-log; false: leave text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "6f12300ab9e33386",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var ChatTurn.roleSymbol",
+   "hash": "00a8c81cea138480",
+   "does": "Returns 'person.fill' for user turns, else the turn's providerID symbol or 'sparkles' when providerID is nil.",
+   "entry": "Read by ChatBubble body (ChatBubble.swift:226)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "role == .user",
+     "effect": "true: 'person.fill'; false: provider symbol"
+    },
+    {
+     "at": "+1",
+     "cond": "providerID?.symbolName ?? 'sparkles'",
+     "effect": "'sparkles' used when the assistant turn has no providerID (e.g. local guard/deterministic replies)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName": "66f4ed752cc89e1b"
+   }
+  }
+ ],
+ "deps": {}
+}

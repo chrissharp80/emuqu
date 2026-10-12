@@ -1,0 +1,496 @@
+{
+ "file": "EmuquTests/SessionAcceptanceQualityTests.swift",
+ "hash": "07070b79f5539ec9",
+ "role": "Tests SessionAcceptanceService.classifyHRVQuality, which decides whether a night's HRV is trusted (.good) or replaced by the baseline (.preSleep/.insufficient), across its four rules and duration/window boundaries.",
+ "types": [
+  "SessionAcceptanceQualityTests: class (@MainActor) — XCTestCase for HRV quality classification"
+ ],
+ "state": [
+  "mem:SessionAcceptanceQualityTests.start (fixed Date 1_700_000_000)"
+ ],
+ "toplevel": "Private let start is the recording start for every fixture.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionAcceptanceQualityTests.baseline(rmssd:)",
+   "hash": "c95774efc6d222a4",
+   "does": "Builds RecoveryBaselineStats whose exp(lnRmssdMean) equals rmssd (SD 0.2, HR 55±3, 30 days).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.result(rmssd:windowMs:organizedRecovery:)",
+   "hash": "bcce22ed3a2cd12d",
+   "does": "Builds an HRVAnalysisResult with the given RMSSD (derived SDNN/SD1/SD2), isOrganizedRecovery flag, and optional analysis window 0...windowMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+24",
+     "cond": "windowMs is non-nil",
+     "effect": "sets windowStartMs 0 and windowEndMs windowMs; else leaves them nil so the classifier uses session duration"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+   "hash": "59546c9c5ff787be",
+   "does": "Builds HealthKit SleepData spanning fromHour..toHour after start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+   "hash": "aeebae33bf5b0f12",
+   "does": "Runs classifyHRVQuality on a fixture result (default 10-min window, organized recovery true), optional baseline, recording start..start+durationHours.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.result(rmssd:windowMs:organizedRecovery:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.baseline(rmssd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.baseline(rmssd:)": "985554b47af8cec3",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.result(rmssd:windowMs:organizedRecovery:)": "211f9a3fe085dd1b"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testOvernightAboveBaselineIsTrusted()",
+   "hash": "d26d0623ee820f4a",
+   "does": "Asserts 8 h, RMSSD 55 > baseline 45, overlapping sleep → .good, not using baseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testLongSessionBelowBaselineIsStillTrusted()",
+   "hash": "77aa55aea753deb5",
+   "does": "Asserts 8 h, RMSSD 30 < baseline 45 → .good (long enough to trust).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testShortSessionAtOrAboveBaselineIsTrusted()",
+   "hash": "5e5dff52d718345b",
+   "does": "Asserts 1 h with RMSSD equal to baseline → .good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The 'at baseline' case is not at baseline: the classifier compares rmssd 45 against exp(log(45)), which in IEEE double is 44.99999999999999, so the test exercises 'slightly above baseline'. If exp(log(x)) rounded up instead, rmssd < baselineRmssd would hold and the 1 h session would classify .insufficient; the equality boundary (rmssd >= baselineRmssd) is never actually tested.",
+     "evidence": [
+      "EmuquTests/SessionAcceptanceQualityTests.swift:29",
+      "EmuquTests/SessionAcceptanceQualityTests.swift:127",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:71",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:80"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testRecordingBeforeSleepFallsBackToBaseline()",
+   "hash": "317e37b359deb3ea",
+   "does": "Asserts a 1 h recording ending before sleep starts (hour 3) → .preSleep, use baseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testRecordingAfterSleepFallsBackToBaseline()",
+   "hash": "5e799d7e310f2e83",
+   "does": "Asserts a 1 h recording after sleep ended → .preSleep, use baseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testMissingSleepDataIsTreatedAsOverlapping()",
+   "hash": "c1c31edc4171c8e1",
+   "does": "Asserts nil sleep data counts as overlapping → .good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testShortAnalysisWindowBelowBaselineIsInsufficient()",
+   "hash": "4381388b365f5cdc",
+   "does": "Asserts a 60 s analysis window with RMSSD below baseline → .insufficient, use baseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testShortAnalysisWindowAboveBaselineIsStillTrusted()",
+   "hash": "fd6aaf173466e4b3",
+   "does": "Asserts a 60 s window with RMSSD above baseline → .good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testNoOrganizedRecoveryInShortSessionBelowBaselineIsInsufficient()",
+   "hash": "250a38bef07ed65f",
+   "does": "Asserts a 1 h session without organized recovery and RMSSD below baseline → .insufficient.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testShortSessionBelowBaselineIsAmbiguous()",
+   "hash": "977f0bef82e78d82",
+   "does": "Asserts a 1 h overlapping session with organized recovery but RMSSD below baseline → .insufficient (rule 4).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testWithoutABaselineNothingIsBelowIt()",
+   "hash": "0b5dd93e9843ebfe",
+   "does": "Asserts with no baseline (treated as 0) a 30 min, 30 s-window, non-organized reading → .good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testThreeHourSessionIsLongEnoughToTrust()",
+   "hash": "58b66433adce2603",
+   "does": "Asserts exactly 3 h (10,800 s) with RMSSD below baseline → .good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testJustUnderThreeHoursBelowBaselineIsNotTrusted()",
+   "hash": "f6b7495d1270dea6",
+   "does": "Asserts 2.99 h with RMSSD below baseline → .insufficient.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceQualityTests.testFiveMinuteWindowIsTheReliabilityBoundary()",
+   "hash": "ee88f176f521eee3",
+   "does": "Asserts a 300,000 ms window with RMSSD below baseline over 8 h → .good (boundary is <).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt (debugLog lines from classifyHRVQuality)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.classify(rmssd:baselineRmssd:durationHours:windowMs:organizedRecovery:sleepData:)": "b3e25f938909f7aa",
+    "EmuquTests/SessionAcceptanceQualityTests.swift::func SessionAcceptanceQualityTests.sleep(fromHour:toHour:)": "5acd7233c3b4de76"
+   }
+  }
+ ],
+ "deps": {}
+}

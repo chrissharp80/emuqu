@@ -117,6 +117,11 @@ final class HistoryViewModel {
     /// any actor context can invoke without isolation churn. Inputs
     /// are all Sendable value types (or already-resolved snapshots
     /// from the main actor).
+    ///
+    /// Dedup picks one row per night first; the filters then run over every
+    /// entry, and a row is kept when it or any entry folded into it matches.
+    /// Filtering only the rows lost a night whose hidden segment matched while
+    /// its winner did not.
     nonisolated private static func computeFiltered(
         entries: [SessionArchiveEntry],
         typeFilter: SessionType?,
@@ -125,32 +130,50 @@ final class HistoryViewModel {
         schedule: SleepSchedule
     ) -> (sorted: [SessionArchiveEntry], linkedSegmentCounts: [UUID: Int]) {
         let entryById = Dictionary(entries.map { ($0.sessionId, $0) }, uniquingKeysWith: { first, _ in first })
-        let idsToHide = chainDuplicateIds(entries: entries, entryById: entryById)
-        var result = entries.filter { !idsToHide.contains($0.sessionId) }
-        result = collapseSameNightOvernightDuplicatesStatic(result, entryById: entryById, schedule: schedule)
-        result = applyFilters(result, typeFilter: typeFilter, tagFilter: tagFilter, searchText: searchText)
-        let sorted = result.sorted { $0.displayDate > $1.displayDate }
+        let chainHidden = chainHiddenToWinner(entries: entries, entryById: entryById)
+        let afterChains = entries.filter { chainHidden[$0.sessionId] == nil }
+        let nightHidden = sameNightHiddenToWinner(afterChains, entryById: entryById, schedule: schedule)
+        let hiddenToWinner = chainHidden.merging(nightHidden) { first, _ in first }
+        let matching = applyFilters(entries, typeFilter: typeFilter, tagFilter: tagFilter, searchText: searchText)
+        let matchedRows = Set(matching.map { shownRow(for: $0.sessionId, hiddenToWinner: hiddenToWinner) })
+        let sorted = afterChains
+            .filter { nightHidden[$0.sessionId] == nil && matchedRows.contains($0.sessionId) }
+            .sorted { $0.displayDate > $1.displayDate }
         let counts = computeLinkedSegmentCountsStatic(for: sorted, entryById: entryById)
         return (sorted, counts)
     }
 
-    /// Every entry in a linked chain except the chain's winner. A split night
-    /// arrives as several linked segments; History shows one row for it.
-    nonisolated private static func chainDuplicateIds(
+    /// The row an entry is shown under: itself, or the winner it was folded
+    /// into (a chain winner can itself fold into a same-night winner). The
+    /// step bound stops a malformed map from looping.
+    nonisolated private static func shownRow(for id: UUID, hiddenToWinner: [UUID: UUID]) -> UUID {
+        var current = id
+        var steps = 0
+        while let next = hiddenToWinner[current], steps < hiddenToWinner.count {
+            current = next
+            steps += 1
+        }
+        return current
+    }
+
+    /// Every entry in a linked chain except the chain's winner, mapped to that
+    /// winner. A split night arrives as several linked segments; History shows
+    /// one row for it.
+    nonisolated private static func chainHiddenToWinner(
         entries: [SessionArchiveEntry], entryById: [UUID: SessionArchiveEntry]
-    ) -> Set<UUID> {
+    ) -> [UUID: UUID] {
         var visited: Set<UUID> = []
-        var idsToHide: Set<UUID> = []
+        var hidden: [UUID: UUID] = [:]
         for entry in entries {
             guard let linked = entry.linkedSessionIds, !linked.isEmpty,
                   !visited.contains(entry.sessionId) else { continue }
             let chain = chainFrom(entry, entryById: entryById, visited: &visited)
             guard chain.count > 1, let winner = chainWinner(chain) else { continue }
             for member in chain where member.sessionId != winner.sessionId {
-                idsToHide.insert(member.sessionId)
+                hidden[member.sessionId] = winner.sessionId
             }
         }
-        return idsToHide
+        return hidden
     }
 
     /// Breadth-first walk of one link chain, marking everything it reaches as
@@ -175,12 +198,13 @@ final class HistoryViewModel {
         return chain
     }
 
-    /// Highest recovery score wins; ties break to the later end date, then the
-    /// later start, so the choice is stable across recomputes.
+    /// Highest recovery score wins, and any real score (0 included) beats no
+    /// score; ties break to the later end date, then the later start, so the
+    /// choice is stable across recomputes.
     nonisolated private static func chainWinner(_ chain: [SessionArchiveEntry]) -> SessionArchiveEntry? {
         chain.max { a, b in
-            let scoreA = a.recoveryScore ?? 0
-            let scoreB = b.recoveryScore ?? 0
+            let scoreA = a.recoveryScore ?? -Double.infinity
+            let scoreB = b.recoveryScore ?? -Double.infinity
             if scoreA != scoreB { return scoreA < scoreB }
             let aEnd = a.endDate ?? .distantPast
             let bEnd = b.endDate ?? .distantPast
@@ -273,25 +297,27 @@ final class HistoryViewModel {
         }
     }
 
-    nonisolated private static func collapseSameNightOvernightDuplicatesStatic(
+    /// Scoreless same-night overnight duplicates, each mapped to the entry
+    /// that wins its cluster.
+    nonisolated private static func sameNightHiddenToWinner(
         _ entries: [SessionArchiveEntry],
         entryById: [UUID: SessionArchiveEntry],
         schedule: SleepSchedule
-    ) -> [SessionArchiveEntry] {
+    ) -> [UUID: UUID] {
         let overnightEntries = entries.filter { $0.sessionType == .overnight }
-        guard overnightEntries.count > 1 else { return entries }
+        guard overnightEntries.count > 1 else { return [:] }
         let grouped = Dictionary(grouping: overnightEntries) { entry in
             schedule.overnightWindowStart(relativeTo: entry.endDate ?? entry.date)
         }
-        var idsToHide: Set<UUID> = []
+        var hidden: [UUID: UUID] = [:]
         for (_, group) in grouped where group.count > 1 {
-            idsToHide.formUnion(sameNightHiddenIds(group: group, entryById: entryById))
+            hidden.merge(sameNightHiddenIds(group: group, entryById: entryById)) { first, _ in first }
         }
-        guard !idsToHide.isEmpty else { return entries }
-        return entries.filter { !idsToHide.contains($0.sessionId) }
+        return hidden
     }
 
-    /// The losers of every duplicate cluster within one night's group.
+    /// The losers of every duplicate cluster within one night's group, each
+    /// mapped to its cluster's winner.
     ///
     /// NEVER hide a same-night session that carries a real
     /// recovery score. The collapse exists to fold empty sync/placeholder
@@ -301,19 +327,19 @@ final class HistoryViewModel {
     /// show both rather than silently dropping one.
     nonisolated private static func sameNightHiddenIds(
         group: [SessionArchiveEntry], entryById: [UUID: SessionArchiveEntry]
-    ) -> Set<UUID> {
+    ) -> [UUID: UUID] {
         let byId = Dictionary(group.map { ($0.sessionId, $0) }, uniquingKeysWith: { first, _ in first })
         var visited: Set<UUID> = []
-        var idsToHide: Set<UUID> = []
+        var hidden: [UUID: UUID] = [:]
         for seed in group where !visited.contains(seed.sessionId) {
             let component = duplicateComponent(seed: seed, group: group, byId: byId, visited: &visited)
             guard component.count > 1,
                   let winner = overnightWinner(component, entryById: entryById) else { continue }
             for entry in component where entry.sessionId != winner.sessionId && entry.recoveryScore == nil {
-                idsToHide.insert(entry.sessionId)
+                hidden[entry.sessionId] = winner.sessionId
             }
         }
-        return idsToHide
+        return hidden
     }
 
     /// Breadth-first walk over "looks like the same night" edges, starting at

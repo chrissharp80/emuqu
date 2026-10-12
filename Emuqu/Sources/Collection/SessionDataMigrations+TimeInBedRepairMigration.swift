@@ -30,8 +30,9 @@ extension SessionDataMigrations {
     }
 
     /// Whether the night's stored time in bed was corrected.
+    /// The night is decoded off the main actor, as the other migrations read.
     private func repairTimeInBed(_ entry: SessionArchiveEntry) async -> Bool {
-        guard var session = archive.retrieveOrLog(entry.sessionId, caller: "TimeInBedRepair"),
+        guard var session = await retrieveOffMain(entry.sessionId, caller: "TimeInBedRepair"),
               let snapshot = session.sleepSnapshot,
               snapshot.timeInBedIsSleepPlusAwake,
               snapshot.inBedMinutes != snapshot.nightSleepMinutes + snapshot.awakeMinutes

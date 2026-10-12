@@ -1,0 +1,402 @@
+{
+ "file": "EmuquTests/StateSnapshotTests.swift",
+ "hash": "157b2543f6988156",
+ "role": "Snapshot tests for every ScoreRing state and verdict tier, the inline size, morning/workout feeling prompts, and the privacy policy and help center screens.",
+ "types": [
+  "StateSnapshotTests: class — @MainActor XCTestCase snapshotting ScoreRing states and static screens"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StateSnapshotTests.hosted(_:)",
+   "hash": "c817f9f364e9a427",
+   "does": "Wraps a view in .environment(RRCollector()) and .environment(SettingsManager.shared).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same private hosted(_:) helper (.environment(RRCollector()).environment(SettingsManager.shared)) is copied into about ten snapshot suites (Card, RemainingScreen, ChartScreen, BigScreen, SleepChart, State, Page, Overnight, DashboardChip, DetailScreen), although SnapshotFixtures says it is centralised so suites do not each grow their own copy.",
+     "evidence": [
+      "EmuquTests/StateSnapshotTests.swift:18",
+      "EmuquTests/SleepChartSnapshotTests.swift:12",
+      "EmuquTests/CardSnapshotTests.swift:15",
+      "EmuquTests/SnapshotFixtures.swift:13"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testScoreRingDefaultRenders()",
+   "hash": "29bdd31ea40a9189",
+   "does": "Snapshots ScoreRing .default(score 78, good) at hero size against 'ring-default'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-default.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testScoreRingLoadingRenders()",
+   "hash": "b25111e66e0097e4",
+   "does": "Snapshots ScoreRing .loading at hero size against 'ring-loading'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-loading.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testScoreRingBuildingBaselineRenders()",
+   "hash": "4460e5a88b83ea79",
+   "does": "Snapshots ScoreRing .buildingBaseline(day 4 of 14) against 'ring-building-baseline'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-building-baseline.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testScoreRingNoDataRenders()",
+   "hash": "676976a2cff63892",
+   "does": "Snapshots ScoreRing .noData against 'ring-no-data'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-no-data.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testScoreRingErrorRenders()",
+   "hash": "127d2297167d1f4f",
+   "does": "Snapshots ScoreRing .error('Couldn't read sleep') against 'ring-error'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-error.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testVerdictExcellentRenders()",
+   "hash": "2f615576ba7462f3",
+   "does": "Snapshots a card-size ring with verdict .excellent at score 50 against 'ring-verdict-excellent'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-verdict-excellent.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testVerdictGoodRenders()",
+   "hash": "e9f8015f588cb7a7",
+   "does": "Snapshots verdict .good at score 50 against 'ring-verdict-good'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-verdict-good.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testVerdictFairRenders()",
+   "hash": "79f701f10a8d3b54",
+   "does": "Snapshots verdict .fair at score 50 against 'ring-verdict-fair'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-verdict-fair.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testVerdictPayAttentionRenders()",
+   "hash": "9c60f5fc2fae66f4",
+   "does": "Snapshots verdict .payAttention at score 50 against 'ring-verdict-pay-attention'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-verdict-pay-attention.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testVerdictLowRenders()",
+   "hash": "78bb3172d2f38a21",
+   "does": "Snapshots verdict .low at score 50 against 'ring-verdict-low'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-verdict-low.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testVerdictVeryLowRenders()",
+   "hash": "f663e767e99e1e24",
+   "does": "Snapshots verdict .veryLow at score 50 against 'ring-verdict-very-low'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-verdict-very-low.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testScoreRingInlineSizeRenders()",
+   "hash": "a734ff9c3d362d65",
+   "does": "Snapshots .default(61, fair) at inline size against 'ring-inline'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/ring-inline.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testMorningFeelingPromptRenders()",
+   "hash": "abfadc7d78fffe34",
+   "does": "Snapshots MorningFeelingPrompt with no existing answer against 'prompt-morning-feeling'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/prompt-morning-feeling.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "d14acdcecf147514",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testWorkoutFeelingPromptRenders()",
+   "hash": "4bbd483c318374e2",
+   "does": "Snapshots WorkoutFeelingPrompt with existing 3 and note 'Heavy legs' against 'prompt-workout-feeling'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/prompt-workout-feeling.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.body": "c6782fbfbaa010bd",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testPrivacyPolicyRenders()",
+   "hash": "a0104776cba50d11",
+   "does": "Snapshots PrivacyPolicyView in a NavigationStack (not hosted) against 'screen-privacy-policy'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/screen-privacy-policy.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "5f196c1466c5c7b8",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func StateSnapshotTests.testHelpCenterRenders()",
+   "hash": "a25a718a747850a3",
+   "does": "Puts SettingsManager.shared on fresh-install defaults for the test (useDefaultSettings, so the age-dependent category list does not follow the host's settings) and snapshots HelpCenterView in a NavigationStack against 'screen-help-center'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/screen-help-center.raw",
+    "mem:SettingsManager.shared.settings.age"
+   ],
+   "writes": [
+    "mem:SettingsManager.shared.settings (UserSettings() for the test, restored by a teardown block; the didSet saves to the host's settings file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()": "b289c4ded5db282b",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.body": "6f53898c6a2f3bfe",
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()": "757ca3e9f00039f6",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
+   }
+  }
+ ],
+ "deps": {}
+}

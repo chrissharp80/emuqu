@@ -1,0 +1,66 @@
+{
+ "file": "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift",
+ "hash": "c9d5aeafe287265a",
+ "role": "One-shot TRIMP repair migration that delegates to ReanalysisService.repairTrainingSnapshots for all complete analysed sessions when training-load integration is on.",
+ "types": [
+  "SessionDataMigrations: extension — TRIMP repair migration"
+ ],
+ "state": [
+  "ud:didRunTrimpRepairMigration_v1 (standard suite; static trimpRepairMigrationKey)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "docs/FLOWCHART.md says the Troubleshooting button is the \"Only manual trigger for repairTrainingSnapshots\" and lists it as user-action-required, but this migration calls it automatically at launch.",
+   "evidence": [
+    "docs/FLOWCHART.md:939",
+    "docs/FLOWCHART.md:787",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift:34"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
+   "hash": "84673e72750b41fe",
+   "does": "If the flag is unset: when training-load integration is off sets the flag and returns; otherwise loads all sessions and runs repairTrainingSnapshots over them (it picks its own candidates — complete, analysed sessions — and does nothing without any), then sets the flag and logs the result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:didRunTrimpRepairMigration_v1",
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "ud:didRunTrimpRepairMigration_v1",
+    "archive:ReanalysisService.repairTrainingSnapshots (trainingSnapshot, analysisResult.trainingContext, frozenReadiness; uploads)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "flag already set",
+     "effect": "return"
+    },
+    {
+     "at": "+3",
+     "cond": "enableTrainingLoadIntegration is false",
+     "effect": "set flag, log, return (never repaired even if later enabled)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cac4e6c121467606",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

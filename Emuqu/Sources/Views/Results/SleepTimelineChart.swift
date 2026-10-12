@@ -91,6 +91,12 @@ struct SleepTimelineChart: View {
         }
     }
 
+    /// The stages with a label and a grid line.
+    private var gridStages: [HealthKitManager.SleepStage] {
+        let staged: [HealthKitManager.SleepStage] = [.awake, .rem, .core, .deep]
+        return stageIntervals.contains { $0.stage == .unspecified } ? staged + [.unspecified] : staged
+    }
+
     /// Y-axis labels, each centred on its stage's grid line.
     private var stageLabels: some View {
         ZStack(alignment: .topTrailing) {
@@ -143,9 +149,9 @@ struct SleepTimelineChart: View {
         let w = size.width
         guard !sorted.isEmpty else { return }
 
-        // Horizontal grid lines (subtle)
+        // Subtle grid lines, one under each stage label (`gridStages`).
         let gridColor = Color.gray.opacity(0.15)
-        for depth in [0.0, 0.33, 0.60, 1.0] as [CGFloat] {
+        for depth in gridStages.map(SleepStageColors.depth) {
             let y = topPad + depth * drawHeight
             var line = Path()
             line.move(to: CGPoint(x: 0, y: y))
@@ -233,8 +239,8 @@ struct SleepTimelineChart: View {
         context: GraphicsContext,
         width: CGFloat
     ) {
-        // `1 ..< 0` traps when there are no staged intervals — the common
-        // case for a strap-only user with no watch.
+        // `drawSession` never passes an empty run, but the loop guards its
+        // own range: `1 ..< 0` would trap.
         guard intervals.count > 1 else { return }
         for i in 1 ..< intervals.count {
             let y1 = yForStage(intervals[i - 1].stage)

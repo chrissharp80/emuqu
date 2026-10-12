@@ -1,0 +1,284 @@
+{
+ "file": "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift",
+ "hash": "66bcac1fb167ee95",
+ "role": "Rebuilds a session from its raw RR backup (optionally merged with its pause/resume parent): analysis, overnight/quick classification, frozen score stamping, archive + cloud upload; and recovery of an interrupted recording into a paused archived session.",
+ "types": [
+  "SessionRecoveryService: extension — backup recovery and paused-state recovery"
+ ],
+ "state": [
+  "mem:SessionRecoveryService.minBeatsForOvernight = 4000",
+  "mem:SessionRecoveryService.minDurationSecForOvernight = 3600"
+ ],
+ "toplevel": "Two private static thresholds for overnight classification (SessionRecoveryService+Backup.swift:105-106).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionRecoveryService.recoverFromBackup(_:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)",
+   "hash": "522bb55fb9fd6e9e",
+   "does": "Recovers sessionId from its backup: builds an HRVSession (.collecting, type from recoveredSessionType) from the parent-merged backup, runs windowed analysis, returns nil if analysis produced nothing; otherwise applies same-night supersede links, stamps a frozen recovery score, archives it (marking the backup archived and uploading to iCloud) and returns it, or nil if archiving failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.archiveRecovered(_:sessionId:)",
+    "closure:analyze / analyzeWithCapacity → collector.analyze (RRCollector+MorningForwarding.swift:60/67), set by SessionRecoveryCoordinator.recoverHRVFromBackup (RRCollector+BackupRecovery.swift:94)",
+    "closure:supersedeSameNight → collector.supersedeSameNightSession (RRCollector+MorningForwarding.swift:46)",
+    "closure:computeRecoveryScore → SessionRecoveryCoordinator.enrichedRecoveryScore (RRCollector+BackupRecovery.swift:117); default returns nil"
+   ],
+   "reads": [
+    "file:raw RR backup (RawRRBackup)",
+    "archive:entries/retrieve (parent)"
+   ],
+   "writes": [
+    "archive:archive(session)",
+    "file:raw RR backup archived marker",
+    "ck:session upload",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "no backup retrievable",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+30",
+     "cond": "analysisResult non-nil",
+     "effect": "state .complete; else .failed"
+    },
+    {
+     "at": "+31",
+     "cond": "state != .complete (analysis failed)",
+     "effect": "returns nil; nothing archived, backup stays eligible"
+    },
+    {
+     "at": "+35",
+     "cond": "archiveRecovered returned false",
+     "effect": "returns nil (archive failed, logged at error)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.archiveRecovered(_:sessionId:)": "12a86b60276292a8",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "45394fb8372e0857",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)": "1bb74c3f0e70eeaa",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "13757a1f1ddf87a0",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)": "cb9e8d1790773ee8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+   "hash": "0a663659c0ea85de",
+   "does": "Classifies a recovered backup: .overnight only if it has ≥4000 beats and spans ≥3600 s from sessionStart to endDate (endDate nil → 0 s); otherwise logs and returns .quick.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "endDate nil (??)",
+     "effect": "uses sessionStart, duration 0 → .quick"
+    },
+    {
+     "at": "+7",
+     "cond": "beats < 4000 or duration < 3600 s",
+     "effect": "logs and returns .quick; else .overnight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "c666a40e2d461b9f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.describeSeconds(_:)",
+   "hash": "a2c49d73a5aefd5e",
+   "does": "Formats seconds as an integer string, or \"unknown\" for non-finite or out-of-Int-range values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "non-finite or outside Int range",
+     "effect": "returns \"unknown\"; else String(Int(seconds))"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)",
+   "hash": "07a63935e33595ca",
+   "does": "Computes the recovery score via the injected closure; if non-nil stamps recoveryScore, scoreBreakdown, sleep/vitals snapshots (overnight only), writes the training context the score used back onto analysisResult (and into trainingSnapshot when the session has none), then frozenReadiness from the composite and that training context; if nil only logs a warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampSnapshots(from:on:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
+    "closure:computeRecoveryScore (see recoverFromBackup)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HRVSession.recoveryScore/scoreBreakdown/frozenReadiness (inout)",
+    "mem:HRVSession.analysisResult.trainingContext, trainingSnapshot (inout, when the outcome carries a context)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "computeRecoveryScore returned nil",
+     "effect": "logs warning and returns; session archived with no frozen score"
+    },
+    {
+     "at": "+13",
+     "cond": "result.trainingContext non-nil",
+     "effect": "stored on analysisResult (when present); nil: session context unchanged"
+    },
+    {
+     "at": "+15",
+     "cond": "session.trainingSnapshot nil",
+     "effect": "trainingSnapshot = that context"
+    },
+    {
+     "at": "+18",
+     "cond": "trainingSnapshot nil (??)",
+     "effect": "falls back to analysisResult?.trainingContext"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampSnapshots(from:on:)": "2d555357b4d96bd6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.stampSnapshots(from:on:)",
+   "hash": "63f1cc589a6d1c2b",
+   "does": "For overnight sessions only, copies non-nil sleepSnapshot and vitalsSnapshot from the score outcome onto the session.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionType != .overnight",
+     "effect": "returns without stamping"
+    },
+    {
+     "at": "+2",
+     "cond": "outcome has sleepSnapshot",
+     "effect": "stamped; else untouched"
+    },
+    {
+     "at": "+3",
+     "cond": "outcome has vitalsSnapshot",
+     "effect": "stamped; else untouched"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.archiveRecovered(_:sessionId:)",
+   "hash": "3a210032ef08288a",
+   "does": "Archives the session, marks the raw backup archived, fires a cloud upload Task and returns true; any archive error is logged at error and returns false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:archive(session)",
+    "file:raw RR backup archived marker",
+    "ck:session upload",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "recoveryScore nil (?? in log)",
+     "effect": "log prints \"nil\""
+    },
+    {
+     "at": "+7",
+     "cond": "catch: archive threw",
+     "effect": "logs and returns false; backup not marked archived"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)": "324b3ca4c0060dce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)",
+   "hash": "7f9f1f4f191101cd",
+   "does": "Rebuilds an interrupted recording from its (parent-merged) backup as a .paused session with pausedDate = now, runs analysis (result may stay nil), archives it via attempt() and returns it; nil when no backup or the archive write fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "closure:analyze / analyzeWithCapacity → collector.analyze, set by SessionRecoveryCoordinator.recoverToPausedState (RRCollector+BackupRecovery.swift:552)"
+   ],
+   "reads": [
+    "file:raw RR backup (RawRRBackup)",
+    "archive:entries/retrieve (parent)"
+   ],
+   "writes": [
+    "archive:archive(paused session)",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no backup retrievable",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+19",
+     "cond": "archive write threw (attempt returned nil)",
+     "effect": "logs warning via attempt and returns nil; else logs success and returns the paused session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "13757a1f1ddf87a0",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)": "cb9e8d1790773ee8",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

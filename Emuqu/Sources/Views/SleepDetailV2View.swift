@@ -35,8 +35,12 @@ struct SleepDetailV2View: View {
     let temperatureUnit: TemperatureUnit
     let typicalSleepHours: Double
     let userAge: Int?
-    var onRefresh: (() async -> Void)?
-    var onAdjust: ((SleepData) -> Void)?
+    let onAdjust: ((SleepData) -> Void)?
+    /// The night's analysis and score, worked out once when the view is
+    /// made. Every section reads these instead of re-running the analyzer on
+    /// each body evaluation (a hypnogram scrub re-evaluates the body per tick).
+    let sleepAnalysis: SleepScienceAnalyzer.SleepAnalysis?
+    private let sleepScore: Double
 
     @Environment(RRCollector.self) private var collector
     @State var expandedStage: SleepStageKind?
@@ -73,6 +77,25 @@ struct SleepDetailV2View: View {
     /// modifier on `body`), off the main thread, and the section just
     /// reads this array. Same math, same ordering → identical bars.
     @State var trendNights: [TrendNight] = []
+
+    init(
+        session: HRVSession, sleepData: SleepData?, recoveryVitals: RecoveryVitals?,
+        recentSessions: [HRVSession], temperatureUnit: TemperatureUnit,
+        typicalSleepHours: Double, userAge: Int?, onAdjust: ((SleepData) -> Void)? = nil
+    ) {
+        self.session = session
+        self.sleepData = sleepData
+        self.recoveryVitals = recoveryVitals
+        self.recentSessions = recentSessions
+        self.temperatureUnit = temperatureUnit
+        self.typicalSleepHours = typicalSleepHours
+        self.userAge = userAge
+        self.onAdjust = onAdjust
+        let analysis = sleepData.flatMap { SleepScienceAnalyzer.analyze(sleepData: $0, userAge: userAge, typicalSleepHours: typicalSleepHours) }
+        self.sleepAnalysis = analysis
+        self.sleepScore = analysis?.enhancedScore
+            ?? RecoveryScoreCalculator.calculateSleepScore(sleepData: sleepData, typicalSleepHours: typicalSleepHours, userAge: userAge) ?? 0
+    }
 
     /// Per-field merge with strap-meanHR override for sleep HR.
     /// See `VitalsDetailV2View.effectiveVitals` for rationale — this
@@ -114,14 +137,6 @@ struct SleepDetailV2View: View {
     struct SleepDataIdentified: Identifiable {
         let id = UUID()
         let data: SleepData
-    }
-
-    private var sleepScore: Double {
-        RecoveryScoreCalculator.calculateSleepScore(
-            sleepData: sleepData,
-            typicalSleepHours: typicalSleepHours,
-            userAge: userAge
-        ) ?? 0
     }
 
     private var verdict: ScoreVerdict { ScoreVerdict(score: sleepScore) }
@@ -171,31 +186,40 @@ struct SleepDetailV2View: View {
     /// first appear), keyed on a fingerprint because `[HRVSession]` is not
     /// Equatable. Any night added or removed, or a sleep-snapshot edit,
     /// produces a new key and re-runs the detached compute; body evals between
-    /// input changes read the `trendNights` @State for free.
+    /// input changes read the `trendNights` @State for free. The detached
+    /// compute is not cancelled with the keyed task, so a superseded result is
+    /// dropped rather than written over a newer one.
     private func withSleepEditor(_ content: some View) -> some View {
         content
             .sheet(item: $editorSleepData) { wrapped in
                 sleepEditor(wrapped)
             }
             .task(id: trendInputsKey) {
-                let sessions = recentSessions
+                let sessions = trendSessions
                 let hours = typicalSleepHours
                 let age = userAge
-                trendNights = await Task.detached(priority: .userInitiated) {
-                    Self.buildTrend(
-                        recentSessions: sessions,
-                        typicalSleepHours: hours,
-                        userAge: age
-                    )
+                let trend = await Task.detached(priority: .userInitiated) {
+                    Self.buildTrend(recentSessions: sessions, typicalSleepHours: hours, userAge: age)
                 }.value
+                guard !Task.isCancelled else { return }
+                trendNights = trend
             }
+    }
+
+    /// The recent sessions plus the one on screen when the caller's list
+    /// leaves it out (the morning results list holds only earlier nights), so
+    /// the trend always includes the night being viewed.
+    private var trendSessions: [HRVSession] {
+        recentSessions.contains { $0.id == session.id } ? recentSessions : [session] + recentSessions
     }
 
     /// Pass a Refresh callback so the editor can
     /// re-pull from HealthKit. Returns nil on failure (auth
     /// not granted, no sleep data for the window) — the
     /// editor surfaces a clear error in that case rather
-    /// than silently no-op.
+    /// than silently no-op. A refreshed night accepted with Done and no
+    /// further edit (`onRefreshAccepted`) is stored, but not as a user
+    /// adjustment, so it doesn't lock the boundaries.
     private func sleepEditor(_ wrapped: SleepDataIdentified) -> some View {
         SleepTimelineEditorView(
             sleepData: wrapped.data,
@@ -205,27 +229,58 @@ struct SleepDetailV2View: View {
             },
             onRefreshFromHealthKit: { [weak collector, session] in
                 guard let collector else { return nil }
-                let recordingStart = session.startDate
-                let recordingEnd = session.endDate ?? session.startDate.addingTimeInterval(8 * 3600)
-                return try? await collector.healthKit.fetchSleepData(
-                    for: recordingStart,
-                    recordingEnd: recordingEnd
-                )
+                return await Self.refetchSleep(for: session, from: collector)
+            },
+            onRefreshAccepted: { [weak collector, session] fresh in
+                _ = collector?.updateSessionSleepBoundaries(sessionId: session.id, sleepData: fresh, isUserAdjustment: false)
+                editorSleepData = nil
             }
         )
     }
 
-    /// Fingerprint of every input that feeds `buildTrend()`. Cheap —
-    /// string assembly over the recent-session list, no scoring math.
-    /// Covers the fields the sleep score reads (duration, efficiency,
-    /// deep/REM/awake minutes, stage-interval count) so a sleep edit
-    /// that changes any of them re-keys the trend task.
-    private var trendInputsKey: String {
-        let nights = recentSessions.map { s -> String in
-            guard let snap = s.sleepSnapshot else { return s.id.uuidString }
-            return "\(s.id)#\(snap.nightSleepMinutes)#\(snap.sleepEfficiency)#\(snap.deepSleepMinutes ?? -1)#\(snap.remSleepMinutes ?? -1)#\(snap.awakeMinutes)#\(snap.stageIntervals.count)"
+    /// The session's recording window re-read from HealthKit; nil, with the
+    /// error logged, when the fetch fails.
+    private static func refetchSleep(for session: HRVSession, from collector: RRCollector) async -> SleepData? {
+        let recordingEnd = session.endDate ?? session.startDate.addingTimeInterval(8 * 3600)
+        do {
+            return try await collector.healthKit.fetchSleepData(for: session.startDate, recordingEnd: recordingEnd)
+        } catch {
+            debugLog("[SleepDetail] HealthKit sleep refresh failed: \(error)", level: .warning)
+            return nil
         }
+    }
+
+    /// Fingerprint of every input that feeds `buildTrend()`. Cheap —
+    /// string assembly over the trend's sessions, no scoring math.
+    private var trendInputsKey: String {
+        let nights = trendSessions.map(Self.trendKeyPart)
         return "\(typicalSleepHours)|\(userAge ?? -1)|" + nights.joined(separator: ",")
+    }
+
+    /// One session's part of the trend key: every snapshot field the sleep
+    /// score reads (night and nap minutes, in-bed and awake minutes,
+    /// efficiency and where the boundaries came from, deep/REM minutes, and
+    /// each stage interval's stage and bounds), so a sleep edit that changes
+    /// any of them re-keys the trend task.
+    /// Hashed rather than spelled out: the key is rebuilt on every body
+    /// evaluation, and a fortnight of stage intervals runs to thousands.
+    nonisolated private static func trendKeyPart(_ s: HRVSession) -> String {
+        guard let snap = s.sleepSnapshot else { return s.id.uuidString }
+        var hasher = Hasher()
+        hasher.combine(snap.nightSleepMinutes)
+        hasher.combine(snap.napSleepMinutes)
+        hasher.combine(snap.inBedMinutes)
+        hasher.combine(snap.awakeMinutes)
+        hasher.combine(snap.sleepEfficiency)
+        hasher.combine(snap.boundarySource)
+        hasher.combine(snap.deepSleepMinutes)
+        hasher.combine(snap.remSleepMinutes)
+        for interval in snap.stageIntervals {
+            hasher.combine(interval.stage)
+            hasher.combine(interval.start)
+            hasher.combine(interval.end)
+        }
+        return "\(s.id)#\(hasher.finalize())"
     }
 
     /// Re-pull vitals from HealthKit on appear so late-arriving fields
@@ -238,44 +293,30 @@ struct SleepDetailV2View: View {
         let fresh = await collector.healthKit
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapHR)
-        if !fresh.isEmpty {
-            refreshedVitals = fresh
-        }
+        // An empty fetch clears the last session's reading rather than
+        // leaving it to merge into this one.
+        refreshedVitals = fresh.isEmpty ? nil : fresh
     }
 
+    /// Shown only when there is something to put in it: editing needs sleep
+    /// data and a caller that saves the edit.
+    @ViewBuilder
     private var menuButton: some View {
-        Menu {
-            refreshSleepMenuItem
-            editSleepMenuItem
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .font(.system(size: dt16, weight: .semibold))
-        }
-        .accessibilityLabel(String(localized: "Sleep options", bundle: LanguageManager.appBundle))
-    }
-
-    private var refreshSleepLabel: some View {
-        Label(String(localized: "Refresh sleep data", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
-    }
-
-    @ViewBuilder
-    private var editSleepMenuItem: some View {
         if let sleepData, onAdjust != nil {
-            Button {
-                editorSleepData = SleepDataIdentified(data: sleepData)
-            } label: { Label(String(localized: "Edit sleep", bundle: LanguageManager.appBundle), systemImage: "pencil") }
+            Menu {
+                editSleepButton(sleepData)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: dt16, weight: .semibold))
+            }
+            .accessibilityLabel(String(localized: "Sleep options", bundle: LanguageManager.appBundle))
         }
     }
 
-    @ViewBuilder
-    private var refreshSleepMenuItem: some View {
-        if let onRefresh {
-            refreshSleepButton(onRefresh)
-        }
-    }
-
-    private func refreshSleepButton(_ refresh: @escaping () async -> Void) -> some View {
-        Button(action: { Task { await refresh() } }, label: { refreshSleepLabel })
+    private func editSleepButton(_ sleepData: SleepData) -> some View {
+        Button {
+            editorSleepData = SleepDataIdentified(data: sleepData)
+        } label: { Label(String(localized: "Edit sleep", bundle: LanguageManager.appBundle), systemImage: "pencil") }
     }
 
     // MARK: - Hero

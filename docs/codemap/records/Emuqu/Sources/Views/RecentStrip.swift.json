@@ -1,0 +1,281 @@
+{
+ "file": "Emuqu/Sources/Views/RecentStrip.swift",
+ "hash": "a00a9b18aa925c48",
+ "role": "Dashboard horizontal strip of recent day cards (verdict dot, \"Logged\" dot or empty ring) with a View-all button that is the only route to History.",
+ "types": [
+  "RecentStrip: struct View — recent-days strip",
+  "RecentStrip.Day: struct — id/date/score/verdict"
+ ],
+ "state": [
+  "days, showVerdicts, onTapDay, onViewAll (inputs from DashboardV2View+Chips.swift:281-286)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Docs disagree with code on the Recent strip: USERS_MANUAL says verdict words show 'once you have 30 nights of baseline' but the host gates showVerdicts on ScoreAppearancePolicy.fullBaselineNights = 28; FLOWCHART says 'Recent strip = 30 days' and ARCHITECTURE says '8 are visible at a time', but DashboardSessionPolicy.recentDays always builds exactly 7 days (offsets 6...0).",
+   "evidence": [
+    "docs/USERS_MANUAL.md:99",
+    "docs/FLOWCHART.md:719",
+    "docs/ARCHITECTURE.md:658",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:283",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:338",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:303"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecentStrip.body",
+   "hash": "bb6509f04909ca62",
+   "does": "VStack of header and scrolling day strip.",
+   "entry": "SwiftUI body (DashboardV2View+Chips.recentStripSection).",
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripHeader",
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripScroll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripHeader": "b29f8b345417a62e",
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripScroll": "ad64d2d376106ca9"
+   }
+  },
+  {
+   "key": "var RecentStrip.recentStripHeader",
+   "hash": "a14ee2ca1f82c840",
+   "does": "\"RECENT\" label and View all button (identifier dashboard.viewAllReadings).",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.viewAllButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.viewAllButton": "1fcf231a24e87e93",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecentStrip.recentStripScroll",
+   "hash": "3f710b180a6f28df",
+   "does": "The row with defaultScrollAnchor(.trailing): today's card is in view on first paint and the strip stays trailing-anchored when a day is added, without a timed wait for layout.",
+   "entry": "SwiftUI .task(id:) fires after layout and whenever days.count changes.",
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow": "5f54f277d6a30a6a"
+   }
+  },
+  {
+   "key": "func RecentStrip.dayCard(_:)",
+   "hash": "f453e592f53c3cfa",
+   "does": "Plain button around the day card that calls onTapDay(day); view id = day.id for scrolling.",
+   "entry": "SwiftUI Button action.",
+   "calls": [
+    "closure:onTapDay — DashboardV2View+Chips openDay(_:)",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.card(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.card(for:)": "f13c63bb35a01e46"
+   }
+  },
+  {
+   "key": "var RecentStrip.recentStripRow",
+   "hash": "c545b27d784c6ea0",
+   "does": "Horizontal ScrollView (no indicators, clip disabled) of dayCards.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.dayCards"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.dayCards": "60b74f170b3b0bb2"
+   }
+  },
+  {
+   "key": "var RecentStrip.dayCards",
+   "hash": "00a1448d4b775fa1",
+   "does": "HStack of dayCard per day.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayCard(_:)": "0a06a7e04d561f4e"
+   }
+  },
+  {
+   "key": "var RecentStrip.viewAllButton",
+   "hash": "b737303fb1b09d33",
+   "does": "\"View all\" + chevron.forward button calling onViewAll (host sets navTarget = .history).",
+   "entry": "SwiftUI Button action.",
+   "calls": [
+    "closure:onViewAll — DashboardV2View+Chips sets navTarget = .history",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func RecentStrip.card(for:)",
+   "hash": "975f65f829e45c2d",
+   "does": "64pt-wide card: weekday label and day marker; combined a11y element with accessibilityLabel(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.weekdayLabel(_:)",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayMarker(for:)",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.accessibilityLabel(for:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.accessibilityLabel(for:)": "9191ba174815c47c",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayMarker(for:)": "a860a28c235b03b7",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.weekdayLabel(_:)": "a5adef2d8760eb26",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecentStrip.dayMarker(for:)",
+   "hash": "e5393fccad729e23",
+   "does": "Marker: verdict dot + verdict word when showVerdicts and a verdict exist; otherwise green dot + \"Logged\" when a score exists; otherwise empty ring + \"—\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.filledDot(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showVerdicts && day.verdict != nil",
+     "effect": "true: filledDot(verdict.color) + localized verdict word."
+    },
+    {
+     "at": "+9",
+     "cond": "day.score != nil",
+     "effect": "true: filledDot(wongGood) + \"Logged\". false: stroked empty circle + \"—\"."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.filledDot(_:)": "6931f7062b6dcf25",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func RecentStrip.filledDot(_:)",
+   "hash": "6a7d861f07661b07",
+   "does": "14pt filled circle in the colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecentStrip.weekdayLabel(_:)",
+   "hash": "adf1b71628067b44",
+   "does": "Uppercased weekday abbreviation (template \"EEE\") in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+   }
+  },
+  {
+   "key": "func RecentStrip.accessibilityLabel(for:)",
+   "hash": "ab97abc465fb1c74",
+   "does": "VoiceOver label: \"<date>, <verdict>\" in verdict mode, \"<date>, reading logged\" with a score, else \"<date>, no reading\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "showVerdicts && day.verdict != nil",
+     "effect": "return date + verdict word (not localized as a format string; concatenated with \", \")."
+    },
+    {
+     "at": "+4",
+     "cond": "day.score != nil",
+     "effect": "return localized \"reading logged\"; else localized \"no reading\"."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+   }
+  }
+ ],
+ "deps": {}
+}

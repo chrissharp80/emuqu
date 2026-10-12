@@ -30,50 +30,6 @@ enum OpenAICompatibleStreamer {
         static let deepSeek = URL(string: "https://api.deepseek.com/chat/completions")
     }
 
-    /// Dedicated URLSession for AI streaming requests
-    /// that survives the brief network blips you get on cellular
-    /// while walking. `URLSession.shared` uses iOS defaults which
-    /// fail a request the moment the radio drops; user report
-    /// ("Flo cannot connect to Grok when I'm walking") matches that
-    /// exactly — tower handoffs during a walk are a common cause.
-    ///
-    /// Config choices:
-    ///   • `waitsForConnectivity = true` — iOS holds the request and
-    ///     retries transparently when connectivity returns, up to
-    ///     `timeoutIntervalForResource`. A 5-second tower handoff
-    ///     stops looking like a failure to the caller.
-    ///   • `timeoutIntervalForRequest = 30` — fail fast on the
-    ///     initial connect (so the fallback provider chain kicks
-    ///     in before the user gives up). The wait-for-connectivity
-    ///     path is the long-tail handler; this is the short-tail.
-    ///   • `timeoutIntervalForResource = 180` — caps streaming
-    ///     response time at 3 min. Long enough for a verbose
-    ///     reasoning turn, short enough that a wedged stream
-    ///     surfaces as an error eventually.
-    ///   • `allowsCellularAccess = true`, `allowsConstrainedNetworkAccess = true`
-    ///     — explicit (also the defaults) so iOS knows we want the
-    ///     request on a metered or constrained link rather than
-    ///     pretending we're offline.
-    ///   • `httpMaximumConnectionsPerHost = 4` — small ceiling
-    ///     keeps the session from holding extra connections open
-    ///     while idle, but high enough that overlapping tool-use
-    ///     turns don't queue.
-    /// `URLSession` is `Sendable`, so no isolation annotation is needed.
-    static let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.waitsForConnectivity = true
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 180
-        config.allowsCellularAccess = true
-        config.allowsConstrainedNetworkAccess = true
-        config.allowsExpensiveNetworkAccess = true
-        config.httpMaximumConnectionsPerHost = 4
-        // No URLCache — these are POSTs against a per-request body
-        // anyway. Saves disk + memory.
-        config.urlCache = nil
-        return URLSession(configuration: config)
-    }()
-
     /// Request fields that set how much a model reasons before it answers.
     /// Flo's tool loop sends back only each round's tool calls and results,
     /// so a model whose API needs its reasoning echoed between tool rounds
@@ -256,11 +212,9 @@ enum OpenAICompatibleStreamer {
         contextRendered: String,
         toolRounds: [[ToolExchange]]
     ) -> [MessageShape] {
-        let marker = AssistantSystemPrompt.Composed.cacheSplitMarker
-        let parts = systemPrompt.components(separatedBy: marker)
-        let variableSystem = parts.count > 1 ? parts.dropFirst().joined(separator: marker) : ""
-        let liveStateBlock = liveStateEnvelope(variableSystem: variableSystem, contextRendered: contextRendered)
-        var mapped: [MessageShape] = [.system(parts.first ?? systemPrompt)]
+        let split = ProviderHTTP.splitOnCacheMarker(systemPrompt)
+        let liveStateBlock = ProviderHTTP.liveStateEnvelope(variableSystem: split.variable, contextRendered: contextRendered)
+        var mapped: [MessageShape] = [.system(split.stable)]
         let lastUserMessageIndex = messages.lastIndex { $0.role == .user }
         for (idx, turn) in messages.enumerated() {
             let splice = turn.role == .user && idx == lastUserMessageIndex && !liveStateBlock.isEmpty
@@ -275,18 +229,6 @@ enum OpenAICompatibleStreamer {
             mapped.append(contentsOf: toolRoundMessages(round))
         }
         return mapped
-    }
-
-    /// The live-state envelope spliced into the last user message. Empty when
-    /// neither half has content.
-    ///
-    /// For tool-mode calls (cloud providers) `contextRendered` is already
-    /// empty (see AssistantViewModel.dispatch), so this just carries the
-    /// variable suffix when there is one. Non-tool calls (Apple) get
-    /// `contextRendered` appended too — Apple has no HTTP prompt cache anyway.
-    private static func liveStateEnvelope(variableSystem: String, contextRendered: String) -> String {
-        let body = [variableSystem, contextRendered].filter { !$0.isEmpty }.joined(separator: "\n\n")
-        return body.isEmpty ? "" : "\n\n<live_state>\n\(body)\n</live_state>"
     }
 
     /// One tool round: the assistant message carrying every call, then one
@@ -372,7 +314,7 @@ enum OpenAICompatibleStreamer {
         )
     }
 
-    /// Use the dedicated session (see above) so
+    /// Use the dedicated session (`ProviderHTTP.streamSession`) so
     /// cellular blips during walks don't immediately surface
     /// as "cannot connect."
     ///
@@ -385,7 +327,7 @@ enum OpenAICompatibleStreamer {
         providerID: ProviderID
     ) async throws -> (URLSession.AsyncBytes, URLResponse) {
         do {
-            return try await session.bytes(for: request)
+            return try await ProviderHTTP.streamSession.bytes(for: request)
         } catch let urlError as URLError {
             debugLog("[AIStreamer] \(providerID.rawValue) connect failed: code=\(urlError.code.rawValue) (\(urlError.localizedDescription))", level: .warning)
             throw urlError
@@ -393,7 +335,10 @@ enum OpenAICompatibleStreamer {
     }
 
     /// Accumulate tool_calls by index across chunks. Flush on
-    /// `finish_reason == "tool_calls"` OR on `[DONE]`.
+    /// `finish_reason == "tool_calls"` OR on `[DONE]`. A stream that ends
+    /// with tool-call fragments still open was cut mid-call: the fragments
+    /// may be incomplete, so they are not run, and the cut is reported as a
+    /// dropped connection (which the chat layer may fall back from).
     private static func consumeSSE(
         _ bytes: URLSession.AsyncBytes,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
@@ -409,12 +354,25 @@ enum OpenAICompatibleStreamer {
                 continuation.yield(.done)
                 return
             }
-            guard let data = payload.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            else { continue }
-            handleChoice(json, openToolCalls: &openToolCalls, continuation: continuation)
-            yieldUsage(json["usage"] as? [String: Any], to: continuation)
+            try handleChunk(payload, openToolCalls: &openToolCalls, continuation: continuation)
         }
+        guard openToolCalls.isEmpty else { throw URLError(.networkConnectionLost) }
+    }
+
+    /// One `data:` chunk: an error object mid-stream throws it; otherwise the
+    /// choice half and the usage half are handled. A chunk that is not JSON
+    /// is skipped.
+    private static func handleChunk(
+        _ payload: String,
+        openToolCalls: inout [Int: PendingToolCall],
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) throws {
+        guard let data = payload.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return }
+        if let failure = ProviderHTTP.streamFailure(in: json) { throw failure }
+        handleChoice(json, openToolCalls: &openToolCalls, continuation: continuation)
+        yieldUsage(json["usage"] as? [String: Any], to: continuation)
     }
 
     /// The `choices[0]` half of a chunk: a text delta, tool-call fragments, or
@@ -499,11 +457,7 @@ enum OpenAICompatibleStreamer {
         bytes: URLSession.AsyncBytes,
         providerID: ProviderID
     ) async throws -> Never {
-        var collected = Data()
-        for try await byte in bytes {
-            collected.append(byte)
-            if collected.count >= 4096 { break }
-        }
+        let collected = try await ProviderHTTP.errorBody(bytes)
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
         if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
             throw AIProviderError.outOfCredit(providerID)

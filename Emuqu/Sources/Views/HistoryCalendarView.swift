@@ -5,9 +5,12 @@ import SwiftUI
 /// dead taps and no totals, this surface has:
 ///   • Sun–Sat columns, real month grid
 ///   • Swipe / chevrons to scrub back to any month with data
-///   • Each cell shows the day's preferred LOAD (powerTSS →
-///     hrTSS → METs → luciaTRIMP → route-history, per the
-///     resolver in WorkoutMetadata.preferredTrainingLoad)
+///   • Each cell shows the day's preferred LOAD, whatever
+///     WorkoutMetadata.preferredTrainingLoad resolves (its order lives in
+///     TrainingLoadPrecedence.stored)
+///   • Each reading sits on the day History lists it under: an overnight on
+///     the morning it ended (`calendarDay(of:cal:)`), anything else on the
+///     day it started
 ///   • Weekly totals to the right of every row
 ///   • Monthly total + session count in the header
 ///   • Tap a day with sessions → DaySummarySheet listing each
@@ -15,7 +18,10 @@ import SwiftUI
 ///
 /// Data sources:
 ///   • `allSessions` — the lightweight session snapshot the
-///     Trends tab already maintains. No re-fetching.
+///     Trends tab already maintains. No re-fetching. Every archived reading
+///     is counted and listed, segments of a split night included, so a
+///     reading History folds into another row can still be found and
+///     deleted here (see `onDelete`).
 ///   • `archiveSignal` — refreshes when any surface mutates
 ///     the archive so the calendar stays in sync.
 @MainActor
@@ -29,27 +35,30 @@ struct HistoryCalendarView: View {
     /// Returns whether the reading left the archive.
     var onDelete: (HRVSession) -> Bool = { _ in false }
 
+    @Environment(\.dependencies) private var dependencies
+
     @State private var visibleMonth: Date = HistoryCalendarView.startOfMonth(Date())
     @State private var selectedDaySheet: DaySheetIdentity?
 
     // Memoized calendar grid + month stats. Without
     // these, `var monthGrid` and `var monthHeader` would recompute
     // `monthWeeks()` and `monthStats` on every SwiftUI body invalidation
-    // (every parent-view recompose, scroll, archive bump). For a user
-    // with hundreds of overnight sessions, each rebuild walked all
-    // sessions twice (`filter` for the month + the `Dictionary(grouping:)`
-    // by start-of-day) and re-allocated 42 DayCell objects. Now rebuilt
-    // only when `visibleMonth` or the content of `allSessions` changes.
+    // (every parent-view recompose, scroll, archive bump): resolving every
+    // workout's training load (sample sorts, settings reads), grouping every
+    // session by day and re-allocating the cells. Now rebuilt only when
+    // `visibleMonth` or the content of `allSessions` changes. Spotting that
+    // change still hashes each session once per body evaluation, but only
+    // stored scalars (`sessionsFingerprint`), never a resolved load.
     @State private var memoizedWeeks: [WeekRow] = []
     @State private var memoizedMonthStats: MonthStats = MonthStats(totalLoad: 0, sessionCount: 0)
     @State private var memoFingerprint: String = ""
 
     /// Sunday-first one-letter weekday names in the app language, matching
     /// the Sun–Sat grid.
+    /// Read from `LocalizedDateFormat`'s per-locale cached formatter (any
+    /// template carries the locale's symbols), so no formatter is built.
     private static var weekdaySymbols: [String] {
-        let formatter = DateFormatter()
-        formatter.locale = LanguageManager.appLocale
-        return formatter.veryShortStandaloneWeekdaySymbols
+        LocalizedDateFormat.formatter(template: "EEEEE").veryShortStandaloneWeekdaySymbols
     }
 
     // MARK: - Body
@@ -99,19 +108,49 @@ struct HistoryCalendarView: View {
             )
     }
 
-    /// Everything the grid and the day sheet show from each session. A
-    /// re-analysis, a logged feeling, or a delete paired with a new arrival
-    /// changes it even when the session count stays the same.
+    /// Everything the grid and the day sheet show from each session, as the
+    /// stored fields they come from. A re-analysis, a logged feeling, a sleep
+    /// edit that moves a night's day, or a delete paired with a new arrival
+    /// changes it even when the session count stays the same. The FTPs are
+    /// in it because a power session stored without power TSS is scored
+    /// against today's FTP.
     private var sessionsFingerprint: Int {
         var hasher = Hasher()
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(dependencies.app.settingsManager.settingsSnapshot)
+        hasher.combine(ftp.running)
+        hasher.combine(ftp.cycling)
         for session in allSessions {
-            hasher.combine(session.id)
-            hasher.combine(session.startDate)
-            hasher.combine(session.morningFeeling)
-            hasher.combine(session.recoveryScore)
-            hasher.combine(session.workoutMetadata?.preferredTrainingLoad?.value)
+            Self.hashShownFields(of: session, into: &hasher)
         }
         return hasher.finalize()
+    }
+
+    private static func hashShownFields(of session: HRVSession, into hasher: inout Hasher) {
+        hasher.combine(session.id)
+        hasher.combine(session.sessionType)
+        hasher.combine(session.startDate)
+        hasher.combine(session.endDate)
+        hasher.combine(session.sleepEndMs)
+        hasher.combine(session.sleepSnapshot?.sleepEnd)
+        hasher.combine(session.morningFeeling)
+        hasher.combine(session.recoveryScore)
+        hasher.combine(session.analysisResult?.timeDomain.rmssd)
+        hasher.combine(session.analysisResult?.timeDomain.meanHR)
+        if let meta = session.workoutMetadata { hashLoadInputs(of: meta, into: &hasher) }
+    }
+
+    /// The stored inputs of `TrainingLoadPrecedence.stored` and of the
+    /// sheet's workout row, so a changed load is noticed without resolving it.
+    private static func hashLoadInputs(of meta: WorkoutMetadata, into hasher: inout Hasher) {
+        hasher.combine(meta.powerTSS)
+        hasher.combine(meta.intensityFactor)
+        hasher.combine(meta.normalizedPowerWatts)
+        hasher.combine(meta.hrTSS)
+        hasher.combine(meta.luciaTRIMP)
+        hasher.combine(meta.extrapolatedTRIMP)
+        hasher.combine(meta.samples?.count)
+        hasher.combine(meta.distanceMeters)
+        hasher.combine(meta.elevationGainMeters)
     }
 
     /// Rebuild the cached calendar grid + month stats when the fingerprint
@@ -224,8 +263,9 @@ struct HistoryCalendarView: View {
     }
 
     private var weekdaySymbolCells: some View {
-        ForEach(0 ..< 7, id: \.self) { i in
-            Text(verbatim: Self.weekdaySymbols[i])
+        let symbols = Self.weekdaySymbols
+        return ForEach(0 ..< 7, id: \.self) { i in
+            Text(verbatim: symbols[i])
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(AppTheme.textTertiary)
                 .frame(maxWidth: .infinity)
@@ -274,9 +314,15 @@ struct HistoryCalendarView: View {
     /// Load fills the cell (intensity by colour), morning feeling shows as
     /// a small dot in the top-right corner. One calendar. Tappable. Both
     /// signals.
+    ///
+    /// Only the visible month's days open a sheet. The dimmed leading and
+    /// trailing days of the neighbouring months are context only: their load
+    /// is not in the weekly total, they cannot be tapped, and VoiceOver skips
+    /// them, so every day it reads belongs to the month in the header.
     private func dayCell(_ day: DayCell) -> some View {
-        Button {
-            guard !day.sessions.isEmpty else { return }
+        let opensSheet = day.inVisibleMonth && !day.sessions.isEmpty
+        return Button {
+            guard opensSheet else { return }
             selectedDaySheet = DaySheetIdentity(date: day.date, sessions: day.sessions)
         } label: {
             ZStack(alignment: .topTrailing) {
@@ -285,8 +331,9 @@ struct HistoryCalendarView: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(day.sessions.isEmpty)
+        .disabled(!opensSheet)
         .accessibilityLabel(accessibilityLabel(for: day))
+        .accessibilityHidden(!day.inVisibleMonth)
     }
 
     private func dayCellTile(_ day: DayCell) -> some View {
@@ -419,8 +466,7 @@ struct HistoryCalendarView: View {
         let cal = Calendar.current
         let comps = cal.dateComponents([.year, .month], from: visibleMonth)
         let sessionsInMonth = allSessions.filter { session in
-            let sc = cal.dateComponents([.year, .month], from: session.startDate)
-            return sc.year == comps.year && sc.month == comps.month
+            Self.isIn(month: comps, date: Self.calendarDay(of: session, cal: cal), cal: cal)
         }
         let total = sessionsInMonth.reduce(0.0) { acc, s in
             acc + (s.workoutMetadata?.preferredTrainingLoad?.value ?? 0)
@@ -432,24 +478,25 @@ struct HistoryCalendarView: View {
         let cal = Calendar.current
         let monthStart = visibleMonth
         let comps = cal.dateComponents([.year, .month], from: monthStart)
-        let trimmed = Self.gridCells(cal: cal, monthStart: monthStart, comps: comps)
+        let cells = Self.gridCells(cal: cal, monthStart: monthStart)
         // Group sessions by day for O(1) lookup as we build cells.
         let sessionsByDay: [Date: [HRVSession]] = Dictionary(
             grouping: allSessions,
-            by: { cal.startOfDay(for: $0.startDate) }
+            by: { Self.calendarDay(of: $0, cal: cal) }
         )
         var weeks: [WeekRow] = []
-        for weekIdx in stride(from: 0, to: trimmed.count, by: 7) {
-            let weekDates = Array(trimmed[weekIdx ..< min(weekIdx + 7, trimmed.count)])
+        for weekIdx in stride(from: 0, to: cells.count, by: 7) {
+            let weekDates = Array(cells[weekIdx ..< min(weekIdx + 7, cells.count)])
             weeks.append(weekRow(dates: weekDates, cal: cal, comps: comps, sessionsByDay: sessionsByDay, monthStart: monthStart))
         }
         return weeks
     }
 
-    /// 42 cells (6 weeks × 7 days) — common upper bound; trailing rows that
-    /// contain no in-month day are dropped so the grid doesn't show a phantom
-    /// 6th week of next-month dates.
-    private static func gridCells(cal: Calendar, monthStart: Date, comps: DateComponents) -> [Date] {
+    /// The month's days, preceded by the previous month's days back to Sunday
+    /// and followed by the next month's days up to Saturday. Padding only
+    /// completes the row holding the month's last day, so every row holds an
+    /// in-month date: four to six rows, never a phantom week.
+    private static func gridCells(cal: Calendar, monthStart: Date) -> [Date] {
         let range = cal.range(of: .day, in: .month, for: monthStart) ?? 1 ..< 32
         let leading = cal.component(.weekday, from: monthStart) - 1 // 1 = Sunday
         var cells: [Date] = []
@@ -463,17 +510,18 @@ struct HistoryCalendarView: View {
             guard let last = cells.last, let next = cal.date(byAdding: .day, value: 1, to: last) else { break }
             cells.append(next)
         }
-        return trimTrailingOutOfMonthRows(cells, cal: cal, comps: comps)
+        return cells
     }
 
-    private static func trimTrailingOutOfMonthRows(_ cells: [Date], cal: Calendar, comps: DateComponents) -> [Date] {
-        var result = cells
-        while result.count >= 7 {
-            let anyInMonth = result.suffix(7).contains { isIn(month: comps, date: $0, cal: cal) }
-            if anyInMonth { break }
-            result.removeLast(7)
-        }
-        return result
+    /// The calendar day a reading belongs to: the day History lists it under
+    /// (`SessionArchiveEntry.displayDate`). An overnight sits on the morning
+    /// it ended, its sleep end, else its recording end, so a night begun at
+    /// 23:00 shares a cell with the feeling rated on waking; any other
+    /// reading sits on the day it started.
+    private static func calendarDay(of session: HRVSession, cal: Calendar) -> Date {
+        guard session.sessionType == .overnight else { return cal.startOfDay(for: session.startDate) }
+        let wake = SessionArchive.deriveSleepIndexFields(from: session).sleepEnd ?? session.endDate ?? session.startDate
+        return cal.startOfDay(for: wake)
     }
 
     private static func isIn(month comps: DateComponents, date: Date, cal: Calendar) -> Bool {
@@ -512,7 +560,8 @@ struct HistoryCalendarView: View {
     // MARK: - Navigation
 
     private var canStepBack: Bool {
-        guard let earliest = allSessions.map(\.startDate).min() else { return false }
+        let cal = Calendar.current
+        guard let earliest = allSessions.map({ Self.calendarDay(of: $0, cal: cal) }).min() else { return false }
         let earliestMonth = Self.startOfMonth(earliest)
         return visibleMonth > earliestMonth
     }
@@ -521,17 +570,15 @@ struct HistoryCalendarView: View {
         visibleMonth < Self.startOfMonth(Date())
     }
 
+    /// One month back or forward (`delta` is -1 or 1), under the same rule as
+    /// the chevrons: no further back than the earliest month with a reading
+    /// (nowhere back when there is none), no further forward than this month.
     private func stepMonth(by delta: Int) {
-        let cal = Calendar.current
-        guard let next = cal.date(byAdding: .month, value: delta, to: visibleMonth) else { return }
-        let nextStart = Self.startOfMonth(next)
-        // Clamp to [earliestMonth, currentMonth]
-        let currentMonth = Self.startOfMonth(Date())
-        let earliestMonth = allSessions.map(\.startDate).min().map(Self.startOfMonth) ?? nextStart
-        if nextStart < earliestMonth { return }
-        if nextStart > currentMonth { return }
+        if delta < 0, !canStepBack { return }
+        if delta > 0, !canStepForward { return }
+        guard let next = Calendar.current.date(byAdding: .month, value: delta, to: visibleMonth) else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
-            visibleMonth = nextStart
+            visibleMonth = Self.startOfMonth(next)
         }
     }
 
@@ -840,7 +887,7 @@ private struct DaySummarySheet: View {
         HStack(spacing: 14) {
             detailField(label: "RMSSD", value: "\(Int(result.timeDomain.rmssd.rounded())) ms")
             if let score = session.recoveryScore {
-                detailField(label: String(localized: "Recovery", bundle: LanguageManager.appBundle), value: "\(ScoreVerdict.safeDisplayScore(score * 10))")
+                detailField(label: String(localized: "Recovery", bundle: LanguageManager.appBundle), value: "\(historyDisplayScore(score).composite)")
             }
             if result.timeDomain.meanHR > 0 {
                 detailField(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: "\(Int(result.timeDomain.meanHR.rounded())) bpm")

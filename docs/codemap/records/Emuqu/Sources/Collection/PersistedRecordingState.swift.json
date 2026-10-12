@@ -1,0 +1,220 @@
+{
+ "file": "Emuqu/Sources/Collection/PersistedRecordingState.swift",
+ "hash": "0822333a843d8e3d",
+ "role": "Single Codable UserDefaults record of an in-progress recording (session id, start, type, phase, device-backup flag) used for crash/interruption recovery, plus the set of session ids whose 'Session Interrupted' alert the user dismissed, and migration from the legacy 3-key format.",
+ "types": [
+  "PersistedRecordingState: struct (Codable, Equatable) — persisted recording slot"
+ ],
+ "state": [
+  "ud:UserDefaultsKeys.persistedRecordingState ('RRCollector.persistedRecordingState')",
+  "ud:RRCollector.dismissedInterruptedSessionIds (string array)",
+  "ud:UserDefaultsKeys.activeRecordingStartTime (legacy)",
+  "ud:UserDefaultsKeys.activeRecordingSessionId (legacy)",
+  "ud:UserDefaultsKeys.activeRecordingSessionType (legacy)"
+ ],
+ "toplevel": "Static key constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PersistedRecordingState.save(_:)",
+   "hash": "d0100063f8a19a53",
+   "does": "JSON-encodes the state and writes it to the single UserDefaults key; returns false and logs on encode failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "encode throws",
+     "effect": "logs, returns false; nothing written"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.load()",
+   "hash": "c751c244c9405eb8",
+   "does": "Decodes the stored record; on missing data falls back to the legacy 3-key format (which migrates if present); a decode failure is logged as a warning (it reaches Recent Problems: the interrupted-session prompt cannot appear for that record) and then falls back to legacy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "data exists under the key",
+     "effect": "attempts decode; otherwise goes straight to legacy"
+    },
+    {
+     "at": "+5",
+     "cond": "decode throws",
+     "effect": "logged at .warning, the undecodable blob is left in place and the legacy path is tried (normally nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()": "4734cb3a034dd027",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.clear()",
+   "hash": "582e7fe9fd41a89b",
+   "does": "Removes the record, the three legacy keys and the dismissed-ids set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "ud:RRCollector.dismissedInterruptedSessionIds",
+    "ud:UserDefaultsKeys.activeRecordingStartTime",
+    "ud:UserDefaultsKeys.activeRecordingSessionId",
+    "ud:UserDefaultsKeys.activeRecordingSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()": "ca35115a5fb23bd9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.markDismissed(_:)",
+   "hash": "f2aad6385a119a2b",
+   "does": "Adds sessionId to the dismissed-ids set and writes it back as a string array. Called from AppLaunchRecovery.swift:167.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.dismissedSessionIds()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:RRCollector.dismissedInterruptedSessionIds"
+   ],
+   "writes": [
+    "ud:RRCollector.dismissedInterruptedSessionIds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.dismissedSessionIds()": "482241a759858833",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.isDismissed(_:)",
+   "hash": "9c34961ccdd8d416",
+   "does": "True when sessionId is in the dismissed-ids set. Called from AppLaunchRecovery.swift:48.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.dismissedSessionIds()"
+   ],
+   "reads": [
+    "ud:RRCollector.dismissedInterruptedSessionIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.dismissedSessionIds()": "482241a759858833"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.dismissedSessionIds()",
+   "hash": "ecb1a1a8946e55e7",
+   "does": "Reads the dismissed-id string array and parses valid UUIDs into a Set (invalid strings dropped).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:RRCollector.dismissedInterruptedSessionIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key missing",
+     "effect": "uses empty array"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PersistedRecordingState.loadLegacy()",
+   "hash": "621e2011bacbeb43",
+   "does": "Builds a state from the legacy start-time/session-id/type keys (type default 'overnight'), saves it in the new format, clears legacy keys and returns it; nil when start time or a valid session id is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.activeRecordingStartTime",
+    "ud:UserDefaultsKeys.activeRecordingSessionId",
+    "ud:UserDefaultsKeys.activeRecordingSessionType"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "ud:UserDefaultsKeys.activeRecordingStartTime",
+    "ud:UserDefaultsKeys.activeRecordingSessionId",
+    "ud:UserDefaultsKeys.activeRecordingSessionType"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "legacy start time, session id string or valid UUID missing",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "legacy type key missing",
+     "effect": "uses 'overnight'"
+    },
+    {
+     "at": "+11",
+     "cond": "type string is not a SessionType",
+     "effect": "uses .overnight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()": "ca35115a5fb23bd9",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "3fd1e07aa3e68060",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.clearLegacy()",
+   "hash": "51f36756c782e20e",
+   "does": "Removes the three legacy UserDefaults keys.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.activeRecordingStartTime",
+    "ud:UserDefaultsKeys.activeRecordingSessionId",
+    "ud:UserDefaultsKeys.activeRecordingSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

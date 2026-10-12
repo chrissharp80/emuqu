@@ -8,12 +8,13 @@ import Foundation
 ///
 /// **Data source.** Heat exposure comes only from weather recorded at the
 /// time of each outdoor workout: the snapshot an in-app recording saves at
-/// finish (`WorkoutMetadata.weatherSnapshot`). Outdoor workouts in Apple
-/// Health that the app did not record are counted, so the card can say what
-/// it found, but they add no exposure because they reach this cache without
-/// weather. A workout with no recorded weather is left out of heat load
-/// rather than scored on weather looked up afterwards: no weather archive
-/// the app may use commercially exists, and a guess would be scored as fact.
+/// finish (`WorkoutMetadata.weatherSnapshot`), or the temperature and
+/// humidity Apple Watch saved in an Apple Health workout's metadata. Outdoor
+/// workouts in Apple Health without that metadata are counted, so the card
+/// can say what it found, but add no exposure. A workout with no recorded
+/// weather is left out of heat load rather than scored on weather looked up
+/// afterwards: no weather archive the app may use commercially exists, and a
+/// guess would be scored as fact.
 ///
 /// Cold start: a brand-new user (or one with no recent heat) sees a genuine
 /// 0 that builds from their first hot session.
@@ -69,10 +70,24 @@ final class HeatAcclimationCache {
 
     /// Remove all persisted heat-acclimation state. Called from
     /// `DataPurgeService.purgeAllUserData` and when heat tracking is turned off.
+    /// A refresh still in flight does not write the readout back afterwards
+    /// once tracking is off (`cacheIfSettled`); `clear()` also drops this
+    /// instance's in-memory readout.
     static func clearPersistedData() {
         for key in legacyCoordinateKeys + [readoutKey] {
             UserDefaults.standard.removeObject(forKey: key)
         }
+    }
+
+    /// `clearPersistedData()` plus this instance's state: cancels a refresh in
+    /// flight and forgets the in-memory readout, so nothing from before the
+    /// clear is shown or written back.
+    func clear() {
+        refreshTask?.cancel()
+        refreshTask = nil
+        status = .computing
+        lastUpdated = nil
+        Self.clearPersistedData()
     }
 
     private static func persistReadout(_ readout: Readout) {
@@ -98,10 +113,6 @@ final class HeatAcclimationCache {
         let adaptedWBGT: Double?
         let daysToTarget: Int?
         var hasHeatExposure: Bool { hotExposureCount > 0 }
-        /// Whether there's enough to render the card — any outdoor workout
-        /// with recorded weather, even on cool days (so the user sees
-        /// "not acclimated yet" rather than nothing).
-        var hasData: Bool { attributedWorkoutCount > 0 }
     }
 
     private let archive: SessionArchive
@@ -113,7 +124,9 @@ final class HeatAcclimationCache {
         // the previous value immediately instead of a spinner while a fresh
         // (archive + HealthKit) compute runs. `lastUpdated` stays nil so
         // refresh() still recomputes and swaps in the new value when ready.
-        if let saved = Self.loadPersistedReadout() {
+        // Only while tracking is on: a readout left behind by a missed clear
+        // must not show for a feature the user turned off.
+        if trackingEnabled, let saved = Self.loadPersistedReadout() {
             status = .ready(saved)
         }
         observers.add(Self.makeArchiveObserver { [weak self] in self?.invalidate() })
@@ -146,9 +159,12 @@ final class HeatAcclimationCache {
 
     /// Recompute the status if stale. Async: reads the archive and HealthKit
     /// workouts, then replays. Safe to call from view `.task`/`.onAppear`.
+    /// Any settled status (ready, no outdoor workouts, no recorded weather)
+    /// is fresh for `maxAgeSec`; a seeded readout has no `lastUpdated` and
+    /// is recomputed.
     func refresh() {
         guard trackingEnabled else { return }
-        if let lastUpdated, Date().timeIntervalSince(lastUpdated) < maxAgeSec, case .ready = status {
+        if let lastUpdated, Date().timeIntervalSince(lastUpdated) < maxAgeSec {
             return
         }
         if refreshTask != nil { return }
@@ -156,6 +172,7 @@ final class HeatAcclimationCache {
             defer { self?.refreshTask = nil }
             guard let self else { return }
             let computed = await self.computeStatus()
+            guard !Task.isCancelled else { return }
             self.status = computed
             self.cacheIfSettled(computed)
         }
@@ -163,16 +180,13 @@ final class HeatAcclimationCache {
 
     /// Every computed status is settled: nothing here waits on a location fix
     /// or the network, so a retry before the next archive change would give
-    /// the same answer.
+    /// the same answer. A ready readout is persisted (no cold spinner on
+    /// relaunch) only while tracking is still on, so a compute that finishes
+    /// after the user turned tracking off does not write it back.
     private func cacheIfSettled(_ computed: Status) {
-        switch computed {
-        case let .ready(readout):
-            lastUpdated = Date()
-            Self.persistReadout(readout) // survive relaunch → no cold spinner
-        case .noOutdoorWorkouts, .noRecordedWeather:
-            lastUpdated = Date()
-        case .computing:
-            lastUpdated = nil
+        lastUpdated = Date()
+        if case let .ready(readout) = computed, trackingEnabled {
+            Self.persistReadout(readout)
         }
     }
 
@@ -181,13 +195,11 @@ final class HeatAcclimationCache {
     func currentAwaitingRefresh() async -> Readout? {
         // Asking the assistant is not the same as turning the feature on; the
         // card's button is where that choice is explained and made.
+        // Starts the shared refresh, or joins the one already running, so a
+        // card refresh and a question at the same time compute once.
         guard trackingEnabled else { return nil }
-        if let current, let lastUpdated, Date().timeIntervalSince(lastUpdated) < maxAgeSec {
-            return current
-        }
-        let computed = await computeStatus()
-        status = computed
-        cacheIfSettled(computed)
+        refresh()
+        await refreshTask?.value
         return current
     }
 
@@ -236,12 +248,22 @@ final class HeatAcclimationCache {
     }
 
     nonisolated private static func workoutForHeat(_ session: HRVSession) -> WorkoutForHeat {
-        let end = session.endDate ?? session.startDate
-        return WorkoutForHeat(
+        WorkoutForHeat(
             date: session.startDate,
-            minutes: max(0, end.timeIntervalSince(session.startDate) / 60.0),
+            minutes: activeMinutes(of: session),
             weather: session.workoutMetadata?.weatherSnapshot
         )
+    }
+
+    /// Minutes of moving time: the last sample's offset, which the recorder
+    /// stamps with the moving-time counter (paused stretches excluded); the
+    /// start-to-end span when the session has no samples.
+    nonisolated static func activeMinutes(of session: HRVSession) -> Double {
+        if let moving = session.workoutMetadata?.samples?.map(\.offsetSec).max() {
+            return Double(max(0, moving)) / 60.0
+        }
+        let end = session.endDate ?? session.startDate
+        return max(0, end.timeIntervalSince(session.startDate) / 60.0)
     }
 
     /// Each workout's exposure from the weather recorded with it, grouped by
@@ -337,12 +359,10 @@ final class HeatAcclimationCache {
         from session: HRVSession,
         weather: WorkoutWeatherSnapshot
     ) -> HeatAcclimation.Exposure {
-        let end = session.endDate ?? session.startDate
-        let minutes = max(0, end.timeIntervalSince(session.startDate) / 60.0)
-        return HeatAcclimation.Exposure(
+        HeatAcclimation.Exposure(
             tempC: weather.temperatureC,
             relativeHumidity: weather.relativeHumidityPercent,
-            durationMinutes: minutes
+            durationMinutes: activeMinutes(of: session)
         )
     }
 }

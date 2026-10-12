@@ -201,7 +201,7 @@ struct OnboardingProfilePage: View {
                 .disabled(!isProfileComplete)
                 .accessibilityLabel(String(localized: "Next", bundle: LanguageManager.appBundle))
                 .accessibilityIdentifier("onboarding.advance")
-                .accessibilityHint(String(localized: "Save profile and continue to the next step", bundle: LanguageManager.appBundle))
+                .accessibilityHint(String(localized: "Continue to the next step", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -260,7 +260,7 @@ struct OnboardingProfilePage: View {
                     settingsManager.settings.bodyWeightKg = nil
                     return
                 }
-                settingsManager.settings.bodyWeightKg = min(value / factor, 250.0)
+                settingsManager.settings.bodyWeightKg = min(value / factor, BiometricsSettingsPage.maximumBodyWeightKg)
             }
         )
     }

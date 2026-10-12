@@ -1,0 +1,118 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+Heat.swift",
+ "hash": "3cd3e51d18c0895f",
+ "role": "Extension on HealthKitManager that reads HealthKit workouts for the heat-acclimatization model and reduces outdoor ones to (date, minutes, weather) inputs.",
+ "types": [
+  "HealthKitManager.HeatWorkoutInput: struct — one outdoor workout's date, duration minutes and WorkoutWeatherSnapshot?",
+  "HealthKitManager: extension — heat workout query"
+ ],
+ "state": [
+  "mem:HealthKitManager.outdoorCapableTypes (static Set<HKWorkoutActivityType> of 25 outdoor-capable activity types)"
+ ],
+ "toplevel": "outdoorCapableTypes static let initialised to running/walking/hiking/cycling/skiing/snowboarding/skating/paddle/rowing/golf/tennis/soccer/football/rugby/baseball/softball/cricket/hockey/lacrosse/trackAndField/swimming/surfing/climbing/equestrian.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthKitManager.fetchOutdoorWorkoutsForHeat(days:)",
+   "hash": "a3652cf4ace37cc5",
+   "does": "Queries all HKWorkouts (any source) whose start lies in [startOfToday - days, now] sorted by end date descending, bounded by the 30 s background timeout, and maps them through heatInputs; returns [] when HealthKit is unavailable, the start date can't be computed, or the query times out. Called by HeatAcclimationCache.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.heatInputs(from:)",
+    "ext:HKSampleQuery(workoutType)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec"
+   ],
+   "reads": [
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable (isHealthKitAvailable false)",
+     "effect": "returns [] immediately"
+    },
+    {
+     "at": "+5",
+     "cond": "Calendar fails to compute start = startOfToday - days",
+     "effect": "returns []"
+    },
+    {
+     "at": "+8",
+     "cond": "runBoundedQuery returned nil (30 s timeout)",
+     "effect": "?? [] — returns an empty list, indistinguishable from no outdoor workouts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.heatInputs(from:)": "2cb067915cb57b05",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f"
+   }
+  },
+  {
+   "key": "func HealthKitManager.heatInputs(from:)",
+   "hash": "076e0901350cef09",
+   "does": "Casts samples to [HKWorkout] and keeps those lasting at least 1 minute that isOutdoorWorkout accepts, mapping each to HeatWorkoutInput(date: startDate, durationMinutes, weather: WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.isOutdoorWorkout(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples is nil or not castable to [HKWorkout] (query error)",
+     "effect": "returns [] — query error swallowed"
+    },
+    {
+     "at": "+4",
+     "cond": "workout shorter than 1 min OR not outdoor",
+     "effect": "dropped (nil from compactMap); otherwise converted to a HeatWorkoutInput"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.isOutdoorWorkout(_:)": "eca27707e66eae97",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)": "9e97f23c0995ddd9",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246"
+   }
+  },
+  {
+   "key": "func HealthKitManager.isOutdoorWorkout(_:)",
+   "hash": "260203ff6658b24d",
+   "does": "Returns !indoor when the workout metadata carries HKMetadataKeyIndoorWorkout as Bool; else, for a swim carrying HKMetadataKeySwimmingLocationType, whether it was open water (a pool swim is not heat exposure); otherwise whether the activity type is in outdoorCapableTypes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metadata has HKMetadataKeyIndoorWorkout Bool",
+     "effect": "returns !indoor"
+    },
+    {
+     "at": "+6",
+     "cond": "metadata has a swimming location type",
+     "effect": "returns location == openWater"
+    },
+    {
+     "at": "+12",
+     "cond": "neither key",
+     "effect": "outdoorCapableTypes.contains(activityType)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6"
+   }
+  }
+ ],
+ "deps": {}
+}

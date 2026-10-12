@@ -31,6 +31,15 @@ final class PedometerSampleTests: XCTestCase {
         XCTAssertNil(sample(distance: -.infinity).publishableDistanceMeters)
     }
 
+    /// The other half of the rule above: a finite distance so large that the
+    /// divided value passes `Int.max` traps the same way, and no workout
+    /// covers it, so it is rejected too.
+    func testDistancePastAnyRealWorkoutIsRejected() {
+        XCTAssertNil(sample(distance: 1e300).publishableDistanceMeters)
+        XCTAssertNil(sample(distance: .greatestFiniteMagnitude).publishableDistanceMeters)
+        XCTAssertNil(sample(distance: Double(Int.max)).publishableDistanceMeters)
+    }
+
     func testNegativeDistanceIsRejected() {
         XCTAssertNil(sample(distance: -0.5).publishableDistanceMeters)
     }

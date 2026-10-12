@@ -58,7 +58,8 @@ gate_mktemp() {
 }
 
 # Assert a file exists and is non-empty before a gate draws conclusions from it.
-# Use after producing a log or report that the measurement then parses.
+# Use after producing a log or report that the measurement then parses. It
+# exits the calling shell, so call it directly, never inside `$( )`.
 gate_require_nonempty() {
     local path="$1" what="${2:-input}"
     if [[ ! -s "$path" ]]; then
@@ -73,7 +74,9 @@ gate_require_nonempty() {
 gate_mktemp_dir() {
     local label="${1:-gate}"
     local path
-    if ! path="$(mktemp -d -t "$label" 2>/dev/null)" || [[ ! -d "$path" ]]; then
+    # Explicit template for the same reason as `gate_mktemp`: `-t label` with no
+    # X's fails on GNU mktemp.
+    if ! path="$(mktemp -d "${TMPDIR:-/tmp}/${label}.XXXXXX" 2>/dev/null)" || [[ ! -d "$path" ]]; then
         echo "FATAL: could not create a temporary directory (label: ${label})." >&2
         echo "  TMPDIR=${TMPDIR:-<unset>}" >&2
         exit 70
@@ -96,7 +99,9 @@ gate_mktemp_dir() {
 #     that is restored moments later — a red run about nothing, which on a
 #     hosted macOS runner is billed at 10x for the privilege.
 #
-# One lock, held by whoever is mutating, checked by whoever is measuring.
+# One lock, held by whoever is mutating. `simulate_ci.sh` is the one reader that
+# checks it (`gate_require_unmutated_tree`); a gate run on its own (`make <gate>`,
+# a workflow step) does not, so do not run gates by hand while a mutator runs.
 # `mkdir` is the atomic primitive; a lock whose owner PID is gone is stale and
 # gets taken over rather than blocking forever.
 # ---------------------------------------------------------------------------
@@ -108,6 +113,20 @@ gate_mktemp_dir() {
 _gate_git_dir="$(git rev-parse --git-dir 2>/dev/null || true)"
 GATE_TREE_LOCK="${GATE_TREE_LOCK:-${_gate_git_dir:-${TMPDIR:-/tmp}}/emuqu-tree-mutation.lock}"
 
+# The holder's pid, or 0 when there is none. `mkdir` and the pid write are two
+# steps, so a lock with no pid yet may belong to a holder that is still writing
+# it: wait up to two seconds for the pid before calling the lock ownerless.
+_gate_lock_holder_pid() {
+    local pid="" tries=0
+    while (( tries < 20 )); do
+        pid="$(cat "$GATE_TREE_LOCK/pid" 2>/dev/null || true)"
+        [[ -n "$pid" || ! -d "$GATE_TREE_LOCK" ]] && break
+        sleep 0.1
+        tries=$((tries + 1))
+    done
+    printf '%s' "${pid:-0}"
+}
+
 # Take the lock, or exit non-zero explaining who holds it.
 #     gate_acquire_tree_lock "verify_gates_fail"
 #     trap 'gate_release_tree_lock' EXIT INT TERM HUP
@@ -115,8 +134,8 @@ gate_acquire_tree_lock() {
     local owner="${1:-unknown}"
     if ! mkdir "$GATE_TREE_LOCK" 2>/dev/null; then
         local held_by held_pid
+        held_pid="$(_gate_lock_holder_pid)"
         held_by="$(cat "$GATE_TREE_LOCK/owner" 2>/dev/null || echo unknown)"
-        held_pid="$(cat "$GATE_TREE_LOCK/pid" 2>/dev/null || echo 0)"
         if [[ "$held_pid" != "0" ]] && kill -0 "$held_pid" 2>/dev/null; then
             echo "FATAL: ${held_by} (pid ${held_pid}) is mutating the working tree." >&2
             echo "  Running now would measure ITS planted violations as if they were" >&2
@@ -134,8 +153,8 @@ gate_acquire_tree_lock() {
             exit 70
         }
     fi
-    printf '%s' "$owner" > "$GATE_TREE_LOCK/owner"
     printf '%s' "$$" > "$GATE_TREE_LOCK/pid"
+    printf '%s' "$owner" > "$GATE_TREE_LOCK/owner"
 }
 
 gate_release_tree_lock() {
@@ -148,8 +167,8 @@ gate_require_unmutated_tree() {
     local who="${1:-this check}"
     [[ -d "$GATE_TREE_LOCK" ]] || return 0
     local held_by held_pid
+    held_pid="$(_gate_lock_holder_pid)"
     held_by="$(cat "$GATE_TREE_LOCK/owner" 2>/dev/null || echo unknown)"
-    held_pid="$(cat "$GATE_TREE_LOCK/pid" 2>/dev/null || echo 0)"
     if [[ "$held_pid" != "0" ]] && kill -0 "$held_pid" 2>/dev/null; then
         echo "FATAL: ${who} cannot run — ${held_by} (pid ${held_pid}) is mutating" >&2
         echo "  the working tree right now. Its planted violations would be read as" >&2

@@ -153,13 +153,17 @@ final class MaxHeartRateTests: XCTestCase {
         )
     }
 
-    /// Whatever the inputs, the result is always usable as a zone denominator.
+    /// Whatever the inputs, the result is a plausible max heart rate, not
+    /// just a non-zero denominator: every zone and TRIMP scales with it, so
+    /// an entered 300 bpm must not come back as 300. The upper bound is the
+    /// 240 bpm the settings decoder already clamps a stored value to.
     func testTheResultIsAlwaysUsable() {
+        let plausible = MaxHeartRate.minimumUserEntered ... 240
         for entered in [nil, 0, -10, 150, 300] as [Int?] {
             for birthday in [nil, date(1930, 1, 1), date(2020, 1, 1)] as [Date?] {
                 let hr = MaxHeartRate.effective(userEntered: entered, birthday: birthday,
                                                 reference: date(2026, 6, 15), calendar: utc)
-                XCTAssertGreaterThan(hr, 0, "entered=\(String(describing: entered))")
+                XCTAssertTrue(plausible.contains(hr), "entered=\(String(describing: entered)) gave \(hr) bpm")
             }
         }
     }

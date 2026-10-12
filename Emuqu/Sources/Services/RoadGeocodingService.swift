@@ -78,7 +78,7 @@ final class RoadGeocodingService {
     private static let backoffAfterFailures = 8
     /// After backoff, try again every 30 seconds. Reset the failure
     /// counter on the next success so a recovered network gets us back
-    /// to per-50m cadence.
+    /// to the 15 m / 60 s cadence.
     private static let recoveryRetrySec: TimeInterval = 30
     /// Movement threshold. The user crosses 15 m often enough that the
     /// road name stays current as they turn corners. Larger values
@@ -110,7 +110,10 @@ final class RoadGeocodingService {
     /// Backoff delay after failed calls. `kCLErrorNetwork` signals "rate
     /// limited, back off and try again later", so the floor grows 5 s →
     /// 15 s → 30 s and resets on the next success. It stops at the 30 s
-    /// recovery cadence so a queued caller is never held for minutes.
+    /// recovery cadence so a queued caller is never held for minutes. It
+    /// holds back the ambient and one-shot reverse lookups only: a forward
+    /// geocode is the user asking for an address now, so it waits for the
+    /// 1 s floor alone.
     private func backoffDelaySec() -> TimeInterval {
         switch consecutiveFailures {
         case 0: return 0
@@ -125,12 +128,15 @@ final class RoadGeocodingService {
     /// `CLGeocoder` serves one request at a time — a concurrent second request
     /// fails and counts toward the backoff — and callers that read
     /// `lastGeocoderCallAt` side by side would all sleep the same amount and
-    /// fire together.
-    func queuedGeocoderCall<T: Sendable>(_ call: @escaping @MainActor () async -> T) async -> T {
+    /// fire together. `honoringBackoff: false` waits for the 1 s floor but
+    /// not the failure backoff.
+    func queuedGeocoderCall<T: Sendable>(
+        honoringBackoff: Bool = true, _ call: @escaping @MainActor () async -> T
+    ) async -> T {
         let previous = geocoderTail
         let turn = Task { @MainActor in
             await previous?.value
-            await self.respectRateFloor()
+            await self.respectRateFloor(honoringBackoff: honoringBackoff)
             self.lastGeocoderCallAt = Date()
             return await call()
         }
@@ -143,8 +149,9 @@ final class RoadGeocodingService {
     /// 1 s floor, the backoff and the one-at-a-time rule apply across all
     /// paths.
     ///
-    /// Returns nil on rate-limit, timeout, or no-placemark. Caller is
-    /// expected to fall back to a cached value gracefully.
+    /// Returns nil on rate-limit, timeout, or no-placemark, each counted as
+    /// a failure, as the ambient path counts them. Caller is expected to
+    /// fall back to a cached value gracefully.
     func reverseGeocodeQueued(_ location: CLLocation) async -> CLPlacemark? {
         // `runWithTimeout` swallows CLGeocoder errors and timeouts,
         // returning nil for both — so there's no throwing path here.
@@ -153,13 +160,13 @@ final class RoadGeocodingService {
                 try await self.geocoder.reverseGeocodeLocation(location)
             }
         }
-        guard let placemarks else {
-            noteFailure(reason: "timeout-or-network")
+        guard let placemark = placemarks?.first else {
+            noteFailure(reason: placemarks == nil ? "timeout-or-network" : "no placemark")
             return nil
         }
         consecutiveFailures = 0
         backoffStartedAt = nil
-        return placemarks.first
+        return placemark
     }
 
     /// Single-funnel forward geocode. Same rationale as
@@ -167,7 +174,7 @@ final class RoadGeocodingService {
     /// address" / "I'm at 1600 Pennsylvania Ave" action) and by
     /// `DirectionsService` for "take me to <X>" routing.
     func forwardGeocodeQueued(_ query: String) async -> [CLPlacemark]? {
-        let placemarks: [CLPlacemark]? = await queuedGeocoderCall {
+        let placemarks: [CLPlacemark]? = await queuedGeocoderCall(honoringBackoff: false) {
             await runWithTimeout(seconds: 5.0) {
                 try await self.geocoder.geocodeAddressString(query)
             }
@@ -182,10 +189,10 @@ final class RoadGeocodingService {
     }
 
     /// Sleep just enough to honor the cross-call floor + active
-    /// backoff. Cooperatively cancellable. Called only from
-    /// `queuedGeocoderCall`.
-    private func respectRateFloor() async {
-        let floor = max(minSecondsBetweenAnyCalls, backoffDelaySec())
+    /// backoff (the floor alone when `honoringBackoff` is false).
+    /// Cooperatively cancellable. Called only from `queuedGeocoderCall`.
+    private func respectRateFloor(honoringBackoff: Bool) async {
+        let floor = honoringBackoff ? max(minSecondsBetweenAnyCalls, backoffDelaySec()) : minSecondsBetweenAnyCalls
         guard let last = lastGeocoderCallAt else { return }
         let elapsed = Date().timeIntervalSince(last)
         let wait = floor - elapsed
@@ -356,7 +363,7 @@ final class RoadGeocodingService {
         /// half-sentence.
         var nearestIntersection: String? {
             guard let road, let cross = nearestCrossStreet,
-                  road != cross
+                  !RoadGeocodingService.isSameStreet(road, cross)
             else { return nil }
             return "\(road) & \(cross)"
         }
@@ -378,14 +385,20 @@ final class RoadGeocodingService {
         }
     }
 
+    /// A full lookup once the user has moved 15 m or 60 s have passed (and
+    /// recovery backoff allows one). Inside those gates, an enriched request
+    /// after a road-name-only lookup (the launch prewarm, an ambient
+    /// refresh) runs just the cross-street lookup against the road already
+    /// resolved, so the workout ticker's cross street is not lost and the
+    /// road pipeline is not run again.
     func refreshIfNeeded(for location: CLLocation?, enrichCrossStreet: Bool = true) {
-        guard let loc = location, inflightTask == nil, !inRecoveryBackoff() else { return }
-        // An enriched request after a road-name-only lookup goes ahead even
-        // inside the gates, so the workout ticker's cross-street lookup is
-        // not lost to an ambient refresh that got there first.
-        let upgrades = enrichCrossStreet && !lastLookupEnriched
-        guard upgrades || movedFar(from: loc) || agedOut() else { return }
-        startLookupIfIdle(at: loc, enrichCrossStreet: enrichCrossStreet)
+        guard let loc = location, inflightTask == nil else { return }
+        if movedFar(from: loc) || agedOut() {
+            guard !inRecoveryBackoff() else { return }
+            startLookupIfIdle(at: loc, enrichCrossStreet: enrichCrossStreet)
+        } else if enrichCrossStreet, !lastLookupEnriched {
+            startCrossStreetIfIdle(at: loc)
+        }
     }
 
     /// Recovery-mode backoff. After `backoffAfterFailures` consecutive
@@ -433,9 +446,10 @@ final class RoadGeocodingService {
     /// This method takes a one-shot location (from `CLLocationManager
     /// .requestLocation()` at launch) and runs the same pipeline so
     /// `current` is populated before the user gets near the Start
-    /// button. The per-tick `refreshIfNeeded` in the workout ticker
-    /// then no-ops until the user has moved >15 m or 60 s have passed
-    /// — which is correct, because we already have a fresh cache.
+    /// button. The first enriched per-tick `refreshIfNeeded` then looks up
+    /// only the cross street; after that the per-tick refresh no-ops until
+    /// the user has moved >15 m or 60 s have passed — which is correct,
+    /// because we already have a fresh cache.
     ///
     /// Safe to call multiple times: shares the same `inflightTask`
     /// guard as `refreshIfNeeded`, so concurrent calls collapse.
@@ -458,30 +472,28 @@ final class RoadGeocodingService {
         startLookupIfIdle(at: location, enrichCrossStreet: false)
     }
 
-    /// Wait up to `maxWaitSec` for a fresh geocode, kicking off a lookup when
-    /// none is already in flight.
-    ///
-    /// If the deadline passes we return whatever's there even if older — a
-    /// stale street name is more useful to the user than nothing at all.
-    func awaitFreshContext(for location: CLLocation, maxWaitSec: TimeInterval = 2.5) async -> RoadContext? {
-        if let context = freshContext() { return context }
-        startLookupIfIdle(at: location, enrichCrossStreet: true)
-        let deadline = Date().addingTimeInterval(maxWaitSec)
-        while Date() < deadline {
-            if let context = freshContext() { return context }
-            await sleepQuietly(100_000_000, context: "awaitFreshContext") // 100 ms poll
+    /// A full lookup (road, then the cross street when `enrichCrossStreet`).
+    private func startLookupIfIdle(at location: CLLocation, enrichCrossStreet: Bool) {
+        startIfIdle(enriched: enrichCrossStreet) { service in
+            await service.performLookup(at: location, enrichCrossStreet: enrichCrossStreet)
         }
-        return current
+    }
+
+    /// Only the cross street, against the road already resolved.
+    private func startCrossStreetIfIdle(at location: CLLocation) {
+        startIfIdle(enriched: true) { service in
+            await service.refreshNearestCrossStreet(for: location, currentRoad: service.current?.road)
+        }
     }
 
     /// One lookup at a time: concurrent callers collapse onto `inflightTask`,
     /// which clears itself when the lookup finishes.
-    private func startLookupIfIdle(at location: CLLocation, enrichCrossStreet: Bool) {
+    private func startIfIdle(enriched: Bool, _ work: @escaping @Sendable @MainActor (RoadGeocodingService) async -> Void) {
         guard inflightTask == nil else { return }
-        let target = location
-        lastLookupEnriched = enrichCrossStreet
+        lastLookupEnriched = enriched
         let task = Task<Void, Never> { [weak self] in
-            await self?.performLookup(at: target, enrichCrossStreet: enrichCrossStreet)
+            guard let self else { return }
+            await work(self)
         }
         inflightTask = task
         Task { [weak self] in
@@ -496,15 +508,6 @@ final class RoadGeocodingService {
         if inflightTask == task { inflightTask = nil }
     }
 
-    /// `current`, but only when it was observed inside the 5-minute freshness
-    /// window `awaitFreshContext` is willing to hand back without a refetch.
-    private func freshContext() -> RoadContext? {
-        let freshWindow: TimeInterval = 300
-        guard let context = current,
-              Date().timeIntervalSince(context.observedAt) <= freshWindow else { return nil }
-        return context
-    }
-
     /// Reset between workouts so the next session starts with a clean
     /// failure counter.
     ///
@@ -517,6 +520,9 @@ final class RoadGeocodingService {
     /// (>15 m) inside `refreshIfNeeded` already cause a refresh when
     /// the cached context is out-of-date. So only the failure state
     /// is reset.
+    ///
+    /// The cancelled lookup checks for cancellation before it publishes, so
+    /// it cannot overwrite a newer lookup's `current` after this.
     func reset() {
         inflightTask?.cancel()
         inflightTask = nil
@@ -550,15 +556,7 @@ final class RoadGeocodingService {
               let loc = p.location
         else { return nil }
         // nearestCrossStreet is nil: not computed for forward-geocode overrides.
-        return RoadContext(
-            road: p.thoroughfare, locality: p.locality ?? p.subLocality,
-            administrativeArea: p.administrativeArea, country: p.country,
-            countryCode: p.isoCountryCode, nearestCrossStreet: nil,
-            subLocality: p.subLocality, subAdministrativeArea: p.subAdministrativeArea,
-            postalCode: p.postalCode, timeZoneIdentifier: p.timeZone?.identifier,
-            areaOfInterest: p.areasOfInterest?.first,
-            observedAt: Date(), observedAtCoord: loc.coordinate
-        )
+        return Self.context(from: p, at: loc.coordinate)
     }
 
     /// Override the ambient road context with a user-supplied one.
@@ -568,11 +566,17 @@ final class RoadGeocodingService {
     /// reads (live snapshot, AI facts) see the user-asserted address
     /// until the next ambient lookup overrides it. Safe to call from
     /// any async context.
+    ///
+    /// The movement gate is anchored at the user's last GPS fix, not at the
+    /// asserted address: anchored at the address, the next tick's fix read
+    /// as "moved far" and an ambient lookup replaced the override at once.
+    /// It stands until the user moves 15 m or 60 s pass.
     func overrideContext(_ context: RoadContext) {
+        let ambient = AppDependencies.current.location.ambientLocationService
         current = context
-        AppDependencies.current.location.ambientLocationService.recordResolvedAddress(context)
-        lastLookupCoord = context.observedAtCoord
-        lastLookupAt = context.observedAt
+        ambient.recordResolvedAddress(context)
+        lastLookupCoord = ambient.cachedLocation()?.coordinate ?? context.observedAtCoord
+        lastLookupAt = Date()
         consecutiveFailures = 0
         backoffStartedAt = nil
     }

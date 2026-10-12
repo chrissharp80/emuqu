@@ -1,0 +1,165 @@
+{
+ "file": "EmuquTests/GPSAccuracyLevelTests.swift",
+ "hash": "03982eeb6d9ccd5e",
+ "role": "XCTest suite for GPSAccuracyLevel (Get Me Back GPS ribbon): no-fix/non-finite values never produce a number to render, negative/invalid/≥100 m accuracy is .waiting, 10/30/100 m bands, only .waiting hides the arrow.",
+ "types": [
+  "GPSAccuracyLevelTests: class — XCTestCase for Utilities/GPSAccuracyLevel.swift"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func GPSAccuracyLevelTests.testNoFixDoesNotProduceANumberToRender()",
+   "hash": "68a2a0e8246d55c7",
+   "does": "Asserts displayMetres returns nil for greatestFiniteMagnitude, nil, +infinity and NaN.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)": "94ea1b80897ec930"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testOrdinaryAccuracyStillFormats()",
+   "hash": "84218b8aff0fee79",
+   "does": "Asserts displayMetres(12.6) == 12 and displayMetres(0) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "displayMetres is documented as 'the rounded metres to show' but Int(meters) truncates; the test pins 12.6 → 12, so 12.9 m displays as 12.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:46",
+      "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:52",
+      "EmuquTests/GPSAccuracyLevelTests.swift:24"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)": "94ea1b80897ec930"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testNegativeAccuracyIsNotReportedAsStrong()",
+   "hash": "8930c9da93187c27",
+   "does": "Asserts classify(-1) is .waiting (CoreLocation invalid fix).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "0e8f1f659c9c786e"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testMissingFixIsWaiting()",
+   "hash": "77ffa3e8639768d2",
+   "does": "Asserts classify(nil) is .waiting.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "0e8f1f659c9c786e"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testNonFiniteAccuracyIsWaiting()",
+   "hash": "4f558e283559a435",
+   "does": "Asserts classify(NaN) and classify(greatestFiniteMagnitude) are .waiting.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "0e8f1f659c9c786e"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testAccuracyBands()",
+   "hash": "9378ef861e2c17ac",
+   "does": "Asserts bands: 0 and 9.9 → .good, 10 and 29.9 → .ok, 30 and 99.9 → .poor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "0e8f1f659c9c786e"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testAboveTheUsableThresholdWeStopPointing()",
+   "hash": "635ac3b8b550be34",
+   "does": "Asserts classify(100) and classify(5000) are .waiting (arrow hidden above 100 m).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "0e8f1f659c9c786e"
+   }
+  },
+  {
+   "key": "func GPSAccuracyLevelTests.testOnlyWaitingHidesTheArrow()",
+   "hash": "0065c964e74bfad9",
+   "does": "Asserts showsDirection is false only for .waiting across allCases.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::var GPSAccuracyLevel.showsDirection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each level",
+     "effect": "asserts showsDirection == (level != .waiting)"
+    },
+    {
+     "at": "+4",
+     "cond": "level == .waiting (message text)",
+     "effect": "chooses 'hide' vs 'show' in the failure message only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::var GPSAccuracyLevel.showsDirection": "a7ae7becf8f4c389"
+   }
+  }
+ ],
+ "deps": {}
+}

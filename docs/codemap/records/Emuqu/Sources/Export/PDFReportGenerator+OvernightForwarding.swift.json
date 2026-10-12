@@ -1,0 +1,116 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift",
+ "hash": "6a58d92ad7130c87",
+ "role": "Forwarders on PDFReportGenerator to OvernightReportRenderer (overnight HR chart, overnight stats, tags & notes, diagnostic score colour) and the `overnight` computed property.",
+ "types": [
+  "PDFReportGenerator: extension — overnight forwarding"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PDFReportGenerator.overnight",
+   "hash": "c50c8a64771e1ad9",
+   "does": "Computed property returning a fresh OvernightReportRenderer(generator: self) on each access (a stateless value; not cached). Every report reaches it at least through diagnosticColorForScore.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.drawOvernightHRChart(series:result:yPosition:in:pageRect:)",
+   "hash": "26370f4e1afcdce4",
+   "does": "Forwards to OvernightReportRenderer.drawOvernightHRChart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRChart(series:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRChart(series:result:yPosition:in:pageRect:)": "9ba8ca4121ddce32",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight": "0c295e73ae6ef8c2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawOvernightStatsSection(_:series:yPosition:pageRect:)",
+   "hash": "eb44966f294b15e8",
+   "does": "Forwards to OvernightReportRenderer.drawOvernightStatsSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsSection(_:series:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsSection(_:series:yPosition:pageRect:)": "b662fc4bb0d5dbbb",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight": "0c295e73ae6ef8c2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawTagsAndNotesSection(session:yPosition:in:pageRect:)",
+   "hash": "b383a95c9585e19e",
+   "does": "Forwards to OvernightReportRenderer.drawTagsAndNotesSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawTagsAndNotesSection(session:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawTagsAndNotesSection(session:yPosition:in:pageRect:)": "359855f237e8d1bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight": "0c295e73ae6ef8c2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.sessionNotesHeight(session:pageRect:)",
+   "hash": "99eb2dac5f0a0a7b",
+   "does": "Forwards to OvernightReportRenderer.sessionNotesHeight: the height the session's notes wrap to at content width (0 without notes).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesHeight(session:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesHeight(session:pageRect:)": "e1ddfdbf9ca1bafd",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight": "0c295e73ae6ef8c2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.diagnosticColorForScore(_:)",
+   "hash": "621528399a4779e7",
+   "does": "Forwards to OvernightReportRenderer.diagnosticColorForScore (the ScoreVerdict ladder colour for a 0-100 score).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.diagnosticColorForScore(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.diagnosticColorForScore(_:)": "eed64714e9ab86a4",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::var PDFReportGenerator.overnight": "0c295e73ae6ef8c2"
+   }
+  }
+ ],
+ "deps": {}
+}

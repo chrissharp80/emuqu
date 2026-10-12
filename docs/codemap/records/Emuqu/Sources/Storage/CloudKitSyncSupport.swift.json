@@ -1,0 +1,1595 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudKitSyncSupport.swift",
+ "hash": "3ecbfece04dc2ec3",
+ "role": "CloudKit sync support: timeout error, the snapshot-backfill notification name, the MainActor SyncSerializer that chains CloudKitSyncManager operations, the CloudKitSettingsSync singleton that backs UserSettings up to/restores it from an encrypted CloudKit record, the CloudSettingsRecord field layout, localized sync status strings, and CloudSessionPayload which strips (upload) and restores (pull) every HealthKit-derived reading in an HRVSession.",
+ "types": [
+  "SyncTimeoutError: enum — .timedOut/.stalled thrown by CloudKitSyncManager+Push runWithTimeout",
+  "Notification.Name: extension — cloudKitSnapshotBackfillNeeded",
+  "SyncSerializer: class (@MainActor) — serializes async closures by chaining Tasks",
+  "CloudKitSettingsSync: class (@Observable @MainActor singleton) — debounced/immediate settings push, restore, one-time health scrub of stored record",
+  "CloudKitSettingsSync.Status: enum — idle/syncing/lastPushed/error",
+  "CloudKitSettingsSync.RestoreError: enum — noCloudCopy/cloudCopyMalformed/keyNotOnThisDevice",
+  "CloudKitSettingsSync.SealedSettings: enum (private) — ready(Data)/unavailable(String)",
+  "CloudKitSettingsSync.PushOutcome: enum (private) — pushed / skipped(String) / failed(String)",
+  "CloudSettingsRecord: enum — field names and encode/decode of settings record payload",
+  "CloudSyncMessages: enum — localized status lines",
+  "CloudSessionPayload: enum — HealthKit-reading stripping/restoring for session payloads",
+  "HRVAnalysisResult / ANSMetrics / Split / Lap: extension — copy-with-one-field helpers"
+ ],
+ "state": [
+  "notif:cloudKitSnapshotBackfillNeeded (\"flowRecoveryCloudKitSessionsNeedSnapshotBackfill\")",
+  "mem:SyncSerializer.previous (Task chain tail)",
+  "mem:CloudKitSettingsSync.shared (singleton)",
+  "mem:CloudKitSettingsSync.status (observable, read by Settings UI)",
+  "mem:CloudKitSettingsSync.container (CKContainer AppConfig.iCloudContainerIdentifier)",
+  "mem:CloudKitSettingsSync.recordType \"UserSettings\", zoneID UserSettings, recordName \"primary\"",
+  "mem:CloudKitSettingsSync.debounceTask / changeObserver / pushSerializer (SyncSerializer chaining pushes) / zoneEnsured / schemaUnavailable (per-launch sticky)",
+  "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done (CloudKitSettingsSync.scrubbedKey)",
+  "ck:UserSettings fields settingsPayload, modifiedAt, legacy settingsJSON, legacy deviceName (CloudSettingsRecord constants)",
+  "mem:CloudSessionPayload.healthKitDeviceIds {healthkit-import, healthkit-rebuild}, appleWatchDeviceId \"apple-watch\", heartRateContextKeys {hr, peak_hr}, healthKitFactorLabels {Sleep, Vitals}"
+ ],
+ "toplevel": "CloudKitSettingsSync.shared is created lazily on first access (static let); its private init registers the settings-change observer. CloudKitSettingsSync stored-property initializers build CKContainer(identifier: AppConfig.iCloudContainerIdentifier) and the UserSettings zone ID. SyncSerializer.previous starts as an empty completed Task. SyncSerializer carries @ObservationIgnored although the class is not @Observable (no effect).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SyncTimeoutError.errorDescription",
+   "hash": "9370109a89f52a1d",
+   "does": "Returns localized text for SyncTimeoutError: 'Sync operation timed out — will retry' or 'Sync stalled with no progress — will retry'.",
+   "entry": "LocalizedError witness; read via error.localizedDescription when CloudKitSyncManager reports a sync failure",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .timedOut",
+     "effect": "timed-out message"
+    },
+    {
+     "at": "+3",
+     "cond": "case .stalled",
+     "effect": "stalled message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SyncSerializer.run(_:)",
+   "hash": "5a36d704a74b1f5a",
+   "does": "Chains `body` after the previously queued Task: creates a MainActor Task that awaits the prior task then runs body, stores it as the new tail, and awaits it, so CloudKitSyncManager operations run one at a time in call order.",
+   "entry": null,
+   "calls": [
+    "closure:body supplied by CloudKitSyncManager: uploadSession (CloudKitSyncManager.swift:392), scrubHealthReadingsWhileSyncOff (:466), markSessionsForReupload (:627), uploadDeletion (:638), performFullSync (:674), and CloudKitSyncManager+Deletion.swift:49"
+   ],
+   "reads": [
+    "mem:SyncSerializer.previous"
+   ],
+   "writes": [
+    "mem:SyncSerializer.previous"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "No timeout or cancellation: a body that never returns blocks every later run() caller forever, because each new Task awaits the previous one unconditionally.",
+     "evidence": [
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:45",
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:46"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var CloudKitSettingsSync.privateDB",
+   "hash": "e8abafe4f7b2801b",
+   "does": "Returns the container's privateCloudDatabase.",
+   "entry": null,
+   "calls": [
+    "ext:CKContainer.privateCloudDatabase"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init CloudKitSettingsSync()",
+   "hash": "b0da93fbb48d47ba",
+   "does": "Private singleton init: registers a NotificationCenter observer on .flowRecoverySettingsChanged (main queue) that hops to MainActor and calls scheduleDebouncedPush().",
+   "entry": "Runs on first access of CloudKitSettingsSync.shared (static let); the observer closure is invoked by NotificationCenter",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "writes": [
+    "mem:CloudKitSettingsSync.changeObserver"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()": "94b2eddc4685b1d2"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.pushImmediately()",
+   "hash": "75eb7e34f8bb5820",
+   "does": "Pushes settings now via performPush() (queued behind any push in flight); returns true when saved, otherwise (skipped or failed) sets status = .error(reason) and returns false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSettingsSync.status"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "outcome .pushed",
+     "effect": "return true"
+    },
+    {
+     "at": "+4",
+     "cond": "outcome .skipped or .failed",
+     "effect": "status=.error(reason), return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()": "8c6c0e19e2342b11"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.restoreFromCloud()",
+   "hash": "2d672da2d7108ee8",
+   "does": "Restores settings from iCloud: ensures the zone exists, fetches record 'primary', extracts the settings JSON (legacy plaintext or decrypted payload), overlays this device's Health-filled profile fields, hands it to SettingsManager.restoreFromJSON, and returns the record's modifiedAt (or now).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)",
+    "ext:CKDatabase.record(for:)"
+   ],
+   "reads": [
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "file:user_settings.json (via SettingsManager.restoreFromJSON)",
+    "ck:UserSettings zone (created by ensureZoneExists)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "CKError .unknownItem on fetch",
+     "effect": "throws RestoreError.noCloudCopy; any other fetch error propagates to caller"
+    },
+    {
+     "at": "+12",
+     "cond": "record modifiedAt is a Date",
+     "effect": "return it; else ?? falls back to Date() (now), so the UI reports the restore time as the backup date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)": "b1194aebe7eb7521",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "092b369bfd4f3e5e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)": "241dcc890d726cb1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "646910ac1e9d61b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var CloudKitSettingsSync.RestoreError.errorDescription",
+   "hash": "46e36b2dbe5cc2fd",
+   "does": "Localized text for RestoreError cases.",
+   "entry": "LocalizedError witness; shown by SettingsPages+Data restore alert via localizedDescription",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".noCloudCopy",
+     "effect": "\"No iCloud backup found...\""
+    },
+    {
+     "at": "+4",
+     "cond": ".cloudCopyMalformed",
+     "effect": "\"The iCloud backup couldn't be read.\""
+    },
+    {
+     "at": "+6",
+     "cond": ".keyNotOnThisDevice",
+     "effect": "iCloud Keychain key-not-delivered message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.scheduleDebouncedPush()",
+   "hash": "b017542b166a3703",
+   "does": "Cancels any pending debounce task and starts a new MainActor task that sleeps 2 s and then calls performPush(); a .failed outcome (conflict, settings not loaded, encryption or CloudKit error) is shown as status .error(reason), a .skipped one (sync off, onboarding unfinished) leaves status alone. Skipped entirely while the schema is unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()"
+   ],
+   "reads": [
+    "mem:CloudKitSettingsSync.schemaUnavailable"
+   ],
+   "writes": [
+    "mem:CloudKitSettingsSync.debounceTask",
+    "mem:CloudKitSettingsSync.status"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "schemaUnavailable",
+     "effect": "return without scheduling; else cancel old task and schedule"
+    },
+    {
+     "at": "+5",
+     "cond": "Task cancelled after the sleep",
+     "effect": "return without pushing"
+    },
+    {
+     "at": "+6",
+     "cond": "self gone, or outcome not .failed",
+     "effect": "return; else status=.error(reason)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()": "8c6c0e19e2342b11",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.performPush()",
+   "hash": "00993e8e3a3a2a54",
+   "does": "Runs pushNow() inside pushSerializer, so the debounced push, the launch push and the Back Up button push one after another instead of interleaving at their awaits; returns pushNow's outcome.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow()"
+   ],
+   "reads": [
+    "mem:CloudKitSettingsSync.pushSerializer"
+   ],
+   "writes": [
+    "mem:SyncSerializer.previous"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow()": "69f54e7cad38fa71",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "429f3f55443a1bdc"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.pushNow()",
+   "hash": "f6e1b62952ccab57",
+   "does": "Pushes encrypted settings: .skipped(reason) if sync off/onboarding incomplete/schema paused; seals local settings (Health-filled fields removed); sets .syncing; ensures zone; fetches-or-creates and saves record 'primary'; sets .lastPushed and returns .pushed; failures return .failed(reason).",
+   "entry": "Only through performPush (serialized).",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "mem:CloudKitSettingsSync.schemaUnavailable"
+   ],
+   "writes": [
+    "mem:CloudKitSettingsSync.status",
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pushSkipReason non-nil",
+     "effect": "return .skipped(reason) without touching status"
+    },
+    {
+     "at": "+4",
+     "cond": "case .ready(data)",
+     "effect": "use sealed bytes"
+    },
+    {
+     "at": "+5",
+     "cond": "case .unavailable(reason)",
+     "effect": "return .failed(reason) (sealedLocalSettings may already have set status .error)"
+    },
+    {
+     "at": "+14",
+     "cond": "CKError .serverRecordChanged",
+     "effect": "log warning, status=.idle, return .failed(localized conflict message); no retry"
+    },
+    {
+     "at": "+18",
+     "cond": "any other error",
+     "effect": "handlePushFailure: schema error pauses sync for the launch, otherwise status=.error(desc); returns .failed(message)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "092b369bfd4f3e5e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)": "ccc7b81cdbec799c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()": "3a29f29c6652ecdf",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:)": "65850a9b8a9f55c8",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "512fee49bc487581",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.pushSkipReason()",
+   "hash": "64f84b7d3a49e2b2",
+   "does": "Returns 'iCloud sync is off' when iCloudSyncEnabled is false or onboarding is not complete, the schema-paused message when schemaUnavailable, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled",
+    "mem:SettingsManager.settings.hasCompletedOnboarding",
+    "mem:CloudKitSettingsSync.schemaUnavailable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "iCloudSyncEnabled && hasCompletedOnboarding",
+     "effect": "continue; else return \"iCloud sync is off\""
+    },
+    {
+     "at": "+5",
+     "cond": "!schemaUnavailable",
+     "effect": "return nil; else return schemaPausedMessage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage": "4f3bea584e89a22e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var CloudKitSettingsSync.schemaPausedMessage",
+   "hash": "714c6730b49965ee",
+   "does": "Localized 'iCloud settings backup is paused until the app restarts'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.sealedLocalSettings()",
+   "hash": "110e6c6ef65c2706",
+   "does": "Gets the fully-loaded local settings JSON from SettingsManager, removes Health-filled profile fields and encrypts with the cloud key. Returns .ready(sealed) or .unavailable(reason); an encryption failure also sets status=.error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "file:user_settings.json (via SettingsManager.currentSettingsJSON)",
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "mem:CloudKitSettingsSync.status"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentSettingsJSON() returned data",
+     "effect": "continue; else log and return .unavailable(\"Your settings haven't finished loading yet\")"
+    },
+    {
+     "at": "+7",
+     "cond": "uploadable/encrypt threw",
+     "effect": "log, status=.error(desc), return .unavailable(desc); never pushes plaintext"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "a5138370fd08a882",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "b028fa4bc1227863",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.saveSettingsRecord(_:)",
+   "hash": "dad135f7b2656ffa",
+   "does": "Fetches record 'primary' (or creates a new CKRecord of type UserSettings when absent), writes the sealed payload/modifiedAt and clears legacy fields, and saves it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
+    "ext:CKDatabase.record(for:)",
+    "ext:CKDatabase.save"
+   ],
+   "reads": [
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+   ],
+   "writes": [
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "CKError .unknownItem on fetch",
+     "effect": "create a fresh CKRecord; other errors propagate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "4825ee7131e15b23",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "646910ac1e9d61b8"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.handlePushFailure(_:)",
+   "hash": "362f370b384515f3",
+   "does": "Classifies a push error: permanent schema error → set schemaUnavailable, cancel debounce, status=.error(paused msg), return it; else status=.error(localizedDescription) and return it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSettingsSync.schemaUnavailable",
+    "mem:CloudKitSettingsSync.status",
+    "mem:CloudKitSettingsSync.debounceTask"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CloudKitSyncManager.isPermanentSchemaError(error)",
+     "effect": "false → generic error status; true → pause settings sync for this launch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage": "4f3bea584e89a22e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom:)",
+   "hash": "7f01982c90edc1ea",
+   "does": "One-time (per install) rewrite of the stored settings record while iCloud Sync is off: fetches it, re-seals it with Health-filled profile fields removed (using local markers), keeps its modifiedAt, saves, and sets the done flag. A record sealed with a key this device does not hold yet stays pending (retried on a later call).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:CKDatabase.record(for:)",
+    "ext:CKDatabase.save",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteUnrewritableRecord(_:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done",
+    "mem:CloudKitSettingsSync.schemaUnavailable",
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+   ],
+   "writes": [
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)",
+    "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "already done or schemaUnavailable",
+     "effect": "return; else attempt rewrite"
+    },
+    {
+     "at": "+7",
+     "cond": "record modifiedAt is a Date",
+     "effect": "keep it; ?? falls back to now when absent"
+    },
+    {
+     "at": "+10",
+     "cond": "CKError meaning no record/zone",
+     "effect": "mark done (nothing to scrub)"
+    },
+    {
+     "at": "+12",
+     "cond": "RestoreError",
+     "effect": "noteUnrewritableRecord: keyNotOnThisDevice stays pending, malformed marks done"
+    },
+    {
+     "at": "+14",
+     "cond": "any other error (network, encryption unavailable)",
+     "effect": "log; flag not set so it retries next call"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "9292d3dda1d4faf7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteUnrewritableRecord(_:)": "272525989ffd405a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "4825ee7131e15b23",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "646910ac1e9d61b8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.noteUnrewritableRecord(_:)",
+   "hash": "c9406397362395dc",
+   "does": "For a stored settings record this device could not read: keyNotOnThisDevice is logged and left pending so the scrub retries once iCloud Keychain delivers the key; any other RestoreError (damage) is logged and the scrub marked done, leaving the record to the device that wrote it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error == .keyNotOnThisDevice",
+     "effect": "log, return (not marked done)"
+    },
+    {
+     "at": "+6",
+     "cond": "other RestoreError",
+     "effect": "log, mark done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.ensureZoneExists()",
+   "hash": "941ac7a945a88cef",
+   "does": "Saves the UserSettings zone once per launch; errors propagate.",
+   "entry": null,
+   "calls": [
+    "ext:CKDatabase.save(CKRecordZone)"
+   ],
+   "reads": [
+    "mem:CloudKitSettingsSync.zoneEnsured"
+   ],
+   "writes": [
+    "mem:CloudKitSettingsSync.zoneEnsured",
+    "ck:UserSettings zone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "zoneEnsured",
+     "effect": "return; else save zone and set flag"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "646910ac1e9d61b8"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecord.uploadable(_:)",
+   "hash": "887bb07e77a065a2",
+   "does": "Decodes UserSettings JSON, drops Health-filled profile fields (withoutHealthFilledProfile) and re-encodes (iso8601, sortedKeys).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "9286f4aa2d8025c4",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "2f1cff5b373058e3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "370a209983d5a619"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecord.scrubbed(_:markedBy:)",
+   "hash": "c0d6bf24755f03e4",
+   "does": "Decodes the stored settings, adds to its Health-filled markers each field this device marks Health-filled whose value equals the stored one, then removes Health-filled fields and re-encodes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "field .birthday",
+     "effect": "counts when stored.birthday == local.birthday"
+    },
+    {
+     "at": "+5",
+     "cond": "field .biologicalSex",
+     "effect": "counts when sex equal"
+    },
+    {
+     "at": "+6",
+     "cond": "field .bodyWeight",
+     "effect": "counts when bodyWeightKg equal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "9286f4aa2d8025c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "2f1cff5b373058e3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "370a209983d5a619"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecord.restorable(_:keepingProfileOf:)",
+   "hash": "c014f2582e5a1f8f",
+   "does": "Decodes restored settings, puts back this device's Health-filled profile values (keepingHealthFilledProfile) and re-encodes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.keepingHealthFilledProfile(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.keepingHealthFilledProfile(of:)": "de8cbe8957a33e78",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "2f1cff5b373058e3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "370a209983d5a619"
+   }
+  },
+  {
+   "key": "var CloudSettingsRecord.encoder",
+   "hash": "7facc38ca8e6be6c",
+   "does": "Builds a JSONEncoder with iso8601 dates and sortedKeys.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CloudSettingsRecord.decoder",
+   "hash": "ba98896555d27eea",
+   "does": "Builds a JSONDecoder with iso8601 dates.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+   "hash": "020e3252e75062f8",
+   "does": "Encrypts settings JSON with CloudPayloadCodec; throws CloudSyncError.encryptionUnavailable when no cloud key (fail closed).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (key created if none)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CloudPayloadCodec.hasUsableKey",
+     "effect": "encode; else throw encryptionUnavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecord.write(_:to:modifiedAt:)",
+   "hash": "a80ee447d60ea5e5",
+   "does": "Sets settingsPayload and modifiedAt on the record and nils legacy settingsJSON and deviceName fields.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ck:UserSettings fields (in-memory CKRecord, persisted by caller save)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSettingsRecord.settingsJSON(from:)",
+   "hash": "e843f9bd80c71a04",
+   "does": "Returns settings JSON from a record: legacy plaintext settingsJSON string if present (preferred), else the EMQC-framed settingsPayload decoded by CloudPayloadCodec.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)"
+   ],
+   "reads": [
+    "ck:UserSettings settingsJSON/settingsPayload",
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "legacy settingsJSON string present",
+     "effect": "return its UTF-8 bytes"
+    },
+    {
+     "at": "+4",
+     "cond": "settingsPayload is Data starting with EMQC magic",
+     "effect": "decode; else throw RestoreError.cloudCopyMalformed"
+    },
+    {
+     "at": "+11",
+     "cond": "CodecError.noMatchingKey",
+     "effect": "rethrown as RestoreError.keyNotOnThisDevice; other codec errors propagate unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9"
+   }
+  },
+  {
+   "key": "var CloudSyncMessages.notSignedIn",
+   "hash": "2f0636841a6aa9de",
+   "does": "Localized 'Not signed into iCloud'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "notSignedIn is re-localized on every read; CloudKitSyncManager stores the string in lastPermanentErrorMessage (CloudKitSyncManager.swift:325-328) and later clears it only by string equality (CloudKitSyncManager.swift:315). After an in-app language change between the two, the comparison fails and the stale \"Not signed into iCloud\" permanent error stays after the account returns.",
+     "evidence": [
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:478",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:315",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:328"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CloudSyncMessages.isNotSignedIn(_:)",
+   "hash": "9c9d9e6f5d935649",
+   "does": "True when message equals the not-signed-in line in the current app language or in any localization Bundle.main ships (loaded from each .lproj bundle), so a stored line made before an in-app language change is still recognised; false for nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn",
+    "ext:Bundle.path(forResource:ofType:)",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "message nil",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "matches current language",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": "lproj bundle missing",
+     "effect": "that language is skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "db52f2cb12d576d4"
+   }
+  },
+  {
+   "key": "var CloudSyncMessages.noInternet",
+   "hash": "2e248951ef0e45e2",
+   "does": "Localized 'No internet connection'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CloudSyncMessages.storageFull",
+   "hash": "a2a66adcc76934cf",
+   "does": "Localized 'iCloud storage full'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CloudSyncMessages.previousSyncTimedOut",
+   "hash": "a42ecbc8731d7b5a",
+   "does": "Localized 'Previous sync timed out — retrying'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CloudSyncMessages.rateLimited(retryAfter:)",
+   "hash": "8e7994fc1c04ecad",
+   "does": "Localized rate-limit line, with the retry-after seconds when finite.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "retryAfter non-nil and finite",
+     "effect": "\"Rate limited, retry in N s\"; else \"Rate limited\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.isHealthKitSourced(_:)",
+   "hash": "934f89c999caf632",
+   "does": "True when the session is a Watch Breathe session or its deviceProvenance.deviceId is healthkit-import/healthkit-rebuild.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionType == .breathe",
+     "effect": "return true"
+    },
+    {
+     "at": "+2",
+     "cond": "deviceProvenance.deviceId present",
+     "effect": "check membership; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+   "hash": "3e33fa98d050a74d",
+   "does": "True when deviceProvenance.deviceId == \"apple-watch\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.uploadable(_:)",
+   "hash": "93a5cf0e147ae1a0",
+   "does": "Returns a copy of the session for upload with sleep snapshot/boundaries/segments/adjusted flag, vitals snapshot, auto-window result/score cleared, and training snapshot, analysis result, score breakdown and workout metadata stripped of HealthKit readings; for Apple-Watch-HR workouts also removes hr/peak_hr from aiContext.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.analysisWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "workout HR is Apple Watch",
+     "effect": "filter hr/peak_hr keys out of aiContext; else aiContext uploaded unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "ae7b7e75db3bda85",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.analysisWithoutHealthKitReadings(_:)": "07952210259b85a7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)": "75fa66139d5209fc",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "6d8018ee6c5ae5f3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)": "f7ff9fd72cda0ba9"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+   "hash": "851b838f59a2d6d6",
+   "does": "Merges into a newer iCloud copy the local HealthKit-derived fields the upload dropped: vitals snapshot (if remote nil), training context VO2max/workouts, analysis daytime RHR/segment label, score-breakdown Sleep/Vitals text and SpO2 penalty, aiContext HR keys, workout HR data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: HRVAnalysisResult, from: HRVAnalysisResult?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHeartRateContext(_:from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "merged.vitalsSnapshot nil",
+     "effect": "?? uses local vitalsSnapshot"
+    },
+    {
+     "at": "+6",
+     "cond": "merged has workoutMetadata",
+     "effect": "restore its HR fields from local; else leave nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "ae7b7e75db3bda85",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: HRVAnalysisResult, from: HRVAnalysisResult?)": "d74ffa9858ad8ffc",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)": "994575427acd0d39",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)": "98856df2aaf4136e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)": "aa3ded7322cccf29",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHeartRateContext(_:from:)": "2d30be82b2de6adf"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
+   "hash": "36e55c0c81428511",
+   "does": "Rebuilds TrainingContext keeping atl/ctl/tsb/yesterdayTrimp/daysSinceHardWorkout and setting vo2Max and recentWorkouts nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.analysisWithoutHealthKitReadings(_:)",
+   "hash": "495e2c1d0f894e6a",
+   "does": "Copies the analysis result with ansMetrics.daytimeRestingHR nil (when set), trainingContext stripped, and analysisSegmentLabel nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func ANSMetrics.withDaytimeRestingHR(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ansMetrics present with daytimeRestingHR",
+     "effect": "rebuild via withANSMetrics(nil RHR); else keep metrics"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func ANSMetrics.withDaytimeRestingHR(_:)": "a7512088d9300167",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "6d8018ee6c5ae5f3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)": "87ca12302212a26b"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)",
+   "hash": "62824f0ca9d2e470",
+   "does": "Rebuilds the score breakdown with Sleep/Vitals factor details emptied and facts nil, the SpO2 penalty line removed and spo2PenaltyApplied false; composite, tier and sub-scores kept.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withDetail(_:facts:on:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.penaltiesWithoutSpO2(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "factor label is Sleep or Vitals",
+     "effect": "replace detail with \"\" and facts nil; else keep factor"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.penaltiesWithoutSpO2(_:)": "fdd94122bafc4455",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withDetail(_:facts:on:)": "80ec195847219cd0"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.penaltiesWithoutSpO2(_:)",
+   "hash": "9654ebebf78548cc",
+   "does": "Removes the SpO2 penalty line: the English-prefixed line if found, else the first line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "spo2PenaltyApplied and lines non-empty",
+     "effect": "remove a line; else return unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "no English SpO2 line found",
+     "effect": "no English SpO2 line found => ?? removes lines[startIndex]; scoring lists the vitals (SpO2) penalty first (RecoveryScoreCalculator.swift:663, VitalsScoring.swift:349-351 returns only the SpO2 line)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)",
+   "hash": "723a3a96e41151f8",
+   "does": "Strips workout metadata: HRR samples kept only if strap-measured, per-second HR cleared on healthKitHROffsets rows; for Apple-Watch-HR workouts also clears split averageHR and lap average/max HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Split.withAverageHR(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Lap.withHeartRate(average:max:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "watchHR",
+     "effect": "also clear split/lap HR; else return after samples/HRR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)": "7655694a4a759783",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)": "cf8b7f32c2da165c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Lap.withHeartRate(average:max:)": "19dd12d104ad4ba0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Split.withAverageHR(_:)": "96f0bae275b39a16"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.strapMeasured(_:)",
+   "hash": "ac1d4a63dbfa2b3f",
+   "does": "Filters HRR samples to provenance .strap; nil if none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil",
+     "effect": "?? [] — treated as empty"
+    },
+    {
+     "at": "+2",
+     "cond": "strap list empty",
+     "effect": "return nil; else the list"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.withoutHealthKitHR(_:)",
+   "hash": "8aef5144219a7fc1",
+   "does": "Returns per-second samples with heartRate cleared on rows whose offset is in healthKitHROffsets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metadata.samples nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "healthKitHROffsets nil",
+     "effect": "?? [] — no offsets"
+    },
+    {
+     "at": "+3",
+     "cond": "offsets empty",
+     "effect": "return samples unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "row offset in offsets",
+     "effect": "withHeartRate(nil); else row unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)": "f378d2443f679181"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.withDetail(_:facts:on:)",
+   "hash": "d3c2a28f4bd73588",
+   "does": "Builds a ScoreFactor copy with detail and facts replaced, label/score/weight/impact kept.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)",
+   "hash": "5f02331f07391133",
+   "does": "Restores local VO2max and recentWorkouts onto the remote training context when remote lacks both.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote nil",
+     "effect": "return local"
+    },
+    {
+     "at": "+2",
+     "cond": "local present and remote has neither vo2Max nor recentWorkouts",
+     "effect": "rebuild with local values; else return remote"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: HRVAnalysisResult, from: HRVAnalysisResult?)",
+   "hash": "893ae38a4efc2685",
+   "does": "Merges analysis: local training context restored; when analysisDate and windowStart match, local analysisSegmentLabel and daytimeRestingHR are put back.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func ANSMetrics.withDaytimeRestingHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+4",
+     "cond": "same analysisDate and windowStart",
+     "effect": "continue restoring label/RHR; else return merged with only training context"
+    },
+    {
+     "at": "+5",
+     "cond": "remote label nil",
+     "effect": "?? local label"
+    },
+    {
+     "at": "+6",
+     "cond": "remote ansMetrics without RHR and local has RHR",
+     "effect": "withANSMetrics(local RHR); else unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func ANSMetrics.withDaytimeRestingHR(_:)": "a7512088d9300167",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)": "98856df2aaf4136e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)": "87ca12302212a26b"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)",
+   "hash": "8d2a1c727d111ed2",
+   "does": "Merges score breakdowns: emptied factor details refilled from the local factor with the same label and score; local SpO2 penalty lines/flag restored when local had it, remote does not, and composite scores match.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withDetail(_:facts:on:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+5",
+     "cond": "factor detail empty and local factor with same label+score exists",
+     "effect": "restore detail/facts; else keep"
+    },
+    {
+     "at": "+13",
+     "cond": "heldSpO2",
+     "effect": "use local penalties; else remote penalties"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withDetail(_:facts:on:)": "80ec195847219cd0"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHeartRateContext(_:from:)",
+   "hash": "6b6c68503cbaa44f",
+   "does": "Copies local hr/peak_hr entries into remote aiContext where remote lacks them.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+2",
+     "cond": "key missing in remote",
+     "effect": "copy local value (may be nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)",
+   "hash": "027e7d8cbdcc43c9",
+   "does": "Merges workout metadata: HRR samples, healthKitHROffsets (remote ?? local), per-second HR, split and lap HR restored from local.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: [HRRSample]?, from: [HRRSample]?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHR(_: [Split]?, from: [Split]?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHR(_: [Lap]?, from: [Lap]?)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "remote healthKitHROffsets nil",
+     "effect": "?? local list, so the next upload strips those rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: [HRRSample]?, from: [HRRSample]?)": "0b7362dcfc40344c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHR(_: [Lap]?, from: [Lap]?)": "f441892d8424d4fd",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHR(_: [Split]?, from: [Split]?)": "0c063222cbd4be25",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)": "cb9d08d95a68ff3a"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHealthKitHR(_:from:)",
+   "hash": "879eaee9d08cc23b",
+   "does": "Puts local heart rate back on remote per-second rows listed in healthKitHROffsets that arrived with nil HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote samples nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "offsets nil",
+     "effect": "?? []"
+    },
+    {
+     "at": "+3",
+     "cond": "offsets empty or no local samples",
+     "effect": "return remote samples"
+    },
+    {
+     "at": "+6",
+     "cond": "row HR nil, offset listed, local HR exists",
+     "effect": "withHeartRate(local); else row unchanged"
+    },
+    {
+     "at": "+6",
+     "cond": "localHR lookup (?? nil)",
+     "effect": "missing key or nil HR → no restore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)": "f378d2443f679181"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHR(_: [Split]?, from: [Split]?)",
+   "hash": "77ead3c03b3c2067",
+   "does": "Restores split averageHR from the local split with same index and duration when the remote split has none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Split.withAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+3",
+     "cond": "averageHR nil and matching local split",
+     "effect": "set local averageHR; else keep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Split.withAverageHR(_:)": "96f0bae275b39a16"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHR(_: [Lap]?, from: [Lap]?)",
+   "hash": "89506f38266d23b3",
+   "does": "Restores lap average/max HR from the local lap with same index and start offset when remote has neither.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Lap.withHeartRate(average:max:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+3",
+     "cond": "avg and max nil and matching local lap",
+     "effect": "set local HR; else keep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func Lap.withHeartRate(average:max:)": "19dd12d104ad4ba0"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: [HRRSample]?, from: [HRRSample]?)",
+   "hash": "db20815429c8e22b",
+   "does": "Merges HRR samples: if remote has only strap samples, appends local non-strap samples; nil when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote nil",
+     "effect": "?? []"
+    },
+    {
+     "at": "+2",
+     "cond": "remote contains a non-strap sample",
+     "effect": "return remote (old record carried them)"
+    },
+    {
+     "at": "+3",
+     "cond": "local nil",
+     "effect": "?? []"
+    },
+    {
+     "at": "+4",
+     "cond": "combined empty",
+     "effect": "nil; else combined"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisResult.withANSMetrics(_:)",
+   "hash": "74a3654dfb564aa3",
+   "does": "Copy of HRVAnalysisResult with ansMetrics replaced, all other fields passed through the memberwise init.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Field-by-field rebuild: any new HRVAnalysisResult stored property not added here is silently reset to its init default on every upload strip/restore (test CloudSessionPayloadHealthReadingsTests:183-197 guards only the current fixture).",
+     "evidence": [
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:804",
+      "EmuquTests/CloudSessionPayloadHealthReadingsTests.swift:183"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ANSMetrics.withDaytimeRestingHR(_:)",
+   "hash": "30788f6bbddc6e48",
+   "does": "Copy of ANSMetrics with daytimeRestingHR replaced; nocturnalHRDip kept.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Split.withAverageHR(_:)",
+   "hash": "995647054d1cc593",
+   "does": "Copy of Split with averageHR replaced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Lap.withHeartRate(average:max:)",
+   "hash": "10bfb3ec71889e8c",
+   "does": "Copy of Lap with averageHR/maxHR replaced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3"
+   }
+  }
+ ],
+ "deps": {}
+}

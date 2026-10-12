@@ -1,0 +1,13 @@
+{
+ "file": "scripts/check_empty_range_loops.sh",
+ "hash": "8973a76e6fbedf39",
+ "role": "CI gate: flags `for i in 1 ..< xs.count` and `for i in 0 ..< (xs.count - N)` in Emuqu/Sources without a nearby count/isEmpty guard or `empty-range-ok:` waiver.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. Python over Emuqu/Sources: skips lines containing `max(0,`; window = from the enclosing func/init/deinit/subscript header (searched back to file start, no line limit) to the loop; required count = 1 for `1 ..< xs.count`, N for `0 ..< xs.count - N`; guaranteed counts from if/guard/while `xs.count >= k` (k), `> k` (k+1), `< k` (k), `where xs.count >=/> k`, and isEmpty/!isEmpty/count != 0 (1); guarded only if some guaranteed count >= required; waiver `empty-range-ok:` within 3 lines above. Problems (printed with the needed count) -> exit 1; else clean. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

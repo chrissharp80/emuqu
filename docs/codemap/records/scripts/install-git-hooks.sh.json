@@ -1,0 +1,13 @@
+{
+ "file": "scripts/install-git-hooks.sh",
+ "hash": "28b00a5a57396445",
+ "role": "Sets the repo's git core.hooksPath to .githooks (run by make setup-hooks).",
+ "types": [],
+ "state": [
+  "git-config:core.hooksPath"
+ ],
+ "toplevel": "set -euo pipefail; resolves repo root from script dir; `git -C <root> config core.hooksPath .githooks`; prints confirmation. No conditionals; fails (set -e) if git config fails.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

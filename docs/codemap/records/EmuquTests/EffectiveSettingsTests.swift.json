@@ -1,0 +1,439 @@
+{
+ "file": "EmuquTests/EffectiveSettingsTests.swift",
+ "hash": "8dda84ec4f7c752c",
+ "role": "XCTest suite for UserSettings resolved values: effectiveMaxHR (user entry, Tanaka from birthday, 220 cap, 180 default), effectiveLTHR (user entry, 0.88×max, 120 floor), effectiveRestingHR (user ≥30, baseline >30, 60 default), effectiveBodyWeightKg (75 kg fallback) and effectiveCyclingFTP (nil when ≤0).",
+ "types": [
+  "EffectiveSettingsTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [],
+ "toplevel": "Ages are built from Date() and Calendar.current, so the age-derived assertions depend on the run date and ambient zone (acknowledged by the ±1 tolerance).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "UserSettings.maxHR's doc comment still says the fallback is '220 − age'; effectiveMaxHR delegates to MaxHeartRate.tanaka (208 − 0.7 × age), which these tests pin.",
+   "evidence": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift:93",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift:86",
+    "EmuquTests/EffectiveSettingsTests.swift:48"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func EffectiveSettingsTests.settings()",
+   "hash": "b984ac0a77e30d70",
+   "does": "Returns a default UserSettings().",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.age(_:)",
+   "hash": "dbd1402316df99a7",
+   "does": "Returns Date() minus `years` years in Calendar.current (falls back to now).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "calendar.date(byAdding:) ?? Date()",
+     "effect": "nil (cannot happen) → now, i.e. age 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EffectiveSettingsTests.testUserEnteredMaxHRWins()",
+   "hash": "5650c95703fa1b1d",
+   "does": "maxHR 191: asserts effectiveMaxHR 191.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testMaxHRFromAgeDelegatesToTanaka()",
+   "hash": "f3e5d3075b82c7d8",
+   "does": "maxHR nil, age 30: asserts effectiveMaxHR equals MaxHeartRate.effective for the same inputs and is > 183 (Tanaka 187 vs 220−age 190 — the >183 bound does not separate them).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The secondary assertion effectiveMaxHR > 183 is said to rule out 220−age, but 220−30 = 190 also exceeds 183, so a revert to 220−age passes it; only the delegation equality catches a formula change, and it compares production to itself.",
+     "evidence": [
+      "EmuquTests/EffectiveSettingsTests.swift:62"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "8a154e8c69c57476",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testMaxHRFromAgeUsesTheFormulaNotTheFloor()",
+   "hash": "83b2639e59a4440d",
+   "does": "maxHR nil, age 95: asserts effectiveMaxHR ≈ 142 (±1) and above MaxHeartRate.floor (130).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "8a154e8c69c57476",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testMaxHRFromAgeIsCappedAt220()",
+   "hash": "bfc7cb15716cd919",
+   "does": "maxHR nil, age 1: asserts effectiveMaxHR ≤ 220.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "At age 1 Tanaka gives 207, below the 220 ceiling, so this test passes even if the cap is removed; no input reaches the clamp.",
+     "evidence": [
+      "EmuquTests/EffectiveSettingsTests.swift:85",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:58"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "8a154e8c69c57476",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testMaxHRWithNoInputsHasASafeDefault()",
+   "hash": "60ed15f410d03162",
+   "does": "maxHR and birthday nil: asserts effectiveMaxHR 180.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testUserEnteredLTHRWins()",
+   "hash": "c0edb3f7455a3644",
+   "does": "lactateThresholdHR 172: asserts effectiveLTHR 172.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testLTHRDerivesFrom88PercentOfMaxHR()",
+   "hash": "bbc3e68ec936f2bc",
+   "does": "LTHR nil, maxHR 200: asserts effectiveLTHR 176 (0.88×200).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testLTHRFloorIs120NotThe160TheCommentClaimed()",
+   "hash": "297fab4ce01d335b",
+   "does": "LTHR nil, maxHR 80: asserts effectiveLTHR 120 (0.88×80 = 70 floored to 120).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Pins an effective LTHR of 120 bpm for a user max HR of 80 bpm, i.e. a threshold 40 bpm above the stated maximum, without flagging it; any user-entered max below 137 gets LTHR above 0.88×max and below 137 gets LTHR above max, which feeds the hrTSS denominator.",
+     "evidence": [
+      "EmuquTests/EffectiveSettingsTests.swift:118",
+      "EmuquTests/EffectiveSettingsTests.swift:119",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:121"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testLTHRIsBelowMaxHRForRealisticInputs()",
+   "hash": "44ee63ba83095d0c",
+   "does": "For maxHR 150/170/190/210 asserts effectiveLTHR < maxHR.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each maxHR",
+     "effect": "sets it and asserts LTHR below it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testUserRestingHRWins()",
+   "hash": "51ab9c21de50bb9b",
+   "does": "userRestingHR 44, baseline 58: asserts 44.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testFallsBackToTheTrackedBaseline()",
+   "hash": "dfadfc2e3a113633",
+   "does": "userRestingHR nil, baseline 52.4: asserts 52.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testImplausiblyLowValuesAreIgnored()",
+   "hash": "2b66ddbaf97db808",
+   "does": "userRestingHR 12, baseline nil: asserts default 60.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testTheFieldsLowestValueIsKept()",
+   "hash": "a2eab4eff23209b6",
+   "does": "userRestingHR 30 (field minimum), baseline 58: asserts 30 is kept.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testRestingHRHasASafeDefault()",
+   "hash": "f327711d81c8185b",
+   "does": "Both nil: asserts 60.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testUserWeightWins()",
+   "hash": "aa77830ac55c8966",
+   "does": "bodyWeightKg 68.5: asserts 68.5.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testZeroOrMissingWeightFallsBack()",
+   "hash": "dc46f74ea8944da3",
+   "does": "bodyWeightKg 0 then nil: asserts 75.0 both times.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testCyclingFTPIsNilWhenUnsetOrZero()",
+   "hash": "6344665f9be66145",
+   "does": "cyclingFTPWatts nil, 0, −10: asserts effectiveCyclingFTP nil each time.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testCyclingFTPPassesThroughWhenSet()",
+   "hash": "26f78a7ab0c5127b",
+   "does": "cyclingFTPWatts 245: asserts 245.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+   }
+  }
+ ],
+ "deps": {}
+}

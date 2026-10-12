@@ -1,0 +1,1049 @@
+{
+ "file": "Emuqu/Sources/Views/TrendsV2View.swift",
+ "hash": "62ea01ceb8a562bb",
+ "role": "Trends screen (reached from More menu): loads every archived session once (lightweight), filters to reliable overnight readings within the selected range/tag, memoizes derived chart/stats/insight/direction state, and renders tag chips, range chips, the RMSSD overall-trend card, the metric chart, stats grid, insights and the History calendar (which can soft-delete a session).",
+ "types": [
+  "TrendsV2View: struct (View) — Trends screen",
+  "TrendsV2View.TimeRange: enum Int — 7/14/30/90/all(0) range chips",
+  "TrendsV2View.Metric: enum String — chart metric (rawValue English data key)",
+  "TrendsV2View.BaselineStats: struct — 60-day mean/population SD/sampleCount plus the band edges low/high (log space for log-normal metrics); hasData needs >=4",
+  "TrendsV2View.Derived: struct — memoized snapshot (sessions, points, rollingBaseline, chartBand, direction, stats, insights)",
+  "TrendsV2View.DirectionInfo: struct — label/glyph/color for a trend verdict"
+ ],
+ "state": [
+  "mem:TrendsV2View.selectedRange (@State, default .thirty)",
+  "mem:TrendsV2View.selectedMetric (@State, default .recoveryScore)",
+  "mem:TrendsV2View.selectedTagId (@State UUID?, nil = All)",
+  "mem:TrendsV2View.allSessions (@State [HRVSession], all archive sessions lightweight)",
+  "mem:TrendsV2View.isLoadingSessions (@State Bool re-entrancy guard)",
+  "mem:TrendsV2View.reloadRequested (@State Bool, a refresh asked for during a load)",
+  "mem:TrendsV2View.derived (@State Derived, starts .empty)",
+  "mem:TrendsV2View.scrubbedDate (@State Date?, chartXSelection binding)",
+  "mem:TrendsV2View.BaselineStats.empty (static let)",
+  "mem:TrendsV2View.Derived.empty (@MainActor static let, direction 'Building trend')",
+  "@ScaledMetric dt11/dt12/dt13/dt14/dt17/dt22/dt24 font sizes",
+  "@Environment dependencies, accessibilityReduceTransparency, RRCollector, ArchiveSignal"
+ ],
+ "toplevel": "Stored-property initializers: selectedRange .thirty, selectedMetric .recoveryScore, derived .empty, allSessions []; ScaledMetric defaults 11..24 bound to text styles. Environment reads RRCollector and ArchiveSignal (crash if not injected). No #if blocks. @State reloadRequested false.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "ARCHITECTURE.md Trend cap contract names period values twoWeeks/month/threeMonths/all and promises a 'need more overnight sessions' state when <2 data points; the code has 7/14/30/90/all chips and shows the empty state only at 0 points (1 point renders a chart), insights need >=3, the band needs >=4. ARCHITECTURE.md:659 filter also omits the isReliableForHRVAggregates gate the code applies (FLOWCHART.md:726 includes it).",
+   "evidence": [
+    "docs/ARCHITECTURE.md:662",
+    "docs/ARCHITECTURE.md:659",
+    "Emuqu/Sources/Views/TrendsV2View.swift:82",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:23",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:494",
+    "Emuqu/Sources/Views/TrendsV2View.swift:171"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var TrendsV2View.TimeRange.id",
+   "hash": "86401e7676ec760d",
+   "does": "Identifiable id = rawValue.",
+   "entry": "ForEach(TimeRange.allCases) identity",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrendsV2View.TimeRange.label",
+   "hash": "9af7ebcbf1154529",
+   "does": "Chip text: '7','14','30','90' or localized 'All'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".seven",
+     "effect": "'7'"
+    },
+    {
+     "at": "+3",
+     "cond": ".fourteen",
+     "effect": "'14'"
+    },
+    {
+     "at": "+4",
+     "cond": ".thirty",
+     "effect": "'30'"
+    },
+    {
+     "at": "+5",
+     "cond": ".ninety",
+     "effect": "'90'"
+    },
+    {
+     "at": "+6",
+     "cond": ".all",
+     "effect": "localized 'All'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrendsV2View.TimeRange.spokenLabel",
+   "hash": "f440409d713e3c79",
+   "does": "VoiceOver label: DateComponentsFormatter full-style day count in the app locale ('7 days'); falls back to label for All or formatter failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.dayCount",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dayCount nil (.all)",
+     "effect": "return label"
+    },
+    {
+     "at": "+8",
+     "cond": "formatter returns nil",
+     "effect": "?? label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.dayCount": "c5eebb286e05c80f",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar": "e2433f1fce5579f2"
+   }
+  },
+  {
+   "key": "var TrendsV2View.TimeRange.dayCount",
+   "hash": "4db2eec5f320cbdd",
+   "does": "Days per range: 7/14/30/90, nil for All.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".seven",
+     "effect": "7"
+    },
+    {
+     "at": "+3",
+     "cond": ".fourteen",
+     "effect": "14"
+    },
+    {
+     "at": "+4",
+     "cond": ".thirty",
+     "effect": "30"
+    },
+    {
+     "at": "+5",
+     "cond": ".ninety",
+     "effect": "90"
+    },
+    {
+     "at": "+6",
+     "cond": ".all",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrendsV2View.Metric.localizedName",
+   "hash": "9db111b3a6742319",
+   "does": "Localized display name; RMSSD/SDNN unlocalized.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".recoveryScore",
+     "effect": "'Recovery'"
+    },
+    {
+     "at": "+4",
+     "cond": ".rmssd",
+     "effect": "'RMSSD'"
+    },
+    {
+     "at": "+5",
+     "cond": ".sdnn",
+     "effect": "'SDNN'"
+    },
+    {
+     "at": "+6",
+     "cond": ".meanHR",
+     "effect": "'Mean HR'"
+    },
+    {
+     "at": "+7",
+     "cond": ".balance",
+     "effect": "'Balance'"
+    },
+    {
+     "at": "+8",
+     "cond": ".hfPower",
+     "effect": "'HF Power'"
+    },
+    {
+     "at": "+9",
+     "cond": ".stress",
+     "effect": "'Stress'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrendsV2View.Metric.displayUnit",
+   "hash": "136821202be1c209",
+   "does": "Unit suffix: '/ 100', 'ms', 'bpm', '' (balance), 'ms²', '' (stress).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".recoveryScore",
+     "effect": "'/ 100'"
+    },
+    {
+     "at": "+3",
+     "cond": ".rmssd/.sdnn",
+     "effect": "'ms'"
+    },
+    {
+     "at": "+4",
+     "cond": ".meanHR",
+     "effect": "'bpm'"
+    },
+    {
+     "at": "+5",
+     "cond": ".balance",
+     "effect": "''"
+    },
+    {
+     "at": "+6",
+     "cond": ".hfPower",
+     "effect": "'ms²'"
+    },
+    {
+     "at": "+7",
+     "cond": ".stress",
+     "effect": "''"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrendsV2View.sessions",
+   "hash": "ee7d4249a3c326ff",
+   "does": "Filters allSessions to startDate >= now - range days (all = distantPast), overnight, analysed, isReliableForHRVAggregates, and carrying the selected tag; sorts ascending by startDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions",
+    "mem:TrendsV2View.selectedRange",
+    "mem:TrendsV2View.selectedTagId"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "selectedRange == .all",
+     "effect": "cutoff = .distantPast"
+    },
+    {
+     "at": "+4",
+     "cond": "other ranges (default)",
+     "effect": "cutoff = now - rawValue days"
+    },
+    {
+     "at": "+4",
+     "cond": "Calendar date(byAdding:) returns nil",
+     "effect": "?? .distantPast (no cutoff)"
+    },
+    {
+     "at": "+10",
+     "cond": "selectedTagId nil",
+     "effect": "keep every session; else keep only sessions whose tags contain that id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "var TrendsV2View.filterTags",
+   "hash": "62000121c7b9c56d",
+   "does": "The tag chips after 'All': settings.allTags (system then custom, Settings order) filtered to tags at least one loaded overnight session in allSessions carries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions",
+    "mem:SettingsManager.settings.customTags"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "f7e94e6fb3a9db3b"
+   }
+  },
+  {
+   "key": "var TrendsV2View.body",
+   "hash": "6bb0a1996d7d6b5a",
+   "does": "Screen body: ScrollView of stack on app background, large localized 'Trends' title, wrapped with refresh hooks.",
+   "entry": "SwiftUI body (pushed from MoreMenuView.swift:91)",
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.withRefreshHooks(_:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.stack",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.withRefreshHooks(_:)": "5d0de8f3fd52ec09",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.stack": "c691ac83f5e0cb9a"
+   }
+  },
+  {
+   "key": "var TrendsV2View.stack",
+   "hash": "c98421d4c45e88c6",
+   "does": "VStack of tag chips, range chips, overall trend card, metric chart card, stats grid, insights, history calendar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.tagFilterChips",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeChips",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.overallTrendCard",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.metricChartCard",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.statsGrid",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.insightsSection",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.insightsSection": "47a0504d07c282e4",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.metricChartCard": "d7a885ddea2d3cc4",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.statsGrid": "32682e081f5fdc97",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar": "e2433f1fce5579f2",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.overallTrendCard": "d40bbf5cc262b1d9",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeChips": "7e46f9496d702deb",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.tagFilterChips": "c802004c96b24753"
+   }
+  },
+  {
+   "key": "var TrendsV2View.calendar",
+   "hash": "3bb17536a2b6f3aa",
+   "does": "HistoryCalendarView fed all loaded sessions (any type) with deleteSession as its delete callback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "49e7b546c720a4bf"
+   }
+  },
+  {
+   "key": "func TrendsV2View.withRefreshHooks(_:)",
+   "hash": "5f9c6195d9fdeb3e",
+   "does": "Attaches .task to load sessions on appear, reload on ArchiveSignal.version change and on CloudKitSyncManager.pullVersion change (iCloud pulls, including deletions made on another device), and rebuildDerived on changes to allSessions.count, selectedRange, selectedMetric, selectedTagId.",
+   "entry": ".task on appear; .onChange observers of ArchiveSignal.version, CloudKitSyncManager.pullVersion and @State inputs",
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version",
+    "mem:CloudKitSyncManager.pullVersion",
+    "mem:TrendsV2View.selectedRange",
+    "mem:TrendsV2View.selectedMetric",
+    "mem:TrendsV2View.selectedTagId",
+    "mem:TrendsV2View.allSessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "67fc1e7ba60f6f16",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
+   }
+  },
+  {
+   "key": "func TrendsV2View.loadSessions()",
+   "hash": "68406d43061aebec",
+   "does": "MainActor, one load at a time: a call while a load runs sets reloadRequested and returns; the running load loops — clear reloadRequested, load every archive session lightweight via recentSessionsAsync(limit: nil), store into allSessions, rebuildDerived — until no new request arrived during the pass.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweight (all sessions)",
+    "mem:TrendsV2View.isLoadingSessions",
+    "mem:TrendsV2View.reloadRequested"
+   ],
+   "writes": [
+    "mem:TrendsV2View.allSessions",
+    "mem:TrendsV2View.isLoadingSessions",
+    "mem:TrendsV2View.reloadRequested",
+    "mem:TrendsV2View.derived"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLoadingSessions already true",
+     "effect": "set reloadRequested, return (the running load repeats)"
+    },
+    {
+     "at": "+14",
+     "cond": "reloadRequested set during the pass",
+     "effect": "load again"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
+   }
+  },
+  {
+   "key": "func TrendsV2View.deleteSession(_:)",
+   "hash": "2516ac126accd424",
+   "does": "Soft-deletes a session through SessionTrash.move (archive.delete to Trash, notifyArchiveChanged, CloudKit uploadDeletion in a Task), then removes it from allSessions and rebuilds derived; returns true. On throw logs and returns false.",
+   "entry": "HistoryCalendarView onDelete callback (user deletes from day sheet)",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions"
+   ],
+   "writes": [
+    "archive:SessionArchive.delete (trash)",
+    "notif:flowRecoveryArchiveChanged",
+    "mem:TrendsV2View.allSessions",
+    "mem:TrendsV2View.derived",
+    "ck:session deletion",
+    "ud:Archive deletionTimesKey (standard, via recordDeletionTime)",
+    "file:archive index + deleted index",
+    "file:Trash/<session id>"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "SessionTrash.move throws",
+     "effect": "catch: debugLog, return false (calendar keeps the session); no user-visible error from this unit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "5a5b9af14dcd988b",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
+   }
+  },
+  {
+   "key": "func TrendsV2View.rebuildDerived()",
+   "hash": "bb8146da397b10e2",
+   "does": "Recomputes Derived in one pass: scoped sessions, metric points, 60-day baselines for all metrics, 7-reading rolling mean, chart band for selected metric, RMSSD direction (log scale) from scoped sessions, stats cells, insights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.sessions",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.sixtyDayBaselines()",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rollingBaseline(_:window:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.computeStats(_:baselines:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildInsights(metric:points:days:totalDays:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions",
+    "mem:TrendsV2View.selectedMetric",
+    "mem:TrendsV2View.selectedRange",
+    "mem:TrendsV2View.selectedTagId"
+   ],
+   "writes": [
+    "mem:TrendsV2View.derived"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "baselineStats has no entry for selectedMetric",
+     "effect": "?? .empty (unreachable: dictionary built from Metric.allCases)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildInsights(metric:points:days:totalDays:)": "67c2ef33bf6efe6b",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "e08af1fdb22d6e53",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.computeStats(_:baselines:)": "e11ca7c5f218b291",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rollingBaseline(_:window:)": "a13a24688a968113",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "51cec13b934c1292",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.sixtyDayBaselines()": "3c7a3f0d541d2c9f",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "9786d7db97b61620",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.sessions": "67ba650506b9a999"
+   }
+  },
+  {
+   "key": "func TrendsV2View.sixtyDayBaselines()",
+   "hash": "81864b2093c329ae",
+   "does": "Builds a BaselineStats for every Metric from reliable overnight sessions in the last 60 days (ignores range chip and tag filter); the log-normal metrics (isLogNormal: RMSSD, SDNN, HF Power, Balance) get their band in log space.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.baselineWindow(_:days:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:logScale:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "e08af1fdb22d6e53",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "72f54b5a4e75d16b",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:logScale:)": "e5414e9ae39cf5f8",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.baselineWindow(_:days:)": "b298d6ef866f42bb"
+   }
+  },
+  {
+   "key": "var TrendsV2View.BaselineStats.hasData",
+   "hash": "05aecb52c3f511b1",
+   "does": "True when sampleCount >= 4.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendsV2View.BaselineStats.from(_:logScale:)",
+   "hash": "65481a07147d065a",
+   "does": "Population mean/SD of values plus the normal-range band edges: exp(lnMean ± lnSD) over the positive values when logScale (logEdges), else mean ± SD (also the fallback when fewer than four positive values); .empty when fewer than 4 values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.logEdges(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values.count < 4",
+     "effect": "return .empty (hasData false)"
+    },
+    {
+     "at": "+4",
+     "cond": "logScale",
+     "effect": "logEdges; else no log edges"
+    },
+    {
+     "at": "+7",
+     "cond": "no log edges (??)",
+     "effect": "low/high = mean ∓ sd"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.logEdges(_:)": "3330faf9e2a0d337",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "f63184d7d33898ed"
+   }
+  },
+  {
+   "key": "func TrendsV2View.BaselineStats.standardDeviation(_:mean:)",
+   "hash": "eb142f5879376ac2",
+   "does": "Population standard deviation of values about the given mean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendsV2View.BaselineStats.logEdges(_:)",
+   "hash": "ae6f12f2684c6c51",
+   "does": "exp(lnMean − lnSD), exp(lnMean + lnSD) over the positive values' natural logs; nil with fewer than four positive values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 4 positive values",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "f63184d7d33898ed"
+   }
+  },
+  {
+   "key": "func TrendsV2View.BaselineStats.deltaPercent(_:)",
+   "hash": "7a1c0fd61e9c051f",
+   "does": "Percent difference of value from the baseline mean; nil without data or mean <= 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!hasData or mean <= 0",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
+   }
+  },
+  {
+   "key": "func TrendsV2View.baselineWindow(_:days:)",
+   "hash": "f2b3647a1817b24a",
+   "does": "Filters sessions to overnight, analysed, reliable, startDate within last `days` days.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Calendar date(byAdding:) nil",
+     "effect": "?? .distantPast (no cutoff)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "var TrendsV2View.tagFilterChips",
+   "hash": "cd37d428a3a4871d",
+   "does": "Horizontal non-clipping ScrollView wrapping chipRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.chipRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.chipRow": "f4c7b13da62d0351"
+   }
+  },
+  {
+   "key": "var TrendsV2View.chipRow",
+   "hash": "c0499cbfdb9d44d0",
+   "does": "HStack: All chip + one filterChip per filterTags entry (the user's tags that loaded overnight readings carry).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.filterTags"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)": "c6bd78dceb991662",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip": "6da502bca3a0ea6a",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.filterTags": "93fe9b8698d6b91a"
+   }
+  },
+  {
+   "key": "var TrendsV2View.allTagsChip",
+   "hash": "caa69957b3a57498",
+   "does": "'All' chip selected when no tag filter; tap clears selectedTagId.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [
+    "mem:TrendsV2View.selectedTagId"
+   ],
+   "writes": [
+    "mem:TrendsV2View.selectedTagId"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)": "3217b3b02730faa1"
+   }
+  },
+  {
+   "key": "func TrendsV2View.filterChip(_:)",
+   "hash": "a3719df01b31f3ec",
+   "does": "Chip for a ReadingTag coloured from its hex (fallback primary); tap toggles selecting that tag.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [
+    "mem:TrendsV2View.selectedTagId"
+   ],
+   "writes": [
+    "mem:TrendsV2View.selectedTagId"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Color(hex: tag.colorHex) returns nil",
+     "effect": "?? AppTheme.primary; unreachable for the four callers' system tags, whose hex strings (#4A90D9, #E85D4C, #50C878, #9B59B6) all parse (HRVSession.swift:84-87, 140-145)"
+    },
+    {
+     "at": "+3",
+     "cond": "selectedTagId == tag.id",
+     "effect": "true: clear filter (nil); false: select this tag id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)": "5b9b15b21afeb7e9",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)": "3217b3b02730faa1"
+   }
+  },
+  {
+   "key": "func TrendsV2View.tagChip(label:color:isSelected:action:)",
+   "hash": "28b20ddf00419918",
+   "does": "Generic capsule tag chip button with selected tinting, 44pt min height, accessibility label '<label> filter'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "isSelected",
+     "effect": "color 18% fill vs cardBackground"
+    },
+    {
+     "at": "+12",
+     "cond": "isSelected",
+     "effect": "color stroke vs clear"
+    },
+    {
+     "at": "+14",
+     "cond": "isSelected",
+     "effect": "color text vs textSecondary"
+    },
+    {
+     "at": "+20",
+     "cond": "isSelected",
+     "effect": "[.isButton,.isSelected] vs .isButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TrendsV2View.rangeChips",
+   "hash": "6c866a8fd93897ed",
+   "does": "HStack of one rangeChip per TimeRange plus Spacer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChip(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChip(_:)": "c2bc4d5ab83072dd"
+   }
+  },
+  {
+   "key": "func TrendsV2View.rangeChip(_:)",
+   "hash": "b1cf7c8c518a569e",
+   "does": "Button setting selectedRange; accessibility label spokenLabel, isSelected trait, identifier 'trends.range.<raw>' (used by HistoryTrendsUITests).",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChipLabel(_:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.spokenLabel"
+   ],
+   "reads": [
+    "mem:TrendsV2View.selectedRange"
+   ],
+   "writes": [
+    "mem:TrendsV2View.selectedRange"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "selectedRange == range",
+     "effect": "adds .isSelected trait; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChipLabel(_:)": "bbb6bb874229bfab",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.spokenLabel": "05343537b0dd74f4"
+   }
+  },
+  {
+   "key": "func TrendsV2View.rangeChipLabel(_:)",
+   "hash": "d59999577092e058",
+   "does": "44x32 chip text with selected tint, 44pt touch height.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [
+    "mem:TrendsV2View.selectedRange"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "selected",
+     "effect": "primary 15% fill vs cardBackground"
+    },
+    {
+     "at": "+11",
+     "cond": "selected",
+     "effect": "primary text vs textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TrendsV2View.overallTrendCard",
+   "hash": "d46326ab9d2d1bce",
+   "does": "Card with direction glyph/colour, 'RMSSD · <direction label>' and the reading-count line for derived.sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.readingCountLine(_:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [
+    "mem:TrendsV2View.derived"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.readingCountLine(_:)": "e5a21bc8ced6afb6",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func TrendsV2View.computeDirection(_:scale:)",
+   "hash": "cb9af0d3fe1dfaa2",
+   "does": "Runs TrendVerdict.evaluate on readings at the given scale and maps movement to DirectionInfo: insufficient → 'Building trend' circle.dashed, up → 'Rising' green, down → 'Falling' caution, flat → stable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.stableDirection()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".insufficient (<4 usable readings)",
+     "effect": "'Building trend', circle.dashed, textTertiary"
+    },
+    {
+     "at": "+4",
+     "cond": ".up",
+     "effect": "'Rising', arrow.up.right, wongOptimal"
+    },
+    {
+     "at": "+6",
+     "cond": ".down",
+     "effect": "'Falling', arrow.down.right, wongCaution"
+    },
+    {
+     "at": "+8",
+     "cond": ".flat",
+     "effect": "stableDirection()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.stableDirection()": "45314c9693d05ef0"
+   }
+  },
+  {
+   "key": "func TrendsV2View.stableDirection()",
+   "hash": "c3af79ce7a8ba67d",
+   "does": "'Stable', arrow.right, wongGood.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrendsV2View.rangeDays",
+   "hash": "76e40b1d4e6192ab",
+   "does": "nil for All, else range raw days.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:TrendsV2View.selectedRange"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "selectedRange == .all",
+     "effect": "nil; else rawValue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendsV2View.readingCountLine(_:)",
+   "hash": "f078c02d31acb226",
+   "does": "'Overnight readings, all time: N' or 'Overnight readings, last D days: N'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rangeDays nil (All)",
+     "effect": "all-time sentence; else last-D-days sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "9786d7db97b61620"
+   }
+  }
+ ],
+ "deps": {}
+}

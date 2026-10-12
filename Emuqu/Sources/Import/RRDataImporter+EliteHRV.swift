@@ -24,14 +24,14 @@ extension RRDataImporter {
     /// Old format: datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr,rr_min_ms,rr_max_ms,file
     /// New format: Member,Type,Position,Breathing Pattern,Date Time Start,Date Time End,Duration,Tags,Notes,Value 1,Value 2,Value 3,HRV,Morning Readiness,Balance,HRV CV,HR,lnRmssd,Rmssd,Nn50,Pnn50,Sdnn,Low Frequency Power,High Frequency Power,LF/HF Ratio,Total Power
     func parseEliteHRVSummary(_ content: String, fileName: String) throws -> EliteHRVSummaryResult {
-        let lines = content.components(separatedBy: .newlines)
+        let lines = csvRecords(content)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         guard lines.count >= 2 else {
             throw ImportError.noRRData
         }
-        let headers = lines[0].lowercased().split(separator: ",")
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
+        // Quote-aware, like the rows, so a quoted header lines up with them.
+        let headers = parseCSVLine(lines[0].lowercased())
         let indices = resolveEliteHRVColumns(headers: headers)
         guard let rmssdIdx = indices.rmssd else {
             let found = headers.joined(separator: ", ")
@@ -151,26 +151,29 @@ extension RRDataImporter {
         return max(1, Int(duration * hr / 60.0))
     }
 
-    /// RR extremes, derived from mean HR ±15% when the file doesn't state them.
+    /// RR extremes. Each one the file states is used; each one it doesn't is
+    /// derived from mean HR ±15%, and failing that defaults to 600 / 1000 ms.
+    /// The maximum is never below the minimum.
     private func eliteRRBounds(
         columns: [String], indices: EliteHRVColumnIndices
     ) -> (min: Double, max: Double) {
-        var rrMin = 600.0
-        var rrMax = 1000.0
-        if let minIdx = indices.rrMin, minIdx < columns.count,
-           let parsed = Self.eliteNumber(columns[minIdx], in: Self.eliteRRRange) {
-            rrMin = parsed
-        } else if let hrIdx = indices.hr, hrIdx < columns.count,
-                  let hr = Self.eliteNumber(columns[hrIdx], in: 20 ... 250) {
-            let meanRR = 60000.0 / hr
-            rrMin = meanRR * 0.85
-            rrMax = meanRR * 1.15
-        }
-        if let maxIdx = indices.rrMax, maxIdx < columns.count,
-           let parsed = Self.eliteNumber(columns[maxIdx], in: Self.eliteRRRange) {
-            rrMax = parsed
-        }
-        return (rrMin, rrMax)
+        let fromHR = eliteMeanRR(columns: columns, indices: indices).map { (min: $0 * 0.85, max: $0 * 1.15) }
+        let rrMin = eliteStatedRR(columns: columns, index: indices.rrMin) ?? fromHR?.min ?? 600.0
+        let rrMax = eliteStatedRR(columns: columns, index: indices.rrMax) ?? fromHR?.max ?? 1000.0
+        return (rrMin, max(rrMin, rrMax))
+    }
+
+    /// An RR extreme the row states, in `eliteRRRange`, or nil.
+    private func eliteStatedRR(columns: [String], index: Int?) -> Double? {
+        guard let index, index < columns.count else { return nil }
+        return Self.eliteNumber(columns[index], in: Self.eliteRRRange)
+    }
+
+    /// The mean RR implied by the row's mean HR, or nil without one.
+    private func eliteMeanRR(columns: [String], indices: EliteHRVColumnIndices) -> Double? {
+        guard let hrIdx = indices.hr, hrIdx < columns.count,
+              let hr = Self.eliteNumber(columns[hrIdx], in: 20 ... 250) else { return nil }
+        return 60000.0 / hr
     }
 
     /// RR extremes a summary row may state, in milliseconds (20–300 bpm).
@@ -321,9 +324,10 @@ extension RRDataImporter {
         analysisResult: HRVAnalysisResult
     ) -> HRVSession {
         let durationMs = Int64(Double(summary.beatCount) * meanRR)
-        let series = RRSeries(points: [RRPoint(t_ms: 0, rr_ms: Int(meanRR))], sessionId: UUID(), startDate: summary.date)
+        let id = UUID()
+        let series = RRSeries(points: [RRPoint(t_ms: 0, rr_ms: Int(meanRR))], sessionId: id, startDate: summary.date)
         return HRVSession(
-            id: UUID(),
+            id: id,
             startDate: summary.date,
             endDate: summary.date.addingTimeInterval(Double(durationMs) / 1000.0),
             state: .complete,

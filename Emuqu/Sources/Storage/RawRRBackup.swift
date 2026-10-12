@@ -192,8 +192,8 @@ final class RawRRBackup: @unchecked Sendable {
     /// `CrashLogManager.recordTermination` at launch time.
     static func terminationForensicsSummary(for sessionId: UUID) -> TerminationForensicsSummary? {
         let fm = FileManager.default
-        guard let backupDirectory = Self.resolveBackupDirectory(fm),
-              let entry = Self.storedIndexEntry(for: sessionId, in: backupDirectory) else { return nil }
+        let backupDirectory = Self.resolveBackupDirectory()
+        guard let entry = Self.storedIndexEntry(for: sessionId, in: backupDirectory) else { return nil }
         let pointsURL = backupDirectory.appendingPathComponent("\(sessionId.uuidString)_points.jsonl")
         return TerminationForensicsSummary(
             lastBackupTime: entry.lastBackupTime,
@@ -214,17 +214,6 @@ final class RawRRBackup: @unchecked Sendable {
         return (try? decoder.decode([BackupIndex].self, from: data))?.first { $0.id == sessionId }
     }
 
-    /// App Group container first (iOS deletes it with the last app in the
-    /// group, so it does not survive a delete-and-reinstall), falling back to
-    /// Documents.
-    private static func resolveBackupDirectory(_ fm: FileManager) -> URL? {
-        if let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
-            return containerURL.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
-        }
-        return fm.urls(for: .documentDirectory, in: .userDomainMask).first?
-            .appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
-    }
-
     // MARK: - Initialization
 
     init() {
@@ -237,21 +226,14 @@ final class RawRRBackup: @unchecked Sendable {
         reencryptPendingBackups()
     }
 
-    /// Try App Group container first (iOS deletes it with the last app in the
-    /// group, so it does not survive a delete-and-reinstall), fall back to
-    /// Documents, then the temporary directory (should never happen on iOS).
+    /// `RRBackup` in the shared container: the App Group (iOS deletes it with
+    /// the last app in the group, so it does not survive a
+    /// delete-and-reinstall), else Documents, else the temporary directory —
+    /// `AppConfig.sharedContainerURL()`'s rule, which logs a fallback. The
+    /// running store and the lockless termination forensics both use this, so
+    /// they always look in the same place.
     private static func resolveBackupDirectory() -> URL {
-        let fm = FileManager.default
-        if let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
-            debugLog("[RawRRBackup] Using App Group container")
-            return containerURL.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
-        }
-        if let documentsPath = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
-            debugLog("[RawRRBackup] Using Documents directory (App Group not configured)")
-            return documentsPath.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
-        }
-        debugLog("[RawRRBackup] WARNING: Using temporary directory as fallback")
-        return fm.temporaryDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
+        AppConfig.sharedContainerURL().appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
     }
 
     /// Only log on startup if there are unarchived backups (potential data loss).
@@ -270,6 +252,8 @@ final class RawRRBackup: @unchecked Sendable {
         appendQueue.sync {
             indexLock.lock()
             index = []
+            // The purge removed the index file too; nothing is left to re-read.
+            indexReadFailed = false
             indexLock.unlock()
         }
     }
@@ -297,7 +281,8 @@ final class RawRRBackup: @unchecked Sendable {
     /// backups, then cleans up any previous append-only files for this
     /// session (the formats are mutually exclusive).
     ///
-    /// Never replaces a backup that holds more beats. A strap fetch made after
+    /// Never replaces a backup that holds more beats, judged against the
+    /// on-disk index too when the launch could not read it. A strap fetch made after
     /// a crash is saved under the interrupted night's id, and the strap's copy
     /// can be shorter than what streamed (it started later, or the fetch was
     /// partial); replacing the streamed file deleted the rest of the night
@@ -313,18 +298,16 @@ final class RawRRBackup: @unchecked Sendable {
         guard !points.isEmpty else {
             throw BackupError.noDataToBackup
         }
-        let existing = existingIndexEntry(sessionId)
-        if let existing, Self.beatCount(of: existing) > points.count {
-            throw BackupError.wouldReplaceLargerBackup(existing: Self.beatCount(of: existing), new: points.count)
-        }
+        let existing = try replaceableIndexEntry(sessionId, newCount: points.count)
         let entry = BackupEntry(
             id: sessionId, captureDate: captureDate ?? existing?.captureDate ?? Date(), deviceId: deviceId,
             points: points, hash: try Self.integrityHash(of: points)
         )
         let fileName = "\(sessionId.uuidString)_\(Int(Date().timeIntervalSince1970)).json"
         try Self.writeEntry(entry, to: backupDirectory.appendingPathComponent(fileName), sessionId: sessionId)
+        // The old files go only once the new row is on disk.
+        try reindex(sessionId: sessionId, entry: entry, fileName: fileName, beatCount: points.count, replacing: existing)
         cleanupAppendFiles(for: sessionId)
-        try reindex(sessionId: sessionId, entry: entry, fileName: fileName, beatCount: points.count)
         removeReplacedFile(existing?.fileName, keeping: fileName)
         if points.count < 100 {
             debugLog("[RawRRBackup] Backed up \(points.count) beats for session \(sessionId.uuidString.prefix(8))")
@@ -356,9 +339,12 @@ final class RawRRBackup: @unchecked Sendable {
     /// Encrypt one-shot backup blobs at write
     /// time. Read path detects format via magic prefix (same scheme as
     /// Archive.swift) and falls back to legacy plaintext for forward
-    /// migration. The append-only points file path is left plaintext
-    /// — encrypted at the directory level via
-    /// NSFileProtectionComplete (set in createBackupDirectoryIfNeeded).
+    /// migration. The append-only points file is sealed line by line instead
+    /// (`encodedLines`), under `.completeUntilFirstUserAuthentication` so the
+    /// overnight appends can run while the device is locked.
+    ///
+    /// Atomic: `reencryptBackup` rewrites the only copy of a backup in place,
+    /// and a process killed mid-write must not leave it truncated.
     ///
     /// Encode+encrypt drained in an autoreleasepool (the entry
     /// re-embeds the full night's points — the second big tree of this call).
@@ -376,8 +362,8 @@ final class RawRRBackup: @unchecked Sendable {
             PendingEncryptionLedger.record(sessionId, in: .rawBackup)
         }
         let options: Data.WritingOptions = encoded.encrypted
-            ? [.completeFileProtectionUntilFirstUserAuthentication]
-            : [.completeFileProtection]
+            ? [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+            : [.atomic, .completeFileProtection]
         try encoded.bytes.write(to: url, options: options)
     }
 
@@ -444,9 +430,11 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// Replace any existing backup index row for this session.
+    /// Replace any existing backup index row for this session. When the save
+    /// throws, the previous row goes back into memory, so memory keeps
+    /// matching the index on disk, which still lists the old files.
     private func reindex(
-        sessionId: UUID, entry: BackupEntry, fileName: String, beatCount: Int
+        sessionId: UUID, entry: BackupEntry, fileName: String, beatCount: Int, replacing previous: BackupIndex?
     ) throws {
         let indexEntry = BackupIndex(
             id: sessionId,
@@ -458,11 +446,32 @@ final class RawRRBackup: @unchecked Sendable {
             lastBackupTime: Date(),
             backedUpCount: nil // nil = legacy format
         )
+        replaceIndexRow(sessionId, with: indexEntry)
+        do {
+            try saveIndex()
+        } catch {
+            replaceIndexRow(sessionId, with: previous)
+            throw error
+        }
+    }
+
+    private func replaceIndexRow(_ sessionId: UUID, with row: BackupIndex?) {
         indexLock.lock()
         index.removeAll { $0.id == sessionId }
-        index.append(indexEntry)
+        if let row { index.append(row) }
         indexLock.unlock()
-        try saveIndex()
+    }
+
+    /// The current row for `sessionId` once a failed launch read of the index
+    /// has been merged, or nil; throws when it holds more beats than
+    /// `newCount`, or while the index file still cannot be read.
+    private func replaceableIndexEntry(_ sessionId: UUID, newCount: Int) throws -> BackupIndex? {
+        try mergeIndexIfLaunchReadFailed()
+        guard let existing = existingIndexEntry(sessionId) else { return nil }
+        if Self.beatCount(of: existing) > newCount {
+            throw BackupError.wouldReplaceLargerBackup(existing: Self.beatCount(of: existing), new: newCount)
+        }
+        return existing
     }
 
     private func existingIndexEntry(_ sessionId: UUID) -> BackupIndex? {
@@ -720,14 +729,17 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     /// On-disk bytes for one index entry, covering both the legacy single-file
-    /// layout and the append-only header + points pair.
+    /// layout and the append-only header + points pair with any `.corrupted_*`
+    /// siblings set aside from it.
     private func backupSize(of indexEntry: BackupIndex) -> Int64 {
         var urls: [URL] = []
         if let fileName = indexEntry.fileName {
             urls.append(backupDirectory.appendingPathComponent(fileName))
         }
         if indexEntry.backedUpCount != nil {
-            urls += [headerURL(for: indexEntry.id), pointsURL(for: indexEntry.id)]
+            let points = pointsURL(for: indexEntry.id)
+            urls += [headerURL(for: indexEntry.id), points]
+            urls += corruptedSiblingNames(of: points).map { backupDirectory.appendingPathComponent($0) }
         }
         return urls.reduce(0) { $0 + fileSize(at: $1) }
     }
@@ -759,7 +771,7 @@ final class RawRRBackup: @unchecked Sendable {
         index.removeAll { $0.id == sessionId }
         indexLock.unlock()
         try saveIndex()
-        debugLog("[RawRRBackup] Discarded backup \(sessionId.uuidString.prefix(8)) (\(entry.backedUpCount ?? 0) beats)")
+        debugLog("[RawRRBackup] Discarded backup \(sessionId.uuidString.prefix(8)) (\(Self.beatCount(of: entry)) beats)")
     }
 
     /// Purge old archived backups (keep last N days)

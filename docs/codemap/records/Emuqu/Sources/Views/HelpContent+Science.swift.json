@@ -1,0 +1,52 @@
+{
+ "file": "Emuqu/Sources/Views/HelpContent+Science.swift",
+ "hash": "bdb6a2b9040811f5",
+ "role": "English source copy for the Help Center's core categories (Getting Started, Recording, Your Recovery Score) and the HelpContent entry points that assemble all 12 categories, localized or English.",
+ "types": [
+  "HelpContent: enum (@MainActor) — categories/englishCategories plus static category constants gettingStarted, recording, recoveryScore (others in HelpContent+Articles.swift)"
+ ],
+ "state": [
+  "mem:HelpContent.gettingStarted (static let HelpCategory, line 40)",
+  "mem:HelpContent.recording (static let, line 163)",
+  "mem:HelpContent.recoveryScore (static let, line 292)"
+ ],
+ "toplevel": "Three static-let HelpCategory constants built once (theme colours AppTheme.softGold/primary/sage). Articles: what-is-flow-recovery, your-first-reading, building-your-baseline, devices-setup; extended-recording, quick-reading, split-sleep, data-quality; understanding-score, score-tiers, comeback-mode, vitals-and-feedback, analysis-window. Copy states numeric product rules (HRV 60/Sleep 25/Vitals 15, Tier2 70/30, comeback 80/20/0 for 21 days, SpO2 <95% 24h average = -10, merge window 4.5 h default 1-12 h custom, paused-battery <=5% finalises, Tier-1 adjustments CV<2% -5 / >12% -3, DFA +5/-5/-3, ANS -6/-3/+2, stale baseline -5 per week to -20). Spot-checked against code: merge window (UserSettings+Model.swift:40, UserSettings+Codable.swift:77), paused battery <=5 (RRCollector+Bindings.swift:203), Tier-1 constants (Constants+RecoveryScore.swift:27-75); several others are pinned by HelpScienceAccuracyTests/HelpContentAccuracyTests. Code comments at lines 376-387 and 455-460 record that the vitals sub-score is an unweighted average and there is no HR-dip sub-score.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HelpContent.categories(forAge:)",
+   "hash": "ca10eb07950725af",
+   "does": "Returns englishCategories(forAge:) with every category passed through HelpCategory.localized (translated into the app language); the only production caller is HelpCenterView.categories (HelpCenterView.swift:19), which re-runs it on every access including every search keystroke.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized": "d95e816a8421e98f"
+   }
+  },
+  {
+   "key": "func HelpContent.englishCategories(forAge:)",
+   "hash": "7d42304858cf5d1d",
+   "does": "Returns the 12 Help categories in display order: gettingStarted, recording, recoveryScore, HelpScienceCatalog.sleepAnalysis/trainingLoad/vitals, HelpScienceCatalog.hrvScience(forAge:) (age-personalised), then aiAssistant, getMeBack, yourData, personalization, appNavigation from HelpContent+Articles.swift; all English. Called by categories and by tests (HelpContentAccuracyTests, HelpScienceAccuracyTests, ProviderModelCatalogTests).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8"
+   }
+  }
+ ],
+ "deps": {}
+}

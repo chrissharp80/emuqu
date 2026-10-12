@@ -28,7 +28,8 @@ struct LiveWaveformView: View {
         return Array(rrPoints.suffix(maxPoints))
     }
 
-    /// Y-axis range
+    /// Y-axis range: the window's beats with 10% padding, clamped to
+    /// 300–2000 ms. A beat outside it is pinned to the edge (`plotPoint`).
     private var yRange: (min: Double, max: Double) {
         let values = displayPoints.map { Double($0.rr_ms) }
         guard !values.isEmpty else { return (400, 1200) }
@@ -176,43 +177,45 @@ struct LiveWaveformView: View {
 
     private func waveformPath(size: CGSize) -> Path {
         var path = Path()
-        guard displayPoints.count >= 2 else { return path }
-        let xStep = size.width / CGFloat(maxPoints - 1)
-        let yMin = yRange.min
-        let yScale = size.height / (yRange.max - yMin)
-        // Start offset to right-align if fewer points than max
-        let startOffset = CGFloat(maxPoints - displayPoints.count) * xStep
-        for (index, point) in displayPoints.enumerated() {
-            let x = startOffset + CGFloat(index) * xStep
-            let y = size.height - (Double(point.rr_ms) - yMin) * yScale
+        let points = displayPoints
+        guard points.count >= 2 else { return path }
+        let range = yRange
+        for (index, point) in points.enumerated() {
+            let position = plotPoint(index, of: point, count: points.count, size: size, range: range)
             if index == 0 {
-                path.move(to: CGPoint(x: x, y: y))
+                path.move(to: position)
             } else {
-                path.addLine(to: CGPoint(x: x, y: y))
+                path.addLine(to: position)
             }
         }
         return path
     }
 
+    /// The one mapping from a beat to the canvas, shared by the line and the
+    /// marker. Right-aligned when there are fewer beats than `maxPoints`. A
+    /// beat outside the plotted range (an artifact, a missed beat, a pause)
+    /// is pinned to the nearer edge, so it shows as a spike to the frame
+    /// instead of being drawn outside it and clipped away.
+    private func plotPoint(
+        _ index: Int, of point: RRPoint, count: Int, size: CGSize, range: (min: Double, max: Double)
+    ) -> CGPoint {
+        let xStep = size.width / CGFloat(maxPoints - 1)
+        let startOffset = CGFloat(maxPoints - count) * xStep
+        let rr = min(range.max, max(range.min, Double(point.rr_ms)))
+        let y = size.height - (rr - range.min) * size.height / (range.max - range.min)
+        return CGPoint(x: startOffset + CGFloat(index) * xStep, y: y)
+    }
+
     // MARK: - Current Marker
 
     private func currentMarker(size: CGSize) -> some View {
-        let xStep = size.width / CGFloat(maxPoints - 1)
-        let yMin = yRange.min
-        let yMax = yRange.max
-        let yScale = size.height / (yMax - yMin)
-
-        let startOffset = CGFloat(maxPoints - displayPoints.count) * xStep
-        let lastIndex = displayPoints.count - 1
-        let lastPoint = displayPoints[lastIndex]
-
-        let x = startOffset + CGFloat(lastIndex) * xStep
-        let y = size.height - (Double(lastPoint.rr_ms) - yMin) * yScale
-
+        let points = displayPoints
+        let lastIndex = points.count - 1
+        let position = plotPoint(lastIndex, of: points[lastIndex], count: points.count, size: size, range: yRange)
         return Circle()
             .fill(accentColor)
             .frame(width: 8, height: 8)
-            .position(x: x, y: y)
+            .position(position)
             .shadow(color: accentColor.opacity(0.5), radius: 4)
     }
 }
@@ -228,8 +231,9 @@ struct LiveStatsCard: View {
     /// or extra beat doesn't swing the readout. RMSSD uses the masked estimator
     /// the overnight RMSSD chart uses (pairs touching an artifact or split by
     /// a recording break, such as a Bluetooth dropout, are skipped), so it is
-    /// not the overnight analysis value.
-    private var stats: (rmssd: Double, sdnn: Double, meanHR: Double)? {
+    /// not the overnight analysis value. RMSSD is nil when no clean adjacent
+    /// pair is left, and the card then shows a dash rather than 0 ms.
+    private var stats: (rmssd: Double?, sdnn: Double, meanHR: Double)? {
         guard rrPoints.count >= 10 else { return nil }
         let recent = Array(rrPoints.suffix(30))
         let series = RRSeries(points: recent, sessionId: Self.liveSeriesId, startDate: .distantPast)
@@ -240,7 +244,7 @@ struct LiveStatsCard: View {
         guard clean.count >= 2 else { return nil }
         let mean = clean.reduce(0, +) / Double(clean.count)
         let variance = clean.map { pow($0 - mean, 2) }.reduce(0, +) / Double(clean.count - 1)
-        let rmssd = TimeDomainAnalyzer.rmssd(points: recent, range: recent.indices, isValid: isValid) ?? 0
+        let rmssd = TimeDomainAnalyzer.rmssd(points: recent, range: recent.indices, isValid: isValid)
         return (rmssd, sqrt(variance), 60000.0 / mean)
     }
 
@@ -249,10 +253,16 @@ struct LiveStatsCard: View {
 
     private var msUnit: String { String(localized: "ms", bundle: LanguageManager.appBundle) }
 
+    /// RMSSD to the whole millisecond, or a dash while there is none yet.
+    private static func rmssdText(_ rmssd: Double?) -> String {
+        guard let rmssd else { return "—" }
+        return String(format: "%.0f", locale: LanguageManager.appLocale, rmssd)
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             if let s = stats {
-                StatItem(label: "RMSSD", value: String(format: "%.0f", locale: LanguageManager.appLocale, s.rmssd), unit: msUnit)
+                StatItem(label: "RMSSD", value: Self.rmssdText(s.rmssd), unit: msUnit)
                 StatItem(label: "SDNN", value: String(format: "%.0f", locale: LanguageManager.appLocale, s.sdnn), unit: msUnit)
                 StatItem(
                     label: String(localized: "Avg HR", bundle: LanguageManager.appBundle),

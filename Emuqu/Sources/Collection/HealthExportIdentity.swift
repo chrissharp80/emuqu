@@ -15,6 +15,11 @@ import Foundation
 /// matched by prefix; and no metric's predicate may match another metric's
 /// samples. Stated here, those are properties a test can hold the app to
 /// instead of a warning the next reader has to notice.
+///
+/// One older shape survives only as something to delete: earlier builds
+/// wrote the single summary SDNN under the bare session UUID. It is written
+/// as `summary(sessionId:metric: .sdnn)` now, and the HRV cleanup
+/// (`HealthWriteAndObserve.isOurHRVExport`) still removes the bare form.
 enum HealthExportIdentity {
     /// Metrics the app writes. Adding a case is what makes the collision test
     /// cover it — the test enumerates this list rather than a hand-written one.

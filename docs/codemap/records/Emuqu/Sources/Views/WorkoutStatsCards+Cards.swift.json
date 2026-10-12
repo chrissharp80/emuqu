@@ -1,0 +1,1619 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift",
+ "hash": "15e38219e275547a",
+ "role": "Extension on WorkoutStatsCards holding the post-workout summary's headline derived values (pace, max speed, peak HR, cadence, best split, METs, calories), the time-series chart cards (HR with zone bands, pace, power, cadence, elevation) and the heart-rate-recovery banner/card; plus file-scope helpers and static elevation/provenance helpers forwarded to the share sheet.",
+ "types": [
+  "WorkoutStatsCards: extension — derived values and card builders",
+  "WorkoutStatsCards: extension — static pure helpers elevationSeries / hrrProvenanceLabel"
+ ],
+ "state": [
+  "static let WorkoutStatsCards.hrrCaptureWindowSec = 120 (also read by AppFactResolver+LiveNavigation.swift:818)",
+  "static let WorkoutStatsCards.hrrWriteGraceSec = 30",
+  "static let WorkoutStatsCards.hrAtStopWindowSec = 15"
+ ],
+ "toplevel": "Imports Charts, CoreLocation, MapKit, MessageUI, SwiftUI (MapKit and MessageUI are unused by anything in this file). Declares three static lets (120 s HRR capture window, 30 s write grace, 15 s HR-at-stop window) and three file-private free functions (distanceScale, elevationMarks, hrrNarrativeText).",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "hrrCaptureWindowSec = 120 must match the recorder's independent literal captureWindowSec: 120 passed to HRRCaptureService; changing one without the other makes the countdown banner/chip disagree with the real capture window.",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:472",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:279"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WorkoutStatsCards.activeDuration",
+   "hash": "e1040bf0890374ba",
+   "does": "Active workout seconds for this session: WorkoutActiveTime.seconds over workoutMetadata.samples with session.duration (wall clock) as fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "903803b5c4ac8e80"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.formatDuration(sec:)",
+   "hash": "618ef88f69bf5b22",
+   "does": "Formats integer seconds as 'H:MM:SS' when ≥ 1 h, else formatMMSS ('M:SS').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "h > 0",
+     "effect": "H:MM:SS, else formatMMSS"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "20b1392066bc3d57"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.activeDurationDisplay",
+   "hash": "d82fbf4549f1f551",
+   "does": "activeDuration formatted by formatDuration; nil without a duration. Not yet called by production (the summary hero still formats wall-clock duration itself).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "activeDuration nil",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)": "e3ee164f6171edaf",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "27db5f08943554ab"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.avgPaceDisplay",
+   "hash": "dcddd4a253da3ca6",
+   "does": "Average pace string = activeDuration / workoutMetadata.distanceMeters, formatted per units preference (e.g. '6:12 /km'); nil when distance ≤ 100 m or active duration ≤ 10 s or either missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, legacy .standard fallback)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "distanceMeters present and > 100, activeDuration present and > 10 s",
+     "effect": "false: returns nil; true: returns UnitsPreference.formatPace(elapsedSec:distanceMeters:) (itself nil if distance ≤ 50 / elapsed ≤ 10, unreachable here)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "10aef8a5289537eb",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "27db5f08943554ab",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.sportSpeedCeiling",
+   "hash": "cb554dc32baa5810",
+   "does": "Sport-specific plausible top speed in km/h: 14 walk/hike/treadmill, 28 run/trailRun, 80 bike/indoorBike, 50 other/nil sport; the pace chart drops samples above it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sport is walk/hike/treadmill",
+     "effect": "14.0"
+    },
+    {
+     "at": "+3",
+     "cond": "sport is run/trailRun",
+     "effect": "28.0"
+    },
+    {
+     "at": "+4",
+     "cond": "sport is bike/indoorBike",
+     "effect": "80.0"
+    },
+    {
+     "at": "+5",
+     "cond": "sport is nil (no workoutMetadata)",
+     "effect": "50.0"
+    },
+    {
+     "at": "+6",
+     "cond": "any other sport (row, airBike, crossFit)",
+     "effect": "50.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "1e12edb6a8998474"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.peakHRDisplay",
+   "hash": "f631bf5a8c6bc0c7",
+   "does": "Peak heart rate across samples as localized '<n> bpm'; nil when no samples or no sample carries HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples present and at least one non-nil heartRate",
+     "effect": "false: nil; true: '\\(peak) bpm' string."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is ViewSnapshotTests.testDerivedDisplayStrings; no production caller.",
+     "evidence": [
+      "EmuquTests/ViewSnapshotTests.swift:185"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.avgCadenceDisplay",
+   "hash": "cbeeed5b807c1580",
+   "does": "Mean of positive cadenceStepsPerMin values rounded to Int, as localized '<n> spm'; nil when no samples or no positive cadence. Unlike the cadence chart it applies no sport cap / tail-spike filter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples present",
+     "effect": "nil: returns nil."
+    },
+    {
+     "at": "+3",
+     "cond": "at least one positive cadence",
+     "effect": "empty: nil; else the average string."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is ViewSnapshotTests.testDerivedDisplayStrings; no production caller.",
+     "evidence": [
+      "EmuquTests/ViewSnapshotTests.swift:186"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.chartXDomain(samples:)",
+   "hash": "310d23244a8c904d",
+   "does": "X-axis domain for time-series charts: 0 … max(1, last sample offset minutes).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples.last exists (??)",
+     "effect": "no samples: offset 0 → domain 0…1 min."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.hrChartCard(samples:)",
+   "hash": "d773e898754f4d4a",
+   "does": "HR chart card: maps samples with HR to (minutes, bpm), reads the user's effective max HR, and wraps either the zone-banded HR chart (≥ 2 points) or 'No HR samples captured.' in chartShell titled 'Heart Rate'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChart(points:samples:userMax:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sample has heartRate (compactMap closure)",
+     "effect": "nil HR: sample skipped."
+    },
+    {
+     "at": "+7",
+     "cond": "points.count ≥ 2",
+     "effect": "true: hrChart; false: empty-state text."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChart(points:samples:userMax:)": "fe1fada5893114cf"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrChart(points:samples:userMax:)",
+   "hash": "ef69865be310bf74",
+   "does": "Swift Charts chart of zone RectangleMarks plus a monotone LineMark per HR point, leading Y axis with grid, Y domain from hrChartDomain, X domain from chartXDomain, 150 pt high.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZoneBands(points:userMax:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartDomain(points:userMax:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)": "23ed5263aa666599",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartDomain(points:userMax:)": "815ec097e3088e11",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZoneBands(points:userMax:)": "a08d9cc4cc17a2d1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "b4bb779da2e8505d"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrZoneBands(points:userMax:)",
+   "hash": "933cf6c6f09ca341",
+   "does": "Emits one RectangleMark per HR zone spanning first…last point minutes and the zone's lo…hi bpm, filled with the zone colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZones(userMax:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "points.first exists (??)",
+     "effect": "empty: xStart 0 (unreachable: caller requires ≥ 2 points)."
+    },
+    {
+     "at": "+4",
+     "cond": "points.last exists (??)",
+     "effect": "empty: xEnd 0 (unreachable for the same reason)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZones(userMax:)": "d8cd744389fc7a3e"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrZones(userMax:)",
+   "hash": "3db8b652991f44ea",
+   "does": "Returns five (lo, hi, colour) zone bands at 50/60/70/80/90 % of userMax, the top band ending at userMax+10, with increasing opacity.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.paceChartCard(samples:)",
+   "hash": "00dc63e031ca818f",
+   "does": "Pace chart card: converts samples to pace points and wraps paceChartBody in chartShell titled 'Pace (<min/km|min/mi>)'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartPoints(samples:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.paceSuffix",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, legacy .standard fallback)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.paceSuffix": "037de3ce42900ea4",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)": "b0b75811f890bbb3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartPoints(samples:)": "176b9e434fcea45c",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.paceChartBody(points:samples:)",
+   "hash": "2acf12c0841c4b9a",
+   "does": "Renders simpleLineChart (tint primary, 140 pt) with paceDomain Y scale and leading grid axis when ≥ 2 points, else 'Not enough movement for a pace chart.'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceDomain(points:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points.count ≥ 2",
+     "effect": "true: chart; false: empty-state text."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceDomain(points:)": "23a21e0174395844",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "72d11aba93eecdb5",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "b4bb779da2e8505d"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.leadingGridAxis",
+   "hash": "232d6b0ddca7174a",
+   "does": "Static AxisContent: leading AxisMarks with grid line and value label; the Y axis of the HR, pace and elevation charts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.paceChartPoints(samples:)",
+   "hash": "823a39aaa06c2c93",
+   "does": "Maps samples to (minutes, pace in min/km or min/mi) keeping only paceSecPerKm > 0 and equivalent speed strictly between 1 km/h and the sport's sportSpeedCeiling.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.sportSpeedCeiling",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.paceDisplayMinutes(from:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, legacy .standard fallback)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "paceSecPerKm present and > 0",
+     "effect": "false: sample dropped."
+    },
+    {
+     "at": "+4",
+     "cond": "1 < km/h < 40",
+     "effect": "false: sample dropped (very slow jitter, and any bike speed ≥ 40 km/h)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.paceDisplayMinutes(from:)": "fa7c0500089f44c9",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.sportSpeedCeiling": "581948ebf03cedca",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)",
+   "hash": "d3f261d61d674fba",
+   "does": "Monotone single-series line chart over (minutes, value) points identified by their x value, X scaled to chartXDomain, given tint and height.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)",
+    "ext:Charts.Chart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)": "23ed5263aa666599"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.powerChartCard(samples:)",
+   "hash": "f9a5e7ff3e260cfe",
+   "does": "Power chart card titled powerChartTitle: (minutes, watts) for samples with powerWatts > 0; simpleLineChart (yellow, 140 pt) when ≥ 2 points, else 'No power data.'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.powerChartTitle",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "powerWatts present and > 0",
+     "effect": "false: sample skipped."
+    },
+    {
+     "at": "+6",
+     "cond": "points.count ≥ 2",
+     "effect": "true: chart; false: empty text."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "72d11aba93eecdb5",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.powerChartTitle": "15e7dcc24d0e253c"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.powerChartTitle",
+   "hash": "7c8283d6481248a6",
+   "does": "'Running Power (W)' for on-foot sports (run, trail run, treadmill, walk, hike); 'Power' for bike, indoor bike, air bike, row, CrossFit or no sport.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch session.sport",
+     "effect": "on-foot → Running Power (W); else Power"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.cadenceChartCard(samples:)",
+   "hash": "32b232473b251d13",
+   "does": "Cadence chart card: (minutes, cadence) for cadence > 0, filtered by filterCadence with the session sport (walk if nil); simpleLineChart (purple) when ≥ 2 points else 'No cadence data.', inside chartShell 'Cadence (spm)'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.filterCadence(_:sport:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cadenceStepsPerMin present and > 0",
+     "effect": "false: sample skipped."
+    },
+    {
+     "at": "+5",
+     "cond": "session.sport nil (??)",
+     "effect": "falls back to .walk cap (125)."
+    },
+    {
+     "at": "+7",
+     "cond": "points.count ≥ 2",
+     "effect": "true: chart; false: empty text."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Title is always 'Cadence (spm)' although for bike/indoorBike/airBike the values are RPM and for row strokes/min, as cadenceCap's own comment says.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:299",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:334",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:335"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "1e12edb6a8998474",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.filterCadence(_:sport:)": "cf495c86e89edea8",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "72d11aba93eecdb5"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.filterCadence(_:sport:)",
+   "hash": "fc31507a0b77dd73",
+   "does": "Drops points above the sport cadence cap, then truncatingTailSpike (which leaves fewer than 20 points alone).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.truncatingTailSpike(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)": "e98d23d0d7ce2653",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.truncatingTailSpike(_:)": "64d2c0a11738498c"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.cadenceCap(for:)",
+   "hash": "c3c94de9504b0808",
+   "does": "Per-sport cadence ceiling: walk/hike 125, run/trailRun 220, treadmill 220, bike/indoorBike/airBike 140, row 60, crossFit 60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".walk/.hike",
+     "effect": "125"
+    },
+    {
+     "at": "+3",
+     "cond": ".run/.trailRun",
+     "effect": "220"
+    },
+    {
+     "at": "+4",
+     "cond": ".treadmill",
+     "effect": "220 (treadmill can be walked, so a walking treadmill session gets no walk cap)"
+    },
+    {
+     "at": "+5",
+     "cond": ".bike/.indoorBike/.airBike",
+     "effect": "140"
+    },
+    {
+     "at": "+6",
+     "cond": ".row",
+     "effect": "60"
+    },
+    {
+     "at": "+7",
+     "cond": ".crossFit",
+     "effect": "60"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.truncatingTailSpike(_:)",
+   "hash": "6cd1f67b73289862",
+   "does": "Fewer than 20 points are returned as they are. Otherwise takes suspect tail = min(15, n/4) samples, computes the median of up to 30 preceding samples (at least 15), and truncates the series at the first tail sample ≥ 1.5× that median.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count < 20",
+     "effect": "return input"
+    },
+    {
+     "at": "+11",
+     "cond": "a tail sample ≥ 1.5× median",
+     "effect": "truncate there"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.chartShell(title:content:)",
+   "hash": "2a4fa95d16985c46",
+   "does": "Card container: VStack with semibold secondary-coloured title and the content, padded 14, full width, card background, 14 pt continuous rounded clip.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.emptyChartText(_:)",
+   "hash": "4b7f46c98fe5bbed",
+   "does": "Caption-sized tertiary-coloured Text for empty chart states.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrChartDomain(points:userMax:)",
+   "hash": "4a16e1dc061f8392",
+   "does": "HR Y domain: 40…max(userMax,160) when no points; else lower = max(40, min−10), upper = max(lower+10, max+10), so every sample is on-scale whatever the user's max HR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no points",
+     "effect": "40…max(userMax,160)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.paceDomain(points:)",
+   "hash": "1468bc50f476d588",
+   "does": "Pace Y domain padded by max(0.1, 10 % of range) each side, floored at 0, not inverted (faster plots lower); 0…20 when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points non-empty",
+     "effect": "empty: 0…20 (unreachable from paceChartBody, which needs ≥ 2 points)."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutStatsCards.elevationCard",
+   "hash": "42bf2603dc476aa6",
+   "does": "Elevation card: picks mi/ft (imperial) or km/m labels, builds elevationPoints and wraps elevationChart in chartShell titled 'Elevation (<unit>)', with the X domain ending at the last plotted point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationPoints(imperial:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationChart(_:maxX:xLabel:yLabel:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, legacy .standard fallback)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imperial (x label)",
+     "effect": "true: miles symbol; false: km symbol."
+    },
+    {
+     "at": "+3",
+     "cond": "imperial (y label)",
+     "effect": "true: feet symbol; false: metres symbol."
+    },
+    {
+     "at": "+6",
+     "cond": "points.last exists (??)",
+     "effect": "no points: 0."
+    },
+    {
+     "at": "+7",
+     "cond": "workoutMetadata.distanceMeters present (??)",
+     "effect": "nil: 0."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationChart(_:maxX:xLabel:yLabel:)": "3f3002fd3890db09",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationPoints(imperial:)": "bd436c88616ca9a4",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)": "9122e07d73744f47",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.elevationPoints(imperial:)",
+   "hash": "8015e31897537a0a",
+   "does": "Converts elevationSeries(track) (km, m) into display units: distance back to metres then × distanceScale (mi or km), altitude × feetPerMeter when imperial.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func distanceScale(imperial:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imperial",
+     "effect": "true: altitude × UnitConstants.feetPerMeter; false: × 1.0 (metres)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)": "bed2160c48e81661",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func distanceScale(imperial:)": "bd728b84a97b7275"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.elevationChart(_:maxX:xLabel:yLabel:)",
+   "hash": "26a9ecbdc7b35739",
+   "does": "Renders an indexed Chart of AreaMark+LineMark per elevation point with X 0…max(0.1,maxX), leading grid Y axis, 140 pt high, when ≥ 2 points; else 'Not enough GPS fixes for an elevation chart.'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func elevationMarks(_:xLabel:yLabel:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:Chart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "points.count ≥ 2",
+     "effect": "true: chart; false: caption text."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func elevationMarks(_:xLabel:yLabel:)": "1c68a6700ce754fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "b4bb779da2e8505d"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.hrrStopDate",
+   "hash": "ca464cf5046c98f7",
+   "does": "HRR stop reference time: session.endDate, else startDate + last sample offset, else startDate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate present / last sample present (?? chain)",
+     "effect": "endDate nil: startDate + last sample offset; no samples either: startDate."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrNeverCaptured(at:)",
+   "hash": "6d35fa4e423cbf34",
+   "does": "True when hrrSamples is nil and at `now` more than hrrCaptureWindowSec + hrrWriteGraceSec have passed since hrrStopDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "AppFactResolver.postStopHRRWindowOpen re-implements the same rule (hrrSamples == nil within hrrCaptureWindowSec + hrrWriteGraceSec of the end) with its own reference date (archive entry endDate, no sample-offset fallback), so assistant and summary can disagree for sessions without an endDate.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:817",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:479"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "b9bb58a5731c3818"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.hrrCaptureBanner",
+   "hash": "0c0323e49edde417",
+   "does": "While hrrSamples is nil and the capture window had not yet closed when rendered, a 1 Hz TimelineView from hrrStopDate whose content is hrrCountdownTick; an old or imported session gets no timeline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownTick(now:stoppedAt:)",
+    "ext:SwiftUI.TimelineView(.periodic)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hrrSamples nil and now within hrrCaptureWindowSec of stop",
+     "effect": "render the timeline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownTick(now:stoppedAt:)": "9b1b2322c9af3354",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "b9bb58a5731c3818"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrCountdownTick(now:stoppedAt:)",
+   "hash": "8aa2065c6509defc",
+   "does": "Computes remaining = 120 − seconds since stop and renders the countdown row only while remaining > 0.",
+   "entry": "Invoked from hrrCaptureBanner's TimelineView content closure once per second by SwiftUI's periodic timeline schedule.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownRow(remaining:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "remaining > 0",
+     "effect": "true: countdown row; false: nothing (banner disappears after the window even if no samples ever arrive)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownRow(remaining:)": "661c8f022d898f83"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrCountdownRow(remaining:)",
+   "hash": "2f519de33a949ce0",
+   "does": "Banner row: heart icon, countdown text, tinted background with accent stroke, 12 pt rounded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownText(remaining:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownText(remaining:)": "313c4a631afdf6a1"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrCountdownText(remaining:)",
+   "hash": "430619a4509c00ae",
+   "does": "Two texts: 'Keep your strap on for M:SS more' and an explanation that HRR drops at +1/+2 min from peak are being captured.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Banner text tells the user the drops are measured 'from peak', but the HRR card measures every drop from HR at Stop (stopReferencedDrop), per its own comment.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:538",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:608"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "20b1392066bc3d57"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.formatMMSS(_:)",
+   "hash": "2cacf05da55b0f5e",
+   "does": "Formats seconds as 'M:SS'; formatDuration's sub-hour branch.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutStatsCards.hrrCard",
+   "hash": "13beee5a1c8a9730",
+   "does": "HRR card: when samples are stored or the capture is already known never captured, hrrCardBody(now: Date()); otherwise a 1 Hz TimelineView re-renders hrrCardBody, so once the window and write grace pass with nothing written the countdown/spinner/'keep the strap on' text give way to the not-captured state without any other redraw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardBody(now:)",
+    "ext:TimelineView"
+   ],
+   "reads": [
+    "archive:WorkoutMetadata.hrrSamples"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "hrrSamples stored or never captured",
+     "effect": "static body, else 1 Hz timeline"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The card recomputes the drop from hrAtStop (last sample HR within 15 s of the final sample) while the stored drop, shown by hrrSentence, the Fitness tab mean and CSV, uses the recorder's live currentHR at Stop; the two stop-HR sources can differ, so one session can show two different 1-minute HRR numbers.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:626",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:77",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:662",
+      "Emuqu/Sources/Analysis/CSVExporter.swift:93"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test exercises hrrCard or its helpers (hrAtStop, stopReferencedDrop, hrrNeverCaptured, hrrStatusChip); ViewSnapshotTests covers only the chart/elevation cards and derived strings.",
+     "evidence": [
+      "EmuquTests/ViewSnapshotTests.swift:149",
+      "EmuquTests/ViewSnapshotTests.swift:177"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardBody(now:)": "02a041e7df6a7867",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "6d41a4fe8dad0089"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrCardBody(now:)",
+   "hash": "df0f5ffd2e97ffb5",
+   "does": "Derives captureFinished at `now` (samples stored or never-captured), captureFailed (finished and samples nil/empty) and the stop-referenced 1-minute drop; renders header, HR-at-stop row, value row and narrative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardHeader(captureFinished:captureFailed:oneMinDrop:now:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.stopHRReferenceRow",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueRow(_:captureFinished:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrativeBlock(_:captureFinished:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)"
+   ],
+   "reads": [
+    "archive:WorkoutMetadata.hrrSamples"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardHeader(captureFinished:captureFailed:oneMinDrop:now:)": "14480a44f9821928",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrativeBlock(_:captureFinished:)": "c3e5b0ea2eb3acdf",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "6d41a4fe8dad0089",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueRow(_:captureFinished:)": "3536b91e2f4e2fe1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "adc3caf2bb56673a",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.stopHRReferenceRow": "7cd29591ee8adb6d"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrCardHeader(captureFinished:captureFailed:oneMinDrop:now:)",
+   "hash": "c6a1a5630739f5da",
+   "does": "Header: heart icon, 'HEART RATE RECOVERY' caption and hrrStatusChip at `now`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrStatusChip(captureFinished:captureFailed:oneMinDrop:now:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrStatusChip(captureFinished:captureFailed:oneMinDrop:now:)": "f3f4a647c874259d"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.hrAtStop",
+   "hash": "ce99b15f377f0336",
+   "does": "HR at Stop: heartRate of the last sample with HR whose offset is within 15 s of the final sample offset; nil if none or ≤ 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples present and non-empty",
+     "effect": "false: nil."
+    },
+    {
+     "at": "+4",
+     "cond": "a qualifying tail sample with HR > 0",
+     "effect": "false: nil."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.stopReferencedDrop(_:)",
+   "hash": "2571d88ce9394181",
+   "does": "Displayed drop for one HRR reading: hrAtStop − sample.hr, except healthKitComputed readings or when hrAtStop is nil, which return the stored sample.drop (itself stopHR − hr, computed from the recorder's currentHR at Stop, HRRCaptureService.swift:183).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provenance != .healthKitComputed and hrAtStop present",
+     "effect": "true: stop-referenced drop; false: stored drop."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "HRRSample.drop is documented as 'Drop from peak HR' and peakHR as the reference peak, but the capture service fills both with HR at Stop; readers of the model (and this unit's comment) rely on the wrong meaning.",
+     "evidence": [
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:279",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:36",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:183"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop": "0533588d2e74f61c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "var WorkoutStatsCards.stopHRReferenceRow",
+   "hash": "6cb00657ac8f1cf6",
+   "does": "Shows 'HR at stop: N bpm' when hrAtStop exists, else nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hrAtStop non-nil",
+     "effect": "true: row; false: empty."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop": "0533588d2e74f61c"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrValueRow(_:captureFinished:)",
+   "hash": "07102c9870acf4cf",
+   "does": "1-minute (good 12 / ok 8) and 2-minute (good 22 / ok 16) value blocks, passing captureFinished for their placeholders.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueBlock(label:sample:goodThreshold:okThreshold:captureFinished:)",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueBlock(label:sample:goodThreshold:okThreshold:captureFinished:)": "47a4533400a8a993"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrNarrativeBlock(_:captureFinished:)",
+   "hash": "a3f65da9fe1b3e44",
+   "does": "Narrative under the HRR card: graded narrative for the stop-referenced 1-minute drop; else 'keep the strap on' while capturing; else 'wasn't captured' for nil; else 'couldn't be captured' for an empty array.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func hrrNarrativeText(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a 1-minute reading exists",
+     "effect": "shows hrrNarrative(drop)."
+    },
+    {
+     "at": "+4",
+     "cond": "capture not finished",
+     "effect": "shows keep-the-strap-on text."
+    },
+    {
+     "at": "+6",
+     "cond": "hrrSamples == nil (finished by timeout)",
+     "effect": "shows 'wasn't captured'."
+    },
+    {
+     "at": "+8",
+     "cond": "hrrSamples is empty",
+     "effect": "shows 'couldn't be captured'. When samples exist but none within 60±10 s, no branch matches and nothing is rendered."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "When capture finished with a non-empty hrrSamples array but none within 60±10 s (e.g. only a 2-minute reading), no narrative renders and hrrStatusChip also renders nothing, leaving a card with '— not yet' placeholders and no explanation.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:673",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:679",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:702",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:975"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)": "2b5f9b943f7dc12b",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "adc3caf2bb56673a",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func hrrNarrativeText(_:)": "889a73d90569d424"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrStatusChip(captureFinished:captureFailed:oneMinDrop:now:)",
+   "hash": "5db7ba2395263798",
+   "does": "Chip: countdown at `now` while not finished; 'no signal' when failed; the quality label for a 1-minute drop; otherwise 'not captured' (readings without a 1-minute one).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownChip(now:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrLabel(drop:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "!captureFinished",
+     "effect": "countdown"
+    },
+    {
+     "at": "+9",
+     "cond": "captureFailed",
+     "effect": "no signal"
+    },
+    {
+     "at": "+14",
+     "cond": "oneMinDrop present",
+     "effect": "quality label"
+    },
+    {
+     "at": "+18",
+     "cond": "else",
+     "effect": "not captured"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "d07c6b408e1fbecc",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownChip(now:)": "ae023fc1c905e170",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrLabel(drop:)": "0f4f0d156b94841a"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrCountdownChip(now:)",
+   "hash": "163d132989283413",
+   "does": "Spinner plus localized 'capturing · M:SS' of the time left at `now` until hrrStopDate + hrrCaptureWindowSec (floored at 0), with a seconds-remaining accessibility label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "b9bb58a5731c3818"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrLabel(drop:)",
+   "hash": "c770509430a43f25",
+   "does": "Quality word for a 1-minute drop: ≥ 18 excellent, ≥ 12 strong, ≥ 8 ok, else slower.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "drop ≥ 18",
+     "effect": "'excellent'"
+    },
+    {
+     "at": "+2",
+     "cond": "drop ≥ 12",
+     "effect": "'strong'"
+    },
+    {
+     "at": "+3",
+     "cond": "drop ≥ 8",
+     "effect": "'ok'; else 'slower'."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrNarrative(drop:)",
+   "hash": "a3d5df28d1bc37fb",
+   "does": "Narrative sentence for a 1-minute drop with the same 18/12/8 bands.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "drop ≥ 18",
+     "effect": "fast-drop sentence"
+    },
+    {
+     "at": "+4",
+     "cond": "drop ≥ 12",
+     "effect": "at/above 12 bpm convention sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "drop ≥ 8",
+     "effect": "moderate sentence; else slower-than-expected sentence."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "hrrSentence (and WorkoutPDFReport.hrrSentences) grade the same 18/12/8 bands with different wording, on the stored drop rather than the card's stopReferencedDrop.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:661",
+      "Emuqu/Sources/Export/WorkoutPDFReport.swift:438",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:734"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrValueBlock(label:sample:goodThreshold:okThreshold:captureFinished:)",
+   "hash": "d5aa87605ced1eff",
+   "does": "Upper-cased label over hrrReading for a sample, or hrrPlaceholder (captureFinished decides its caption) without one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrReading(_:goodThreshold:okThreshold:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrPlaceholder(captureFinished:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "sample present",
+     "effect": "reading, else placeholder"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrPlaceholder(captureFinished:)": "ddc2606674b5a286",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrReading(_:goodThreshold:okThreshold:)": "2537f6e1d3c3c1af"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrReading(_:goodThreshold:okThreshold:)",
+   "hash": "33fb2e3b728f04bc",
+   "does": "Reading: stop-referenced drop in large scaled font coloured by thresholds, 'bpm', and the provenance label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "d07c6b408e1fbecc",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)": "0efc498f4a7ec53f",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "adc3caf2bb56673a"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrPlaceholder(captureFinished:)",
+   "hash": "c2734b8d400941d3",
+   "does": "'—' over 'not yet' while the capture is open, 'not captured' once it finished or failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "captureFinished",
+     "effect": "not captured, else not yet"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrColor(drop:good:ok:)",
+   "hash": "15e5a496388c5683",
+   "does": "Colour for a drop: green ≥ good, amber ≥ ok, else orange.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "drop ≥ good",
+     "effect": "green"
+    },
+    {
+     "at": "+2",
+     "cond": "drop ≥ ok",
+     "effect": "amber; else orange."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func distanceScale(imperial:)",
+   "hash": "c90f757964f39516",
+   "does": "Metres → miles (÷1609.344) or km (÷1000) scale factor.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "imperial",
+     "effect": "1/1609.344; else 1/1000."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func elevationMarks(_:xLabel:yLabel:)",
+   "hash": "afc2dbf39d98faf3",
+   "does": "Chart content for one elevation point: translucent accent AreaMark plus catmull-Rom accent LineMark at (distance, altitude).",
+   "entry": null,
+   "calls": [
+    "ext:Charts.AreaMark",
+    "ext:Charts.LineMark"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "func hrrNarrativeText(_:)",
+   "hash": "d859a4b3028147c0",
+   "does": "Caption-styled secondary-colour Text that wraps vertically.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutStatsCards.elevationSeries(_:)",
+   "hash": "882ae71eab9874ca",
+   "does": "Cumulative-distance elevation series: cumulative CLLocation distance (km) runs over every fix, but only fixes with verticalAccuracy ≥ 0 (valid altitude) are emitted; empty for fewer than 2 fixes.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track.count < 2",
+     "effect": "[]"
+    },
+    {
+     "at": "+6",
+     "cond": "verticalAccuracy < 0",
+     "effect": "skip the fix (distance still accumulates)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The type comment says the share sheet reaches elevationSeries through a forwarder, but the forwarder FitnessPostSummaryView.elevationSeries has no callers anywhere; the only caller is elevationPoints in this file.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards.swift:13",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:48"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStatsCards.hrrProvenanceLabel(_:)",
+   "hash": "826b706687a5ad72",
+   "does": "Provenance caption: strap → 'from strap', watchSamples → 'via Apple Watch', healthKitComputed → 'via Apple Health'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".strap",
+     "effect": "'from strap'"
+    },
+    {
+     "at": "+3",
+     "cond": ".watchSamples",
+     "effect": "'via Apple Watch'"
+    },
+    {
+     "at": "+4",
+     "cond": ".healthKitComputed",
+     "effect": "'via Apple Health'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the share sheet reaches hrrProvenanceLabel through a forwarder; FitnessPostSummaryView.hrrProvenanceLabel (and the hrrNarrative forwarder) have no callers, so both forwarders are dead.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards.swift:13",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:52",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:20"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

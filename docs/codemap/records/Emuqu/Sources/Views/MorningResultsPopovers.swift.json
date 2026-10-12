@@ -1,0 +1,223 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResultsPopovers.swift",
+ "hash": "91a3f228279d60a1",
+ "role": "Metric glossary popover (MetricExplanationPopover) shown when an HRVMetricCell is tapped, plus the static English-keyed explanation tables reused by MetricInfoSheets.entry(for:) as a fallback.",
+ "types": [
+  "MetricExplanationPopover: struct View — title/description/interpretation popover for a metric label; static glossary tables"
+ ],
+ "state": [
+  "MetricExplanationPopover.aliases static let [String:String] (label → table key)",
+  "MetricExplanationPopover.timeDomainInfo static let",
+  "MetricExplanationPopover.frequencyDomainInfo static let",
+  "MetricExplanationPopover.nonlinearInfo static let",
+  "MetricExplanationPopover.ansInfo static let",
+  "MetricExplanationPopover.dataQualityInfo static let"
+ ],
+ "toplevel": "Static dictionaries of @MainActor factories returning localized (fullName, description, interpretation) tuples for: Mean RR, SDNN, RMSSD, pNN50, SDSD, HR Range, Mean HR, SD HR, HRV TI; VLF, LF, HF, Total Power, LF n.u., HF n.u., LF/HF; SD1, SD2, SD1/SD2, DFA α1, DFA α2, α1 R², SampEn, ApEn; Stress Index, PNS Index, SNS Index, Resp Rate, Readiness; Clean Beats, Artifacts. Aliases map 'Window Beats'/'Window beats'→Clean Beats, 'HR range'→HR Range, 'Resp rate', 'PNS', 'SNS', 'Stress', 'Total power'.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "MetricInfoSheets says the popover tables are only a fallback 'so the two glossaries never disagree', but both define RMSSD (and SDNN, SD1, SD2, LF, HF, LF/HF, Total Power, Stress, Readiness, Artifacts) with different copy: popover RMSSD typical range '20s-30s: 40-80ms, 40s-50s: 25-50ms, 60+: 15-35ms' vs sheet 'Adults: 20–80 ms … Athletes often 60–120 ms'. The same metric reads differently in SessionHRVDetailView (popover) and HRVDetailV2View (sheet).",
+   "evidence": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift:113",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift:100",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift:107",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift:144"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var MetricExplanationPopover.body",
+   "hash": "1d0d04d7576d04fe",
+   "does": "Shows header, the metric description, a divider and the interpretation callout, 300 pt wide, as a popover even in compact width.",
+   "entry": "SwiftUI body; presented by HRVMetricCell .popover (MorningResultsCards.swift:19)",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.header",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.interpretationCallout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.header": "fd7e9ed903b629d0",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.interpretationCallout": "30e8397d99893d29",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo": "531c2571c5422f7d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricExplanationPopover.header",
+   "hash": "5d9d5df778efc7b8",
+   "does": "Row with the metric full name (headline) and close button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.closeButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.closeButton": "a464964d8d0b8903",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo": "531c2571c5422f7d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MetricExplanationPopover.closeButton",
+   "hash": "dfe8f42ada048ffc",
+   "does": "xmark button that calls the environment dismiss; accessibility label 'Close'.",
+   "entry": "Button action on user tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var MetricExplanationPopover.interpretationCallout",
+   "hash": "53c7076a6f68f79a",
+   "does": "Yellow-tinted callout with a lightbulb and the interpretation text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo": "531c2571c5422f7d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var MetricExplanationPopover.metricInfo",
+   "hash": "03781626cd5188a0",
+   "does": "Resolves the Info for `metric`: direct/alias key lookup, else reverse-match a translated label to its English key, else fallbackInfo.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.factory(for:)",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.englishKey(forLabel:)",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.fallbackInfo"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "factory(for: metric) nil",
+     "effect": "falls back to englishKey(forLabel:) then factory; if both nil factory is nil"
+    },
+    {
+     "at": "+2",
+     "cond": "factory nil",
+     "effect": "returns fallbackInfo (metric name + generic text); else factory()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.englishKey(forLabel:)": "d70787719e067e06",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.factory(for:)": "0ed2d12533c8827d",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.fallbackInfo": "769c6c0486394106"
+   }
+  },
+  {
+   "key": "var MetricExplanationPopover.allTables",
+   "hash": "d5461b5ac328dbe9",
+   "does": "Returns the five glossary tables in order time, frequency, nonlinear, ANS, data quality.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricExplanationPopover.info(forKey:)",
+   "hash": "4a560be0f4a8df36",
+   "does": "Public lookup: Info for an English key or alias, or nil. Used by MetricInfoSheets.entry(for:) as fallback after its own table.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.factory(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.factory(for:)": "0ed2d12533c8827d"
+   }
+  },
+  {
+   "key": "func MetricExplanationPopover.factory(for:)",
+   "hash": "9c746638706bb47a",
+   "does": "Maps key through aliases (unaliased key kept), returns the first table factory for it or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.allTables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "aliases[key] ?? key",
+     "effect": "alias target used when present; otherwise the key itself"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.allTables": "04045f4cc329322e"
+   }
+  },
+  {
+   "key": "func MetricExplanationPopover.englishKey(forLabel:)",
+   "hash": "590eee85fd3111e1",
+   "does": "Finds the English table key or alias whose localization in the app bundle equals the given label; nil if none. Linear scan over all keys on each call.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.allTables",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.allTables": "04045f4cc329322e"
+   }
+  },
+  {
+   "key": "var MetricExplanationPopover.fallbackInfo",
+   "hash": "be160b048896dbdb",
+   "does": "Fallback tuple: metric string as title, generic HRV description, and a pointer to Settings → Metric Guide.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

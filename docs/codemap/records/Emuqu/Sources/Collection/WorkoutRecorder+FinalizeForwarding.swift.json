@@ -1,0 +1,44 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift",
+ "hash": "87745e1ae6aaf008",
+ "role": "Forwarders keeping WorkoutRecorder.finalizeSession and WorkoutRecorder.runWithTimeout call sites working after finalize moved to WorkoutFinalizer.",
+ "types": [
+  "WorkoutRecorder: extension — finalize forwarders"
+ ],
+ "state": [],
+ "toplevel": "None.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutRecorder.finalizer",
+   "hash": "44be2359a150ddf2",
+   "does": "Computed property building a new WorkoutFinalizer(recorder: self) on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)",
+   "hash": "b046eb52891375b7",
+   "does": "Awaits WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:) and returns the finished HRVSession. Called by WorkoutRecorder stop (WorkoutRecorder+Stop.swift:114).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::var WorkoutRecorder.finalizer",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::var WorkoutRecorder.finalizer": "228e48696250f609",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "edcbbefeb3f9dacd"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -74,7 +74,9 @@ enum SnapshotFixtures {
         session.state = .complete
         session.rrSeries = rrSeries()
         session.analysisResult = analysisResult()
-        session.recoveryScore = 72
+        // HRVSession.recoveryScore is on the 0–10 scale (the views show ×10),
+        // so 7.2 renders as a recovery score of 72.
+        session.recoveryScore = 7.2
         return session
     }
 

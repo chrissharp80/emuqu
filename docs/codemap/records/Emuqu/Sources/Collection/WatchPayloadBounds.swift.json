@@ -1,0 +1,46 @@
+{
+ "file": "Emuqu/Sources/Collection/WatchPayloadBounds.swift",
+ "hash": "47a6e31de183f7e6",
+ "role": "Sanity bounds for numbers arriving from the Watch: RR intervals kept only when finite and within (300, 2500) ms, heart rates only within 25...250 bpm.",
+ "types": [
+  "WatchPayloadBounds: enum (namespace) — validation of Watch-sent RR/HR"
+ ],
+ "state": [
+  "mem:WatchPayloadBounds.heartRateRange = 25...250"
+ ],
+ "toplevel": "Static heartRateRange constant.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WatchPayloadBounds.plausibleRRMillis(_:)",
+   "hash": "40e5c5311fbae892",
+   "does": "Filters RR values to those whose rounded value is finite and strictly between HRVConstants.RRValidity.watchSynthesisMinExclusive (300) and watchSynthesisMaxExclusive (2500); returns the original (unrounded) values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchPayloadBounds.plausibleHeartRate(_:)",
+   "hash": "f77115e94841fdf6",
+   "does": "Returns bpm when non-nil and within 25...250, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bpm nil or outside 25...250",
+     "effect": "returns nil; else bpm"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

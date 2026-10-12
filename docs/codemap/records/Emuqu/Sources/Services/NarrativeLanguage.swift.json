@@ -1,0 +1,165 @@
+{
+ "file": "Emuqu/Sources/Services/NarrativeLanguage.swift",
+ "hash": "014d4e5095599554",
+ "role": "Task-local switch selecting the language/locale narrative builders (summaries, causes, score details, readiness) write in; english{} forces English for machine consumers like the assistant context. Also number formatting helpers.",
+ "types": [
+  "NarrativeLanguage: enum — task-local language selection and formatting helpers"
+ ],
+ "state": [
+  "mem:NarrativeLanguage.isEnglish (@TaskLocal, default false)",
+  "mem:NarrativeLanguage.englishBundle (static, en.lproj or main bundle)"
+ ],
+ "toplevel": "englishBundle is a lazily-initialized static: Bundle at main bundle's en.lproj path, falling back to Bundle.main when that lproj is absent.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var NarrativeLanguage.bundle",
+   "hash": "eddf63b5fde8f25d",
+   "does": "Returns englishBundle when isEnglish task-local is true, else LanguageManager.appBundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish",
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "isEnglish",
+     "effect": "true: englishBundle; false: app-language bundle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var NarrativeLanguage.locale",
+   "hash": "04e2503b12618549",
+   "does": "Returns en_US_POSIX locale when isEnglish, else LanguageManager.appLocale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "isEnglish",
+     "effect": "true: en_US_POSIX; false: app locale"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func NarrativeLanguage.english(_:)",
+   "hash": "f6954bf25052b26d",
+   "does": "Runs body synchronously with the isEnglish task-local bound to true and returns its result (rethrows).",
+   "entry": null,
+   "calls": [
+    "ext:TaskLocal.withValue"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NarrativeLanguage.number(_:decimals:)",
+   "hash": "0f6074d88e7f5e62",
+   "does": "Formats a Double with fixed fraction digits, no grouping, in the narrative locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale": "6607dabc385ef333",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func NarrativeLanguage.integer(_:)",
+   "hash": "8444085c835a0e0c",
+   "does": "Formats an Int with no grouping in the narrative locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale": "6607dabc385ef333",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func NarrativeLanguage.signedNumber(_:decimals:)",
+   "hash": "a6ba3a84ffc9f745",
+   "does": "Formats a Double with fixed fraction digits, always-shown sign, no grouping, in the narrative locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale": "6607dabc385ef333",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func NarrativeLanguage.hoursMinutes(_:)",
+   "hash": "d6275f8f2dce5eb3",
+   "does": "English mode: '<h>h <m>m' for >=60 minutes else '<m>m'; otherwise LocalizedDuration.hoursMinutes in the app language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!isEnglish (guard)",
+     "effect": "false (English): returns hand-built string; true: returns LocalizedDuration.hoursMinutes"
+    },
+    {
+     "at": "+1",
+     "cond": "minutes >= 60",
+     "effect": "true: 'Xh Ym'; false: 'Ym' (negative minutes yield e.g. '-5m'; LocalizedDuration clamps negatives to 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,545 @@
+{
+ "file": "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift",
+ "hash": "9746ef66a52734ec",
+ "role": "Analysis orchestration for one HRV session: given a window (selected, auto-selected, manual position, whole session, streaming whole series or peak-capacity slice) it computes time, frequency, nonlinear and ANS metrics, attaches window metadata and whole-night HR stats, and returns an HRVAnalysisResult. No persistence.",
+ "types": [
+  "HRVAnalysisPipeline: class (Sendable) — analysis entry points",
+  "HRVAnalysisPipeline.ANSConfiguration: struct — baselineRMSSD, vo2Max, trainingLoadAdjustment",
+  "HRVAnalysisPipeline.PeakWindowBounds: struct — peak-capacity window indices and ms",
+  "HRVAnalysisPipeline.RangeMetrics: struct — time/nonlinear/ANS bundle",
+  "HRVAnalysisPipeline.OvernightHRStats: struct — min/max/mean HR and nadir time"
+ ],
+ "state": [
+  "mem:HRVAnalysisPipeline.artifactDetector",
+  "mem:HRVAnalysisPipeline.windowSelector (shared; reanalyzeAtPosition uses it directly)",
+  "mem:HRVAnalysisPipeline.healthKit (HealthKitServiceProtocol)"
+ ],
+ "toplevel": "Dependencies are internal lets so the +Metrics extension can reach them. Created by RRCollector / MorningProcessingService / SampleDataLibrary (SampleDataLibrary.swift:95) and tests.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)",
+   "hash": "aa26562cccea98d9",
+   "does": "Stores the injected artifact detector, window selector and HealthKit service.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeRange(session:series:flags:start:end:ansConfig:)",
+   "hash": "53fda3f7a0af4e8e",
+   "does": "Shared core: computes time-domain and nonlinear metrics over [start,end) (logging and returning nil if either fails), awaits ANS metrics (which fetch daytime resting HR from HealthKit), then builds the result with frequency metrics, artifact % and clean-beat count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeNonlinear(series:flags:start:end:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.rangeResult(series:flags:start:end:timeDomain:nonlinear:ansMetrics:)",
+    "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "time-domain metrics non-nil",
+     "effect": "nil: logs .timeDomainFailed and returns nil; else continues"
+    },
+    {
+     "at": "+13",
+     "cond": "nonlinear metrics non-nil",
+     "effect": "nil: logs .nonlinearFailed and returns nil; else continues"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeNonlinear(series:flags:start:end:)": "574ff934aa8814b8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)": "f6f5b63d856747b9",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.rangeResult(series:flags:start:end:timeDomain:nonlinear:ansMetrics:)": "508328443dd0e748",
+    "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription": "8705d307c25baebe"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.rangeResult(series:flags:start:end:timeDomain:nonlinear:ansMetrics:)",
+   "hash": "425c30403d83d3b3",
+   "does": "Builds HRVAnalysisResult for a range: frequency-domain metrics (may be nil), artifact percentage, count of non-artifact flags in the range, analysisDate = now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeFrequencyDomain(series:flags:start:end:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeFrequencyDomain(series:flags:start:end:)": "47ebd41642c494a6",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)",
+   "hash": "f39b43f6638dd25d",
+   "does": "Awaits daytime resting HR for the session date from HealthKit and computes ANS metrics with it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)"
+   ],
+   "reads": [
+    "hk:heartRate (via fetchDaytimeRestingHR)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)": "05d823709d8e3e76",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)": "aa6488cd2fa1a209"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)",
+   "hash": "9d07f7a2e2d97b57",
+   "does": "Primary overnight path: requires session.rrSeries, analyses the given recovery window with caller-supplied flags, attaches window metadata, peak capacity, training context and whole-night HR stats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeRange(session:series:flags:start:end:ansConfig:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachWindowMetadata(_:window:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "session.rrSeries exists",
+     "effect": "nil: logs .noRRSeries, returns nil"
+    },
+    {
+     "at": "+14",
+     "cond": "analyzeRange non-nil",
+     "effect": "nil: returns nil; else attaches metadata and returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)": "901d3313c57d414b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeRange(session:series:flags:start:end:ansConfig:)": "0995cf4b75cc3c98",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachWindowMetadata(_:window:)": "bb216483a5522588",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.attachWindowMetadata(_:window:)",
+   "hash": "2dd5487595b9b147",
+   "does": "Copies the selector's window fields (ms bounds, mean HR, stability, reason, relative position, consolidation, organized flag, classification raw value) onto the result.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)": "e78e86c416a0c790",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)",
+   "hash": "c9d0950cda7c325b",
+   "does": "Whole-session analysis: requires rrSeries, detects artifacts, analyses [0, count), sets full-session metadata (nil quality fields, 'No consolidated recovery detected', highVariability), peak capacity, context and whole-night HR stats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeRange(session:series:flags:start:end:ansConfig:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachFullSessionMetadata(_:series:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "session.rrSeries exists",
+     "effect": "nil: logs .noRRSeries, returns nil"
+    },
+    {
+     "at": "+13",
+     "cond": "analyzeRange non-nil",
+     "effect": "nil: returns nil; else returns decorated result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)": "901d3313c57d414b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeRange(session:series:flags:start:end:ansConfig:)": "0995cf4b75cc3c98",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachFullSessionMetadata(_:series:)": "acd25775fc7c0988",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.attachFullSessionMetadata(_:series:)",
+   "hash": "aeea2dd84dc5c491",
+   "does": "Marks a result as covering the whole recording: window ms from first point t_ms / last endMs (0 if empty), window-quality fields nil/false, reason string, classification highVariability.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points.first?.t_ms ?? 0",
+     "effect": "empty series: start 0"
+    },
+    {
+     "at": "+2",
+     "cond": "points.last?.endMs ?? 0",
+     "effect": "empty series: end 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+   "hash": "401c420aabacfb41",
+   "does": "Auto-window path: requires rrSeries, detects artifacts, uses a fresh WindowSelector with the shared config to find the best window (optionally ranked by baselineStats and bounded by sleep/wake ms), runs the selected path, and attaches organized-recovery zones when any exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeSelectedWindow(session:flags:windowResult:trainingContext:ansConfig:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "session.rrSeries exists",
+     "effect": "nil: logs .noRRSeries, returns nil"
+    },
+    {
+     "at": "+18",
+     "cond": "findBestWindowWithCapacity non-nil",
+     "effect": "nil: logs .windowSelectionFailed, returns nil"
+    },
+    {
+     "at": "+26",
+     "cond": "organizedZones.isEmpty ?:",
+     "effect": "true: organizedRecoveryZones nil; false: set"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeSelectedWindow(session:flags:windowResult:trainingContext:ansConfig:)": "b2852fb1d5d1664d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeSelectedWindow(session:flags:windowResult:trainingContext:ansConfig:)",
+   "hash": "cc25c988e23d1c95",
+   "does": "Runs analyzeFullSession when the selector found no recovery window, else analyzeWithWindow, passing peak capacity through.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "windowResult.recoveryWindow exists",
+     "effect": "nil: full-session analysis (re-detects artifacts); non-nil: windowed analysis with the given flags"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "71a0b9279559af80",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)",
+   "hash": "d652c05ec0798cea",
+   "does": "Sync streaming analysis of series[windowStart..<windowEnd] clamped to the series; logs and returns nil for an empty clamped range; otherwise builds the result via fullSeriesResult (reporting the clamped window), sets training context and whole-night HR stats. Uses caller-supplied daytimeRestingHR (no HealthKit read).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "windowEnd ?? points.count",
+     "effect": "nil: whole series end"
+    },
+    {
+     "at": "+13",
+     "cond": "effectiveEnd > effectiveStart",
+     "effect": "false: logs .insufficientRange, returns nil"
+    },
+    {
+     "at": "+18",
+     "cond": "fullSeriesResult non-nil",
+     "effect": "nil: returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)": "901d3313c57d414b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)": "e424042ae1e8334f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)",
+   "hash": "ce700dba6da3e2b9",
+   "does": "Sync core for streaming: time-domain and nonlinear metrics (logging and nil on failure), ANS metrics with the passed daytime HR and the optional config (none: readiness on absolute RMSSD bands, no invented baseline), then streamingResult.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeNonlinear(series:flags:start:end:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.streamingResult(series:flags:range:reportedWindow:metrics:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "time-domain non-nil",
+     "effect": "nil: logs .timeDomainFailed, nil"
+    },
+    {
+     "at": "+14",
+     "cond": "nonlinear non-nil",
+     "effect": "nil: logs .nonlinearFailed, nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)": "05d823709d8e3e76",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeNonlinear(series:flags:start:end:)": "574ff934aa8814b8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)": "f6f5b63d856747b9",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.streamingResult(series:flags:range:reportedWindow:metrics:)": "dbf8a0ef11c5fbcd"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.streamingResult(series:flags:range:reportedWindow:metrics:)",
+   "hash": "792105dbb2483369",
+   "does": "Builds the streaming HRVAnalysisResult: frequency metrics over the effective range, artifact % and clean count over the range clipped to flags.count, window indices = reported (unclamped) window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeFrequencyDomain(series:flags:start:end:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeFrequencyDomain(series:flags:start:end:)": "47ebd41642c494a6",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)",
+   "hash": "f92c2653dadd84b5",
+   "does": "Peak-capacity streaming path: maps the capacity's relative position and duration to beat bounds, runs analyzeFullSeries on them, then sets peak capacity, training context and peak-window ms/classification.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachPeakCapacityWindow(_:bounds:peakCapacity:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "analyzeFullSeries non-nil",
+     "effect": "nil: returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "29c8b5a2dbaab494",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachPeakCapacityWindow(_:bounds:peakCapacity:sessionId:)": "6ccb57a434d7616d",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)": "d4d2733795a9061a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)",
+   "hash": "5ab7395c6dd8463f",
+   "does": "Converts PeakCapacity.windowRelativePosition and windowDurationMinutes to a centred ms window over the series and its beat indices; whole series with nil ms (so no Peak Capacity window is attached) when there is no relative position, no points, or no beat at or after the window start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "relPos exists && series non-empty",
+     "effect": "true: computes centred window; false: whole series, nil ms"
+    },
+    {
+     "at": "+17",
+     "cond": "a beat at or after the window start",
+     "effect": "indices and ms set; else whole series, nil ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)": "e34f60819b7595c9",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)",
+   "hash": "0b68177e89e894cb",
+   "does": "First index with t_ms >= startMs and, from there, first index with t_ms >= endMs (count when none); nil when no beat is at or after startMs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no beat at or after startMs",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "no beat at or after endMs",
+     "effect": "end = count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipeline.attachPeakCapacityWindow(_:bounds:peakCapacity:sessionId:)",
+   "hash": "1279743c4debe7cb",
+   "does": "When bounds carry ms and the capacity has a relative position, writes window ms, relative position and the literal classification 'Peak Capacity' onto the result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "startMs, endMs, relPos all non-nil",
+     "effect": "false: returns without changes; true: sets fields"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.reanalyzeAtPosition(session:targetMs:trainingContext:ansConfig:)",
+   "hash": "87d429eb29fd5b1c",
+   "does": "Manual window from chart interaction: requires rrSeries, detects artifacts, asks the shared WindowSelector for the window at targetMs, then runs analyzeWithWindow with no peak capacity.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "session.rrSeries exists",
+     "effect": "nil: logs .noRRSeries, returns nil"
+    },
+    {
+     "at": "+13",
+     "cond": "analyzeAtPosition non-nil",
+     "effect": "nil: debug-logs and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "71a0b9279559af80",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)": "0dc195fa4232cb80",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,65 @@
+{
+ "file": "EmuquTests/LanguageManagerObservationTests.swift",
+ "hash": "dc27363f1ccfd2eb",
+ "role": "XCTest suite pinning that LanguageManager.currentLocale is Observation-tracked so the app root re-renders when the language changes.",
+ "types": [
+  "LanguageManagerObservationTests: class — @MainActor XCTestCase over LanguageManager.shared"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func LanguageManagerObservationTests.testTheRootLocaleIsObservedAcrossALanguageChange()",
+   "hash": "05afaa5a21e0c990",
+   "does": "Tracks LanguageManager.shared.currentLocale with withObservationTracking, switches language (to .en if current is .de else .de), waits ≤1 s for the onChange to fire, asserts currentLocale == locale, and restores the original language in defer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale",
+    "ud:AppleLanguages"
+   ],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "original == .de",
+     "effect": "switches to .en; otherwise switches to .de"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Changes the host app's real language twice (setLanguage persists AppleLanguages via AppLanguage.apply) and posts languageDidChangeNotification to live observers in the app host; a crash between switch and defer leaves the host in German.",
+     "evidence": [
+      "EmuquTests/LanguageManagerObservationTests.swift:24",
+      "EmuquTests/LanguageManagerObservationTests.swift:17",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:302"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale": "f07c3820aae0d0e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+   }
+  }
+ ],
+ "deps": {}
+}

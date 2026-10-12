@@ -1,0 +1,384 @@
+{
+ "file": "Emuqu/Sources/Import/RRDataImporter+CSV.swift",
+ "hash": "a03468fc3b208b8d",
+ "role": "CSV and plain-text RR parsing for RRDataImporter: separator/header/RR-column detection, per-row RR value choice, seconds->ms conversion, quoted-line splitting (used by Elite rows) and the shared date parser.",
+ "types": [
+  "RRDataImporter: extension — CSV/TXT parsing"
+ ],
+ "state": [
+  "mem:RRDataImporter.dateFormatters (private static [DateFormatter], POSIX, 6 fixed formats)"
+ ],
+ "toplevel": "dateFormatters is a lazily initialised static array built once on first parseDate call.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRDataImporter.parseCSV(_:)",
+   "hash": "2dacc6a9278e22ff",
+   "does": "Splits into trimmed non-empty lines, detects separator and header from the first line, finds the RR column from the header, and returns RR values in ms from the data lines with empty metadata and a nil date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "there is at least one non-empty line",
+     "effect": "continue; otherwise throw noRRData"
+    },
+    {
+     "at": "+9",
+     "cond": "first line looks like a header",
+     "effect": "look up RR column index; otherwise nil (positional heuristics)"
+    },
+    {
+     "at": "+13",
+     "cond": "hasHeader",
+     "effect": "skip first line; otherwise parse it as data"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "2cabd9766c826325",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporter.rrValues(from:separator:rrColumn:)",
+   "hash": "3ba844df18d33e25",
+   "does": "Filters out '#' and '//' comment lines, splits each by the separator, picks an RR value per row and keeps only values in 1...30000 ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6"
+   }
+  },
+  {
+   "key": "func RRDataImporter.detectSeparator(firstLine:)",
+   "hash": "a377495e64bd469f",
+   "does": "Returns ';' when the first line contains ';' and no ',', else ','.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "contains ; and not ,",
+     "effect": "';'; otherwise ','"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.looksLikeHeader(_:)",
+   "hash": "bd9b65097c2b47ea",
+   "does": "True when the lowercased first line contains rr, ibi, interval, time or ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)",
+   "hash": "d20b617f619ca119",
+   "does": "Index of the first header column that namesRRColumn accepts (a word starting with 'rr' or 'ibi', or exactly 'ms' or 'interval'); nil if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)": "9a0e2af575a94283"
+   }
+  },
+  {
+   "key": "func RRDataImporter.namesRRColumn(_:)",
+   "hash": "06bb5f7de91e3be0",
+   "does": "True when the lowercased header, split into letter/digit words, has a word starting with 'rr' or 'ibi' ('rr_ms', 'rr interval (ms)', 'ibi'), or the whole header is 'ms' or 'interval'; 'current_hr', 'error', 'correction' do not match.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "some word starts with rr/ibi, or header == 'ms' / 'interval'",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+   "hash": "b01e8b097c6ec7e5",
+   "does": "Chooses the RR value from a split row: the header-named column (unchecked), a single column (unchecked), else column 1 range-checked (300-2000), else column 0 range-checked only when column 1 did not parse.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "rrColumnIndex is set AND the row has that many columns",
+     "effect": "use the header-named column; when the index is set but the row is shorter, fall through to the single/two-column heuristics below"
+    },
+    {
+     "at": "+6",
+     "cond": "header-column value parses as finite Double",
+     "effect": "convert and return with no physiological check; otherwise nil (row skipped)"
+    },
+    {
+     "at": "+9",
+     "cond": "row has exactly one column",
+     "effect": "use it"
+    },
+    {
+     "at": "+10",
+     "cond": "single value parses finite",
+     "effect": "convert and return (unchecked); otherwise nil"
+    },
+    {
+     "at": "+13",
+     "cond": "row has >= 2 columns",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+14",
+     "cond": "column 1 parses finite",
+     "effect": "return validRRValue(converted) (nil if outside 300-2000; column 0 is NOT tried)"
+    },
+    {
+     "at": "+17",
+     "cond": "column 0 parses finite",
+     "effect": "return validRRValue(converted); otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "2cabd9766c826325",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)": "9c98d9b3c9631938"
+   }
+  },
+  {
+   "key": "func RRDataImporter.validRRValue(_:)",
+   "hash": "2c774e986ab3c392",
+   "does": "Returns the value when HRVConstants.RRInterval.isValid (300-2000 ms), else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isValid(converted)",
+     "effect": "value; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+   }
+  },
+  {
+   "key": "func RRDataImporter.parsePlainText(_:)",
+   "hash": "e8b3b05271671d0b",
+   "does": "Parses plain text: drops blank and comment lines, splits each line on whitespace/','/';', and keeps tokens that convert to valid 300-2000 ms RR values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)": "2fb43fbd18553ac5"
+   }
+  },
+  {
+   "key": "func RRDataImporter.validRRValue(in:)",
+   "hash": "3ab6dd116c06c6ce",
+   "does": "Token -> finite Double -> ms (seconds if <10) -> kept only if 300-2000 ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "token parses as finite Double",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+3",
+     "cond": "converted value isValid",
+     "effect": "return it; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+   }
+  },
+  {
+   "key": "func RRDataImporter.csvRecords(_:)",
+   "hash": "9de873ccdec512eb",
+   "does": "Splits CSV text into records at newlines outside double quotes, so a quoted field containing a newline stays in one record; quote characters are kept for parseCSVLine. Empty records are returned as empty strings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each character",
+     "effect": "iterate the text"
+    },
+    {
+     "at": "+5",
+     "cond": "character is a double quote",
+     "effect": "toggle inQuotes"
+    },
+    {
+     "at": "+6",
+     "cond": "newline outside quotes",
+     "effect": "close the current record; otherwise append the character to it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.parseCSVLine(_:)",
+   "hash": "bd2e4fef2e8a1dd4",
+   "does": "Splits a line on commas outside double quotes, removing quote characters and trimming each field.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each character",
+     "effect": "scan"
+    },
+    {
+     "at": "+6",
+     "cond": "char is a double quote",
+     "effect": "toggle inQuotes (quote not kept)"
+    },
+    {
+     "at": "+8",
+     "cond": "comma outside quotes",
+     "effect": "emit current field; otherwise append char"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.convertToMilliseconds(_:)",
+   "hash": "f4fe8ffc01a24748",
+   "does": "Converts a value to Int ms, rounded to the nearest millisecond: values < 10 are treated as seconds (x1000); non-finite -> 0; clamps to Int bounds; no range validation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "value < 10",
+     "effect": "treated as seconds and multiplied by 1000 (this includes every negative value); otherwise taken as ms; either way rounded"
+    },
+    {
+     "at": "+10",
+     "cond": "ms is finite",
+     "effect": "continue; otherwise return 0"
+    },
+    {
+     "at": "+11",
+     "cond": "ms >= Int.max",
+     "effect": "return Int.max"
+    },
+    {
+     "at": "+12",
+     "cond": "ms <= Int.min",
+     "effect": "return Int.min; otherwise Int(ms) of the rounded value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.parseDate(_:)",
+   "hash": "7a890c2e10e70a97",
+   "does": "Tries the six POSIX fixed formats in order, then ISO8601 with fractional seconds; nil if none match.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each formatter",
+     "effect": "try in order"
+    },
+    {
+     "at": "+2",
+     "cond": "formatter parses the string",
+     "effect": "return date; after loop try ISO8601 (internet date time + fractional seconds only, so plain 'Z' strings without fraction rely on the first two fixed formats)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters": "aee7de1b7c582087"
+   }
+  },
+  {
+   "key": "let RRDataImporter.dateFormatters",
+   "hash": "dcdcfbeed1dd35d8",
+   "does": "Builds the static list of DateFormatters for yyyy-MM-dd'T'HH:mm:ss.SSSZ, yyyy-MM-dd'T'HH:mm:ssZ, yyyy-MM-dd HH:mm:ss, yyyy-MM-dd, MM/dd/yyyy HH:mm:ss, MM/dd/yyyy with the en_US_POSIX locale (whose Gregorian calendar the formatter adopts) and no explicit timeZone, so zone-less formats are read in the device's current time zone.",
+   "entry": "static lazy initializer, run on first access from parseDate",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

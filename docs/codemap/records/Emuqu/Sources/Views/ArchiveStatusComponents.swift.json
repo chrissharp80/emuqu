@@ -1,0 +1,483 @@
+{
+ "file": "Emuqu/Sources/Views/ArchiveStatusComponents.swift",
+ "hash": "7e03173c21dc48ce",
+ "role": "Two views showing where a session is stored (local archive / iCloud): a compact tappable status line and a detail sheet, plus a private LabeledRow and a file-private date formatter. Per its own comment (line 3-5) neither view is placed on any production screen; only UncoveredScreenSnapshotTests renders them.",
+ "types": [
+  "ArchiveStatusLine: struct (View) — compact Saved/iCloud status line opening the detail sheet",
+  "ArchiveStatusDetailSheet: struct (View) — Form listing local archive entry fields and iCloud upload status with a Force iCloud Sync button",
+  "LabeledRow: struct (View, private) — label/value caption row"
+ ],
+ "state": [
+  "mem:ArchiveStatusLine.showingDetails (@State Bool)"
+ ],
+ "toplevel": "File-scope private func formatDate. No global state. Header comment (3-5) states both views are unused in the app and kept only for snapshot tests; the ArchiveStatusLine comment says it re-renders on archive writes (via archiveSignal.version) and on sync-state changes.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "ArchiveStatusLine and ArchiveStatusDetailSheet are not referenced by any production view; the only references are EmuquTests/UncoveredScreenSnapshotTests.swift:135 and :145. The whole file (and its localized strings) is test-only code.",
+   "evidence": [
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:3",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift:133"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "docs/FLOWCHART.md places an ArchiveStatusLine pill inside the dashboard Recovery card, but no production view instantiates ArchiveStatusLine; the file's own header says neither view is on any screen and only UncoveredScreenSnapshotTests renders them.",
+   "evidence": [
+    "docs/FLOWCHART.md:921",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:3",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift:135"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ArchiveStatusLine.isArchived",
+   "hash": "0ec617120412531d",
+   "does": "Reads archiveSignal.version (registering an observation dependency so every archive write re-evaluates it), then returns whether the session's id is present in the archive index via collector.archive.exists(session.id).",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version",
+    "archive:SessionArchive.exists (index)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+   }
+  },
+  {
+   "key": "var ArchiveStatusLine.isUploaded",
+   "hash": "f64c5251955e81b1",
+   "does": "Returns CloudKitSyncManager.isUploaded(session.id) — whether the id is in the sync state's uploadedSessionIds set.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state.uploadedSessionIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "42b502804961767c"
+   }
+  },
+  {
+   "key": "var ArchiveStatusLine.isPendingRetry",
+   "hash": "f77363fe45875860",
+   "does": "Returns CloudKitSyncManager.isPendingRetry(session.id) — whether the id is in pendingUploadIds.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state.pendingUploadIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "160aa90bfaecee28"
+   }
+  },
+  {
+   "key": "var ArchiveStatusLine.isSyncing",
+   "hash": "49ccbe060abd7de4",
+   "does": "True when syncManager.syncState == .syncing.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [],
+   "reads": [
+    "mem:CloudKitSyncManager.syncState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ArchiveStatusLine.body",
+   "hash": "e6efbc43fd5e4bad",
+   "does": "Plain-style button rendering savedStatusRow; tap sets showingDetails, which presents ArchiveStatusDetailSheet at .medium detent with the same session/collector/archiveSignal/syncManager.",
+   "entry": "SwiftUI body (rendered only by UncoveredScreenSnapshotTests); button tap action",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.savedStatusRow"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveStatusLine.showingDetails"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.savedStatusRow": "efb987458dc4ada8"
+   }
+  },
+  {
+   "key": "var ArchiveStatusLine.savedStatusRow",
+   "hash": "cf5d237b09d09a70",
+   "does": "HStack of archiveStatusSection, a localized '·' separator, icloudStatusSection, spacer and an info.circle icon, caption font with padding and full-rect hit shape.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.archiveStatusSection",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.icloudStatusSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.archiveStatusSection": "fda551fb0ed19f19",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.icloudStatusSection": "c107fd93543fd31a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ArchiveStatusLine.archiveStatusSection",
+   "hash": "78505b939bd9f1da",
+   "does": "Shows archive state: checkmark + 'Saved' or spinner + 'Saving…'.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isArchived"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isArchived (session id in archive index)",
+     "effect": "true: green checkmark.circle.fill + 'Saved'; false: scaled ProgressView + 'Saving…' (also shown forever for a session that will never be archived)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isArchived": "13c75c249a61c29a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ArchiveStatusLine.icloudStatusSection",
+   "hash": "36a1172cbadf4e3b",
+   "does": "Shows iCloud state by priority: uploaded, pending retry, syncing, else local only.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isUploaded",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isPendingRetry",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isSyncing"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isUploaded",
+     "effect": "true: icloud.fill + 'iCloud'; false: falls to 105"
+    },
+    {
+     "at": "+7",
+     "cond": "isPendingRetry",
+     "effect": "true: icloud.and.arrow.up gold + 'Retrying…'; false: falls to 110"
+    },
+    {
+     "at": "+12",
+     "cond": "isSyncing (global syncState == .syncing, not per session)",
+     "effect": "true: spinner + 'Syncing…'; false: icloud.slash + 'Local only'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isPendingRetry": "19ddb7b7d066ba67",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isSyncing": "abe342de518419de",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isUploaded": "9d02097fb43503f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.archiveEntry",
+   "hash": "da965509b70d037c",
+   "does": "Reads archiveSignal.version (observation dependency, so an archive write re-evaluates it), then returns the first archive index entry whose sessionId equals session.id, or nil.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.body",
+   "hash": "a69541d569554ef3",
+   "does": "NavigationStack wrapping storageForm with inline title 'Session Storage' and the Done toolbar.",
+   "entry": "SwiftUI body of the sheet presented by ArchiveStatusLine",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.storageForm",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.doneToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.doneToolbar": "6387bbf4435816b6",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.storageForm": "82a785a5aca2c62d"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.storageForm",
+   "hash": "01bd00738aca8bb7",
+   "does": "Form of localArchiveSection, icloudSection and forceIcloudSyncSection.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.localArchiveSection",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudSection",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncSection": "8c91db8f14d99ebe",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudSection": "3b11965ed7d19fc0",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.localArchiveSection": "4fd9bdf49af11726"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.doneToolbar",
+   "hash": "60bc125dff7a58aa",
+   "does": "Confirmation-placement toolbar item 'Done' that calls dismiss().",
+   "entry": "SwiftUI toolbar builder; button tap dismisses sheet",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.forceIcloudSyncSection",
+   "hash": "08a11b21c7d36963",
+   "does": "Section with the Force iCloud Sync button, disabled while syncState == .syncing or iCloud sync setting is off.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncButton"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.syncState",
+    "ud:iCloudSyncEnabled (via SettingsManager.settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "e1378ec97a10e33d",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncButton": "2f4e1a59e2610a15"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.forceIcloudSyncButton",
+   "hash": "46eabc3a337aa6fa",
+   "does": "Button that launches Task { await syncManager.performFullSync() } labelled 'Force iCloud Sync'.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:private DB sessions (via performFullSync)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.localArchiveSection",
+   "hash": "395a3458f4fa5334",
+   "does": "Section 'Local Archive': when an index entry exists, rows Status ✓ Archived, Archived at (formatted date), File hash (first 12 chars + …), File path; else Status 'Not archived yet'.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.archiveEntry",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archiveEntry found in index",
+     "effect": "true: four rows with entry.date/fileHash/filePath; false: single 'Not archived yet' row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "22350b5c63fa445d",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.archiveEntry": "964c64837c9c9093"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.icloudSection",
+   "hash": "5f0ee0820986e765",
+   "does": "Section 'iCloud' with icloudStatusRows and a 'Pending queue: N sessions' row from pendingUploadCount.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudStatusRows",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state.pendingUploadIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount": "bdb518106fa1fc30",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudStatusRows": "19dc3ffed9b45b65"
+   }
+  },
+  {
+   "key": "var ArchiveStatusDetailSheet.icloudStatusRows",
+   "hash": "a8173f7f20c29fa3",
+   "does": "Status rows for iCloud: sync off (the iCloud Sync setting), uploaded (+ last sync date), queued for retry, or not uploaded.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state",
+    "mem:CloudKitSyncManager.lastSyncDate",
+    "ud:iCloudSyncEnabled (via SettingsManager.settings)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!syncManager.isCloudKitAvailable (iCloud Sync setting off)",
+     "effect": "true: Status 'iCloud sync is off'; false: falls to the uploaded check"
+    },
+    {
+     "at": "+4",
+     "cond": "isUploaded(session.id)",
+     "effect": "true: Status '✓ Uploaded' plus optional Last sync row; false: falls to 209"
+    },
+    {
+     "at": "+6",
+     "cond": "lastSyncDate non-nil",
+     "effect": "true: adds 'Last sync' formatted row; false: no row"
+    },
+    {
+     "at": "+9",
+     "cond": "isPendingRetry(session.id)",
+     "effect": "true: 'Upload failed — queued for retry'; false: 'Not uploaded'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "160aa90bfaecee28",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "42b502804961767c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "e1378ec97a10e33d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "22350b5c63fa445d",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5"
+   }
+  },
+  {
+   "key": "init LabeledRow(_:value:)",
+   "hash": "82fc16aa4ea81438",
+   "does": "Memberwise init storing a LocalizedStringKey label and a value string.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LabeledRow.body",
+   "hash": "8106c0d728c3ffba",
+   "does": "HStack: label Text localized from app bundle (secondary colour), spacer, value Text monospaced, one line, middle-truncated, caption font.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func formatDate(_:)",
+   "hash": "70da41773b2481be",
+   "does": "Formats a Date as numeric date + short time in LanguageManager.appLocale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

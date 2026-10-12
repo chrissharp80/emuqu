@@ -92,7 +92,6 @@ final class PolarManager: NSObject {
     var readiness = StrapReadiness.initial
     var isH10RecordingFeatureReady: Bool { readiness.isReady(.h10Recording) }
     var isHrStreamingReady: Bool { readiness.isReady(.heartRate) }
-    var isOfflineRecordingReady: Bool { readiness.isReady(.offlineRecording) }
 
     /// Whether heart rate is actually arriving, as opposed to merely connected.
     var feedStatus: StrapFeedHealth.Status = .waitingForStrap
@@ -133,7 +132,6 @@ final class PolarManager: NSObject {
     func checkForStoredExercises(deviceId: String? = nil) async {
         await recording.checkForStoredExercises(deviceId: deviceId)
     }
-    func clearAnyExistingExercises() async throws { try await recording.clearAnyExistingExercises() }
     func discardStoredExercises() async throws { try await recording.discardStoredExercises() }
     var hasStoredExercise: Bool = false // True if H10 has stored data that can be recovered
     var storedExerciseDate: Date? // Date of stored exercise on H10 (for archive comparison)
@@ -277,8 +275,11 @@ final class PolarManager: NSObject {
     static let recentRRWindowSize = 60
 
     /// Maximum streaming buffer size — safety cap to prevent unbounded growth.
-    /// 100,000 points ≈ 28 hours at 1 beat/sec, well beyond any realistic session.
-    static let maxStreamingBufferSize = 100_000
+    /// Sized in beats, not seconds: 250,000 beats is about 35 hours at an
+    /// average of 120 bpm and 60 hours at 70 bpm (roughly 10 MB of points),
+    /// well beyond any realistic session. The old 100,000 ran out after about
+    /// 24 hours at 70 bpm, not the 28 its comment claimed.
+    static let maxStreamingBufferSize = 250_000
 
     /// Throttle UI updates — only push recentRRPoints every N beats to reduce SwiftUI work.
     var lastUIUpdateBeatCount: Int = 0
@@ -338,7 +339,6 @@ final class PolarManager: NSObject {
     enum PolarError: Error, LocalizedError {
         case notConnected
         case alreadyRecording
-        case notRecording
         /// Carries a message already worded for the user.
         case recordingFailed(String)
         /// Carries an internal detail for logs; users see a plain sentence.
@@ -348,7 +348,6 @@ final class PolarManager: NSObject {
         /// The strap holds recordings, but none started since the session
         /// began: an earlier session's file, which is never filed as this one.
         case noRecordingSinceSessionStart
-        case hasUnrecoveredData // H10 has data that wasn't successfully retrieved
         /// The phone and the strap no longer share a usable pairing. Only the
         /// user can repair it, so nothing retries.
         case pairingLost
@@ -369,13 +368,11 @@ final class PolarManager: NSObject {
             case .featureNotReady: String(localized: "The strap didn't finish setting up. Keep it on and close to the phone, then try again.", bundle: LanguageManager.appBundle)
             case .notConnected: String(localized: "Polar device not connected", bundle: LanguageManager.appBundle)
             case .alreadyRecording: String(localized: "Recording already in progress", bundle: LanguageManager.appBundle)
-            case .notRecording: String(localized: "No recording in progress", bundle: LanguageManager.appBundle)
             case let .recordingFailed(msg): String(localized: "Recording failed: \(msg)", bundle: LanguageManager.appBundle)
             case .fetchFailed: String(localized: "Couldn't download the recording from the strap. Keep it close to the phone, then try again.", bundle: LanguageManager.appBundle)
             case .sdkNotAvailable: String(localized: "Polar SDK not available", bundle: LanguageManager.appBundle)
             case .noRecordingFound: String(localized: "No recording found on device", bundle: LanguageManager.appBundle)
             case .noRecordingSinceSessionStart: String(localized: "No recording found on the strap for this session.", bundle: LanguageManager.appBundle)
-            case .hasUnrecoveredData: String(localized: "Your device has unrecovered recording data. Recover it first or explicitly discard it.", bundle: LanguageManager.appBundle)
             case let .strapBatteryTooLow(percent): Self.batteryTooLowDescription(percent: percent)
             case .strapHoldsUndownloadedRecording: String(localized: "The strap holds a recording that hasn't been downloaded, so its own recording wasn't started (that would delete it). Recover it from the Record screen; tonight records from the live stream.", bundle: LanguageManager.appBundle)
             }

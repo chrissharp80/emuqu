@@ -1,0 +1,194 @@
+{
+ "file": "EmuquUITests/AssistantUITests.swift",
+ "hash": "48879a7989e1519e",
+ "role": "XCUITest coverage of the Flo (AI assistant) tab: first-run disclosure, input surfaces (composer/prefab chips/setup), prefab question text, and no blocking alert without API keys.",
+ "types": [
+  "AssistantUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/AssistantUITests.swift:29",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc lists empty-state copy and prefab chips being tappable as tested; no test asserts empty-state copy or taps a chip",
+   "evidence": [
+    "EmuquUITests/AssistantUITests.swift:13",
+    "EmuquUITests/AssistantUITests.swift:88"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AssistantUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func AssistantUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantUITests.navigateToAssistant()",
+   "hash": "4a4d2b897cdac9ad",
+   "does": "Selects the Flo tab via UITestNav.selectTab and asserts it was found; a fresh install has the tab (enableAIAssistant defaults on), so a miss fails the test (and stops it, continueAfterFailure being off) instead of skipping.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00"
+   }
+  },
+  {
+   "key": "func AssistantUITests.assertInputSurfaceIsShown(_:)",
+   "hash": "f1249c99052b5961",
+   "does": "Asserts that within 8 s Flo shows one of its input surfaces: the composer (matched across element types), the prefab chips, or the assistant.setup screen; the message is prefixed with the caller's context and dumps the screen.",
+   "entry": "Called by testFirstOpenPresentsDisclaimer and testNoAPIKeyDoesNotBlockChat.",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AssistantUITests.testFirstOpenPresentsDisclaimer()",
+   "hash": "ce09e65d7ff33ac4",
+   "does": "Opens Flo, asserts the one-time disclosure is shown and accepted on a fresh install (acceptAssistantDisclaimer's result, found by identifier and scrolled to), then asserts an input surface is shown (assertInputSurfaceIsShown).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.navigateToAssistant()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.assertInputSurfaceIsShown(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.assertInputSurfaceIsShown(_:)": "75cf640f1ee9cdd3",
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.navigateToAssistant()": "de82de36eabfe12d",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "0751b626998c0b36",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6"
+   }
+  },
+  {
+   "key": "func AssistantUITests.testPrefabQuestionsRender()",
+   "hash": "ce469601e4b74f58",
+   "does": "Opens Flo, accepts disclosure; returns (passes) if assistant.setup appears; otherwise asserts assistant.prefabChips and a 'How am I doing today' button/text exist.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.navigateToAssistant()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "assistant.setup appears within 6s",
+     "effect": "return with no assertion (test passes)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "On a simulator with no on-device model the test returns before any assertion and reports pass",
+     "evidence": [
+      "EmuquUITests/AssistantUITests.swift:95"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.navigateToAssistant()": "de82de36eabfe12d",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "0751b626998c0b36",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AssistantUITests.testNoAPIKeyDoesNotBlockChat()",
+   "hash": "926ad84667a643f9",
+   "does": "Opens Flo, asserts the disclosure is shown and accepted (acceptAssistantDisclaimer), asserts no alert appears within 2 s (scaled), that an input surface is shown, and that the disclosure's accept button is gone, i.e. nothing blocks the chat.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.navigateToAssistant()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.assertInputSurfaceIsShown(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.assertInputSurfaceIsShown(_:)": "75cf640f1ee9cdd3",
+    "EmuquUITests/AssistantUITests.swift::func AssistantUITests.navigateToAssistant()": "de82de36eabfe12d",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "0751b626998c0b36",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

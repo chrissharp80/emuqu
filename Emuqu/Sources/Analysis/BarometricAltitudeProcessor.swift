@@ -32,8 +32,8 @@ import Foundation
 //   Input:  [(timestamp, relative_altitude_m)] raw barometer samples
 //   Output: (gainMeters, lossMeters)
 //
-//   1. Moving-average smoother with a 15-sample window
-//      (≈ 15 seconds at 1 Hz — matches τ ≈ 8 s complementary-filter
+//   1. Moving-average smoother with a 15-second window, read from the
+//      timestamps (15 samples at 1 Hz — matches τ ≈ 8 s complementary-filter
 //      time constant cited in Barczyk & Nemra 2014, "Sensor Fusion
 //      Method for Tracking Vertical Velocity and Height Based on
 //      Inertial and Barometric Altimeter Measurements", PMC4179067).
@@ -69,10 +69,12 @@ enum BarometricAltitudeProcessor {
     /// Compute gain / loss from a buffer of raw barometric samples.
     /// - Parameters:
     ///   - samples: Time-ordered `(timestamp, relative_altitude_m)` pairs.
-    ///   - smootherWindow: Moving-average window size. Default 15
-    ///     samples ≈ 15 s at the CMAltimeter's 1 Hz rate, matching
-    ///     the ~8 s complementary-filter time constant recommended
-    ///     in the Barczyk & Nemra paper.
+    ///   - smootherWindow: Moving-average window in seconds, read from the
+    ///     samples' timestamps, so the time constant holds at any delivery
+    ///     rate (the CMAltimeter's ~1 Hz, or GPS fixes). Default 15 s,
+    ///     matching the ~8 s complementary-filter time constant recommended
+    ///     in the Barczyk & Nemra paper. Also the minimum sample count: fewer
+    ///     samples than this yield zero gain and loss.
     ///   - sustainedClimbThresholdMeters: How far the altitude has to move
     ///     away from the last extreme before a climb or descent counts. Default
     ///     2.0 m — chosen to be ~15× the σ ≈ 0.13 m std-dev of the
@@ -116,7 +118,7 @@ enum BarometricAltitudeProcessor {
         guard samples.count >= smootherWindow else {
             return Result(gainMeters: 0, lossMeters: 0, smoothedSampleCount: 0)
         }
-        let smoothed = movingAverage(samples.map(\.altitudeMeters), window: smootherWindow)
+        let smoothed = movingAverage(samples, windowSeconds: smootherWindow)
         guard let first = smoothed.first else {
             return Result(gainMeters: 0, lossMeters: 0, smoothedSampleCount: 0)
         }
@@ -186,20 +188,27 @@ enum BarometricAltitudeProcessor {
         }
     }
 
-    /// Symmetric moving-average smoother. Preserves endpoint values
-    /// (rather than zero-padding) so the first and last few samples
-    /// don't collapse toward zero; just clamps the window to what's
-    /// available at the boundary.
-    private static func movingAverage(_ values: [Double], window: Int) -> [Double] {
-        guard values.count >= window, window > 1 else { return values }
-        let half = window / 2
-        var out = [Double](repeating: 0, count: values.count)
-        for i in 0 ..< values.count {
-            let lo = max(0, i - half)
-            let hi = min(values.count - 1, i + half)
-            var sum = 0.0
-            for j in lo ... hi { sum += values[j] }
-            out[i] = sum / Double(hi - lo + 1)
+    /// Symmetric moving-average smoother over time: each sample becomes the
+    /// mean of the samples within ±(windowSeconds / 2) seconds of it (whole
+    /// seconds, so 15 s is ±7 s — 15 samples at 1 Hz). Preserves endpoint
+    /// values (rather than zero-padding) so the first and last few samples
+    /// don't collapse toward zero; the window just holds what's available at
+    /// the boundary. Expects time-ordered samples.
+    private static func movingAverage(
+        _ samples: [(timestamp: Date, altitudeMeters: Double)],
+        windowSeconds: Int
+    ) -> [Double] {
+        let values = samples.map(\.altitudeMeters)
+        guard values.count >= windowSeconds, windowSeconds > 1 else { return values }
+        let times = samples.map(\.timestamp.timeIntervalSinceReferenceDate)
+        let half = TimeInterval(windowSeconds / 2)
+        var out: [Double] = []
+        out.reserveCapacity(values.count)
+        var (lo, hi, sum) = (0, 0, 0.0)
+        for i in values.indices {
+            while hi < values.count, times[hi] <= times[i] + half { (sum, hi) = (sum + values[hi], hi + 1) }
+            while times[lo] < times[i] - half { (sum, lo) = (sum - values[lo], lo + 1) }
+            out.append(sum / Double(hi - lo))
         }
         return out
     }

@@ -42,13 +42,23 @@ enum GPXExporter {
     /// editor sees their preferred units at the top, while any downstream
     /// fitness app continues to parse correctly.
     private static func summaryDesc(session: HRVSession) -> String {
-        let metadata = session.workoutMetadata
         let imperial = UnitsPreferenceStore.current.resolved == .imperial
-        let distLabel = distanceLabel(metadata?.distanceMeters ?? 0, imperial: imperial)
-        let elevLabel = elevationLabel(metadata?.elevationGainMeters ?? 0, imperial: imperial)
-        let durLabel = durationLabel(session.duration ?? 0)
-        let summaryDesc = "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")). Distance \(distLabel), elevation gain \(elevLabel), duration \(durLabel). Machine-readable payload below is metric per GPX 1.1 spec. Point times are spread evenly across the session, so pauses don't appear as stops."
-        return summaryDesc
+        let totals = summaryTotals(session: session, imperial: imperial).map { " \($0)." } ?? ""
+        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Machine-readable payload below is metric per GPX 1.1 spec. Point times are spread evenly across the session, so pauses don't appear as stops."
+    }
+
+    /// "Totals: distance 5.20 km, elevation gain 120 m, duration 28:40" with
+    /// only the totals the session recorded; a missing one is left out rather
+    /// than written as a measured zero. Nil when none was recorded.
+    static func summaryTotals(session: HRVSession, imperial: Bool) -> String? {
+        let metadata = session.workoutMetadata
+        let parts: [String] = [
+            metadata?.distanceMeters.map { "distance " + distanceLabel($0, imperial: imperial) },
+            metadata?.elevationGainMeters.map { "elevation gain " + elevationLabel($0, imperial: imperial) },
+            session.duration.map { "duration " + CoachReportGenerator.formatDuration($0) }
+        ].compactMap { $0 }
+        guard !parts.isEmpty else { return nil }
+        return "Totals: " + parts.joined(separator: ", ")
     }
 
     static func distanceLabel(_ distMeters: Double, imperial: Bool) -> String {
@@ -61,10 +71,6 @@ enum GPXExporter {
         imperial
             ? String(format: "%.0f ft", elevMeters * UnitConstants.feetPerMeter)
             : String(format: "%.0f m", elevMeters)
-    }
-
-    static func durationLabel(_ durationSec: TimeInterval) -> String {
-        String(format: "%d:%02d", Int(durationSec) / 60, Int(durationSec) % 60)
     }
 
     private static func header(sport: String, started: Date, summary summaryDesc: String, iso: ISO8601DateFormatter) -> String {
@@ -146,12 +152,15 @@ enum GPXExporter {
         let coords = decodeCoordinates(String(parts.first ?? ""))
         let altitudes = decodeAltitudes(parts.count > 1 ? String(parts[1]) : "")
         let interval = fixInterval(coordCount: coords.count, duration: duration)
+        // A fix with no stored altitude gets a negative vertical accuracy, the
+        // CoreLocation marker for "altitude invalid", so the GPX writer leaves
+        // out its <ele> instead of writing sea level.
         return coords.enumerated().map { idx, coord in
             CLLocation(
                 coordinate: coord,
                 altitude: idx < altitudes.count ? altitudes[idx] : 0,
                 horizontalAccuracy: 10,
-                verticalAccuracy: 10,
+                verticalAccuracy: idx < altitudes.count ? 10 : -1,
                 timestamp: startDate.addingTimeInterval(Double(idx) * interval)
             )
         }
@@ -201,9 +210,13 @@ enum GPXExporter {
         return result
     }
 
+    /// One varint-encoded value, or nil when a character is not ASCII or the
+    /// string ends before the value's terminating chunk (a truncated value
+    /// is not a real delta).
     private static func decodeValue(_ s: String, _ index: inout String.Index) -> Int? {
         var result = 0
         var shift = 0
+        var terminated = false
         while index < s.endIndex {
             let c = s[index]
             guard let ascii = c.asciiValue else { return nil }
@@ -211,8 +224,9 @@ enum GPXExporter {
             index = s.index(after: index)
             result |= (byte & 0x1f) << shift
             shift += 5
-            if byte < 0x20 { break }
+            if byte < 0x20 { terminated = true; break }
         }
+        guard terminated else { return nil }
         let negative = (result & 1) == 1
         let value = result >> 1
         return negative ? ~value : value

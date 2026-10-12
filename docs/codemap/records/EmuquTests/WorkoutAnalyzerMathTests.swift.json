@@ -1,0 +1,628 @@
+{
+ "file": "EmuquTests/WorkoutAnalyzerMathTests.swift",
+ "hash": "9b2d82484d2ec3a7",
+ "role": "XCTest suite for WorkoutAnalyzer's pure math (distance, elevation gain, Banister/Edwards TRIMP, hrTSS) and WorkoutThreshold's init clamping, evaluate(), plain-text parser, natural-language factory and Codable round-trip.",
+ "types": [
+  "WorkoutAnalyzerMathTests: class — XCTestCase for WorkoutAnalyzer math and WorkoutThreshold"
+ ],
+ "state": [
+  "mem:WorkoutAnalyzerMathTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>, saved NSTimeZone.default)"
+ ],
+ "toplevel": "Static savedDefaultTimeZone lock initialised to nil; class-level setUp/tearDown pin NSTimeZone.default to UTC for the whole class.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutAnalyzerMathTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves the process-global NSTimeZone.default into savedDefaultTimeZone and sets NSTimeZone.default to TestTimeZone.utc.",
+   "entry": "XCTest class-level setUp (once before the class's tests)",
+   "calls": [],
+   "reads": [
+    "mem:NSTimeZone.default"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:WorkoutAnalyzerMathTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores NSTimeZone.default from the saved value and clears the lock.",
+   "entry": "XCTest class-level tearDown (once after the class's tests)",
+   "calls": [],
+   "reads": [
+    "mem:WorkoutAnalyzerMathTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:WorkoutAnalyzerMathTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists",
+     "effect": "true: NSTimeZone.default restored to it; false (setUp never ran): default left as is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testDistanceOfDegenerateTrackIsZero()",
+   "hash": "4bef267421999ba2",
+   "does": "Asserts computeDistance returns 0 for an empty track and for a single fix.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "64701d6eb47a668f",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)": "e3a6623d2968b84d"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testDistanceAccumulatesAcrossSegments()",
+   "hash": "35989624566b00cd",
+   "does": "Asserts two 0.01-degree latitude steps sum to about 2,223 m (±40) via computeDistance with no pauses (WorkoutGeometry.trackLengthMeters path).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "64701d6eb47a668f",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)": "e3a6623d2968b84d"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testElevationGainCountsOnlyUpMoves()",
+   "hash": "4cb7a22a7b0ead9c",
+   "does": "Asserts computeElevationGain sums only upward altitude steps: [100,120,110,150,130] gives 60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)": "afe0809148449b12",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)": "e3a6623d2968b84d"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testElevationOfFlatTrackIsZero()",
+   "hash": "27d70cffa73c1715",
+   "does": "Asserts a constant-altitude 5-fix track has zero elevation gain.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)": "afe0809148449b12",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)": "e3a6623d2968b84d"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testElevationOfDegenerateTrackIsZero()",
+   "hash": "5486fc04abe3cbe4",
+   "does": "Asserts elevation gain is 0 for empty and single-fix tracks.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)": "afe0809148449b12",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)": "e3a6623d2968b84d"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testTrimpRequiresMinimumBeatCount()",
+   "hash": "aba155fa49711b6c",
+   "does": "Asserts computeTRIMP returns nil for 29 beats and non-nil for 30 (the 30-beat guard); with no HRmax/HRrest the 30-beat case runs the Edwards fallback.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testTrimpWithBothAnchorsIsPositiveAndFinite()",
+   "hash": "a8866f8c96a5b75f",
+   "does": "Asserts computeTRIMP with HRmax 190 / HRrest 50 over 600 beats at 500 ms returns a positive finite value (Banister path).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testTrimpRisesWithIntensity()",
+   "hash": "15f845a4c740917b",
+   "does": "Asserts 600 beats at 400 ms (150 bpm) score more TRIMP than 600 beats at 800 ms (75 bpm).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testTrimpRisesWithDuration()",
+   "hash": "ea710985f1323d4e",
+   "does": "Asserts 1200 beats score about 4x (±0.05) the TRIMP of 300 beats at the same 500 ms RR.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testBanisterMaleCoefficientsMatchPublishedFormula()",
+   "hash": "6793d22f48113bd7",
+   "does": "Asserts banisterTRIMP for 3600 one-second beats at HR 120 (HRR 0.5), male, equals 60*0.5*0.64*e^(0.96) within 0.01.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testBanisterFemaleCoefficientsMatchPublishedFormula()",
+   "hash": "3794defc67f96fdd",
+   "does": "Asserts the female Banister coefficients (A=0.86, b=1.67) for the same hour at HRR 0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testBanisterSexCoefficientsDiffer()",
+   "hash": "ce6e519517dc64c7",
+   "does": "Asserts male and female Banister TRIMP differ for 30 min at HR 160.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testTrimpIgnoresZeroLengthBeats()",
+   "hash": "c3ffdcb632dd6ddc",
+   "does": "Builds 200 RR points alternating 500 ms and 0 ms and asserts computeTRIMP (HRmax 190, HRrest 50) returns a finite positive value, i.e. zero RRs are skipped.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index i is even",
+     "effect": "true: rr 500 ms; false: rr 0 ms (the zero-length beats under test)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testHrTSSRequiresHRMaxAndHRRest()",
+   "hash": "860af6c0ff38bf29",
+   "does": "Asserts computeHrTSS returns nil when HRmax or HRrest is nil and non-nil with both plus LTHR 165.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testHrTSSFallsBackToEightyEightPercentOfMaxWhenLTHRAbsent()",
+   "hash": "9ffd664e8acf356c",
+   "does": "Asserts computeHrTSS with LTHR nil equals (±0.5) computeHrTSS with LTHR Int(190*0.88)=167, pinning the 0.88*HRmax fallback.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testHrTSSFallsAsLTHRRises()",
+   "hash": "f13d1a2ed41ff498",
+   "does": "Asserts hrTSS with LTHR 175 is lower than with LTHR 150 for the same session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.beats(count:rrMs:)": "fbecd25bc7450535"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testGreaterThanFiresOnlyAboveValue()",
+   "hash": "bdde702e365cf632",
+   "does": "Asserts a heartRateBPM > 160 threshold evaluates true at 170 and false at 150.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.evaluateHR(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.evaluateHR(_:_:)": "29cd6b329d6e69a1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testLessThanFiresOnlyBelowValue()",
+   "hash": "8358b9326fbe1203",
+   "does": "Asserts a heartRateBPM < 120 threshold evaluates true at 110 and false at 130.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.evaluateHR(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c",
+    "EmuquTests/WorkoutAnalyzerMathTests.swift::func WorkoutAnalyzerMathTests.evaluateHR(_:_:)": "29cd6b329d6e69a1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testMissingObservationIsUnknownNotFalse()",
+   "hash": "49e472e3a5609440",
+   "does": "Asserts a powerWatts threshold returns nil (unknown) when power is nil though HR is present.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testAlpha1LessThanThreshold()",
+   "hash": "fe43c18782ab14a5",
+   "does": "Asserts an alpha1 < 0.75 threshold is breached at alpha1 0.60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testDistanceAndElapsedThresholdsEvaluate()",
+   "hash": "2ca21e37b0686010",
+   "does": "Asserts distance > 5000 m is true at 6000 m and elapsed > 3600 s is false at 1800 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testInitClampsDebounceAndCooldown()",
+   "hash": "71d6984006918b6a",
+   "does": "Asserts WorkoutThreshold.init clamps debounce -5 to 0 and cooldown 1 to 10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testParsesElapsedTimePhrases()",
+   "hash": "8d2c625004f0c3e0",
+   "does": "Asserts parsePlainText turns '30 minutes', '1 hour', '1.5 hr', '90 secs' into elapsedSec thresholds of 1800/3600/5400/90 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each (text, seconds) pair",
+     "effect": "loops 4 phrases; each must parse to elapsedSec with the given value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testParsesDistancePhrases()",
+   "hash": "7783b7b0f7f3a7b7",
+   "does": "Asserts '5 miles' parses to 8046.72 m and '10 km' to 10,000 m distance thresholds.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testMarkerThresholdsAreOneShot()",
+   "hash": "9e2fd2a92a622ed9",
+   "does": "Asserts a parsed '5 miles' marker has debounce 0 and cooldown > 100,000 s (one-shot).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testParserPreservesOriginalTextAsCue()",
+   "hash": "cfa5eb29ec7421fc",
+   "does": "Asserts the parsed threshold's userCue is the original text '30 minutes'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testParserRejectsEmptyAndUnparseableInput()",
+   "hash": "e84a059b18f33224",
+   "does": "Asserts parsePlainText returns nil for empty, whitespace-only and unit-less text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testNaturalLanguageFactoryKeepsText()",
+   "hash": "8d2b10850f744380",
+   "does": "Asserts WorkoutThreshold.naturalLanguage(text:) yields metric .naturalLanguage with the text as both naturalLanguageText and userCue.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)": "c1706081605becc3",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.testEveryMetricRoundTripsThroughCodable()",
+   "hash": "32f2933de7a9b7fd",
+   "does": "For every Metric case, encodes a WorkoutThreshold with JSONEncoder, decodes it and asserts metric, value and full equality survive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each Metric.allCases",
+     "effect": "round-trips every metric; a failing case reports its rawValue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(from:)": "0e915a6fd41cf992",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.fix(lat:lon:alt:)",
+   "hash": "d7b9755f8ced515b",
+   "does": "Fixture: builds a CLLocation at lat/lon/alt with 5 m accuracies and a fixed 2023-11-14 timestamp.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.beats(count:rrMs:)",
+   "hash": "80024ed8c6bea4c6",
+   "does": "Fixture: builds `count` RRPoints of constant rr_ms with t_ms accumulating by rr_ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzerMathTests.evaluateHR(_:_:)",
+   "hash": "95360f9d8afeac84",
+   "does": "Fixture: calls threshold.evaluate with only hrBPM set and all other readings nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15"
+   }
+  }
+ ],
+ "deps": {}
+}

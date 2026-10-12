@@ -1,0 +1,131 @@
+{
+ "file": "Emuqu/Sources/Views/ReadingTagSelector.swift",
+ "hash": "da1eb9c470ed2bbc",
+ "role": "Record-screen strip of system reading-tag chips plus a 'More' button that asks the parent to open the full tag picker.",
+ "types": [
+  "ReadingTagSelector: struct — selected tags + onToggle/onMore callbacks"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ReadingTagSelector.body",
+   "hash": "deccc4876e5be6f6",
+   "does": "'Reading Type' header above the horizontal chip strip in a rounded card.",
+   "entry": "SwiftUI view-body evaluation (RecordView+Sections.swift:80)",
+   "calls": [
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.tagChipStrip",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.tagChipStrip": "4ea55e45786f6c3d"
+   }
+  },
+  {
+   "key": "var ReadingTagSelector.tagChipStrip",
+   "hash": "870f4d625d2a739a",
+   "does": "Horizontal ScrollView around the chip row.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.tagChipRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.tagChipRow": "375020b99ac3ecbe"
+   }
+  },
+  {
+   "key": "var ReadingTagSelector.tagChipRow",
+   "hash": "652a425abdf52cf1",
+   "does": "One chip per stripTags (system tags, then any selected custom tag) then the More button.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.stripTags",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::func ReadingTagSelector.chip(for:)",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::func ReadingTagSelector.chip(for:)": "7b05b8c9406b83d0",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsButton": "aa2c53bbfdbae3dd",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.stripTags": "48f1d9865e6bec83"
+   }
+  },
+  {
+   "key": "var ReadingTagSelector.stripTags",
+   "hash": "17832deb7c28727f",
+   "does": "ReadingTag.systemTags followed by every selected tag whose id is not a system tag's (a custom tag picked under More), sorted by name, so each selection shows as selected in the strip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
+   }
+  },
+  {
+   "key": "func ReadingTagSelector.chip(for:)",
+   "hash": "2f72b71243c90ee7",
+   "does": "TagChip for a tag, selected when in selectedTags, tap calls onToggle(tag).",
+   "entry": "SwiftUI view-body evaluation; chip tap",
+   "calls": [
+    "closure:onToggle (set by RecordView+Sections.swift:80)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReadingTagSelector.moreTagsButton",
+   "hash": "c73194a86869459e",
+   "does": "Button calling onMore with a 44 pt min tap area.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsLabel",
+    "closure:onMore (RecordView opens tag picker sheet)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsLabel": "b38204088079cb3f"
+   }
+  },
+  {
+   "key": "var ReadingTagSelector.moreTagsLabel",
+   "hash": "f6581ce30c8915fe",
+   "does": "'+ More' capsule label.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

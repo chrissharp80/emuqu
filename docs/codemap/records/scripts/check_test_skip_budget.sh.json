@@ -1,0 +1,54 @@
+{
+ "file": "scripts/check_test_skip_budget.sh",
+ "hash": "2ed2f71538a91045",
+ "role": "CI guard (make skip-budget; ci.yml, gates.yml) that the number of XCTSkip/XCTSkipIf/XCTSkipUnless call sites in EmuquTests and EmuquUITests does not exceed .ci/test_skip_budget.txt.",
+ "types": [],
+ "state": [
+  "file:.ci/test_skip_budget.txt (read; 9) or $SKIP_BUDGET_FILE",
+  "file:EmuquTests/**/*.swift, EmuquUITests/**/*.swift (read)",
+  "env:GITHUB_STEP_SUMMARY (append)"
+ ],
+ "toplevel": "set -euo pipefail; no cd (relies on cwd = repo root). TEST_DIRS is assigned from \"$@\" (default one string 'EmuquTests EmuquUITests') and never used: the find is hard-coded to EmuquTests EmuquUITests, so CLI arguments have no effect. read_budget validates the file. Per .swift file, grep -cE counts lines matching `(^|[^/[:alnum:]_])(try +)?(throw +)?XCTSkip(Unless|If)?\\(` (lines where the call is preceded by `/` such as `// XCTSkip(` are excluded, but `/* XCTSkip(` or a call inside a string are counted; two calls on one line count once). Prints count vs budget; if count > budget prints every matching line and exits 1. Appends a summary to GITHUB_STEP_SUMMARY when set. Passing below budget does not report slack.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "TEST_DIRS is built from the script arguments but never read; the scan always uses the hard-coded EmuquTests EmuquUITests, so passing directories silently does nothing.",
+   "evidence": [
+    "scripts/check_test_skip_budget.sh:16",
+    "scripts/check_test_skip_budget.sh:42"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn read_budget",
+   "hash": "28baccbb066c6f93",
+   "does": "Reads the budget file path $1: exits 66 if missing, strips all whitespace, exits 65 unless the result is all digits, prints the integer without newline.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:.ci/test_skip_budget.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "budget file does not exist",
+     "effect": "stderr message, exit 66 (script terminates because called in $( ) under set -e)"
+    },
+    {
+     "at": "+8",
+     "cond": "value is not ^[0-9]+$",
+     "effect": "stderr message, exit 65; otherwise prints the value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_test_skip_budget.sh::fn read_budget": "7dd19adee99bb3e4"
+ }
+}

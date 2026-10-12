@@ -37,6 +37,9 @@ struct OvernightStreamingStatus: View {
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager
     var strapBackup: StrapBackup = .notRequested
+    /// When this segment started streaming (`RRCollector.sessionStartTime`,
+    /// set with the elapsed counter's reset). Elapsed is measured from it.
+    var sessionStartTime: Date?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -113,9 +116,7 @@ struct OvernightStreamingStatus: View {
 
     private var liveStatsRow: some View {
         HStack(spacing: 20) {
-            statColumn(value: formattedElapsed,
-                       label: String(localized: "Elapsed", bundle: LanguageManager.appBundle),
-                       color: AppTheme.primary)
+            elapsedColumn
             statColumn(value: "\(totalBeats)",
                        label: String(localized: "Heartbeats", bundle: LanguageManager.appBundle),
                        color: AppTheme.sage)
@@ -160,23 +161,33 @@ struct OvernightStreamingStatus: View {
         }
     }
 
-    private var formattedElapsed: String {
-        let seconds = streamingLifecycle.streamingElapsedSeconds
+    /// Ticks once a second on its own clock.
+    private var elapsedColumn: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            statColumn(value: formattedElapsed(now: context.date),
+                       label: String(localized: "Elapsed", bundle: LanguageManager.appBundle),
+                       color: AppTheme.primary)
+        }
+    }
+
+    /// Wall clock since the segment started, as MM:SS and then H:MM:SS. The
+    /// 1 Hz tick counter misses every second the app is suspended between
+    /// Bluetooth deliveries, so it serves only when no start time is known.
+    private func formattedElapsed(now: Date) -> String {
+        let seconds = sessionStartTime.map { max(0, Int(now.timeIntervalSince($0))) }
+            ?? streamingLifecycle.streamingElapsedSeconds
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
-        let secs = seconds % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, secs)
-        } else {
-            return String(format: "%02d:%02d", minutes, secs)
-        }
+        guard hours > 0 else { return String(format: "%02d:%02d", minutes, seconds % 60) }
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds % 60)
     }
 }
 
 // MARK: - Device Recording Status (crash recovery / internal recording)
 
 /// Shows recording-in-progress status when the device has an active offline recording.
-/// After a crash, the persisted start time lets us show how long the recording has been running.
+/// When the app started the recording it persisted the start time (also after a
+/// crash), which lets us show how long the recording has been running.
 /// Extracted as a separate View so the per-minute timer only re-evaluates THIS view.
 struct DeviceRecordingStatus: View {
     var deviceStatus: DeviceStatus
@@ -202,7 +213,8 @@ struct DeviceRecordingStatus: View {
         }
     }
 
-    /// Crash recovery: show elapsed time from the persisted start.
+    /// A recording the app started (persisted start time, whether or not the
+    /// app has crashed since): elapsed time and how to retrieve it.
     @ViewBuilder
     private var crashRecoveryGuidance: some View {
         elapsedReadout
@@ -213,7 +225,9 @@ struct DeviceRecordingStatus: View {
             .multilineTextAlignment(.center)
     }
 
-    /// Fresh start: the device is recording, and the user can go to sleep.
+    /// The strap is recording with no app state behind it (started on the
+    /// strap itself, or the persisted state was lost): the device keeps the
+    /// data, so the user can go to sleep and retrieve it later.
     @ViewBuilder
     private var freshStartGuidance: some View {
         Text(String(localized: "Go to sleep. \(deviceStatus.connectedDeviceType?.displayName ?? String(localized: "Device", bundle: LanguageManager.appBundle)) stores data internally — you can close the app.", bundle: LanguageManager.appBundle))
@@ -326,14 +340,17 @@ struct DeviceInfoPanelView: View {
         }
     }
 
-    /// Verity Sense: estimated battery life remaining (~30 hr from full).
+    /// Verity Sense: estimated battery life remaining, the battery percentage
+    /// of the device's spec runtime (`specRecordingHours`). Not shown when the
+    /// percentage is stale: Polar pushes battery only on change, and the
+    /// provenance row then warns instead.
     @ViewBuilder
     private var estimatedBatteryLifeRow: some View {
-        if deviceType == .veritySense, let battery = batteryLevel {
+        if deviceType == .veritySense, !isBatteryReadingStale, let battery = batteryLevel, let spec = specRecordingHours {
             infoRow(
                 label: String(localized: "Est. Battery Life", bundle: LanguageManager.appBundle),
                 value: String(format: String(localized: "~%.0f hours", bundle: LanguageManager.appBundle),
-                              30.0 * Double(battery) / 100.0),
+                              spec * Double(battery) / 100.0),
                 icon: "clock"
             )
         }
@@ -467,21 +484,27 @@ struct DeviceInfoPanelView: View {
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
                 Spacer()
-                // One localized phrase ("5 min ago"), not a time plus an
-                // English " ago" glued on.
-                Text(Self.relativeAgo(lastTime))
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(AppTheme.textPrimary)
+                connectedAgoText(lastTime)
             }
         }
     }
 
-    private static func relativeAgo(_ date: Date) -> String {
+    /// One localized phrase ("5 min ago"), not a time plus an English " ago"
+    /// glued on, re-read every minute rather than frozen at the render.
+    private func connectedAgoText(_ lastTime: Date) -> some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            Text(Self.relativeAgo(lastTime, now: context.date))
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(AppTheme.textPrimary)
+        }
+    }
+
+    private static func relativeAgo(_ date: Date, now: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = LanguageManager.appLocale
         formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
+        return formatter.localizedString(for: date, relativeTo: now)
     }
 
     @MainActor private func infoRow(

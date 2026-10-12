@@ -12,9 +12,11 @@ import Foundation
 /// `hrv.*` / `sleep.*`, which label them by `session_type`.
 ///
 /// Days follow the midpoint rule `hrv.by_date`, `sleep.by_date` and
-/// `recovery.score.by_date` use, so `session.by_date(D)` is the same night
-/// those return for D. Within a day the main recording comes first: a
-/// reliable recording before a partial one, then the longest.
+/// `recovery.score.by_date` use. Within a day the main recording comes
+/// first: a reliable recording before a partial one, then the longest. So
+/// `session.by_date(D)` is the night those return for D whenever D has a
+/// reliable overnight; when it has none, they fall back to a nap or quick
+/// reading (or nothing) while this returns the partial night.
 struct SessionNamespace: FactNamespaceResolver {
     let namespace = "session"
     let archive: SessionArchive
@@ -51,9 +53,10 @@ struct SessionNamespace: FactNamespaceResolver {
         calendar.startOfDay(for: OvernightArchive.midpoint(of: entry))
     }
 
-    /// The newest reliable overnight — the night `hrv.latest` and
-    /// `sleep.latest` report — or the newest overnight of any quality when
-    /// none is reliable.
+    /// The newest reliable overnight, or the newest overnight of any quality
+    /// when none is reliable. `hrv.latest` / `sleep.latest` report the same
+    /// night unless a nap or quick reading is on a newer day (they then
+    /// report that reading), and report nothing when no reading is reliable.
     private func latestEntry() -> SessionArchiveEntry? {
         let entries = overnightEntries()
         return entries.first { $0.isReliableForHRVAggregates } ?? entries.first
@@ -87,8 +90,10 @@ struct SessionNamespace: FactNamespaceResolver {
         .fixed(
             key: "session.latest",
             description: """
-            The latest overnight session as one record — the newest reliable night, the one hrv.latest and sleep.latest report (a partial recording only when no night is reliable). Fields: id, date, end_date, duration_sec, mean_hr_bpm, data_quality, \
-            reliable_for_trends, overnights_that_day, plus nested hrv (rmssd_ms, sdnn_ms, …), recovery (score 0–100, training_readiness, morning_feeling), sleep and vitals records.
+            The latest overnight session as one record — the newest reliable night (a partial recording only when no night is reliable; check reliable_for_trends). Overnights only: when a nap or quick reading is newer, hrv.latest and \
+            sleep.latest report that reading instead. Fields: id, date, end_date, duration_sec, mean_hr_bpm, data_quality, reliable_for_trends, overnights_that_day, plus nested hrv (rmssd_ms, sdnn_ms, …), recovery (score 0–100, \
+            training_readiness, morning_feeling), sleep and vitals records. The nested sleep and vitals are the snapshots saved when the night was accepted; when they say there is no snapshot (night not yet accepted, or synced late), \
+            sleep.latest / vitals.latest read HealthKit live for the latest night.
             """,
             valueType: "Record",
             availability: { self.overnightAvailability() },
@@ -152,14 +157,21 @@ struct SessionNamespace: FactNamespaceResolver {
             pattern: "session.by_date($date)",
             paramExample: "2026-04-21",
             description: """
-            The overnight session filed under a local date (yyyy-MM-dd): the night whose midpoint falls on that day, so '2026-04-21' is the night ending that morning — the same night hrv.by_date and sleep.by_date return. \
-            When overnights_that_day is above 1, the others are reachable through session.by_ordinal.
+            The overnight session filed under a local date (yyyy-MM-dd): the night whose midpoint falls on that day, so '2026-04-21' is the night ending that morning. When that day has a reliable overnight it is the night hrv.by_date \
+            and sleep.by_date return; when it has only a partial recording this returns the partial (reliable_for_trends false) while those return a nap, a quick reading or nothing. When overnights_that_day is above 1, the others are \
+            reachable through session.by_ordinal.
             """,
             availability: { self.overnightAvailability() },
-            resolve: { param, tail in
-                Self.field(of: self.record(for: self.entry(onDate: param)), tail: tail)
-            }
+            resolve: { param, tail in self.resolveByDate(param, tail: tail) }
         )
+    }
+
+    /// A malformed date is the caller's error, not a night without data.
+    private func resolveByDate(_ iso: String, tail: FactKey?) -> FactValue {
+        guard FactLocalDay.formatter().date(from: iso) != nil else {
+            return .missing(reason: .invalidParameter, detail: "expected yyyy-MM-dd, got '\(iso)'")
+        }
+        return Self.field(of: record(for: entry(onDate: iso)), tail: tail)
     }
 
     /// Only an overnight's UUID resolves; any other session type names the
@@ -188,9 +200,11 @@ struct SessionNamespace: FactNamespaceResolver {
 
     // MARK: Overnight record
 
-    /// The night as one record. The nested records are the ones the
-    /// `hrv.*`, `recovery.*`, `sleep.*` and `vitals.*` facts return for this
-    /// same session, so the two routes cannot disagree.
+    /// The night as one record. The nested records are built by the same
+    /// builders `hrv.*`, `recovery.*`, `sleep.by_date` and `vitals.by_date`
+    /// use for this session. Sleep and vitals are the accepted-night
+    /// snapshots: `sleep.latest` and `vitals.latest` also fall back to a live
+    /// HealthKit read when the snapshot is missing, which this does not.
     private func record(for entry: SessionArchiveEntry?) -> FactValue {
         guard let entry, let session = archive.retrieveLightweightOrLog(entry.sessionId) else {
             return .missing(reason: .notRecorded, detail: "no overnight session matched")
@@ -198,7 +212,7 @@ struct SessionNamespace: FactNamespaceResolver {
         let cfg = settings()
         var fields = Self.overnightIdentityFields(session)
         fields["overnights_that_day"] = .integer(overnightsSharingDay(with: entry))
-        fields["hrv"] = HRVNamespace.hrvRecord(for: session)
+        fields["hrv"] = HRVNamespace.hrvRecord(for: session, archive: archive)
         fields["recovery"] = RecoveryNamespace.scoreRecord(for: session)
         fields["sleep"] = SleepNamespace.sleepRecord(for: session, userAge: cfg.age, typicalSleepHours: cfg.typicalSleepHours)
         fields["vitals"] = VitalsNamespace.vitalsRecord(for: session)
@@ -375,11 +389,19 @@ struct WalksNamespace: FactNamespaceResolver {
 
     private static let walkSports: Set<Sport> = [.walk, .hike]
 
-    /// Walk and hike sessions in the period, newest first. The sport lives on
-    /// the session, not the index, so each workout in the period is loaded.
-    private func walksInPeriod(_ period: String) -> [HRVSession] {
-        guard let interval = PeriodParser.interval(for: period) else { return [] }
-        return archive.entries
+    /// Runs `body` on the walks in the period; an unknown period is the
+    /// caller's error, not a period without walks.
+    private func withWalks(in period: String, _ body: ([HRVSession]) -> FactValue) -> FactValue {
+        guard let interval = PeriodParser.interval(for: period) else {
+            return PeriodParser.unknownPeriod(period)
+        }
+        return body(walksInPeriod(interval))
+    }
+
+    /// Walk and hike sessions in the interval, newest first. The sport lives
+    /// on the session, not the index, so each workout in it is loaded.
+    private func walksInPeriod(_ interval: DateInterval) -> [HRVSession] {
+        archive.entries
             .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
@@ -410,7 +432,7 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "Number of walks and hikes in the given period (other sports: workout.count). Period accepts last_7d / last_14d / last_30d / last_90d / all_time.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                .integer(self.walksInPeriod(param).count)
+                self.withWalks(in: param) { .integer($0.count) }
             }
         )
     }
@@ -422,8 +444,10 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "Sum of distance across walks and hikes in the period. Metres.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let total = self.walksInPeriod(param).compactMap(\.workoutMetadata?.distanceMeters).reduce(0, +)
-                return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no distance-bearing walks in period")
+                self.withWalks(in: param) { walks in
+                    let total = walks.compactMap(\.workoutMetadata?.distanceMeters).reduce(0, +)
+                    return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no distance-bearing walks in period")
+                }
             }
         )
     }
@@ -435,8 +459,10 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "Sum of heart-rate TRIMP across walks and hikes in the period. Not the load CTL/ATL use (that one is power-aware and includes HealthKit-only workouts), so don't compare it to the Load page's totals.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let total = self.walksInPeriod(param).compactMap(\.workoutMetadata?.luciaTRIMP).reduce(0, +)
-                return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no TRIMP data on walks in period")
+                self.withWalks(in: param) { walks in
+                    let total = walks.compactMap(\.workoutMetadata?.luciaTRIMP).reduce(0, +)
+                    return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no TRIMP data on walks in period")
+                }
             }
         )
     }
@@ -448,13 +474,16 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "Walk or hike with the highest heart-rate TRIMP in the period, as a full session record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let sessions = self.walksInPeriod(param)
-                guard let hardest = sessions.max(by: { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }) else {
-                    return .missing(reason: .notRecorded, detail: "no walks in period")
-                }
-                return SessionNamespace.fullRecord(for: hardest)
+                self.withWalks(in: param) { Self.hardest(of: $0) }
             }
         )
+    }
+
+    private static func hardest(of walks: [HRVSession]) -> FactValue {
+        guard let hardest = walks.max(by: { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }) else {
+            return .missing(reason: .notRecorded, detail: "no walks in period")
+        }
+        return SessionNamespace.fullRecord(for: hardest)
     }
 
     private var walksListPeriodEntry: FactEntry {
@@ -464,9 +493,13 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "List of walks and hikes in the period (every sport: workout.list). Each item is a session summary record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                .list(self.walksInPeriod(param).map { SessionNamespace.fullRecord(for: $0) })
+                self.withWalks(in: param) { Self.walkList(of: $0) }
             }
         )
+    }
+
+    private static func walkList(of walks: [HRVSession]) -> FactValue {
+        .list(walks.map { SessionNamespace.fullRecord(for: $0) })
     }
 }
 // MARK: - training.load.* namespace
@@ -476,25 +509,10 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     let archive: SessionArchive
     let settings: @Sendable () -> UserSettings
 
-    /// Live-first, cache-fallback. Reads the shared metrics cache (same
-    /// source the dashboard uses) so the AI and the UI can never disagree.
-    ///
-    /// Reads `dailySeries[today]` instead of
-    /// `snapshot()`. The dashboard's Load & Trajectory page renders the
-    /// last entry of `dailySeries` as "current", but `snapshot()` returns
-    /// `cache.current` — a separately-computed value via
-    /// `calculateTrainingMetrics(...)` that can disagree by a meaningful
-    /// margin (real user case: dashboard 44.2/28.7/-15.5, AI quoted
-    /// 58/29/-29 from `snapshot()`). Reading the daily-series entry
-    /// guarantees the AI and the dashboard pull from the same row of
-    /// the same EWMA replay.
-    ///
-    /// Falls back to `snapshot()` if the daily series hasn't populated
-    /// yet (cold cache), then to the latest session's `trainingSnapshot`
-    /// if even that's nil. The fallbacks may be slightly off from the
-    /// dashboard during the brief window between launch and the first
-    /// dailySeries build, but never return `.notRecorded` when we
-    /// clearly have data.
+    /// The live load the Dashboard shows, from `TrainingLoadRegistry.live()`:
+    /// the metrics cache's `snapshot()` (`cache.current`) first, and the
+    /// daily-series sample for today only when that is missing (cold cache).
+    /// Nil when neither exists; there is no per-session fallback.
     func liveOrCached() -> TrainingLoadState? {
         // Route through `TrainingLoadRegistry.live()`.
         // The registry is the single source of truth for any "live"
@@ -585,7 +603,8 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: """
             Where the user's fitness is HEADED — the Load & Trajectory verdict the app's dedicated screen shows. trajectory: building / maintaining / detraining / highStrain / rapidIncrease / peaking / comeback / overreach / buildingBaseline \
             (trajectory_label is the human phrasing). Plus ramp_band + ramp_rate_ctl_per_week (weekly CTL slope), form_descriptor / form_word (Fresh / Held / Working / Tired / VeryTired, from TSB), monotony + strain (Foster — high monotony \
-            = little day-to-day variation in load; describe it as that, not as a risk), and current ctl/atl/tsb. Use for 'am I building or detraining?', 'what's my form?', 'is my training too monotonous?'.
+            = little day-to-day variation in load; describe it as that, not as a risk), current ctl/atl/tsb (live), and verdict_as_of — the day the verdict is anchored on, which is the last stored day (not today) until the \
+            daily series refreshes. Use for 'am I building or detraining?', 'what's my form?', 'is my training too monotonous?'.
             """,
             valueType: "Record",
             availability: { self.historicalAvailability() },
@@ -640,7 +659,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             pattern: "training.load.by_date($date)",
             paramExample: "2026-03-15",
             description: """
-                Training load (atl, ctl, tsb, acwr, and that day's training load in the `trimp` field — the power-aware load CTL/ATL use) AS OF a specific local date. Returns the values the dashboard would have shown on that date. Horizon: last \
+                Training load (atl, ctl, tsb, acwr, and that day's training load in the `trimp_that_day` field — the power-aware load CTL/ATL use) AS OF a specific local date. Returns the values the dashboard would have shown on that date. Horizon: last \
                 ~400 days (year-over-year queries supported).
                 """,
             availability: { self.historicalAvailability() },
@@ -661,7 +680,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             pattern: "training.load.recent($period)",
             paramExample: "last_30d",
             description: """
-            Daily training-load series over a recent period. Each item is a record with date, atl, ctl, tsb, acwr, and that day's training load in the `trimp` field (the power-aware load CTL/ATL use). Most recent first. Periods: last_7d / \
+            Daily training-load series over a recent period. Each item is a record with date, atl, ctl, tsb, acwr, and that day's training load in the `trimp_that_day` field (the power-aware load CTL/ATL use). Most recent first. Periods: last_7d / \
             last_14d / last_30d / last_90d / last_180d / last_365d / all_time. \
             Use for 'how has my CTL trended?' / 'was I fitter last month?' / 'year-over-year?'.
             """,
@@ -799,11 +818,25 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
 struct HeatAcclimationNamespace: FactNamespaceResolver {
     let namespace = "heat"
 
-    /// Await a readout, bounded — the compute does one weather fetch.
-    func readout() async -> HeatAcclimationCache.Readout? {
+    /// A finished compute: its readout, nil when there is nothing to score.
+    private struct Computed {
+        let readout: HeatAcclimationCache.Readout?
+    }
+
+    /// Answer for a compute still running at the 8 s cap; retryable.
+    private static let stillComputing = FactValue.missing(
+        reason: .notYetComputed,
+        detail: "heat acclimatization is still being computed — ask again in a few seconds"
+    )
+
+    /// Await a readout, bounded at 8 s: the compute decodes every outdoor
+    /// workout in the replay window and reads HealthKit workouts, using the
+    /// weather recorded with each (no network). Nil when it did not finish
+    /// in time.
+    private func readout() async -> Computed? {
         await FactResolveTimeout.withTimeout(seconds: 8) {
-            await AppDependencies.current.analysis.heatAcclimationCache.currentAwaitingRefresh()
-        } ?? nil
+            Computed(readout: await AppDependencies.current.analysis.heatAcclimationCache.currentAwaitingRefresh())
+        }
     }
 
     var entries: [FactEntry] {
@@ -822,7 +855,8 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
             """,
             valueType: "Double"
         ) {
-            guard let r = await self.readout() else {
+            guard let computed = await self.readout() else { return Self.stillComputing }
+            guard let r = computed.readout else {
                 return self.missing(otherwise: "no outdoor workouts with weather yet — heat tracking builds from logged hot sessions")
             }
             return .double(r.level)
@@ -841,7 +875,8 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
     }
 
     @MainActor private func resolveHeatAcclimationSummary() async -> FactValue {
-        guard let r = await self.readout() else {
+        guard let computed = await self.readout() else { return Self.stillComputing }
+        guard let r = computed.readout else {
             return missing(otherwise: "no outdoor workouts with weather yet")
         }
         var rec: [String: FactValue] = [

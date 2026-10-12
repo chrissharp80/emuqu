@@ -1,0 +1,182 @@
+{
+ "file": "EmuquTests/TabScreenSnapshotTests.swift",
+ "hash": "e1a3e876050be773",
+ "role": "@MainActor snapshot suite rendering the five tab-level screens (Settings, Trends, Import Data, Fitness tab, Record tab) inside a NavigationStack with every environment object supplied, compared against committed raw references in EmuquTests/__Snapshots__.",
+ "types": [
+  "TabScreenSnapshotTests: class — @MainActor XCTestCase snapshot suite for tab screens"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Shares state with the app host: setUp's useDefaultSettings assigns SettingsManager.shared.settings = UserSettings(), whose didSet save()s to the host's real settings file and posts flowRecoverySettingsChanged (SettingsManager.swift:20-39); the teardown block writes the saved settings back, so a crash mid-test leaves the host on default settings, and the views also read the shared LanguageManager/CloudKitSyncManager/StoreKitManager/VoiceConversationController singletons.",
+   "evidence": [
+    "EmuquTests/TabScreenSnapshotTests.swift:23",
+    "EmuquTests/SnapshotFixtures.swift:184",
+    "Emuqu/Sources/Models/SettingsManager.swift:34",
+    "EmuquTests/TabScreenSnapshotTests.swift:32"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "A private hosted(_:) environment-injecting wrapper is re-declared in 11 snapshot suites.",
+   "evidence": [
+    "EmuquTests/TabScreenSnapshotTests.swift:29",
+    "EmuquTests/CardSnapshotTests.swift:13",
+    "EmuquTests/StateSnapshotTests.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TabScreenSnapshotTests.setUp()",
+   "hash": "9b9cc9e3152046aa",
+   "does": "setUp: calls super.setUp then useDefaultSettings (fresh-install SettingsManager.shared.settings, restored by a teardown block).",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.shared.settings",
+    "file:settings (SettingsManager save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()": "757ca3e9f00039f6"
+   }
+  },
+  {
+   "key": "func TabScreenSnapshotTests.hosted(_:)",
+   "hash": "40b2863a4edf2967",
+   "does": "Test helper: wraps a view in NavigationStack and injects a fresh SnapshotFixtures.collector() (empty temp archive), SettingsManager/LanguageManager/CloudKitSyncManager/VoiceConversationController/StoreKitManager singletons, and fresh ArchiveSignal, MorningCoordination, DeviceStatus, StreamingLifecycle and SessionState.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:LanguageManager.shared",
+    "mem:CloudKitSyncManager.shared",
+    "mem:StoreKitManager.shared",
+    "mem:VoiceConversationController.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6"
+   }
+  },
+  {
+   "key": "func TabScreenSnapshotTests.testSettingsRenders()",
+   "hash": "13d15d69e38609dc",
+   "does": "Asserts SettingsView renders identically to reference 'tab-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.body": "68684f39c76f846f",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)": "e8cf4846305064f1"
+   }
+  },
+  {
+   "key": "func TabScreenSnapshotTests.testTrendsRenders()",
+   "hash": "40bc05ebb7d8ca2b",
+   "does": "Asserts TrendsV2View renders identically to reference 'tab-trends'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.body": "f094d4b468e91dc6",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)": "e8cf4846305064f1"
+   }
+  },
+  {
+   "key": "func TabScreenSnapshotTests.testImportDataRenders()",
+   "hash": "16de457e7805af1e",
+   "does": "Asserts ImportDataView renders identically to reference 'screen-import-data'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5996792ab39be46d",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)": "e8cf4846305064f1"
+   }
+  },
+  {
+   "key": "func TabScreenSnapshotTests.testFitnessTabRenders()",
+   "hash": "d0312eeb4876d334",
+   "does": "Asserts FitnessTabView renders identically to reference 'tab-fitness'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.body": "1a41ee1a092aeca4",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)": "e8cf4846305064f1"
+   }
+  },
+  {
+   "key": "func TabScreenSnapshotTests.testRecordTabRenders()",
+   "hash": "86235d7902214c83",
+   "does": "Asserts RecordView(selectedTab: .record) renders identically to reference 'tab-record'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.body": "03ea1d72472c3de9",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/TabScreenSnapshotTests.swift::func TabScreenSnapshotTests.hosted(_:)": "e8cf4846305064f1"
+   }
+  }
+ ],
+ "deps": {}
+}

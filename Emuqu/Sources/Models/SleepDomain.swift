@@ -76,7 +76,7 @@ enum SleepStage: String, Codable {
 enum SleepStageProvenance: String, Codable {
     case watch // Apple Watch stage sample
     case iphone // InBed sample from phone accelerometer
-    case hrvDerived // inferred by SleepMergingPipeline from HR
+    case hrvDerived // repainted from the RR series by HRVSleepStageClassifier
     case userAdded // user-declared sleep (new segment)
     case userCarved // user-declared awake inside a sleep segment
     case userAdjusted // boundary pulled by the user
@@ -110,15 +110,18 @@ struct SleepStageInterval: Identifiable, Codable, Equatable {
 
     /// Explicit Codable init so archives missing the `provenance` field
     /// decode with `.watch` rather than failing. Preserves the existing
-    /// contract for pre-provenance archives and CloudKit records.
+    /// contract for pre-provenance archives and CloudKit records. A stage or
+    /// provenance a newer build added reads as `.unspecified` / `.watch`
+    /// instead of failing the whole night (and the session holding it), as
+    /// `SleepEditRecord.Kind` does with `.unknown`.
     private enum CodingKeys: String, CodingKey { case id, stage, start, end, provenance }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
-        stage = try c.decode(SleepStage.self, forKey: .stage)
+        stage = try c.decodeKnown(SleepStage.self, forKey: .stage, unknown: .unspecified)
         start = try c.decode(Date.self, forKey: .start)
         end = try c.decode(Date.self, forKey: .end)
-        provenance = try c.decodeIfPresent(SleepStageProvenance.self, forKey: .provenance) ?? .watch
+        provenance = try c.decodeKnownIfPresent(SleepStageProvenance.self, forKey: .provenance, unknown: .watch) ?? .watch
     }
 }

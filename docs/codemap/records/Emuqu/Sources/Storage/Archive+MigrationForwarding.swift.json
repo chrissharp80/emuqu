@@ -1,0 +1,127 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift",
+ "hash": "be2256fae6c19266",
+ "role": "Forwarders from SessionArchive to ArchiveMigrations (built per access) and its pure static helpers.",
+ "types": [
+  "SessionArchive: extension — migrations accessor and forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SessionArchive.migrations",
+   "hash": "a58508bbf5aa55a9",
+   "does": "Builds a new ArchiveMigrations(archive: self) value on every access (no state).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchive.runDeferredMigrations()",
+   "hash": "2b7bcc33de011d96",
+   "does": "Forwards to ArchiveMigrations.runDeferredMigrations. Called from AppLaunchTasks housekeeping (AppLaunchTasks.swift:432) and after every CloudKit pull (CloudKitSyncManager+Pull.swift:139, detached).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::var SessionArchive.migrations",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::var SessionArchive.migrations": "8fbbd31fd70aeb5e",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f"
+   }
+  },
+  {
+   "key": "func SessionArchive.relinkSameNightSessions()",
+   "hash": "d8f3bacb72d8e4fa",
+   "does": "Forwards to ArchiveMigrations.relinkSameNightSessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::var SessionArchive.migrations",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests call it (EmuquTests/ArchiveSameNightMergeTests.swift:108).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift:16",
+      "EmuquTests/ArchiveSameNightMergeTests.swift:108"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::var SessionArchive.migrations": "8fbbd31fd70aeb5e",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "7dd5112bc4d61533"
+   }
+  },
+  {
+   "key": "func SessionArchive.linkedSessionIdSet(in:)",
+   "hash": "022bba76a10bd5c1",
+   "does": "Forwards to ArchiveMigrations.linkedSessionIdSet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests call it (EmuquTests/ArchivePolicyTests.swift:86).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift:19",
+      "EmuquTests/ArchivePolicyTests.swift:86"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)": "554721c550c49305"
+   }
+  },
+  {
+   "key": "func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+   "hash": "b97eeaea5c3b9228",
+   "does": "Forwards to ArchiveMigrations.duplicatesToQuarantine.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests call it (EmuquTests/ArchivePolicyTests.swift:84).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift:23",
+      "EmuquTests/ArchivePolicyTests.swift:84"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25"
+   }
+  }
+ ],
+ "deps": {}
+}

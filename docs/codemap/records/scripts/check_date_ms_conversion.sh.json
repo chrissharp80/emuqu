@@ -1,0 +1,13 @@
+{
+ "file": "scripts/check_date_ms_conversion.sh",
+ "hash": "4f72d7cf7a965364",
+ "role": "CI gate: forbids `Int64(x.timeIntervalSince(y) * 1000)` in Emuqu/Sources (except Date() receivers, MillisecondOffset.swift, or `date-ms-ok:` lines) in favour of MillisecondOffset.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. Python scans Emuqu/Sources and 'EmuquWatch Watch App' (MillisecondOffset.swift excluded); no files scanned -> exit 2. Per file: `//` comments blanked line by line, then the regex `Int64( <receiver>.timeIntervalSince(<arg>) * 1000|1_000` (receiver may start with `$`, so closure arguments like `$0.` match; whitespace may span lines) is run over the whole file; receivers starting `Date()` and lines containing `date-ms-ok:` exempt. Problems -> list + exit 1; else 'clean'. Wired: gates.yml (make date-ms-guard), ci.yml, Makefile. Currently red on 7 live `$0.` conversions in SleepBoundaryResolver.swift, ReanalysisService+Sleep.swift and OvernightChartsView+Stats.swift (handoffs).",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

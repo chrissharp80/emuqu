@@ -101,9 +101,9 @@ In order:
 1. `refreshPreFlightMetrics()`.
 2. `assembleContextAndTools` — Apple gets a `compactRender()` data block; other providers get none and use tools. `truncateForSend` trims history to the provider budget (§12); newly dropped turns are summarized. `factRegistryAndTools()` builds the registry and tool list, `ToolRetriever.retrieve` keeps the most relevant tools for this message (BM25, `targetK: 40`), and `trimTools` applies `maxToolSchemaCount`.
 3. `composeSystemPromptForTurn` → `AssistantSystemPrompt.compose(...)` (§7).
-4. `runStreamWithErrorPolicy` runs the tool loop. Cancellation is swallowed; an Apple guardrail refusal is shown as is and never sent to another provider; a fallbackable provider error (auth, rate limit, network, model unavailable) walks `orderedFallbackProviders`.
-5. Drops the assistant turn if it ended empty, then `finishStream(generation:)`.
-6. If this is still the current generation: clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled`).
+4. `runStreamWithErrorPolicy` runs the tool loop. Cancellation is swallowed; an Apple guardrail refusal is shown as is and never sent to another provider; a fallbackable provider error (auth, rate limit, network, model unavailable) goes to `handleFallbackableFailure`, which cuts `orderedFallbackProviders` to what `TurnRouter.failureFallback` allows (§8.3). With nothing allowed, the turn fails with `PickedModelFailure` (which model failed and why); when every allowed fallback also fails, the original error is shown.
+5. Drops the assistant turn if it ended empty; if this is still the current generation, clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled`).
+6. `finishStream(generation:)`, which dispatches a message queued during the stream.
 
 ### 3.4 `runToolUseLoop` — `AssistantViewModel+Tools.swift`
 
@@ -176,7 +176,7 @@ An extension adds a four-argument `send` with no tools, used by the summarizer a
 | Grok | `GrokProvider.swift` | `OpenAICompatibleStreamer` | `maxToolSchemaCount` is 110. |
 | DeepSeek | `DeepSeekProvider.swift` | `OpenAICompatibleStreamer` | Sends `thinking: {"type": "disabled"}`: a thinking turn with tools must have its `reasoning_content` passed back, which tool rounds do not carry. Reports `prompt_cache_hit_tokens`. |
 
-Each provider's `static let models` is its whole catalog; `ProviderModelCatalogTests` pins every shipped ID to the set last checked against the vendor's docs. Anthropic, Gemini and `OpenAICompatibleStreamer` build their streams with `ProviderStream.make`, which maps a cancelled task or URL load to `AIProviderError.cancelled` and any other `URLError` to `.network`, so an offline turn falls back the same way whichever model was asked.
+Each provider's `static let models` is its whole catalog; `ProviderModelCatalogTests` pins every shipped ID to the set last checked against the vendor's docs. Anthropic, Gemini and `OpenAICompatibleStreamer` build their streams with `ProviderStream.make`, which maps a cancelled task or URL load to `AIProviderError.cancelled` and any other `URLError` to `.network`, so an offline turn fails the same way whichever model was asked; whether another model may then answer is up to `TurnRouter.failureFallback` (§8.3).
 
 `ProviderRegistry` holds the providers and the user's selection. Keys are in the Keychain via `Emuqu/Sources/Assistant/Keys/APIKeyStore.swift`; nothing is bundled.
 
@@ -215,7 +215,7 @@ Numeric tool arguments are parsed only through `FactNumericArgument` (`AppFactRe
 
 The catalog has hundreds of entries. `CompactToolRouter.schema(registry:)` shows the model 21 polymorphic read tools (`get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_workout`, `get_workout_live`, `get_training_load`, `lookup_fact`, and others) plus the actions named in `allowedActionNames`: route-library rename/save/engage, contacts add/remove, email compose, memory add/remove/clear, `web_search`, location and directions actions.
 
-A read tool maps its arguments to a fact key; for example `get_recovery` with `which: "trend"` resolves `recovery.trend`. `lookup_fact` takes a key directly. Read results pass through the registry's rate limit, size cap and time budget (`gatedReadResult`). `schema` dedupes by name, because Anthropic rejects duplicate tool names with a 400. `capabilityIndex()` renders a one-line-per-tool list for the cached system prompt.
+A read tool maps its arguments to a fact key; for example `get_recovery` with `which: "trend"` resolves `recovery.trend`. `lookup_fact` takes a key directly. Read results pass through the registry's rate limit and size cap (`gatedReadResult`); a slow read is logged, never discarded. `resolveTool` refuses an action name outside `allowedActionNames` (`.missing(.invalidParameter)`), so the schema's allow-list is also the dispatch allow-list. `schema` dedupes by name, because Anthropic rejects duplicate tool names with a 400. `capabilityIndex()` renders a one-line-per-tool list for the cached system prompt.
 
 ### 6.4 Registry and namespaces
 
@@ -227,7 +227,7 @@ A read tool maps its arguments to a fact key; for example `get_recovery` with `w
 
 Resolvers run on the main actor, and iOS kills a foreground app whose main thread is unresponsive for about 10 s. The registry times every call:
 
-- Over `defaultResolveBudgetSec` (2 s): a warning; a read result is replaced with `.missing(.internalError)`.
+- Over `resolveWarnBudgetSec` (0.5 s): a warning. Over `defaultResolveBudgetSec` (2 s): a louder warning. The value is kept either way: a read that finishes late (a live HealthKit or network wait) still reaches the model.
 - Over `watchdogWarnSec` (4 s) on an action: a `WATCHDOG-WARN` warning.
 
 Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(seconds:_:)`.
@@ -287,7 +287,8 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 - **Voice bypass:** voice turns skip tier classification. They go to the user's selected provider if it isn't Apple; if Apple is selected (and the mode isn't Manual), to the first available consented cloud provider in registry order, else Apple.
 - **Action intent:** if the message needs a tool and the tier's provider can't call action tools (`providerSupportsTools` is false for Apple), the turn goes to the first available consented cloud provider.
 - **Daily Tier 3 cap:** `recordTier3UsageAndCheck()` allows 50 deep turns per day, then downgrades to `.auto`.
-- **Apple guardrail:** a refusal from Apple's safety filter is shown to the user and not retried elsewhere (Foundation Models acceptable-use terms). A context overflow is retried once on-device with a trimmed context; other non-safety failures go to the fallback chain.
+- **Apple guardrail:** a refusal from Apple's safety filter is shown to the user and not retried elsewhere (Foundation Models acceptable-use terms). A context overflow is retried once on-device with a trimmed context; other non-safety failures go to the fallback chain as far as `TurnRouter.failureFallback` allows.
+- **Failure fallback:** when the turn's model fails with a fallbackable error (no key, no credit, rate limit, network, model unavailable), `TurnRouter.failureFallback(mode:selectedProviderID:)` decides who may step in. With a cloud model selected, or in Manual, nobody: the error is shown as `PickedModelFailure` and the turn is not handed to another model. With Apple selected, Quick allows only Apple (the turn stays on this iPhone) and Auto / Deep allow any accepted model in `orderedFallbackProviders` order (other clouds first, Apple last).
 
 ---
 

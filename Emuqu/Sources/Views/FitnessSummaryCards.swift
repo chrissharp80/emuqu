@@ -8,10 +8,12 @@ import SwiftUI
 /// the same way as [MorningDetailCards], [MorningReanalysisControls],
 /// [RecoveryScoreCharts] and [FitnessStrapSection].
 ///
-/// Wide initialiser, honestly: these surfaces drive fourteen pieces of view
-/// state between them — three export URLs, the recap image and its share
-/// sheet, the route-save sheet, and three in-flight flags. Every one travels
-/// back through a binding rather than being duplicated here.
+/// Wide initialiser, honestly: these surfaces drive two dozen pieces of view
+/// state between them — the refreshed session, the export URLs and their
+/// readiness, the recap image and its share sheet, the route-save sheet and
+/// route history, reanalysis and elevation re-smoothing, and the PDF report's
+/// file, sheets and errors. Every one travels back through a binding rather
+/// than being duplicated here.
 ///
 /// Deliberately NOT a `View`. It returns the same view trees from the same
 /// positions, so SwiftUI identity, animation and `@State` behaviour are
@@ -50,4 +52,19 @@ struct FitnessSummaryCards {
     @Binding var pdfSharePresented: Bool
     @Binding var pdfMailPresented: Bool
     @Binding var pdfMailError: String?
+    @Binding var reportShare: ReportShareState
+
+    /// Share state for the PDF report and recap card beyond the cached PDF.
+    struct ReportShareState {
+        /// The file the open PDF share sheet or mail composer shows. Kept
+        /// apart from the cache (`pdfURL`), which an archive refresh clears
+        /// while a sheet may be up.
+        var presentedURL: URL?
+        /// Bumped whenever the cached exports are invalidated; a PDF render
+        /// that started under an older value is not cached.
+        var cacheGeneration = 0
+        /// A failed PDF or recap-card render, shown in its own alert so an
+        /// export-file rebuild (which rewrites `exportError`) cannot erase it.
+        var error: String?
+    }
 }

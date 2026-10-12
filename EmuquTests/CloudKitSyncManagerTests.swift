@@ -166,17 +166,22 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
     // MARK: - Error Message Formatting Tests
 
+    /// `cloudKitErrorMessage` maps the CloudKit codes a user can act on to
+    /// plain sentences and passes anything else through as its description.
     func testCloudKitErrorMessages() {
-        // Test the error message formatting by creating CKErrors
-        // CKError requires specific initialization, so we test the pattern via the public API
-
-        // Generic errors should return localizedDescription
+        let manager = CloudKitSyncManager.shared
         let genericError = NSError(domain: "test", code: 0, userInfo: [NSLocalizedDescriptionKey: "Test error"])
-        // The cloudKitErrorMessage method is private, but we can verify the behavior
-        // through the syncState when errors occur
+        XCTAssertEqual(manager.cloudKitErrorMessage(genericError), "Test error", "A non-CloudKit error keeps its own description")
 
-        // Verify the error message pattern holds
-        XCTAssertEqual(genericError.localizedDescription, "Test error")
+        XCTAssertEqual(manager.cloudKitErrorMessage(CKError(.networkFailure)), CloudSyncMessages.noInternet)
+        XCTAssertEqual(manager.cloudKitErrorMessage(CKError(.networkUnavailable)), CloudSyncMessages.noInternet)
+        XCTAssertEqual(manager.cloudKitErrorMessage(CKError(.quotaExceeded)), CloudSyncMessages.storageFull)
+        XCTAssertEqual(manager.cloudKitErrorMessage(CKError(.notAuthenticated)), CloudSyncMessages.notSignedIn)
+        let limited = CKError(.requestRateLimited, userInfo: [CKErrorRetryAfterKey: 30.0])
+        XCTAssertEqual(manager.cloudKitErrorMessage(limited), CloudSyncMessages.rateLimited(retryAfter: 30))
+
+        let other = ckError(.serverRejectedRequest, message: "Rejected")
+        XCTAssertEqual(manager.cloudKitErrorMessage(other), other.localizedDescription, "Other CloudKit codes keep their description")
     }
 
     // MARK: - Data Compression Integration

@@ -60,13 +60,14 @@ extension MainTabView {
     }
 
     /// One trailing reload at the end of the 50 ms window; further requests in
-    /// the window ride on it.
+    /// the window ride on it. Tracked by its own flag, so it never clears (or
+    /// is blocked by) the in-flight load's trailing-reload request.
     func scheduleDebouncedDashboardReload() {
-        guard !dashboardReloadPending else { return }
-        dashboardReloadPending = true
+        guard !dashboardReloadDebounceScheduled else { return }
+        dashboardReloadDebounceScheduled = true
         Task {
             await sleepQuietly(50_000_000, context: "dashboard reload debounce")
-            dashboardReloadPending = false
+            dashboardReloadDebounceScheduled = false
             reloadDashboardSessions()
         }
     }
@@ -196,26 +197,6 @@ extension MainTabView {
         dependencies.assistant.assistantInbox.requestOpen()
     }
 
-    func deleteSession(_ session: HRVSession) {
-        do {
-            try collector.archive.delete(session.id)
-            collector.notifyArchiveChanged()
-            // Sync deletion to iCloud
-            Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(session.id) }
-        } catch {
-            debugLog("Failed to delete session: \(error)")
-        }
-    }
-
-    func updateTags(session: HRVSession, tags: [ReadingTag], notes: String?) {
-        do {
-            try collector.archive.updateTags(session.id, tags: tags, notes: notes)
-            collector.notifyArchiveChanged()
-        } catch {
-            debugLog("Failed to update tags: \(error)")
-        }
-    }
-
     func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
         // ReanalysisService calls `onArchiveChanged` which bumps
         // `RRCollector.archiveVersion`. Dashboard, TrendView, and the
@@ -266,11 +247,11 @@ extension MainTabView {
         guard preparingReportKind == nil else { return }
         preparingReportKind = kind
         reportPrepError = nil
-        let inputs = sendReportInputs()
+        let inputs = sendReportInputs(for: kind)
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,
-                inputs: Self.withFullSessions(inputs),
+                inputs: Self.withFullSessions(inputs, kind: kind),
                 liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed()
             )
             await MainActor.run { finishReportPreparation(outcome) }
@@ -294,20 +275,35 @@ extension MainTabView {
         var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
-    func sendReportInputs() -> SendReportInputs {
+    /// The baseline is the one the reported night was scored against
+    /// (`reportBaselineStats`): the daily report's overnight for `.daily`,
+    /// otherwise the recovery night.
+    func sendReportInputs(for kind: SendReportKind) -> SendReportInputs {
         let settings = dependencies.app.settingsManager.settings
+        let recovery = mostRecentOvernight
+        let pair = mostRecentDailyPair()
         return SendReportInputs(
-            recovery: mostRecentOvernight,
+            recovery: recovery,
             workout: mostRecentWorkout,
-            pair: mostRecentDailyPair(),
+            pair: pair,
             recentOvernight: sessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates },
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
+            baselineStats: reportBaselineStats(night: kind == .daily ? pair?.overnight : recovery, settings: settings),
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
             units: UnitsPreferenceStore.current.resolved,
             temperatureUnit: settings.temperatureUnit
         )
+    }
+
+    /// The baseline as it stood for the reported night: the nights before it
+    /// (`recoveryBaselineStats(excludingNightOf:)`), not every stored night,
+    /// the reported and later ones included. With no night, the current
+    /// baseline.
+    private func reportBaselineStats(night: HRVSession?, settings: UserSettings) -> BaselineTracker.RecoveryBaselineStats? {
+        let tracker = collector.baselineTracker
+        guard let night else { return tracker.recoveryBaselineStats }
+        return tracker.recoveryBaselineStats(excludingNightOf: night, sleepSchedule: settings.sleepSchedule)
     }
 
     @MainActor

@@ -1,0 +1,312 @@
+{
+ "file": "EmuquTests/SessionDiscardTests.swift",
+ "hash": "3ca041dcbfe5557a",
+ "role": "Tests 'Discard' on the morning review card: RRCollector.rejectSession must move exactly the night saved for review to Trash with a tombstone, leave every other night (and nights archived before review) alone, and not reach a night after it was kept.",
+ "types": [
+  "SessionDiscardTests: class (@MainActor) — XCTestCase for RRCollector.rejectSession discard behaviour"
+ ],
+ "state": [
+  "file:<tmp>/SessionDiscardTests-<uuid>/ (lazy per-test SessionArchive directory)",
+  "mem:SessionDiscardTests.archive (lazy SessionArchive)",
+  "ud:UserDefaultsKeys.persistedRecordingState and 'RRCollector.dismissedInterruptedSessionIds' (cleared for each test by isolateFromHostRecordingState, host values restored in teardown)"
+ ],
+ "toplevel": "Lazy vars create a unique temp directory and a SessionArchive rooted there per test instance.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Still shares one service with the app host: discardReviewArchivedSession uploads a deletion for the test's session id through collector.cloudSyncManager, which can only be the host's CloudKitSyncManager.shared (private init; RRCollector.swift:724, RRCollector+MorningProcessing.swift:196), so on a host with iCloud sync on, Discard tests send CloudKit deletions for test UUIDs. The persisted recording state is now saved and restored (isolateFromHostRecordingState) and the acceptance service's live-backup delete is a no-op (RRCollector.withoutCloudAcceptance). Needs a cloud seam in RRCollector (handoff).",
+   "evidence": [
+    "EmuquTests/SessionDiscardTests.swift:30",
+    "Emuqu/Sources/Collection/RRCollector.swift:724",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:196"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SessionDiscardTests.setUp()",
+   "hash": "315d3b0152681764",
+   "does": "Calls super.setUp, then isolateFromHostRecordingState(): each test starts with no persisted recording state and an empty recorder box, and the host's are put back in teardown.",
+   "entry": "XCTest per-test setUp",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState (UserDefaults.standard)",
+    "ud:legacy activeRecording* keys (UserDefaults.standard)",
+    "ud:RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard)",
+    "mem:AppDependencies.current"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "013346ab5f875bd3"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.tearDown()",
+   "hash": "f9cb517912842767",
+   "does": "Removes the temp archive directory (error swallowed when absent), then super.tearDown. The persisted recording state is restored by the teardown block isolateFromHostRecordingState registered.",
+   "entry": "XCTest runner: async tearDown after each test",
+   "calls": [
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "removeItem throws",
+     "effect": "error swallowed (no directory when nothing was archived); otherwise directory deleted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionDiscardTests.makeCollector()",
+   "hash": "b01f68576ddae311",
+   "does": "Builds RRCollector.withoutCloudAcceptance with a fresh PolarManager and the temp archive (acceptance cloud callbacks are no-ops; the collector's CloudKitSyncManager is still the host's).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "a520a299975a4cde"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.archivedNight(daysAgo:)",
+   "hash": "1f38565a5e4bf27f",
+   "does": "Archives a complete overnight session daysAgo old with 200 alternating 990/1010 ms RR points (skipSameNightMerge) and returns it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "point index is even",
+     "effect": "rr 990 ms; else 1010 ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.isArchived(_:)",
+   "hash": "e56de4fb839fd329",
+   "does": "Returns whether the archive has an entry with this session id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries"
+   ],
+   "reads": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "85c67e62d7a10529",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.review(_:savedForReview:on:)",
+   "hash": "4cdced0e055041f9",
+   "does": "Puts a night under review on the collector: currentSession, needsAcceptance true, reviewArchivedSessionId as given.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.testDiscardMovesTheNightSavedForReviewToTrash()",
+   "hash": "987fa4344782162f",
+   "does": "With nights 3 and 1 days ago archived and night 1 saved for review, asserts rejectSession removes it, tombstones it, keeps the earlier night, and clears review id, currentSession and needsAcceptance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineFromArchive()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "writes": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "067fbe1a2055febe",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "15bc3b04bdb72182",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineFromArchive()": "efdb0f76e3b8f66a",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b2f8cca5d0330849",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "662868c15ff59756",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)": "d64f34e2444e2f57",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "cde34837e7969801",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)": "d4b57c745ebb17ad",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)": "c38cd6d4db184163",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()": "aa54980f747a0769",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)": "66a235eff0bf24cd"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.testDiscardKeepsANightThatWasArchivedBeforeReview()",
+   "hash": "1fe66051f8ed0e92",
+   "does": "With no review id (night archived before review), asserts rejectSession keeps the night and does not tombstone it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "067fbe1a2055febe",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "15bc3b04bdb72182",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b2f8cca5d0330849",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)": "d64f34e2444e2f57",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "cde34837e7969801",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)": "d4b57c745ebb17ad",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)": "c38cd6d4db184163",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()": "aa54980f747a0769",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)": "66a235eff0bf24cd"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.testDiscardNeverRemovesANightOtherThanTheOneUnderReview()",
+   "hash": "cab203d121e287db",
+   "does": "With review id pointing at a different archived night than currentSession, asserts both nights stay archived.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()"
+   ],
+   "reads": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "067fbe1a2055febe",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "15bc3b04bdb72182",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b2f8cca5d0330849",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)": "d4b57c745ebb17ad",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)": "c38cd6d4db184163",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()": "aa54980f747a0769",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)": "66a235eff0bf24cd"
+   }
+  },
+  {
+   "key": "func SessionDiscardTests.testAKeptNightIsNoLongerDiscardable()",
+   "hash": "beb4f4da9cc0e56a",
+   "does": "After clearAcceptanceState (keeping the night) asserts review id is nil, then rejectSession with the same night as currentSession leaves it archived.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()"
+   ],
+   "reads": [
+    "file:<tmp>/SessionDiscardTests-<uuid>/ (SessionArchive directory)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "339032e63971ec97",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "067fbe1a2055febe",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()": "34ab520d2fde1bb8",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "15bc3b04bdb72182",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b2f8cca5d0330849",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.archivedNight(daysAgo:)": "d4b57c745ebb17ad",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.isArchived(_:)": "c38cd6d4db184163",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.makeCollector()": "aa54980f747a0769",
+    "EmuquTests/SessionDiscardTests.swift::func SessionDiscardTests.review(_:savedForReview:on:)": "66a235eff0bf24cd"
+   }
+  }
+ ],
+ "deps": {}
+}

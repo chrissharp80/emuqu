@@ -47,7 +47,8 @@ struct FactKey: Equatable, Hashable {
     }
 
     /// The dot-separated pieces, ignoring dots nested inside parentheses.
-    /// Nil when the parens are unbalanced or a piece comes out empty.
+    /// Nil when the parens are unbalanced or a piece comes out empty,
+    /// a trailing dot included.
     private static func splitOnTopLevelDots(_ s: String) -> [String]? {
         var pieces: [String] = []
         var buffer = ""
@@ -60,8 +61,7 @@ struct FactKey: Equatable, Hashable {
             depth = newDepth
             buffer.append(char)
         }
-        guard depth == 0 else { return nil }
-        if !buffer.isEmpty { pieces.append(buffer) }
+        guard depth == 0, flushPiece(&buffer, into: &pieces) else { return nil }
         return pieces
     }
 
@@ -91,18 +91,5 @@ struct FactKey: Equatable, Hashable {
             return Token(name: name, argument: arg)
         }
         return Token(name: raw)
-    }
-}
-
-// MARK: - KeyPath helpers for readers
-
-extension FactKey {
-    /// Convenience to walk the token list from the front. Returns the
-    /// first token (the namespace) and the rest as a sub-key for
-    /// recursive dispatch in resolvers.
-    func split() -> (head: Token, tail: FactKey?)? {
-        guard let first = tokens.first else { return nil }
-        let rest = Array(tokens.dropFirst())
-        return (first, rest.isEmpty ? nil : FactKey(tokens: rest))
     }
 }

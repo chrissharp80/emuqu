@@ -1,0 +1,848 @@
+{
+ "file": "EmuquTests/CloudPayloadCodecTests.swift",
+ "hash": "da0aec07f632c846",
+ "role": "Tests for CloudPayloadCodec (EMQC envelope round trip, magic/version framing, legacy pass-through, tamper/truncation failures, key stability and multi-key opening, primary-account choice, live-backup chain) and, in a second class, CloudSettingsRecord encryption/legacy-plaintext handling and Health-filled profile stripping.",
+ "types": [
+  "CloudPayloadCodecTests: class — XCTestCase over CloudPayloadCodec using the real Keychain",
+  "CloudSettingsRecordTests: class — XCTestCase over CloudSettingsRecord read/write on locally built CKRecords"
+ ],
+ "state": [
+  "CloudPayloadCodecTests.payload: fixed plaintext Data",
+  "CloudSettingsRecordTests.zoneID: CKRecordZone.ID 'UserSettings'"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "All encode paths go through CloudPayloadCodec.writingKey, which creates a synchronizable iCloud-Keychain item under service com.chrissharp.flowrecovery.cloud in the test host's keychain and never removes it; once any run has created it, the 'first use' paths (create(), concurrent first creation) are no longer exercised on that host.",
+   "evidence": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift:208",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift:229",
+    "EmuquTests/CloudPayloadCodecTests.swift:181"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CloudPayloadCodecTests.testEncodedPayloadDecodesBackToTheOriginal()",
+   "hash": "786743cd5ad9f698",
+   "does": "Encodes the fixed payload and asserts the output differs from the input and decodes back to it.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testEncodedPayloadIsNotReadableAsPlaintext()",
+   "hash": "01a81299469fe33e",
+   "does": "Encodes 'RMSSD 42.7 recovery 81' and asserts the encoded bytes, if valid UTF-8, do not contain 'RMSSD'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encoded bytes decode as UTF-8 and contain 'RMSSD'",
+     "effect": "true: closure returns the string → XCTAssertNil fails; false (not UTF-8 or no match): nil → passes"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The check only runs if the ciphertext happens to be valid UTF-8; AES-GCM output almost never is, so String(data:encoding:) returns nil and the assertion passes without searching. CloudSettingsRecordTests.testTheUploadedPayloadIsNotReadable notes this exact flaw and searches bytes instead.",
+     "evidence": [
+      "EmuquTests/CloudPayloadCodecTests.swift:40",
+      "EmuquTests/CloudPayloadCodecTests.swift:313"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testAnEmptyPayloadRoundTrips()",
+   "hash": "6a3d4c2ce6f2bf0c",
+   "does": "Asserts an empty Data encodes and decodes back to empty.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testALargePayloadRoundTrips()",
+   "hash": "1e3cfcc881fc14ee",
+   "does": "Asserts a 400,000-byte patterned payload round-trips.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testTheEnvelopeCarriesItsMagicAndVersion()",
+   "hash": "89bffbd3af3a31f3",
+   "does": "Asserts encoded output starts with the EMQC magic followed by the version byte.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testLegacyPayloadsWithoutTheEnvelopePassThroughUnchanged()",
+   "hash": "5768a0beb1d6e946",
+   "does": "Asserts bytes 'compressed-but-not-encrypted' decode unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testArbitraryLeadingBytesAreTreatedAsLegacyNotAsCiphertext()",
+   "hash": "00b6969fd9fc8286",
+   "does": "For leading bytes 0,1,64,127,128,255 followed by 'payload', asserts decode returns the blob unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 6 leading byte values",
+     "effect": "builds the blob and asserts pass-through"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testAnUnknownVersionIsRejectedRatherThanGuessed()",
+   "hash": "615a108a2e474e49",
+   "does": "Forges EMQC + version 99 + 3 bytes and asserts decode throws CodecError.unsupportedVersion(99).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "thrown error is unsupportedVersion(99)",
+     "effect": "true: passes; false: XCTFail naming the actual error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testATamperedPayloadFailsToDecode()",
+   "hash": "00f3db769be766c8",
+   "does": "Flips the last byte of an encoded payload and asserts decode throws.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testATruncatedPayloadFailsToDecode()",
+   "hash": "44682229821052b4",
+   "does": "Asserts decoding the first half of an encoded payload throws.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testTheCloudKeyIsAvailableAndStable()",
+   "hash": "a81e87bf9085c1e7",
+   "does": "Asserts hasUsableKey is true, two encodes of the same payload both decode, and the two ciphertexts differ (random nonce).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testLiveBackupChainRoundTrips()",
+   "hash": "da6243fc73dc058d",
+   "does": "JSON-encodes 500 RRPoints, compresses, seals with the codec, then reverses (decode, decompress, JSON-decode) and asserts count, rr_ms and t_ms match.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testDecodingDoesNotCreateAKey()",
+   "hash": "fdff7df1c4ba04a6",
+   "does": "Encodes a payload (which stores the cloud key if none exists), builds an EMQC envelope sealed with a fresh key this device does not hold, reads the cloud-key Keychain accounts (cloudKeyAccounts), then decodes the own payload (must equal it) and the foreign one (must throw), and asserts the set of Keychain accounts is unchanged, i.e. decoding neither added nor replaced a key.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudPayloadCodecTests.cloudKeyAccounts()",
+    "ext:AES.GCM.seal",
+    "ext:SymmetricKey.init(size:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (encode creates the key when none exists)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "3706dcec5ce9702d",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudPayloadCodecTests.cloudKeyAccounts()": "9a094dac3a02d8e1"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.cloudKeyAccounts()",
+   "hash": "5e7dffc6fb9272ee",
+   "does": "Queries the Keychain the way CloudPayloadCodec's private baseQuery does (generic password, service com.chrissharp.flowrecovery.cloud, synchronizable, all matches, attributes) and returns the set of account names; empty on errSecItemNotFound, throws CodecError.keyUnreadable on any other failure.",
+   "entry": "Called by testDecodingDoesNotCreateAKey.",
+   "calls": [
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "status == errSecItemNotFound",
+     "effect": "returns []"
+    },
+    {
+     "at": "+11",
+     "cond": "status not success or rows not [[String: Any]]",
+     "effect": "throws CodecError.keyUnreadable(status)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testRepeatedWritesRemainMutuallyDecodable()",
+   "hash": "9f8af9feea17b6e0",
+   "does": "Encodes three different payloads in sequence and asserts each still decodes to its original.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testConcurrentEncodesAllRemainDecodable()",
+   "hash": "79f87820e2ec4716",
+   "does": "Encodes 8 payloads concurrently in a task group (errors become nil), asserts all 8 succeeded and each decodes without throwing.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<8",
+     "effect": "adds one encode task"
+    },
+    {
+     "at": "+6",
+     "cond": "for await each result / if let value",
+     "effect": "appends non-nil results; a failed encode (nil) is dropped and caught by the count assertion"
+    },
+    {
+     "at": "+10",
+     "cond": "for each sealed blob",
+     "effect": "asserts decode does not throw"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testAPayloadOpensWithWhicheverHeldKeySealedIt()",
+   "hash": "3ccbc2771496e354",
+   "does": "Seals with one random key and asserts CloudPayloadCodec.open succeeds given [otherKey, sealingKey].",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testNoHeldKeyIsReportedAsSuch()",
+   "hash": "f8b6f9e5c4d85ead",
+   "does": "Seals with a random key and asserts open with a different key throws CodecError.noMatchingKey.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "error is noMatchingKey",
+     "effect": "true: passes; false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testEveryDeviceChoosesTheSamePrimaryKey()",
+   "hash": "77ab1d292e486517",
+   "does": "Asserts primaryAccount picks the lexicographically smallest prefixed account regardless of order and nil for no accounts.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.testTheSharedLegacyKeyIsPreferred()",
+   "hash": "3a3069e4ffda1d8d",
+   "does": "Asserts primaryAccount prefers the legacy shared account over a prefixed one.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.emptyRecord()",
+   "hash": "1d0010d1b434b1f7",
+   "does": "Builds an empty CKRecord 'UserSettings' named 'primary' in the UserSettings zone.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSettingsRecordTests.sensitiveSettingsJSON()",
+   "hash": "a69e6982a795047b",
+   "does": "Encodes a UserSettings with birthday, sex, weight 61.4, baseline RMSSD and a training-break free-text reason as pretty, sorted-key ISO-8601 JSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testSettingsRoundTripThroughAnEncryptedRecord()",
+   "hash": "aea25fff89c385a2",
+   "does": "Writes an encrypted settings payload to a record, reads it back with settingsJSON(from:) and asserts the JSON matches and decodes weight 61.4 and the break reason.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.sensitiveSettingsJSON()",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "4825ee7131e15b23",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()": "efe90f114a4c4acc",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.sensitiveSettingsJSON()": "af1108d45b340d62"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testHealthFilledProfileIsLeftOutOfTheUploadAndKeptOnRestore()",
+   "hash": "4c146ce95248e50d",
+   "does": "Asserts CloudSettingsRecord.uploadable drops a Health-filled bodyWeightKg but keeps biologicalSex, and restorable(keepingProfileOf:) puts the local weight and profileFieldsFromHealth back.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)": "241dcc890d726cb1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "b028fa4bc1227863"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testTheUploadedPayloadIsNotReadable()",
+   "hash": "1d3850b69e79ca86",
+   "does": "Asserts the encrypted settings payload begins with EMQC magic and contains neither the bytes 'tibia' nor 'bodyWeightKg'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.sensitiveSettingsJSON()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.sensitiveSettingsJSON()": "af1108d45b340d62"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testWritingClearsTheLegacyPlaintextFields()",
+   "hash": "638c8a97c12d9d8f",
+   "does": "Seeds legacy plaintext JSON and device-name fields on a record, writes an encrypted payload, and asserts both legacy fields are cleared and payload and modifiedAt are set.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "4825ee7131e15b23",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()": "efe90f114a4c4acc"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testALegacyPlaintextRecordStillRestores()",
+   "hash": "a5048fa615c28eb5",
+   "does": "Asserts a record holding only the legacy plaintext JSON field restores that JSON.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.sensitiveSettingsJSON()",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()": "efe90f114a4c4acc",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.sensitiveSettingsJSON()": "af1108d45b340d62"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testThePlaintextFieldWinsWhenAnOlderBuildWroteLast()",
+   "hash": "0de5811a64739cc4",
+   "does": "Writes an encrypted payload then sets the legacy plaintext field, and asserts settingsJSON returns the plaintext copy (older build wrote last).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "4825ee7131e15b23",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()": "efe90f114a4c4acc"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testAnUnframedPayloadIsRejected()",
+   "hash": "b7a7995151a51843",
+   "does": "Puts unframed JSON bytes into the encrypted payload field and asserts settingsJSON throws RestoreError.cloudCopyMalformed; the magic-prefix guard throws before CloudPayloadCodec.decode is reached.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "error is cloudCopyMalformed",
+     "effect": "true: passes; false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()": "efe90f114a4c4acc"
+   }
+  },
+  {
+   "key": "func CloudSettingsRecordTests.testARecordWithNeitherFieldIsMalformed()",
+   "hash": "11d0c6ed7e6c04a1",
+   "does": "Asserts settingsJSON on a record with neither field throws RestoreError.cloudCopyMalformed.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is cloudCopyMalformed",
+     "effect": "true: passes; false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "5c93a737f3cc3b1a",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudSettingsRecordTests.emptyRecord()": "efe90f114a4c4acc"
+   }
+  }
+ ],
+ "deps": {}
+}

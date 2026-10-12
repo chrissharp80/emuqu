@@ -1,0 +1,377 @@
+{
+ "file": "Emuqu/Sources/Views/BreathingMandalaView.swift",
+ "hash": "1e71743780744e5c",
+ "role": "Animated breathing-guide mandala for HRV recordings: three rotating petal rings that expand on inhale and contract on exhale, with 'Breathe in/out' text and a per-frame phase callback driving spoken cues.",
+ "types": [
+  "BreathingMandalaView: struct View — mandala + 60 Hz timer-driven phase",
+  "PetalLayer: struct View (private) — one ring of petals",
+  "Petal: struct View (private) — gradient ellipse",
+  "BreathingMandalaView: extension — slowPacedBreathing preset"
+ ],
+ "state": [
+  "mem:BreathingMandalaView.maxTickGap = 1.0 s",
+  "mem:BreathingMandalaView.rotationDegreesPerSecond = 1.25"
+ ],
+ "toplevel": "Stored property initializers: petalColors (6 HSB colours) and `@State timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()`, kept once per view identity (later inits' copies are discarded unsubscribed). #Preview at the end renders slowPacedBreathing at 250×250.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var BreathingMandalaView.body",
+   "hash": "cde186c663263631",
+   "does": "GeometryReader centring the mandala layers at the smaller dimension; accessibility label 'Breathing guide: <text>' with updatesFrequently trait; ticks on the 16 ms timer.",
+   "entry": "SwiftUI body; .onReceive(timer) fires every 16 ms on the main run loop.",
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)": "6d46a6e800b53847",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()": "4da4e0e4ed651364",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText": "534e67940d36a9ae"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.mandalaLayers(size:)",
+   "hash": "42489b547330fbea",
+   "does": "ZStack of background glow, petal layers, centre circle and guide label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.backgroundGlow(size:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.petalLayers(size:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.centerCircle(size:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.backgroundGlow(size:)": "76066e3cd31e68ba",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.centerCircle(size:)": "2cd36a3e39632404",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.petalLayers(size:)": "28eb075fb5c1e1cb",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideLabel": "dc0d2b51ad9d7cfa"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.backgroundGlow(size:)",
+   "hash": "ec6431c289adf5cf",
+   "does": "Radial-gradient glow whose opacity scales with breathScale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "d686884c75054b15",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.petalLayers(size:)",
+   "hash": "6a53bf3cb75eee08",
+   "does": "Three PetalLayers, each 0.15×size smaller and rotated 5° more, scaled by breathScale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var PetalLayer.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "d686884c75054b15",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var PetalLayer.body": "74715fa7fc9cd959"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.centerCircle(size:)",
+   "hash": "79621e96804e0184",
+   "does": "White-to-purple radial centre circle sized 0.15×size×breathScale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "d686884c75054b15",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var BreathingMandalaView.breathGuideLabel",
+   "hash": "60d653b3434575f6",
+   "does": "Bottom-aligned caption with breathGuideText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText": "534e67940d36a9ae",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.tick()",
+   "hash": "9f4fc4fbbbc28f8a",
+   "does": "Per-timer tick: when animating takes the real elapsed time since the last tick (elapsedSinceLastTick) and advances the phase and, unless Reduce Motion, the rotation by it; when not animating clears lastTickAt so resuming does not jump.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.elapsedSinceLastTick()",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateBreathPhase(by:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateRotation(by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isAnimating == false",
+     "effect": "goes to clear-and-return path; otherwise advances"
+    },
+    {
+     "at": "+2",
+     "cond": "lastTickAt != nil (while not animating)",
+     "effect": "sets lastTickAt = nil (only writes state when needed); then returns"
+    },
+    {
+     "at": "+7",
+     "cond": "Reduce Motion off",
+     "effect": "updates rotation; with Reduce Motion on rotation is skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.elapsedSinceLastTick()": "755e4e07976f962f",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateBreathPhase(by:)": "ff62e22cb9b2c299",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateRotation(by:)": "c149115116007450"
+   }
+  },
+  {
+   "key": "var BreathingMandalaView.breathScale",
+   "hash": "2cc112d130712628",
+   "does": "Scale factor 0.85 + 0.15·sin(2π(phase − 0.25)), i.e. 0.7 at phase 0 rising to 1.0 at phase 0.5; fixed 0.85 under Reduce Motion.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reduceMotion",
+     "effect": "returns 0.85; otherwise sine-based scale"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var BreathingMandalaView.breathGuideText",
+   "hash": "d22d7d9d2a2b1869",
+   "does": "'Breathe in' for phase < 0.5 else 'Breathe out' (localized).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "breathPhase < 0.5",
+     "effect": "'Breathe in'; otherwise 'Breathe out'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.elapsedSinceLastTick()",
+   "hash": "dca722f756a1b831",
+   "does": "Returns min(now − lastTickAt, maxTickGap = 1 s), or 0 when lastTickAt is nil (first tick or resumed), and stores now as lastTickAt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:BreathingMandalaView.lastTickAt @State"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastTickAt nil",
+     "effect": "elapsed 0; otherwise capped at 1 s"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreathingMandalaView.updateBreathPhase(by:)",
+   "hash": "ce91466b0e166cc4",
+   "does": "Advances breathPhase by elapsed / cycleDuration modulo 1 and calls onPhaseUpdate with the new phase.",
+   "entry": null,
+   "calls": [
+    "closure:onPhaseUpdate — set by StreamingLiveView.swift:48 to breathingAudio.updatePhase (BreathingAudioManager speech cues)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BreathingMandalaView.breathPhase @State"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreathingMandalaView.updateRotation(by:)",
+   "hash": "cbd0b073380e2052",
+   "does": "Advances rotation by rotationDegreesPerSecond (1.25°/s) × elapsed, modulo 360 — real-time paced like the phase.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:BreathingMandalaView.rotation @State"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PetalLayer.body",
+   "hash": "c88f30b588958806",
+   "does": "GeometryReader centring a petal ring at the smaller dimension.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func PetalLayer.petalRing(size:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func PetalLayer.petalRing(size:)": "3f346c1512dd97ca"
+   }
+  },
+  {
+   "key": "func PetalLayer.petalRing(size:)",
+   "hash": "56ffe497eef2e8fa",
+   "does": "ZStack of petalCount petals in a size×size frame.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func PetalLayer.petal(_:size:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func PetalLayer.petal(_:size:)": "8496ae6c9cc989a2"
+   }
+  },
+  {
+   "key": "func PetalLayer.petal(_:size:)",
+   "hash": "67db3399d71e3f5f",
+   "does": "One Petal coloured by (index+layer) mod colours, offset upward by 0.2×size×scale and rotated to its angular slot plus layer rotation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var Petal.body",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var PetalLayer.layerOpacity"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var Petal.body": "d17db72d26037e65",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var PetalLayer.layerOpacity": "5cbf7628869b839b"
+   }
+  },
+  {
+   "key": "var PetalLayer.layerOpacity",
+   "hash": "82886a75b68ac783",
+   "does": "Layer opacity: 0.9 for layer 0, 0.7 for layer 1, 0.5 otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "layerIndex == 0",
+     "effect": "0.9"
+    },
+    {
+     "at": "+3",
+     "cond": "layerIndex == 1",
+     "effect": "0.7"
+    },
+    {
+     "at": "+4",
+     "cond": "default (layer 2)",
+     "effect": "0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Petal.body",
+   "hash": "b5a4e4c86dad7120",
+   "does": "Ellipse filled with a top-to-bottom gradient of its colour and the next colour, scaled and shadowed.",
+   "entry": "SwiftUI body.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var PetalLayer.layerOpacity": "5cbf7628869b839b",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.slowPacedBreathing(onPhaseUpdate:)",
+   "hash": "0360e52c476a1896",
+   "does": "Preset BreathingMandalaView at 60/5.5 ≈ 10.9 s cycle (5.5 breaths/min) with an optional phase callback.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The only caller's comment says this preset is 'A 16-second breathing cycle, 8s in and 8s out', but it builds a 60/5.5 ≈ 10.9 s cycle (5.5 breaths/min, matching docs/FEATURES.md:91), so the caller comment is wrong.",
+     "evidence": [
+      "Emuqu/Sources/Views/BreathingMandalaView.swift:256",
+      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:45",
+      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:48",
+      "docs/FEATURES.md:91"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

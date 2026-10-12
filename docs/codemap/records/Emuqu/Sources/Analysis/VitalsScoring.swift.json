@@ -1,0 +1,626 @@
+{
+ "file": "Emuqu/Sources/Analysis/VitalsScoring.swift",
+ "hash": "804ac402178bb8c6",
+ "role": "Pure scoring for the 15%-weight Vitals factor of the recovery composite: resting/sleep-HR, respiratory-rate and wrist-temperature sub-scores, the breakdown's Vitals row and its localized line, the frozen-breakdown RR refresh, and the post-composite SpO2 penalty. Reached in production through RecoveryScoreCalculator+VitalsForwarding and ScoreDetailBuilder.buildTier3.",
+ "types": [
+  "VitalsScoring: enum — static-only namespace for vitals sub-scores and their display text"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "API_REFERENCE describes this file as 'Penalty-only vitals overrides (respiratory rate, wrist temperature, SpO2)' declared as 'extension RecoveryScoreCalculator' taking HealthKitManager.RecoveryVitals and 'also contains calculate() overloads, label(for:), message(for:), toTenScale'; the file is enum VitalsScoring taking top-level RecoveryVitals, scores RR/temp/RHR as the 15% factor, and its header says the calculate entry points and display helpers stayed in RecoveryScoreCalculator.",
+   "evidence": [
+    "docs/API_REFERENCE.md:1076",
+    "docs/API_REFERENCE.md:1080",
+    "docs/API_REFERENCE.md:1086",
+    "docs/API_REFERENCE.md:1092",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift:7",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift:10"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "calculateVitalsScore/describeVitals score RecoveryVitals.wristTemperature as a personal deviation, but the model documents that field as an offset from a fixed 36.5 C; correctness depends on every caller first applying RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline (computeBreakdown and refreshedVitalsFactor do, and the precondition is now stated at the scoring site). They cannot normalise internally while VitalsScoringTests/ScoreFactorFactsTests pass raw deviations with a nil baseline, which normalising would drop (handed off).",
+   "evidence": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift:56",
+    "Emuqu/Sources/Models/RecoveryVitals.swift:9",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:429",
+    "EmuquTests/VitalsScoringTests.swift:115"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+   "hash": "b44fe97954fc2533",
+   "does": "Averages the available vitals sub-scores (sleep/resting HR vs personal baseline, respiratory rate vs 7-day baseline or population window, wrist-temperature deviation step score) into a 0-100 score; returns nil when vitals is nil or no sub-score is computable (SpO2 alone yields nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "vitals is nil",
+     "effect": "return nil (caller falls back to Tier 2); else continue"
+    },
+    {
+     "at": "+6",
+     "cond": "restingHRSubScore returned a value (RHR + baseline mean>0 + SD>0)",
+     "effect": "append RHR sub-score; else RHR dropped from the average"
+    },
+    {
+     "at": "+7",
+     "cond": "respiratorySubScore returned a value",
+     "effect": "append RR sub-score; else dropped"
+    },
+    {
+     "at": "+13",
+     "cond": "vitals.wristTemperature non-nil",
+     "effect": "append temperatureSubScore(value) treating it as the personal deviation the caller must already have applied; else dropped"
+    },
+    {
+     "at": "+14",
+     "cond": "subScores is empty",
+     "effect": "return nil; else return arithmetic mean of the sub-scores"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "826de92048a8ff8a",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7"
+   }
+  },
+  {
+   "key": "func VitalsScoring.restingHRSubScore(vitals:baselineStats:)",
+   "hash": "af88825ecde50248",
+   "does": "Sleep/resting-HR sub-score: 100 minus rhrPenaltyPerSD (10) per SD the HR sits above meanHRBaseline, floored at 0 and never above 100 (below-baseline clamps to 0 excess). Nil without HR, baseline>0 and SD>0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "restingHeartRate, meanHRBaseline>0 and meanHRSD>0 all present",
+     "effect": "compute max(0, 100 - max(0,(rhr-baseline)/sd)*10); otherwise return nil (sub-score dropped)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VitalsScoring.respiratorySubScore(vitals:)",
+   "hash": "1503744df34365ce",
+   "does": "Respiratory sub-score: with a 7-day baseline, 100 minus 15 points per br/min above baseline+1.0 (floor 0); without a baseline but with a rate, the population-window score; nil with no rate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vitals.respiratoryDeviation non-nil (rate and baseline both present)",
+     "effect": "return max(0, 100 - max(0, dev-1.0)*15); else fall through"
+    },
+    {
+     "at": "+5",
+     "cond": "respiratoryRate is nil",
+     "effect": "return nil; else return respiratoryPopulationScore(rate)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)",
+   "hash": "293c9a1ca7929261",
+   "does": "Builds the breakdown's 'Vitals' ScoreFactor: detail text and facts from describeVitals, the given score and weight, and impact positive (>=80) / neutral (>=60) / negative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "score >= 80 / score >= 60",
+     "effect": "impact .positive when >=80, .neutral when 60..<80, .negative below 60"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)": "e91d99644125da59"
+   }
+  },
+  {
+   "key": "func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)",
+   "hash": "d69d9a005abaf896",
+   "does": "Returns only the text of describeVitals (the Vitals line in NarrativeLanguage, temperature in Celsius).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller: its only callers are the RecoveryScoreCalculator.buildVitalsDetail forwarder (itself called only from ScoringCharacterizationTests:569) and ScoreFactorFactsTests:72. Production builds the line through vitalsFactor/describeVitals.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift:17",
+      "EmuquTests/ScoringCharacterizationTests.swift:569",
+      "EmuquTests/ScoreFactorFactsTests.swift:72"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)": "e91d99644125da59"
+   }
+  },
+  {
+   "key": "func VitalsScoring.describeVitals(vitals:baselineStats:score:)",
+   "hash": "8f8a609e55388770",
+   "does": "Produces the Vitals detail: a .noVitals note when vitals is nil, otherwise facts from vitalsFacts and the text vitalsLine(facts, .celsius), packaged as a DescribedDetail with ScoreFactorFacts(vitals:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(vitals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "vitals is nil",
+     "effect": "return DescribedDetail.note(.noVitals); else build facts + line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(vitals:)": "8348d7a83d099799",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)": "8da5b8bab542b5d0",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)": "5f0b8f7a0cbca219"
+   }
+  },
+  {
+   "key": "func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)",
+   "hash": "0f006b54413ddd5e",
+   "does": "Collects each vitals input with the sub-score that scored it into ScoreFactorFacts.Vitals (average = given score): sleep HR; its delta vs the baseline whenever a positive meanHRBaseline exists, with the sub-score only when restingHRSubScore yields one (it also needs the SD); RR deviation/rate/score; temperature deviation and score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "restingHeartRate and a positive meanHRBaseline present",
+     "effect": "set sleepHRDelta = HR - baseline and sleepHRScore = restingHRSubScore (nil without a baseline SD); else both stay nil, so the line reads '(no baseline yet)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "826de92048a8ff8a",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "func VitalsScoring.vitalsLine(_:temperatureUnit:)",
+   "hash": "1359744a43eb1d51",
+   "does": "Joins the sleep-HR, respiratory and temperature clauses plus 'avg N' (rounded average) with ' · ' into the localized Vitals line; temperature in the requested unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.sleepHRClause(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryClause(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureClause(_:unit:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryClause(_:)": "a667824a43ed91da",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.sleepHRClause(_:)": "fe62497289ed8102",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureClause(_:unit:)": "6c64bc67585dd028",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.sleepHRClause(_:)",
+   "hash": "b1569581da550c18",
+   "does": "Formats the Sleep HR clause: 'no data'; 'N (no baseline yet)' without a delta; unscoredSleepHRClause when a baseline delta exists but no sub-score; else 'N at baseline → score' when |delta|<1, else 'N (±d bpm) → score'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.unscoredSleepHRClause(_:delta:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "facts.sleepHR is nil",
+     "effect": "return 'Sleep HR — no data'; else continue"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepHRDelta is nil (no baseline)",
+     "effect": "return 'Sleep HR N (no baseline yet)'; else continue"
+    },
+    {
+     "at": "+6",
+     "cond": "sleepHRScore is nil (baseline without SD)",
+     "effect": "return unscoredSleepHRClause; else continue"
+    },
+    {
+     "at": "+8",
+     "cond": "|delta| < 1.0",
+     "effect": "return 'Sleep HR N at baseline → score'; else return with signed delta in bpm"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.unscoredSleepHRClause(_:delta:)": "7242e1a1d4bfe953",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "1e0861f7132a2103",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.unscoredSleepHRClause(_:delta:)",
+   "hash": "e19dd6fdef635dfd",
+   "does": "Sleep HR clause for a baseline without a spread to score against: 'Sleep HR N bpm (at baseline)' when |delta| < 1, else 'Sleep HR N bpm (±d vs baseline)' — no '→ score', since the value did not feed the average. Reuses the catalog keys the score detail view's sleepHRFinding uses, in NarrativeLanguage.bundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "|delta| < 1",
+     "effect": "return 'Sleep HR N bpm (at baseline)'; else signed whole-bpm delta vs baseline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.respiratoryClause(_:)",
+   "hash": "f823dca85cd92131",
+   "does": "Formats the RR clause: 'RR — no data' without a sub-score; 'RR ±d br/min → score' with a baseline deviation; 'RR r br/min (vs pop) → score' for the population fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "facts.respiratoryScore is nil",
+     "effect": "return rrNoData; else continue"
+    },
+    {
+     "at": "+3",
+     "cond": "facts.respiratoryDeviation non-nil",
+     "effect": "return deviation form; else continue"
+    },
+    {
+     "at": "+7",
+     "cond": "facts.respiratoryRate is nil",
+     "effect": "return rrNoData (unreachable in practice when a score exists, since a score needs a rate); else return '(vs pop)' form"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData": "7d9f2c97bb17da0a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "1e0861f7132a2103",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.temperatureClause(_:unit:)",
+   "hash": "7c5306b7db1097c9",
+   "does": "Formats the temperature clause: 'Temp — no data' or 'Temp ±d°unit → score', converting the Celsius deviation via TemperatureUnit.convert (×9/5 for F) and using the stored sub-score or recomputing it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "temperatureDeviationCelsius is nil",
+     "effect": "return 'Temp — no data'; else format"
+    },
+    {
+     "at": "+5",
+     "cond": "facts.temperatureScore is nil (??)",
+     "effect": "fallback recomputes temperatureSubScore(deviation); used for facts stored without a score"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7",
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "cf804bfa462304ab",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol": "5d22b75e79a08e75",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "1e0861f7132a2103",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.temperatureSubScore(_:)",
+   "hash": "4c1e6719da1f617c",
+   "does": "Asymmetric step score on the positive temperature deviation: <=0.3°C → 100, <=0.5 → temperatureScoreMild, <=1.0 → temperatureScoreModerate, else temperatureScoreSevere; negative deviations clamp to 0 → 100.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "max(0,dev) <= temperatureBandNormalCelsius",
+     "effect": "return 100"
+    },
+    {
+     "at": "+3",
+     "cond": "<= temperatureBandMildCelsius",
+     "effect": "return temperatureScoreMild"
+    },
+    {
+     "at": "+6",
+     "cond": "<= temperatureBandModerateCelsius",
+     "effect": "return temperatureScoreModerate; else return temperatureScoreSevere"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
+   "hash": "0812be1edac96816",
+   "does": "Returns the frozen breakdown unchanged unless freshVitals carries a respiratory rate and a 'Vitals' factor reports no respiration; then replaces that factor (detail + sub-score) with one rebuilt from freshVitals while keeping composite, tier, penalties, spo2 flag and scoringVersion.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "freshVitals nil or its respiratoryRate nil",
+     "effect": "return breakdown unchanged"
+    },
+    {
+     "at": "+8",
+     "cond": "factor.label == 'Vitals' and reportsNoRespiration(factor)",
+     "effect": "replace with refreshedVitalsFactor and mark changed; else keep the factor"
+    },
+    {
+     "at": "+12",
+     "cond": "no factor changed",
+     "effect": "return original breakdown; else return a new ScoreBreakdown with refreshed factors"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The refreshed Vitals factor score changes while compositeScore stays frozen, so the breakdown's weighted factor contributions no longer sum to the headline score the user sees on the same screen.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/VitalsScoring.swift:265",
+      "Emuqu/Sources/Analysis/VitalsScoring.swift:269",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:175"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)": "2b933be187b2d371",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)": "0edaa9aefad001b9"
+   }
+  },
+  {
+   "key": "var VitalsScoring.rrNoData",
+   "hash": "05de50d91aee8433",
+   "does": "Localized 'RR — no data' string in NarrativeLanguage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.reportsNoRespiration(_:)",
+   "hash": "06419ba49f6ef3dd",
+   "does": "Decides whether a frozen Vitals factor lacked respiration: from facts.vitals.respiratoryScore == nil when facts exist, else by matching the stored detail text against English 'RR — no data' or the current-language rrNoData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "factor.facts?.vitals present",
+     "effect": "return respiratoryScore == nil; else fall back to text matching (a line stored in a third language that is neither English nor the current language is not detected)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData": "7d9f2c97bb17da0a"
+   }
+  },
+  {
+   "key": "func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)",
+   "hash": "113e55a8ac30e5f9",
+   "does": "Rebuilds the Vitals factor from fresh vitals: re-expresses wrist temperature against the personal baseline, rescores (falling back to the old score if nil) and builds a new vitalsFactor keeping the old weight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "calculateVitalsScore returns nil (??)",
+     "effect": "use factor.score; unreachable from breakdownRefreshingVitalsFactor because it requires a respiratory rate, which always yields an RR sub-score"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "dcfe2903310294ab",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "9fb3a52f3db3c5c1",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "3d1a132ab2d018b6"
+   }
+  },
+  {
+   "key": "func VitalsScoring.respiratoryPopulationScore(rate:)",
+   "hash": "b8b33b05d28ff32a",
+   "does": "Population-norm RR score: 100 inside [12,18] br/min, 100 - 15 per br/min above 18 (floor 0), flat 90 below 12.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rate within [popMin, popMax]",
+     "effect": "return 100"
+    },
+    {
+     "at": "+6",
+     "cond": "rate > popMax",
+     "effect": "return max(0, 100 - (rate-popMax)*15); else (below popMin) return respiratoryRateBelowPopulationScore (90)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VitalsScoring.applyVitalsOverrides(score:vitals:)",
+   "hash": "3e230864dfb63747",
+   "does": "Applies the post-composite SpO2 penalty: subtracts RecoveryScoreConstants.Vitals.spo2Penalty when SpO2 < 95%, floored at 0; returns score unchanged for nil vitals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vitals nil",
+     "effect": "return score unchanged"
+    },
+    {
+     "at": "+3",
+     "cond": "vitals.isSpO2Concerning (SpO2 < 95)",
+     "effect": "subtract spo2Penalty; else no change; result floored at 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5"
+   }
+  },
+  {
+   "key": "func VitalsScoring.vitalsPenaltyDescriptions(_:)",
+   "hash": "f55508ea6607238d",
+   "does": "Returns [lowBloodOxygenPenalty copy] when SpO2 < 95%, else [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vitals non-nil and isSpO2Concerning",
+     "effect": "return the one penalty string; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty": "1a35092f9956bc5c",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5"
+   }
+  }
+ ],
+ "deps": {}
+}

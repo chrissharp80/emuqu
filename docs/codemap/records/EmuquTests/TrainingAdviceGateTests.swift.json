@@ -1,0 +1,560 @@
+{
+ "file": "EmuquTests/TrainingAdviceGateTests.swift",
+ "hash": "26b48294600a99ad",
+ "role": "@MainActor XCTest suite for TrainingAdviceGate and every surface that words training advice (morning actionable steps live/frozen, recovery card message, score-detail actions, workout report tier, readiness label/message, live readiness headline), asserting none uses push phrases under the audit's high-load scenarios (ACWR 1.6/1.99, CTL 40) while a clear load still pushes.",
+ "types": [
+  "TrainingAdviceGateTests: class — @MainActor XCTestCase over TrainingAdviceGate and advice surfaces",
+  "Scenario: private struct — named ACWR/CTL/recovery/RMSSD scenario with derived atl (acwr×ctl) and tsb (ctl−atl)"
+ ],
+ "state": [
+  "pushPhrases: 8 English push phrases scanned case-insensitively",
+  "scenarios: two high-load scenarios (ACWR 1.6 recovery 80; ACWR 1.99 recovery 92; CTL 40)"
+ ],
+ "toplevel": "Stored properties pushPhrases and scenarios; Scenario.atl and Scenario.tsb are computed properties (lines 43-44).",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Negative-only phrase scan: assertNoPush passes for an empty list or an empty string, and only the morning steps have a positive control (testMorningStepsStillPushOnAClearLoad); the score-detail actions, workout tier and live readiness headline tests would pass if those surfaces produced no copy at all, or English copy reworded to avoid the 8 listed phrases.",
+   "evidence": [
+    "EmuquTests/TrainingAdviceGateTests.swift:26",
+    "EmuquTests/TrainingAdviceGateTests.swift:189",
+    "EmuquTests/TrainingAdviceGateTests.swift:206",
+    "EmuquTests/TrainingAdviceGateTests.swift:250"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "strongBreakdown(composite:) fixture is re-declared in TrainingAdviceSurfaceTests.",
+   "evidence": [
+    "EmuquTests/TrainingAdviceGateTests.swift:122",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift:33"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrainingAdviceGateTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "setUp: super.setUp then pinEnglishLanguage so the English push-phrase scan matches the copy.",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LanguageManager (pinned English)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)",
+   "hash": "54f847fe87a0894f",
+   "does": "Test helper: XCTFails (at the caller) for every line that contains any push phrase, case-insensitively.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each text line",
+     "effect": "scans each line"
+    },
+    {
+     "at": "+2",
+     "cond": "for each push phrase contained in the line",
+     "effect": "XCTFail naming the surface, phrase and text; no failure when none match"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingAdviceGateTests.Scenario.atl",
+   "hash": "a70d491369a106d9",
+   "does": "Scenario computed property: atl = acwr × ctl.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingAdviceGateTests.Scenario.tsb",
+   "hash": "b18a2cd957a1779f",
+   "does": "Scenario computed property: tsb = ctl − atl.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.context(_:)",
+   "hash": "af9cca483219eea1",
+   "does": "Test helper: TrainingContext(atl, ctl, tsb from the scenario, yesterdayTrimp 80, daysSinceHardWorkout 1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb": "05df6cc7d3615051"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.live(_:)",
+   "hash": "6aabacd7a4bdfa6f",
+   "does": "Test helper: TrainingLoadRegistry.TrainingLoad with the scenario's atl/ctl/tsb/acwr and provenance .live(now).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb": "05df6cc7d3615051"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.goodNight(rmssd:)",
+   "hash": "e511d4488f81f86d",
+   "does": "Test helper: a 'good night' HRVAnalysisResult (given RMSSD, DFA α1 0.95, LF/HF 1.2, PNS 1.5, consolidated, organized recovery, window CV 0.04).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)",
+   "hash": "c18841a6301239de",
+   "does": "Test helper: a complete 8 h overnight HRVSession `daysAgo` days back with goodNight analysis and recoveryScore = recovery/10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "468379e4dbcab7be"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.steps(_:live:)",
+   "hash": "edf611f7b81d9a6e",
+   "does": "Test helper: runs AnalysisSummaryGenerator for tonight's session plus 5 earlier nights, fixed sleep, the scenario's frozen context and (when useLive) the live load snapshot, and returns its actionableSteps.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session.analysisResult ?? goodNight(...)",
+     "effect": "fallback never used: overnight() always sets analysisResult"
+    },
+    {
+     "at": "+11",
+     "cond": "useLive ? live(scenario) : nil",
+     "effect": "true: generator gets the live load snapshot; false: frozen context only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "371677b7a279c950",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "468379e4dbcab7be",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "eac2bbba198812a9",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.strongBreakdown(composite:)",
+   "hash": "f3df292c60755b2c",
+   "does": "Test helper: ScoreBreakdown with HRV/Sleep/Vitals factors all at `composite`, tier 3, no penalties.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testGateLevels()",
+   "hash": "4a9cfbe6fb615a94",
+   "does": "Asserts TrainingAdviceGate.level: ACWR 1.6 and 1.99 at CTL 40 → .easier; 1.45 → .holdPush; 1.1 → .clear; TSB −16 → .easier; CTL 2 (below ctlThreshold) → .clear; monotony 2.5 with strain 2000 → .holdPush, strain 500 → .clear; nil → .clear; allowsPush false at recovery 92 with ACWR 1.99, true with ACWR 1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.allowsPush(recoveryScore:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.allowsPush(recoveryScore:load:)": "d3c58e19e02fe6c6",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testMorningStepsNeverPushUnderAHighLoad()",
+   "hash": "867fc93e018e0287",
+   "does": "For both high-load scenarios asserts no morning actionable step pushes, with the live load and with the frozen context.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scenario",
+     "effect": "checks live and frozen step lists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "fb6ef1cd5c949705"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testMorningStepsStillPushOnAClearLoad()",
+   "hash": "a3126821cd5bf1db",
+   "does": "Control: a clear ACWR 1.0, recovery 92 scenario asserts the live steps include 'Great day for high-intensity'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "fb6ef1cd5c949705"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testMorningStepsHoldThePushAboveTheUsualRange()",
+   "hash": "36c9459353feb399",
+   "does": "ACWR 1.45 / CTL 30 (TSB −13.5): asserts no push phrase and that the steps include 'Recent load is above average — listen to your body.'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "fb6ef1cd5c949705"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testRecoveryCardMessageNeverSaysGoHardUnderAHighLoad()",
+   "hash": "183b4c8c8759e7ab",
+   "does": "For both scenarios asserts ScoreBreakdownCopy.message(for: strong breakdown, loadLevel: gate level of the live load) has no push phrase and contains 'an easier session'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scenario",
+     "effect": "computes level and message and asserts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)": "ecd339d63b5be913",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "eac2bbba198812a9",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)": "ae1d8ad87e3996c2"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testScoreDetailActionsNeverPushUnderAHighLoad()",
+   "hash": "722f6da29630d820",
+   "does": "For both scenarios builds RecoveryScoreDetailView with the session's trainingSnapshot set and asserts buildActions() has no push phrase.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildActions()",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scenario",
+     "effect": "builds view and scans its actions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildActions()": "981daf8302fd9b24",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "c6edb2ba34b25dab",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "468379e4dbcab7be",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testWorkoutReportTierNeverGoesHardUnderAHighLoad()",
+   "hash": "5a2debeedeb6698b",
+   "does": "For both scenarios builds HolisticDailyReport (workout with the scenario context, night with strong breakdown) and asserts combinedReadinessScore().tier has no push phrase (e.g. 'Tier 1').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.combinedReadinessScore()",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scenario",
+     "effect": "builds the report and scans its tier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.combinedReadinessScore()": "66d43c648619507c",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)": "856be540285510d8",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)": "ae1d8ad87e3996c2"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testTrainingReadinessNeverPushesUnderAHighLoad()",
+   "hash": "f1a76a4196438d3d",
+   "does": "For both scenarios and every readiness 0…10 in 0.5 steps, asserts readinessMessage(for:load:) has no push phrase and readinessLabel(for:load:) is never 'Ready'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scenario",
+     "effect": "builds the frozen Load"
+    },
+    {
+     "at": "+3",
+     "cond": "for readiness in 0...10 by 0.5",
+     "effect": "asserts message and label per value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "d6e23bfcd5da4f5d",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testReadinessLabelAndMessageAgreeOnANovelLoad()",
+   "hash": "1711c08b9133d343",
+   "does": "CTL 2 / ATL 3.2 (ratio 1.6 on almost no training): asserts the computed readiness labels 'Ready' and its message does not mention 'lighter session'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testReadinessLabelIsHeldBesideALighterSessionMessage()",
+   "hash": "e8b7a138e88f5000",
+   "does": "ACWR 7, CTL 3, TSB −18: asserts label for 8.0 is held to 'Moderate' and the message contains 'lighter session'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7"
+   }
+  },
+  {
+   "key": "func TrainingAdviceGateTests.testLiveReadinessHeadlineNeverPushesUnderAHighLoad()",
+   "hash": "23b021e214b49581",
+   "does": "For both scenarios asserts LiveReadiness.compute(recovery, morning session with snapshot, TrainingMetrics) headline has no push phrase.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scenario",
+     "effect": "computes live readiness and scans its headline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "6781ab4fbf48049b",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "eac2bbba198812a9",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  }
+ ],
+ "deps": {}
+}

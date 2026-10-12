@@ -1,0 +1,221 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift",
+ "hash": "5bcd36b73ac28dfd",
+ "role": "First-run AI assistant disclosure sheet with accept ('I understand — continue') and 'Not now' buttons; presented by AssistantChatView.disclaimerSheet (AssistantChatView.swift:273-279) and GetMeBackView.aiDisclaimerSheet (GetMeBackView.swift:236-245), both of which set hasAcceptedDisclaimer in onAccept.",
+ "types": [
+  "DisclaimerSheet: struct — SwiftUI View with isPresented binding and onAccept closure"
+ ],
+ "state": [
+  "mem:DisclaimerSheet.isPresented (@Binding owned by presenter)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DisclaimerSheet.body",
+   "hash": "b249b9e4463b5b5a",
+   "does": "Wraps disclaimerScroll in a NavigationStack.",
+   "entry": "SwiftUI body; sheet presented by AssistantChatView (.sheet with disclaimerPresented) and GetMeBackView (showAIDisclaimer).",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerScroll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerScroll": "fb4fea887b52a9af"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.disclaimerScroll",
+   "hash": "8d9022a989d3ff81",
+   "does": "ScrollView of disclaimerStack titled 'AI Assistant' (inline).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerStack": "b060e19c07d8d995",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.disclaimerStack",
+   "hash": "ae91fcfca9c05686",
+   "does": "VStack: header, the four disclaimer points, spacer, accept button (id assistant.disclaimerAccept) and Not now button (id assistant.disclaimerNotNow), padded 20/24.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.header",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerPoints",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.iUnderstandContinueButton",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.notNowButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerPoints": "2145b59b9cf6ca0e",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.header": "910f0ddec094409e",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.iUnderstandContinueButton": "0272c2b4234b66ec",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.notNowButton": "12445d069e8caa57"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.disclaimerPoints",
+   "hash": "725a2d0fa5f2951e",
+   "does": "Groups privacyPoints and responsibilityPoints.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.privacyPoints",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.responsibilityPoints"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.privacyPoints": "ce98d374ef5468bf",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.responsibilityPoints": "df1323e245a50eff"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.privacyPoints",
+   "hash": "2a06a58eeec399a1",
+   "does": "Two points: Apple Intelligence on-device (only web search/place lookup leaves; cloud model receives voice and some routed questions if connected and accepted) and connected cloud models sending data to Anthropic/OpenAI/Google/xAI/DeepSeek under their policy, with on-device red-flag screening and long-press reporting.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::func DisclaimerSheet.point(symbol:title:body:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The sheet tells the user that with Apple Intelligence a web search or place lookup leaves the device, but docs and the settings page state Apple Intelligence sends nothing: ARCHITECTURE.md 'runs fully on-device (no network)', MAINTAINERS.md 'fully on-device', and AIAssistantSettingsPage 'No data leaves the device'. Apple turns dispatch the shared tool catalog through appleToolDispatcher, so the sheet is the accurate one and the other texts are wrong.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift:60",
+      "docs/ARCHITECTURE.md:896",
+      "docs/MAINTAINERS.md:920",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:134",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:489"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::func DisclaimerSheet.point(symbol:title:body:)": "e4e30913478d40a2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.responsibilityPoints",
+   "hash": "43d695f0bfc431e9",
+   "does": "Two points: coaching, not medical advice; API keys stored in the iOS Keychain, encrypted, never synced to iCloud (matches APIKeyStore's kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, APIKeyStore.swift:65).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::func DisclaimerSheet.point(symbol:title:body:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::func DisclaimerSheet.point(symbol:title:body:)": "e4e30913478d40a2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.acceptButtonBackground",
+   "hash": "8c39ed646cc86cd7",
+   "does": "Rounded rectangle (radius 14) filled with AppTheme.primaryFilled, chosen for white-text AA contrast.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.iUnderstandContinueButton",
+   "hash": "e20f0e15f7cda71c",
+   "does": "Button that calls onAccept() then sets isPresented=false; label 'I understand — continue' white headline on acceptButtonBackground.",
+   "entry": "Button tap by user.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.acceptButtonBackground",
+    "closure:onAccept — set by AssistantChatView.disclaimerSheet (AssistantChatView.swift:276: viewModel.hasAcceptedDisclaimer = true) or GetMeBackView.aiDisclaimerSheet (GetMeBackView.swift:239-242: assistantViewModel.hasAcceptedDisclaimer = true then startVoiceChat() → VoiceConversationController.start())"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.disclaimerAccepted (AssistantViewModel.disclaimerKey, via onAccept closure → AssistantViewModel.hasAcceptedDisclaimer didSet, AssistantViewModel.swift:96)",
+    "mem:AssistantViewModel.hasAcceptedDisclaimer (via onAccept closure)",
+    "mem:DisclaimerSheet.isPresented"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.acceptButtonBackground": "016c1b1ad2db8d23",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.notNowButton",
+   "hash": "0ce4ede27169a338",
+   "does": "Button that only sets isPresented=false without calling onAccept, so the disclaimer stays unaccepted and returns next time.",
+   "entry": "Button tap by user.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:DisclaimerSheet.isPresented"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.body": "bef87b4df4eea875",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DisclaimerSheet.header",
+   "hash": "8f2bb3e0c376297c",
+   "does": "Header: sparkles icon, 'Before you start' title and an explanatory callout in AppTheme.textSecondary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func DisclaimerSheet.point(symbol:title:body:)",
+   "hash": "a47a6acc3be71cbe",
+   "does": "Row with an accessibility-hidden SF Symbol (accent color) and a title + body text stack.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.body": "bef87b4df4eea875",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

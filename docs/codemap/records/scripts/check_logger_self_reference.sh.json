@@ -1,0 +1,13 @@
+{
+ "file": "scripts/check_logger_self_reference.sh",
+ "hash": "8bdfcd15509dfec7",
+ "role": "CI gate: DebugLog.swift must not call `attempt(` anywhere nor `debugLog(` inside the DebugLogger class body (avoids recursive swift_once hang at launch).",
+ "types": [],
+ "state": [
+  "file:Emuqu/Sources/Utilities/DebugLog.swift"
+ ],
+ "toplevel": "cd to repo root; sources preflight. file Emuqu/Sources/Utilities/DebugLog.swift; empty/missing -> 2. awk tracks `class DebugLogger` until a column-0 `}`; skips // lines; prints offending lines; any -> exit 1; else clean.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

@@ -93,9 +93,18 @@ enum CloudKitSessionFreshness {
         if let sessionId {
             debugLog("[CloudKit] Upload failed for \(sessionId.uuidString.prefix(8)): \(text)")
         }
-        guard text.contains(modifiedAtField), text.contains("production schema") else { return }
+        guard text.contains(modifiedAtField), text.contains("production schema") || isSchemaRejection(error) else { return }
         fieldRejected.withLock { $0 = true }
         debugLog("[CloudKit] Session record field \(modifiedAtField) is not in the production schema — uploading without it; edits will not propagate until it is deployed", level: .error)
+    }
+
+    /// The error codes CloudKit gives a save the schema refuses. With the
+    /// field's name in the message (an identifier, the same in every
+    /// language), they identify the rejection without relying on the
+    /// English wording "production schema".
+    private static func isSchemaRejection(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError else { return false }
+        return ckError.code == .serverRejectedRequest || ckError.code == .invalidArguments
     }
 
     /// Copy this device's record onto the server's, keeping the server's change

@@ -1,0 +1,35 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector extension: lightweight decode of the newest N sessions of a type that started before a date.",
+ "types": [
+  "RRCollector: extension — prior-session lookup"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRCollector.recentSessionsAsync(limit:before:type:)",
+   "hash": "d347b5b89de0e577",
+   "does": "Filters archive entries (newest-first) to the type and start date before `date`, takes `limit` of them, and decodes them lightweight on a detached task through RRCollector.decodeInParallel (parallel, original order, failures dropped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "75a780bd8c17fe0b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  }
+ ],
+ "deps": {}
+}

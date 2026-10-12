@@ -72,11 +72,6 @@ struct StrapHeartRateFeed {
         start(generation: manager.readiness.generation)
     }
 
-    func stop() {
-        manager.linkRuntime.feedTask?.cancel()
-        manager.linkRuntime.feedTask = nil
-    }
-
     static func desiredKind(deviceType: PolarDeviceType?, sessionActive: Bool) -> Kind {
         deviceType == .veritySense && sessionActive ? .ppi : .heartRate
     }
@@ -104,8 +99,11 @@ struct StrapHeartRateFeed {
         }
     }
 
-    /// A changed outcome, and every tenth identical one, so a strap that keeps
-    /// refusing shows up as a count and a duration rather than going silent.
+    /// Called for a changed outcome, every tenth identical failure, and every
+    /// pass that delivered samples (`run` resets the failure count to 0
+    /// then, which the every-tenth test also passes): a working feed ending
+    /// is worth a line each time, and a strap that keeps refusing shows up as
+    /// a count and a duration rather than going silent.
     private static func logPass(_ kind: Kind, _ pass: Pass, failure: String, attempt: Int, since openedAt: Date) {
         let elapsed = Int(Date().timeIntervalSince(openedAt))
         debugLog("[PolarManager] \(kind) subscription ended after \(pass.samples) sample(s): \(failure) — attempt \(attempt), \(elapsed) s since the link came up; re-opening")

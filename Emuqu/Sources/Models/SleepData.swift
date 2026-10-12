@@ -28,7 +28,7 @@ struct SleepData: Codable, Sendable {
     let awakeMinutes: Int
     let sleepEfficiency: Double // % of in-segment time actually asleep (gaps between segments excluded)
     let boundarySource: HealthKitManager.SleepBoundarySource // Where sleep boundaries came from
-    let segments: [HealthKitManager.SleepSegment] // Per-segment breakdown for split nights (empty for single-segment)
+    let segments: [HealthKitManager.SleepSegment] // Per-segment breakdown: one per sleep segment the resolver found (one for an unsplit night); empty for legacy archives and nights with no stage timeline
     let stageIntervals: [HealthKitManager.SleepStageInterval] // Individual stage periods for timeline visualization
     let boundaryValidation: HealthKitManager.SleepBoundaryValidation? // HR validation metadata (nil when no RR data)
     let hrSleepQuality: HealthKitManager.HRSleepQuality? // RMSSD-derived quality (nil when no RR data)
@@ -95,13 +95,6 @@ struct SleepData: Codable, Sendable {
         let total = max(0, minutes)
         return formatter.string(from: TimeInterval(total * 60))
             ?? (total >= 60 ? "\(total / 60)h \(total % 60)m" : "\(total)m")
-    }
-
-    /// Whether this was a split night with multiple sleep segments, as
-    /// `effectiveSegments` resolves them (stored segments, else segments
-    /// derived from the stage intervals at `splitGapMinutes`).
-    var isSplitNight: Bool {
-        effectiveSegments.count > 1
     }
 
     /// Segments for display. The resolver writes these as the canonical split
@@ -217,10 +210,21 @@ struct SleepData: Codable, Sendable {
     /// Used only as a fallback for archives encoded before the resolver
     /// started writing segments directly.
     private var derivedSegmentsFromStages: [HealthKitManager.SleepSegment] {
-        guard !stageIntervals.isEmpty else { return [] }
+        Self.segments(fromStages: stageIntervals, splitGapMinutes: splitGapMinutes)
+    }
+
+    /// Segments for a stage timeline, built the way `SleepResolver` builds a
+    /// night's: split at physical gaps of `splitGapMinutes`, then by
+    /// accumulated awake time, one segment per group (stage minutes nil for
+    /// an unstaged group). Empty for an empty timeline.
+    static func segments(
+        fromStages stages: [HealthKitManager.SleepStageInterval], splitGapMinutes: Int
+    ) -> [HealthKitManager.SleepSegment] {
+        guard !stages.isEmpty else { return [] }
         let gapSeconds = Double(splitGapMinutes) * 60
-        let groups = SleepMergingPipeline.splitStageIntervalsByAwake(stageIntervals, gap: gapSeconds)
-        return groups.compactMap { SleepMergingPipeline.buildSegmentFromIntervals($0) }
+        return SleepMergingPipeline.splitStageIntervals(stages, gap: gapSeconds)
+            .flatMap { SleepMergingPipeline.splitStageIntervalsByAwake($0, gap: gapSeconds) }
+            .compactMap(SleepMergingPipeline.buildSegmentFromIntervals)
     }
 
     // MARK: - Memberwise Init
@@ -291,38 +295,44 @@ struct SleepData: Codable, Sendable {
         return clampedByTotals(recordingStart, onset: onset)
     }
 
-    /// With a per-stage timeline, re-derive every duration from the trimmed
-    /// intervals rather than adjusting the stored totals.
+    /// With a per-stage timeline, re-derive every duration and the segments
+    /// from the trimmed intervals rather than adjusting the stored totals.
+    /// Deep and REM stay nil for an unstaged timeline (no deep or REM at
+    /// all), the contract `SleepMergingPipeline.buildSegmentFromIntervals`
+    /// applies.
     private func clampedByStages(_ recordingStart: Date) -> SleepData {
         let trimmed = Self.trimIntervals(stageIntervals, from: recordingStart)
-        let sleepMin = Self.minutes(in: trimmed) { $0 != .awake }
-        let awakeMin = Self.minutes(in: trimmed) { $0 == .awake }
-        let inBed = sleepMin + awakeMin
+        let stages = SleepMergingPipeline.accumulateStageMinutes(trimmed)
+        let inBed = stages.totalSleep + stages.awake
         return SleepData(
             date: date, inBedStart: recordingStart,
             sleepStart: trimmed.filter { $0.stage != .awake }.map(\.start).min() ?? recordingStart,
-            sleepEnd: sleepEnd, totalSleepMinutes: sleepMin, inBedMinutes: inBed,
-            deepSleepMinutes: Self.minutes(in: trimmed) { $0 == .deep },
-            remSleepMinutes: Self.minutes(in: trimmed) { $0 == .rem },
-            napSleepMinutes: napSleepMinutes, awakeMinutes: awakeMin,
-            sleepEfficiency: Self.efficiencyPercent(sleep: sleepMin, inBed: inBed),
+            sleepEnd: sleepEnd, totalSleepMinutes: stages.totalSleep, inBedMinutes: inBed,
+            deepSleepMinutes: stages.hasDetailed ? stages.deep : nil,
+            remSleepMinutes: stages.hasDetailed ? stages.rem : nil,
+            napSleepMinutes: napSleepMinutes, awakeMinutes: stages.awake,
+            sleepEfficiency: Self.efficiencyPercent(sleep: stages.totalSleep, inBed: inBed),
             boundarySource: boundarySource,
-            segments: [], // re-derived from the trimmed stageIntervals via effectiveSegments
+            segments: Self.segments(fromStages: trimmed, splitGapMinutes: splitGapMinutes),
             stageIntervals: trimmed, boundaryValidation: boundaryValidation,
             hrSleepQuality: hrSleepQuality, splitGapMinutes: splitGapMinutes, edits: edits
         )
     }
 
     /// No per-stage timeline (e.g. HR-estimated boundaries only): clamp the
-    /// onset and subtract the trimmed-off pre-recording minutes.
+    /// onset and subtract the trimmed-off pre-recording minutes. Deep and REM
+    /// are kept only while they still fit in the new total; which of them
+    /// fell in the trimmed lead is unknown, so stage figures that no longer
+    /// fit are dropped (nil, unstaged) rather than shown above 100 %.
     private func clampedByTotals(_ recordingStart: Date, onset: Date) -> SleepData {
         let trimmedLeadMin = max(0, Int(recordingStart.timeIntervalSince(onset) / 60))
         let newTotal = max(0, totalSleepMinutes - trimmedLeadMin)
         let inBed = newTotal + awakeMinutes
+        let stagesFit = (deepSleepMinutes ?? 0) + (remSleepMinutes ?? 0) <= newTotal
         return SleepData(
             date: date, inBedStart: recordingStart, sleepStart: recordingStart, sleepEnd: sleepEnd,
             totalSleepMinutes: newTotal, inBedMinutes: inBed,
-            deepSleepMinutes: deepSleepMinutes, remSleepMinutes: remSleepMinutes,
+            deepSleepMinutes: stagesFit ? deepSleepMinutes : nil, remSleepMinutes: stagesFit ? remSleepMinutes : nil,
             napSleepMinutes: napSleepMinutes, awakeMinutes: awakeMinutes,
             sleepEfficiency: Self.efficiencyPercent(sleep: newTotal, inBed: inBed),
             boundarySource: boundarySource, segments: [], stageIntervals: [],
@@ -345,13 +355,6 @@ struct SleepData: Codable, Sendable {
                 stage: iv.stage, start: clippedStart, end: iv.end, provenance: iv.provenance
             )
         }
-    }
-
-    private static func minutes(
-        in intervals: [HealthKitManager.SleepStageInterval],
-        matching: (HealthKitManager.SleepStage) -> Bool
-    ) -> Int {
-        intervals.filter { matching($0.stage) }.reduce(0) { $0 + $1.durationMinutes }
     }
 
     /// Whether this sleep window plausibly belongs to a recording spanning
@@ -384,8 +387,12 @@ struct SleepData: Codable, Sendable {
     ///     whole recording = the shorter span → ACCEPT.
     ///
     /// Returns `true` when there is no usable sleep window to check (nothing to
-    /// reject) or when either span is degenerate — callers that need a positive
-    /// sleep window should already have guarded `totalSleepMinutes`.
+    /// reject) — callers that need a positive sleep window should already have
+    /// guarded `totalSleepMinutes`. A zero-length recording (a crash-
+    /// interrupted session with no end, passed as `endDate ?? startDate`) has
+    /// no span to overlap, so it belongs only to a sleep window that contains
+    /// its instant; accepting any window would switch the guard off for
+    /// exactly the interrupted sessions it protects.
     func plausiblyBelongsToRecording(
         start recordingStart: Date,
         end recordingEnd: Date,
@@ -394,8 +401,8 @@ struct SleepData: Codable, Sendable {
         guard let sStart = sleepStart, let sEnd = sleepEnd, sEnd > sStart else { return true }
         let recordingSeconds = recordingEnd.timeIntervalSince(recordingStart)
         let sleepSeconds = sEnd.timeIntervalSince(sStart)
+        guard recordingSeconds > 0 else { return (sStart ... sEnd).contains(recordingStart) }
         let shorterSpan = min(recordingSeconds, sleepSeconds)
-        guard shorterSpan > 0 else { return true }
         let overlap = min(recordingEnd, sEnd).timeIntervalSince(max(recordingStart, sStart))
         return overlap >= shorterSpan * minRatio
     }

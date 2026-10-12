@@ -1,0 +1,288 @@
+{
+ "file": "Emuqu/Sources/Storage/SessionMerger+Rebase.swift",
+ "hash": "e2f30c38a0912585",
+ "role": "SessionMerger extension that moves a session onto a shared clock (re-counting beats, sleep bounds, segments, analysis times), re-points analysis window indices into a merged series, and copies an HRVSession with a new start date.",
+ "types": [
+  "SessionMerger: extension — clock rebasing and copy helpers"
+ ],
+ "state": [
+  "mem:SessionMerger.copiedSessionFieldCount = 39 (asserted against HRVSession's Mirror child count in SessionMergeClockTests)"
+ ],
+ "toplevel": "copiedSessionFieldCount static constant (103).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionMerger.onClock(_:startingAt:)",
+   "hash": "4f7b8185f3c0e4ad",
+   "does": "Returns the session re-counted from clockStart: copy with new startDate, rrSeries points rebased from the series' own startDate, analysis/autoWindow times (beat times) shifted by the series' offset, sleep bounds/segments by the session start offset. Returns the session unchanged only when both the session and its series already start at clockStart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.isOnClock(_:_:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session and series already on clockStart",
+     "effect": "return session unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "no rrSeries",
+     "effect": "beat offset = session offset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.isOnClock(_:_:)": "d49529f354fcaf64",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "7b9af85ecd99f554",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+   }
+  },
+  {
+   "key": "func SessionMerger.isOnClock(_:_:)",
+   "hash": "55942048c2555652",
+   "does": "True when the session's startDate equals clockStart and its series (if any) starts there too.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no series",
+     "effect": "only the session start is compared"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.shifted(_:by:)",
+   "hash": "ee1a83889a421a4b",
+   "does": "Returns the analysis result with windowStartMs/EndMs, organized recovery zones and nadir time moved offsetMs later; indices unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "offsetMs == 0",
+     "effect": "return result unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func SessionMerger.reindexed(_:from:onto:)",
+   "hash": "f8a3f31d3998541b",
+   "does": "Re-points an analysis result's window indices from the source series to the same beats in the merged series; unchanged result when both indices map to themselves.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.mergedIndex(of:in:onto:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "start or end index changed",
+     "effect": "true: withWindow copy; false: return original"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.mergedIndex(of:in:onto:)": "1074e172afb55f36",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)": "7047e557a7b4fab0"
+   }
+  },
+  {
+   "key": "func SessionMerger.mergedIndex(of:in:onto:)",
+   "hash": "e413a711e31a9946",
+   "does": "Binary search: first index in merged whose t_ms >= source[index].t_ms - duplicate tolerance; an index past the source end uses the last beat's endMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "ext:DataSourceSelector.duplicateToleranceMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "source non-empty AND index >= 0",
+     "effect": "false: return index unchanged"
+    },
+    {
+     "at": "+2",
+     "cond": "index < source.count",
+     "effect": "true: source[index].t_ms; false: last.endMs"
+    },
+    {
+     "at": "+6",
+     "cond": "while low < high",
+     "effect": "binary search loop"
+    },
+    {
+     "at": "+8",
+     "cond": "merged[mid].t_ms < target",
+     "effect": "low = mid+1; else high = mid"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func SessionMerger.repointed(_:onto:)",
+   "hash": "8d041a13c2664a36",
+   "does": "Re-points an analysis window at a different series on the same clock by time: windowStart/windowEnd become the first beats at or after windowStartMs/windowEndMs (via withWindow); returns the result unchanged when points is empty or the window has no times.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.firstIndex(atOrAfter:in:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty or window times missing",
+     "effect": "return result unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.firstIndex(atOrAfter:in:)": "b9e69d771f26aec8",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)": "7047e557a7b4fab0"
+   }
+  },
+  {
+   "key": "func SessionMerger.firstIndex(atOrAfter:in:)",
+   "hash": "0cece40ac3b95c24",
+   "does": "Binary search for the first index whose beat t_ms is >= timeMs; points.count when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "while low < high",
+     "effect": "halve the range"
+    },
+    {
+     "at": "+5",
+     "cond": "points[mid].t_ms < timeMs",
+     "effect": "low = mid+1; else high = mid"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.withWindow(_:start:end:)",
+   "hash": "54c2f688033bf90c",
+   "does": "Rebuilds an HRVAnalysisResult with new windowStart/windowEnd and every other field copied.",
+   "entry": null,
+   "calls": [
+    "ext:HRVAnalysisResult.init (memberwise)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Hand-copies ~29 fields through the initializer; unlike copy(of:) there is no field-count test, so a field added to HRVAnalysisResult is silently dropped from every re-pointed merge result unless the initializer forces it.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:79",
+      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:103"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func SessionMerger.copy(of:startDate:)",
+   "hash": "79ef8689bdb4559b",
+   "does": "Builds a new HRVSession with startDate replaced and every other stored field (initializer fields + derived + user fields) copied.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)": "9eaac86c75ed552d"
+   }
+  },
+  {
+   "key": "func SessionMerger.copyDerivedFields(from:to:)",
+   "hash": "d1a4f0145bebc39c",
+   "does": "Copies stored fields the memberwise init does not take (schema version, snapshots, adjustments, auto window, breakdown, readiness, quality, HealthKit export state), then user fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)": "a675809f922ff668"
+   }
+  },
+  {
+   "key": "func SessionMerger.copyUserFields(from:to:)",
+   "hash": "e1f9046b2987cb4e",
+   "does": "Copies modifiedAt, aiContext, perceivedReadiness, morningFeeling(+tags), workoutMetadata.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "ae7b7e75db3bda85",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71"
+   }
+  }
+ ],
+ "deps": {}
+}

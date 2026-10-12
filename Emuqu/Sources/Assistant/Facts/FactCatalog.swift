@@ -176,35 +176,20 @@ enum FactEntry: Sendable {
         body: FactExecuteBody
     )
 
-    /// Key or pattern string for display in the catalog dump.
+    /// Key or pattern string for display in the catalog dump: a pattern
+    /// shows its example in place of its `$placeholder`, whatever the
+    /// placeholder is called.
     var display: String {
         switch self {
         case .fixed(let key, _, _, _, _): key
         case .parameterized(let pattern, let example, _, _, _):
-            pattern.replacingOccurrences(of: "$date", with: example)
-                .replacingOccurrences(of: "$ordinal", with: example)
-                .replacingOccurrences(of: "$id", with: example)
-                .replacingOccurrences(of: "$period", with: example)
-                .replacingOccurrences(of: "$namespace", with: example)
+            pattern.replacingOccurrences(
+                of: #"\$[A-Za-z_]+"#,
+                with: NSRegularExpression.escapedTemplate(for: example),
+                options: .regularExpression
+            )
         case .composite(let key, _, _, _, _, _): key
         case .action(let key, _, _, _, _): key
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .fixed(_, let d, _, _, _), .parameterized(_, _, let d, _, _): d
-        case .composite(_, let d, _, _, _, _): d
-        case .action(_, let d, _, _, _): d
-        }
-    }
-
-    var valueType: String {
-        switch self {
-        case .fixed(_, _, let t, _, _): t
-        case .parameterized: "Record"
-        case .composite(_, _, let t, _, _, _): t
-        case .action: "Record"  // confirmation envelope
         }
     }
 
@@ -217,25 +202,6 @@ enum FactEntry: Sendable {
         case .composite(_, _, _, _, let a, _): a()
         case .action(_, _, _, let a, _): a()
         }
-    }
-
-    /// Declared dependencies for composites. Empty for atomics and actions.
-    /// Used by the CI validation suite to enforce "every dependency
-    /// references a real catalog entry" at build time.
-    var dependencies: [String] {
-        switch self {
-        case .fixed, .parameterized, .action: []
-        case .composite(_, _, _, let deps, _, _): deps
-        }
-    }
-
-    /// True for `.action(...)` entries; false for read-only entries.
-    /// Used by the schema builder to tag mutations + by the prompt
-    /// overlay to enumerate them so the model knows which tools require
-    /// explicit user instruction.
-    var isAction: Bool {
-        if case .action = self { return true }
-        return false
     }
 
     /// Envelope returned when a SYNCHRONOUS resolve walk lands on an
@@ -412,24 +378,6 @@ protocol FactNamespaceResolver: Sendable {
 }
 
 extension FactNamespaceResolver {
-    /// Default resolve walks `entries` once and returns the first
-    /// matching closure's result. O(n) per lookup — fine at typical
-    /// namespace sizes (<100 entries). If a namespace grows past ~500
-    /// entries, override with a dict lookup.
-    ///
-    /// Composite entries are NOT resolved here — they need the registry
-    /// reference, which the namespace doesn't have. See
-    /// `FactResolverRegistry.resolve(_:)` for the composite-aware path.
-    func resolve(_ key: FactKey) -> FactValue? {
-        let rendered = key.rendered
-        for entry in entries {
-            if let value = resolveEntry(entry, key: key, rendered: rendered, registry: nil) {
-                return value
-            }
-        }
-        return nil
-    }
-
     /// A fixed entry's value on a synchronous path. An `.awaitable` body can't
     /// run here, so it reports itself as unavailable rather than blocking.
     private func syncValue(of body: FactResolveBody, key: String) -> FactValue? {
@@ -490,7 +438,7 @@ extension FactNamespaceResolver {
         body: (String?, FactResolverRegistry) -> FactValue?
     ) -> FactValue? {
         guard k.contains("(") else { return k == rendered ? body(nil, registry) : nil }
-        guard let (param, _) = matchPattern(k, against: key) else { return nil }
+        guard let (param, tail) = matchPattern(k, against: key), tail == nil else { return nil }
         return body(param, registry)
     }
 
@@ -548,7 +496,7 @@ extension FactNamespaceResolver {
     ) async -> FactValue? {
         let param: String?
         if k.contains("(") {
-            guard let (captured, _) = matchPattern(k, against: key) else { return nil }
+            guard let (captured, tail) = matchPattern(k, against: key), tail == nil else { return nil }
             param = captured
         } else {
             guard k == rendered else { return nil }

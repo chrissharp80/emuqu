@@ -1,0 +1,837 @@
+{
+ "file": "Emuqu/Sources/Services/RoadAwarenessEngine.swift",
+ "hash": "d7d45d89ebfb6328",
+ "role": "Pure road-awareness engine over a RoadGraphService OSM tile: snaps a CLLocation to the nearest road segment (optionally bearing-weighted), walks the graph ahead for up to 600 m / 3 events, and builds a localized spoken phrase that never invents a road name.",
+ "types": [
+  "RoadAwarenessEngine: enum — static snap/lookahead/phrase functions",
+  "SnapResult: struct",
+  "LookaheadEvent: struct with Kind enum (intersection, roadEnds)",
+  "AwarenessResult: struct",
+  "Candidate: private struct — best snap candidate",
+  "Walk: private struct — lookahead cursor",
+  "Advance: private struct — result of one geometry hop"
+ ],
+ "state": [
+  "static minSpeedForCourseTrust 0.7 m/s, maxCourseAccuracyDegrees 30, maxSnapDistanceMeters 40, maxLookaheadMeters 600, maxLookaheadIntersections 3 (RoadAwarenessEngine.swift:131-144)"
+ ],
+ "toplevel": "No top-level code beyond type declarations and static constants.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds",
+   "hash": "32ae47357e8b5efa",
+   "does": "True when the kind is .roadEnds.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .roadEnds",
+     "effect": "true: return true; false: false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadAwarenessEngine.awareness(for:neighborhoodFallback:)",
+   "hash": "27c1fe59f22fab13",
+   "does": "Fetches the road tile for the location from RoadGraphService (Overpass-backed, cached) and runs the synchronous awareness; nil when no tile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)"
+   ],
+   "reads": [
+    "net:Overpass (via RoadGraphService)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "tile available",
+     "effect": "false: return nil; true: compute awareness"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "fd87f5d717cc65f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService": "b5844c996cbb2b5d"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)",
+   "hash": "ee25404b3d633903",
+   "does": "Computes bearing trust, snaps the fix, and either returns a zero-confidence neighbourhood-only result or the road name (name ?? ref), lookahead events, distance to road end, confidence and phrase.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "trust.trusted",
+     "effect": "true: pass location.course; false: nil"
+    },
+    {
+     "at": "+10",
+     "cond": "snap succeeded",
+     "effect": "false: fallbackResult(neighborhood); true: lookahead + phrase"
+    },
+    {
+     "at": "+18",
+     "cond": "segmentName ?? segmentRef",
+     "effect": "currentRoadName falls back to ref, else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "d250aa644ae177c3",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "7678165287274e81",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "8ddf45d1a8d99b3a",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds": "2717045fa4fdd405"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.fallbackResult(_:)",
+   "hash": "d0dc0cb13851dcb2",
+   "does": "AwarenessResult with no road, no events, confidence 0, phrase from the neighbourhood fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.bearingTrust(for:)",
+   "hash": "38ad80a08e56b759",
+   "does": "Decides whether course is trustworthy: not if course<0, not if valid speed <0.7 m/s, not if valid courseAccuracy >30°; otherwise trusted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "course < 0",
+     "effect": "true: untrusted \"course=-1\""
+    },
+    {
+     "at": "+4",
+     "cond": "speed >= 0 and speed < 0.7",
+     "effect": "true: untrusted (an invalid speed of -1 skips this gate and course is trusted)"
+    },
+    {
+     "at": "+11",
+     "cond": "courseAccuracy >= 0 and > 30",
+     "effect": "true: untrusted; false (incl. -1 unavailable): trusted \"ok\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md (~1257) describes the gates as 'course accuracy >= 30 deg, speed >= 0.7 m/s ... refuse to snap rather than mis-snap', while the code distrusts a valid courseAccuracy > 30 (trusting -1), trusts an invalid speed of -1, and an untrusted bearing still snaps (without bearing bias). The docstring now describes the code; FLOWCHART is outside this file (handed off).",
+     "evidence": [
+      "docs/FLOWCHART.md:1257-1258",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:204"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+   "hash": "e4cf0241e15f3987",
+   "does": "Finds the best-scoring segment within 40 m; confidence = 0.7·(1−dist/40) + 0.3·(1.0 if bearing used else 0.5); walking direction from bearing when trusted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "tile has segments",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+10",
+     "cond": "useBearing",
+     "effect": "true: course = userCourseDegrees; false: nil"
+    },
+    {
+     "at": "+11",
+     "cond": "best candidate exists and perpDist <= 40",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+15",
+     "cond": "useBearing",
+     "effect": "bearingScore 1.0 vs 0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+   "hash": "fa9e7ee30cd7b957",
+   "does": "Across all tile segments, keeps the per-segment best candidate with the lowest score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each segment",
+     "effect": "score it"
+    },
+    {
+     "at": "+8",
+     "cond": "segment candidate exists and score < bestScore",
+     "effect": "true: new best; false: continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+   "hash": "013ac31f2c83bc22",
+   "does": "Across one way's consecutive geometry pairs, keeps the lowest-scoring candidate (handles 0/1-point ways by iterating zero times).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for i in 0..<max(0,count−1)",
+     "effect": "each line piece"
+    },
+    {
+     "at": "+10",
+     "cond": "candidate exists",
+     "effect": "false: continue"
+    },
+    {
+     "at": "+11",
+     "cond": "score < (best?.score ?? greatestFiniteMagnitude)",
+     "effect": "true: new best; ?? means first candidate always wins"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+   "hash": "3eef2ff446f08cd7",
+   "does": "Projects the user onto piece i, rejects if >60 m, computes segment bearing and a 0–36 m bearing penalty (0.4 × 0–90° axial misalignment) when a course is given; score = perpDist + penalty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "perpDist <= 60 m (40×1.5)",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+13",
+     "cond": "userCourse given",
+     "effect": "true: add bearing penalty; false: 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "47aa61e638769461",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "88c2acfd3a47d820"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+   "hash": "02551b87a53e4eba",
+   "does": "Returns whether the user course is within 90° of the segment bearing (forward along nodeIds); nil without a course.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userCourse present",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+4",
+     "cond": "delta > 180",
+     "effect": "true: use 360−delta; result <= 90 → true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadAwarenessEngine.lookahead(from:tile:)",
+   "hash": "79a5a569594dd998",
+   "does": "Walks the graph from the snap in the travel direction (forward when unknown), collecting events until 3 events, 600 m, no next event, or a stop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "snap segment present in tile",
+     "effect": "false: []"
+    },
+    {
+     "at": "+5",
+     "cond": "walkingForwardAlongNodeIds ?? true",
+     "effect": "unknown direction defaults to forward"
+    },
+    {
+     "at": "+12",
+     "cond": "initialForward",
+     "effect": "true: start at nodeIndex+1; false: at nodeIndex"
+    },
+    {
+     "at": "+16",
+     "cond": "events < 3 and distance < 600",
+     "effect": "loop condition"
+    },
+    {
+     "at": "+17",
+     "cond": "nextEvent non-nil",
+     "effect": "false: break"
+    },
+    {
+     "at": "+19",
+     "cond": "keepWalking",
+     "effect": "false: break after appending"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.nextEvent(_:tile:)",
+   "hash": "8067302e454a001a",
+   "does": "Advances to the next graph node; a node mid-way is an intersection the walk continues through; at a way end, emits the event and continues onto a same-name continuation if possible.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "advanceToNextNode returned a node",
+     "effect": "false: nil (walk over)"
+    },
+    {
+     "at": "+2",
+     "cond": "hitIndex is interior (0 < i < count−1)",
+     "effect": "true: mid-way intersection, keep walking"
+    },
+    {
+     "at": "+3",
+     "cond": "walkingForward",
+     "effect": "next index i+1 vs i−1"
+    },
+    {
+     "at": "+7",
+     "cond": "event(at:) non-nil",
+     "effect": "false: nil (event never returns nil today)"
+    },
+    {
+     "at": "+8",
+     "cond": "continuation present",
+     "effect": "false: (event, stop); true: (event, advanceIntoContinuation result)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+   "hash": "442ce1ee5c1573e9",
+   "does": "Intersection event at a mid-way node: other ways at the node excluding the current way and (when named) same-named pieces; cross names include refs; roundabout flag from node.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isRoundabout": "7c0b33b96f3da549",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+   "hash": "eea96e7bd230fdfb",
+   "does": "Runs advance() from the walk's cursor, updates distance/cursor/hitIndex, and returns the hit node when one was found within 600 m and exists in tile.nodes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "node id, coord, distance <= 600 and node in tile",
+     "effect": "false: nil; true: (node,id,coord)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.event(at:walk:tile:)",
+   "hash": "43dbbfb320e7d7bf",
+   "does": "At a way end: finds a same-name continuation among other ways at the node; none → roadEnds with branch names; else intersection event listing other cross names plus the continuation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "branches (other ways at the node) empty",
+     "effect": "true: no continuation; false: look for a same-name way"
+    },
+    {
+     "at": "+9",
+     "cond": "walk.segmentName is nil or empty",
+     "effect": "true (via flatMap nil or isEmpty): no continuation; false: first branch whose name equals it"
+    },
+    {
+     "at": "+11",
+     "cond": "continuation found",
+     "effect": "false: roadEnds(names of all branches, names only, no refs), nil continuation; true: intersection event with cross names excluding the continuation (refs allowed) + continuation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isRoundabout": "7c0b33b96f3da549",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+   "hash": "3c21d880dd1d466d",
+   "does": "Steps onto the continuation way if not visited and the node is on it, heading toward the farther end; returns whether the walk continues.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "continuation already visited",
+     "effect": "true: false (stop, prevents loops)"
+    },
+    {
+     "at": "+9",
+     "cond": "entry node found in continuation.nodeIds",
+     "effect": "false: false"
+    },
+    {
+     "at": "+14",
+     "cond": "walkingForward (entry nearer start)",
+     "effect": "next index entry+1 vs entry−1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+   "hash": "60a9254bdb469f06",
+   "does": "Sums haversine distance along geometry from index in the given direction until a node that is an intersection or way endpoint (returning it), or until >600 m (returning no node).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "forward",
+     "effect": "true: index..<count; false: index down to 0"
+    },
+    {
+     "at": "+13",
+     "cond": "for each index",
+     "effect": "advance cursor"
+    },
+    {
+     "at": "+17",
+     "cond": "travelled > 600",
+     "effect": "true: break, no node"
+    },
+    {
+     "at": "+20",
+     "cond": "node in tile and (intersection or endpoint)",
+     "effect": "false: continue; true: return hit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isIntersection": "509c908fa7fdab9a"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+   "hash": "9fbda9554396171c",
+   "does": "Order-preserving deduplicated names of branches (excluding one id), falling back to ref when includingRefs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "b.id != excludedId",
+     "effect": "filter"
+    },
+    {
+     "at": "+8",
+     "cond": "name non-empty and unseen",
+     "effect": "append name"
+    },
+    {
+     "at": "+11",
+     "cond": "includingRefs and ref non-empty and unseen",
+     "effect": "append ref"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+   "hash": "b3cbd98d1f3c374d",
+   "does": "Builds the phrase: 'on <name|ref>' or 'walking through <neighbourhood>' or nil; appends the clause for the first useful event (firstUsefulEvent: road end, roundabout or named crossing, else the first event) only when walking direction is known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.firstUsefulEvent(in:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:units preference (via UnitsPreferenceStore.current default arg)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "segmentName ?? segmentRef",
+     "effect": "name falls back to ref"
+    },
+    {
+     "at": "+9",
+     "cond": "a road name/ref exists",
+     "effect": "true: \"on X\""
+    },
+    {
+     "at": "+11",
+     "cond": "neighborhoodFallback present",
+     "effect": "true: \"walking through X\"; false: return nil"
+    },
+    {
+     "at": "+17",
+     "cond": "direction known and a useful event and clause non-nil",
+     "effect": "true: append clause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "6d7f402c3fec45a7",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.firstUsefulEvent(in:)": "b19ed841dbb87324",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.firstUsefulEvent(in:)",
+   "hash": "79c190fb7d3210bf",
+   "does": "Static: the first event that says something — a road end, a roundabout, or an intersection with a named cross street — skipping crossings with no named street (OSM way splits, unnamed paths); falls back to the first event when none qualifies; nil for no events.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .roadEnds",
+     "effect": "useful"
+    },
+    {
+     "at": "+4",
+     "cond": "case .intersection",
+     "effect": "useful when roundabout or any cross street"
+    },
+    {
+     "at": "+6",
+     "cond": "no useful event",
+     "effect": "?? events.first"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Crossings with no named street still count toward the 3-event lookahead budget (lookahead appends every event), so a run of OSM way splits can push a named cross street past the third event, where it is never reached.",
+     "evidence": [
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:378"
+     ],
+     "found": "fix pass"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+   "hash": "9a555a177478a71a",
+   "does": "Clause for the event constructPhrase picked: roundabout / approaching cross street / road continues X / ends (at next) in distance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "case .intersection",
+     "effect": "see 607/610"
+    },
+    {
+     "at": "+7",
+     "cond": "isRoundabout",
+     "effect": "\"approaching a roundabout in D\""
+    },
+    {
+     "at": "+10",
+     "cond": "first cross street exists",
+     "effect": "\"approaching S in D\"; else road-continues clause or nil when roadContinuesForMeters nil"
+    },
+    {
+     "at": "+16",
+     "cond": "case .roadEnds",
+     "effect": "see 617"
+    },
+    {
+     "at": "+17",
+     "cond": "first continuation name exists",
+     "effect": "false: \"ends in D\"; true: \"ends at N in D\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.phraseFromFallback(_:)",
+   "hash": "5dee28deebf9cae9",
+   "does": "Localized 'walking through <fallback>' or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fallback present",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.formatDistance(_:imperial:)",
+   "hash": "70c937278974f852",
+   "does": "Formats meters in app locale: imperial → feet (<300 m, integer) or miles (1 dp); metric → meters (<1 km, integer) or km (1 dp).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:units preference (via UnitsPreferenceStore.current default arg)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "imperial",
+     "effect": "imperial vs metric branch"
+    },
+    {
+     "at": "+9",
+     "cond": "meters < 300",
+     "effect": "feet vs miles"
+    },
+    {
+     "at": "+13",
+     "cond": "meters < 1000",
+     "effect": "meters vs km"
+    },
+    {
+     "at": "+17",
+     "cond": "unit is feet or meters",
+     "effect": "0 fraction digits, else 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+   "hash": "6c0e9ab1a756f6fe",
+   "does": "Projection of p onto a→b on a local flat projection with longitude scaled by cos(p.lat), so the foot point is perpendicular in metres; t clamped to [0,1] and the snapped point interpolated in degrees; returns a with t=0 for degenerate segments.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "lenSq < 1e-18",
+     "effect": "true: (a, 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadAwarenessEngine.haversineMeters(_:_:)",
+   "hash": "6b7c5d4115626dff",
+   "does": "Haversine great-circle distance in meters (R = 6,371,000).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadAwarenessEngine.bearingDegrees(from:to:)",
+   "hash": "c41203848a094d44",
+   "does": "Initial bearing from a→b in degrees clockwise from true north, [0, 360): converts both points to coordinates and calls the global bearingDegrees(from:to:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "1880b57b7020c663"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -56,45 +56,30 @@ struct ReadingTag: Codable, Hashable, Identifiable, Sendable {
     }
 
     private static func localizedSystemName(suffix: String) -> String? {
-        let b = LanguageManager.appBundle
-        return switch suffix {
-        case "1": String(localized: "Morning", bundle: b, comment: "Reading tag")
-        case "2": String(localized: "Post-Exercise", bundle: b, comment: "Reading tag")
-        case "3": String(localized: "Recovery", bundle: b)
-        case "4": String(localized: "Evening", bundle: b, comment: "Reading tag")
-        case "5": String(localized: "Pre-Sleep", bundle: b, comment: "Reading tag")
-        case "6": String(localized: "Stressed", bundle: b)
-        case "7": String(localized: "Relaxed", bundle: b, comment: "Reading tag")
-        case "8": String(localized: "Alcohol", bundle: b, comment: "Reading tag")
-        case "9": String(localized: "Poor Sleep", bundle: b, comment: "Reading tag")
-        case "A": String(localized: "Travel", bundle: b, comment: "Reading tag")
-        case "B": String(localized: "Late Meal", bundle: b, comment: "Reading tag")
-        case "C": String(localized: "Caffeine", bundle: b, comment: "Reading tag")
-        case "D": String(localized: "Illness", bundle: b, comment: "Reading tag")
-        case "E": String(localized: "Menstrual", bundle: b, comment: "Reading tag")
-        default: nil
-        }
+        systemTagDefinitions.first { $0.suffix == suffix }?.localizedName()
     }
 
     // MARK: - System Preset Tags
 
-    /// Data-driven system tag definitions: (uuid suffix, name, color hex).
-    /// Adding a new system tag only requires appending one row here.
-    private static let systemTagDefinitions: [(suffix: String, name: String, colorHex: String)] = [
-        ("1", "Morning", "#4A90D9"),
-        ("2", "Post-Exercise", "#E85D4C"),
-        ("3", "Recovery", "#50C878"),
-        ("4", "Evening", "#9B59B6"),
-        ("5", "Pre-Sleep", "#34495E"),
-        ("6", "Stressed", "#E74C3C"),
-        ("7", "Relaxed", "#1ABC9C"),
-        ("8", "Alcohol", "#C0392B"),
-        ("9", "Poor Sleep", "#7F8C8D"),
-        ("A", "Travel", "#3498DB"),
-        ("B", "Late Meal", "#E67E22"),
-        ("C", "Caffeine", "#784212"),
-        ("D", "Illness", "#27AE60"),
-        ("E", "Menstrual", "#E91E63")
+    /// Data-driven system tag definitions: (uuid suffix, English storage
+    /// name, color hex, the name in the app's language). Adding a new system
+    /// tag only requires appending one row here, and the row cannot be
+    /// written without its localized name.
+    private static let systemTagDefinitions: [(suffix: String, name: String, colorHex: String, localizedName: @Sendable () -> String)] = [
+        ("1", "Morning", "#4A90D9", { String(localized: "Morning", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("2", "Post-Exercise", "#E85D4C", { String(localized: "Post-Exercise", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("3", "Recovery", "#50C878", { String(localized: "Recovery", bundle: LanguageManager.appBundle) }),
+        ("4", "Evening", "#9B59B6", { String(localized: "Evening", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("5", "Pre-Sleep", "#34495E", { String(localized: "Pre-Sleep", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("6", "Stressed", "#E74C3C", { String(localized: "Stressed", bundle: LanguageManager.appBundle) }),
+        ("7", "Relaxed", "#1ABC9C", { String(localized: "Relaxed", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("8", "Alcohol", "#C0392B", { String(localized: "Alcohol", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("9", "Poor Sleep", "#7F8C8D", { String(localized: "Poor Sleep", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("A", "Travel", "#3498DB", { String(localized: "Travel", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("B", "Late Meal", "#E67E22", { String(localized: "Late Meal", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("C", "Caffeine", "#784212", { String(localized: "Caffeine", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("D", "Illness", "#27AE60", { String(localized: "Illness", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        ("E", "Menstrual", "#E91E63", { String(localized: "Menstrual", bundle: LanguageManager.appBundle, comment: "Reading tag") })
     ]
 
     private static func systemTag(suffix: String, name: String, colorHex: String) -> ReadingTag {
@@ -138,12 +123,17 @@ struct ReadingTag: Codable, Hashable, Identifiable, Sendable {
 // MARK: - Color Extension for Hex
 
 extension Color {
+    /// `#RRGGBB` or the `#RGB` shorthand (the "#" optional). Anything else —
+    /// another length, or a character that is not a hex digit — is nil
+    /// rather than a guess.
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+        if hexSanitized.count == 3 { hexSanitized = hexSanitized.map { "\($0)\($0)" }.joined() }
 
         var rgb: UInt64 = 0
-        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
+        guard hexSanitized.count == 6, hexSanitized.allSatisfy(\.isHexDigit),
+              Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
 
         let r = Double((rgb & 0xFF0000) >> 16) / 255.0
         let g = Double((rgb & 0x00FF00) >> 8) / 255.0
@@ -159,9 +149,12 @@ extension Color {
         var b: CGFloat = 0
         var a: CGFloat = 0
 
-        // getRed handles both RGB and grayscale color spaces correctly
+        // getRed handles both RGB and grayscale color spaces correctly.
+        // Components are rounded, and clamped to 0…1 because an
+        // extended-sRGB colour from ColorPicker can fall outside it.
         if uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) {
-            return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+            let byte = { (c: CGFloat) in Int((min(max(c, 0), 1) * 255).rounded()) }
+            return String(format: "#%02X%02X%02X", byte(r), byte(g), byte(b))
         }
 
         // Fallback for colors that don't support getRed (rare)

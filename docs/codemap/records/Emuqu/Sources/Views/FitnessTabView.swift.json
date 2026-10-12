@@ -1,0 +1,1295 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessTabView.swift",
+ "hash": "6912a41afc2b336e",
+ "role": "Root view of the Fitness tab: routes between the recording screen and the default dashboard by recorder phase, owns the summary sheet, GPX export/preview/share, GPX and Apple Health import entry points, workout delete, and workout start; also declares WorkoutSummaryItem, PhaseObservingStateBody and the shared RecorderBox.",
+ "types": [
+  "WorkoutSummaryItem: struct — Identifiable sheet item (session + isJustCompleted)",
+  "FitnessTabView: struct (View) — Fitness tab root",
+  "PhaseObservingStateBody: struct (View, private, generic) — switches recording/default body on recorder.lifecycle.phase",
+  "RecorderBox: class (@Observable, @MainActor, final) — shared holder of the single WorkoutRecorder"
+ ],
+ "state": [
+  "static RecorderBox.shared (FitnessTabView.swift:786)",
+  "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
+  "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
+  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed"
+ ],
+ "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutSummaryItem.id",
+   "hash": "d043fdc54de76611",
+   "does": "Identifiable id = session.id.",
+   "entry": "SwiftUI Identifiable requirement for .sheet(item:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.recorderBox",
+   "hash": "6c09f6d2cc790901",
+   "does": "Returns the app-wide RecorderBox from dependencies.app.recorderBox.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "var FitnessTabView.trainingCache",
+   "hash": "bd648b23672166ea",
+   "does": "Returns dependencies.analysis.trainingMetricsCache.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:TrainingMetricsCache"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.breadcrumbRecorder",
+   "hash": "45765eb069932a33",
+   "does": "Returns dependencies.location.breadcrumbRecorder (used by the Get Me Back card in FitnessTabView+Sections).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:BreadcrumbRecorder"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.units",
+   "hash": "e3858dc0c83a9dc9",
+   "does": "Returns UnitsPreferenceStore.current on each access.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
+   ],
+   "reads": [
+    "ud:UnitsPreferenceStore (units preference)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "var FitnessTabView.body",
+   "hash": "e6d55fe572c184d1",
+   "does": "Root body: summary sheet + recorder-gated body, 'Can't start workout' alert bound to startError, onChange of recorder phase to capture a finished session, a .task listening for Watch Save&Done acknowledgements, and onChange of the finished session's hrrSamples count to refresh the open sheet.",
+   "entry": "SwiftUI View.body; .onChange/.task modifiers",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withWorkoutSummarySheet(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderGatedBody",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.startErrorBinding",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.captureFinishedSession(phase:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.listenForWatchAcknowledge()",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.refreshOpenSummaryWithHRR()"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder",
+    "mem:WorkoutLifecycle.phase",
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "startError nil",
+     "effect": "?? alert message text ''"
+    },
+    {
+     "at": "+15",
+     "cond": "recorder / finishedSession / workoutMetadata / hrrSamples nil",
+     "effect": "?? -1 as onChange key, so the key changes when samples appear"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.captureFinishedSession(phase:)": "54e410389679ec99",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.listenForWatchAcknowledge()": "3fcfa5f8e8d2486b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.refreshOpenSummaryWithHRR()": "cb49a58cd4329d2f",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withWorkoutSummarySheet(_:)": "ddaa13ba484b3df7",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderGatedBody": "f81efa4844f8e70a",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.startErrorBinding": "e7e056ae0026bc20",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var FitnessTabView.recorderGatedBody",
+   "hash": "456bbc4415363193",
+   "does": "Shows the phase-observing state body when the recorder exists; else the default dashboard and binds the recorder on appear.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stateBody(for:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.bindRecorderOffTabSwap()"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recorderBox.recorder non-nil",
+     "effect": "true → stateBody(for:); false → defaultStateBody + onAppear bindRecorderOffTabSwap"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.bindRecorderOffTabSwap()": "fdaa81b64b1ca31e",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stateBody(for:)": "2bd4baa88375a07f",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "30bcadbc5b9e7e8b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.bindRecorderOffTabSwap()",
+   "hash": "ee0b2373124761aa",
+   "does": "Schedules a MainActor Task that binds RecorderBox to a new WorkoutRecorder(core: collector, conversation: voiceChat) on the next run-loop tick.",
+   "entry": "Called from .onAppear of defaultStateBody when no recorder exists",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecorderBox.recorder"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "3ad83ae7597a6bdb",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1"
+   }
+  },
+  {
+   "key": "func FitnessTabView.withWorkoutSummarySheet(_:)",
+   "hash": "6413727e47ec6657",
+   "does": "Attaches exactly one .sheet(item:) driven by workoutSummaryBinding presenting workoutSummarySheet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)": "f448434a866d694d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding": "278c24102cd7df94"
+   }
+  },
+  {
+   "key": "var FitnessTabView.workoutSummaryBinding",
+   "hash": "009733067b7fa1d5",
+   "does": "Binding: get returns a just-completed item from lastCompletedSession, else a history item from selectedHistorySession, else nil; set(nil) — a swipe-down dismissal — clears both and, when the dismissed sheet was the just-completed one, calls recorder.acknowledgeFinished() so the lifecycle returns to .idle like the Done button.",
+   "entry": "SwiftUI sheet(item:) reads get and calls set(nil) on dismissal (including swipe-down)",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [
+    "mem:WorkoutLifecycle.phase (via acknowledgeFinished)",
+    "mem:WorkoutLifecycle.finishedSession (via acknowledgeFinished)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "lastCompletedSession non-nil",
+     "effect": "true → item isJustCompleted=true (takes priority)"
+    },
+    {
+     "at": "+4",
+     "cond": "selectedHistorySession non-nil",
+     "effect": "true → item isJustCompleted=false; else nil (no sheet)"
+    },
+    {
+     "at": "+8",
+     "cond": "newValue non-nil",
+     "effect": "ignored"
+    },
+    {
+     "at": "+15",
+     "cond": "lastCompletedSession was set before clearing",
+     "effect": "true → recorder.acknowledgeFinished()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.workoutSummarySheet(_:)",
+   "hash": "c0e66dafdaf36888",
+   "does": "NavigationStack hosting FitnessPostSummaryView for the item's session with onDone → dismissSummary and onDelete → deleteFromSummary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "ff7500d2c6aca713",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)": "8bc08d1aec0b1bb2"
+   }
+  },
+  {
+   "key": "func FitnessTabView.dismissSummary(_:)",
+   "hash": "c7f78c1e6802e62c",
+   "does": "Clears both summary states and, for a just-completed item, calls recorder.acknowledgeFinished() (finished→idle, stop lingering Polar stream).",
+   "entry": "closure:onDone from FitnessPostSummaryView",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.phase",
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "item.isJustCompleted",
+     "effect": "true → acknowledgeFinished(); false → nothing more"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.deleteFromSummary(_:)",
+   "hash": "94448672d4264372",
+   "does": "Deletes the item's workout from the archive and, for a just-completed item, acknowledges the recorder.",
+   "entry": "closure:onDelete from FitnessPostSummaryView",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.phase"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "item.isJustCompleted",
+     "effect": "true → acknowledgeFinished(); false → nothing more"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "fe53ab4cb2afcb15",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var FitnessTabView.startErrorBinding",
+   "hash": "2fd18a3a59926c42",
+   "does": "Bool binding presenting the start-error alert while startError non-nil; setting false clears it.",
+   "entry": "SwiftUI alert isPresented binding",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "new value false",
+     "effect": "true path → startError = nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.captureFinishedSession(phase:)",
+   "hash": "002e25cd7a20f056",
+   "does": "On phase change, when phase is .finished and the recorder has a finishedSession, sets lastCompletedSession to present the summary.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "phase == .finished and finishedSession non-nil",
+     "effect": "true → lastCompletedSession = session; false → no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.refreshOpenSummaryWithHRR()",
+   "hash": "42d5ddc0fc3d4d0a",
+   "does": "Pushes the recorder's updated finishedSession (with HRR samples) into lastCompletedSession when its id matches the session open in the sheet.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "finishedSession exists, lastCompletedSession exists, ids equal",
+     "effect": "false → return; true → replace lastCompletedSession"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.stateBody(for:)",
+   "hash": "3410147364622f0b",
+   "does": "Wraps recorder in PhaseObservingStateBody: FitnessRecordingView (with stop action) while recording/finalizing, defaultStateBody otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::init PhaseObservingStateBody(recorder:recordingBody:defaultBody:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stopAction(for:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "761d0c6e6caa3737",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stopAction(for:)": "cc8745c7138f74a7",
+    "Emuqu/Sources/Views/FitnessTabView.swift::init PhaseObservingStateBody(recorder:recordingBody:defaultBody:)": "bf18e4bb5978dfd8",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "30bcadbc5b9e7e8b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.stopAction(for:)",
+   "hash": "ae6218ff15d861a8",
+   "does": "Starts a Task awaiting recorder.stop().",
+   "entry": "closure:onStop from FitnessRecordingView",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "b716c7af6bb5b527"
+   }
+  },
+  {
+   "key": "var FitnessTabView.defaultStateBody",
+   "hash": "bb71d00b56c83112",
+   "does": "Composes the dashboard: fitnessHomeScroll wrapped by chrome (title, toolbar, sensor sheet, load task), GPX sheets/alert, and import sheet/file importer/alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "fbc6cf6107a5e69f",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)": "fac7bec613c75bc6",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "ca0066497aafcef5",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll": "2e967037646f7b98"
+   }
+  },
+  {
+   "key": "var FitnessTabView.fitnessHomeScroll",
+   "hash": "1071d5f47c8e310d",
+   "does": "ScrollView with preflight surface, home cards and bottom spacer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.preflightSurface",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeCards"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeCards": "35e9814f8c0ad91a",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.preflightSurface": "e2334dcf2e6615f8"
+   }
+  },
+  {
+   "key": "var FitnessTabView.preflightSurface",
+   "hash": "4144d0b24710b2e8",
+   "does": "WorkoutPreflightView with planModel in environment and onStart forwarding to startWorkout, only when the recorder exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recorder non-nil",
+     "effect": "false → nothing rendered (no Start UI until the recorder binds)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "d49802b34261eb68",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var FitnessTabView.fitnessHomeCards",
+   "hash": "08a1201f4fa0aab7",
+   "does": "Card stack: interrupted-recording card, hero (newest workout), trajectory link, summary tiles, heat card, daily activity + Get Me Back, recent list; recentWorkoutEntries() is evaluated once per render and shared.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.heroCard(latest:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.trajectoryLinkCard",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.summaryTileGrid(entries:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.heatAcclimationCard",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.dailyActivitySurfaces",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.recentWorkoutsList(entries:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL's Fitness dashboard section lists hero → 7/30-day count tiles → passive activity card → Get Me Back → recent list; the code also renders the interrupted-recording card above the hero, the Load & Trajectory card, Weekly LOAD and Mean HRR@1m tiles and the heat-acclimatization card, none of which the section mentions.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:983",
+      "Emuqu/Sources/Views/FitnessTabView.swift:350",
+      "Emuqu/Sources/Views/FitnessTabView.swift:352",
+      "Emuqu/Sources/Views/FitnessTabView.swift:354",
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:510"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.heroCard(latest:)": "09f13445a17aceb0",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.recentWorkoutsList(entries:)": "e10c6ec2d1aded91",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.summaryTileGrid(entries:)": "282d4cc9eb8b10d6",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.trajectoryLinkCard": "f8b8aa52ebd8b67c",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard": "1877833efe115f0d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "a746e478136654e9",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.dailyActivitySurfaces": "cdd9dd7282b1a3e5",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.heatAcclimationCard": "4576a034169bd105"
+   }
+  },
+  {
+   "key": "var FitnessTabView.heatAcclimationCard",
+   "hash": "7f4977f6276bda32",
+   "does": "HeatAcclimationCard with the user's temperature unit.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.temperatureUnit"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "var FitnessTabView.dailyActivitySurfaces",
+   "hash": "1de47a158f4756d5",
+   "does": "Daily activity card followed by Get Me Back card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityCard",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.getMeBackCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityCard": "34790fb404530a94",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.getMeBackCard": "3bd2a1068cff9456"
+   }
+  },
+  {
+   "key": "func FitnessTabView.withFitnessChrome(_:)",
+   "hash": "95aff1eb4b62a70c",
+   "does": "Adds the sensor-management sheet (planModel.sensorSheetPresented), the .task running loadFitnessHomeData, nav title 'Fitness', accessibility id fitness.root, the toolbar, and the \"Couldn't load this workout.\" alert bound to recentWorkoutLoadFailed (OK clears it).",
+   "entry": "SwiftUI .task on tab appear",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.loadFitnessHomeData()",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.recentWorkoutLoadFailed"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.loadFitnessHomeData()": "f4a32d3723f92e16",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar": "54b5dacef59c9fa7",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet": "04170f1ddba8b063"
+   }
+  },
+  {
+   "key": "var FitnessTabView.sensorSheet",
+   "hash": "67c32c5fe17591f6",
+   "does": "NavigationStack with SensorManagementSheet for collector.polarManager; onDismiss clears planModel.sensorSheetPresented. Medium/large detents.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.loadFitnessHomeData()",
+   "hash": "380a2769ccee0ab7",
+   "does": "Tab first-load: paints cached snapshot, reloads interrupted recordings, fire-and-forget TrainingMetricsCache.refresh(), awaits CMPedometer 7-day steps, then awaits loadWorkoutElevationTotals (HealthKit aggregates).",
+   "entry": "SwiftUI .task from withFitnessChrome",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.paintCachedFitnessSnapshot()",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.importRecent(days:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.loadWorkoutElevationTotals()",
+    "ext:CMPedometer (via PedometerHistoryImporter.importRecent)"
+   ],
+   "reads": [
+    "mem:UIStateCache.fitness"
+   ],
+   "writes": [
+    "mem:FitnessTabView.passiveSteps",
+    "mem:TrainingMetricsCache.dailySeries"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.importRecent(days:)": "276159fb959205b4",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "ca8d6ca32d1d437f",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.loadWorkoutElevationTotals()": "0de3e28b5b9d6865",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.paintCachedFitnessSnapshot()": "e59804e1b1c738ac",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.trainingCache": "51ff8a2bb9b98388"
+   }
+  },
+  {
+   "key": "func FitnessTabView.paintCachedFitnessSnapshot()",
+   "hash": "05ee81fe1e3940b1",
+   "does": "Copies the cached UIStateCache.fitness elevation and workout-attributed step/distance/flight values into @State for instant paint.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:UIStateCache.fitness"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cached fitness snapshot exists",
+     "effect": "false → no-op; true → copies five values"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "var FitnessTabView.fitnessToolbar",
+   "hash": "6ea11ee841973740",
+   "does": "Toolbar with the fitness data menu in the trailing slot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenu"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenu": "ef3936d127fe0c65"
+   }
+  },
+  {
+   "key": "func FitnessTabView.withGPXSheets(_:)",
+   "hash": "f3e18c2de9d360eb",
+   "does": "Adds the GPX share sheet (presented through gpxShareBinding; its dismissal clears gpxShareURL), the GPX preview sheet (item; its dismissal calls presentPendingGPXShare) and an 'Export' alert bound to exportMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.gpxShareURL"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "alert binding set to false",
+     "effect": "clears exportMessage"
+    },
+    {
+     "at": "+16",
+     "cond": "exportMessage non-nil",
+     "effect": "true → message text shown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)": "da35f75c988a085d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()": "8f07da8af93048e4",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding": "600ed11b76cf57ae",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet": "4bb2d0e4efc813b4"
+   }
+  },
+  {
+   "key": "var FitnessTabView.gpxShareBinding",
+   "hash": "9fc89237b94e2e29",
+   "does": "Share-sheet presentation binding: true only while gpxSharePresented AND gpxShareURL is set; set writes gpxSharePresented.",
+   "entry": "SwiftUI .sheet(isPresented:) in withGPXSheets",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.gpxSharePresented"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.gpxShareSheet",
+   "hash": "ee06f8a418e97f7a",
+   "does": "ShareSheet for gpxShareURL when set; empty otherwise (not reachable while presented: gpxShareBinding presents only with a URL).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "gpxShareURL non-nil",
+     "effect": "false → empty sheet content"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.gpxPreviewSheet(_:)",
+   "hash": "bde77d5e79d5ebf3",
+   "does": "GPXPreviewSheet whose Send action calls shareGPXAfterPreview.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "318376e9c3eb1e72"
+   }
+  },
+  {
+   "key": "func FitnessTabView.shareGPXAfterPreview(_:)",
+   "hash": "fe96a140925f17c0",
+   "does": "Send tapped in the preview: stores the payload URL in gpxShareURL and clears the preview payload (dismissing the preview); the share sheet is presented from the preview's onDismiss (presentPendingGPXShare), not after a fixed delay.",
+   "entry": "closure:onSend from GPXPreviewSheet",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.gpxShareURL",
+    "mem:FitnessTabView.gpxPreviewPayload"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.presentPendingGPXShare()",
+   "hash": "664c70018687d90c",
+   "does": "After the preview sheet has finished dismissing: presents the share sheet when Send stored a URL; a plain dismissal (no URL) does nothing.",
+   "entry": "GPX preview sheet onDismiss (withGPXSheets)",
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.gpxShareURL"
+   ],
+   "writes": [
+    "mem:FitnessTabView.gpxSharePresented"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a share is pending",
+     "effect": "gpxSharePresented = true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.withFitnessImports(_:)",
+   "hash": "1083f0db1f4419e8",
+   "does": "Adds the Apple Health import sheet, a .fileImporter for .xml/.data single file, and an 'Import' alert bound to importMessage.",
+   "entry": "SwiftUI .fileImporter completion",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportSheet",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.handleImportResult(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "alert binding set false",
+     "effect": "clears importMessage"
+    },
+    {
+     "at": "+16",
+     "cond": "importMessage non-nil",
+     "effect": "true → message text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportSheet": "b6ddfe9f10589692",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.handleImportResult(_:)": "41d01b38b88e35e2"
+   }
+  },
+  {
+   "key": "func FitnessTabView.recentWorkoutEntries()",
+   "hash": "78afc742c059ac55",
+   "does": "Archive entries of type .workout sorted newest first.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func FitnessTabView.withinDays(_:_:)",
+   "hash": "733c2cd8c09af107",
+   "does": "True when date is within the last `days` days (date ≥ now − days).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "calendar date arithmetic returns nil",
+     "effect": "early return false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.relativeDate(_:)",
+   "hash": "962ea03f218d3b8b",
+   "does": "RelativeDateTimeFormatter in the app locale relative to now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func FitnessTabView.formattedDate(_:)",
+   "hash": "9b708ee3889c8672",
+   "does": "Abbreviated date + short time in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func FitnessTabView.deleteWorkout(_:)",
+   "hash": "053610780025516a",
+   "does": "Deletes the workout from the archive, notifies archive change, uploads the deletion to CloudKit in a Task, and closes the summary if it was showing that session; errors are logged only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.delete",
+    "notif:archive changed (RRCollector.notifyArchiveChanged)",
+    "ck:session deletion"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "selectedHistorySession id == deleted id",
+     "effect": "true → clears it"
+    },
+    {
+     "at": "+7",
+     "cond": "lastCompletedSession id == deleted id",
+     "effect": "true → clears it"
+    },
+    {
+     "at": "+8",
+     "cond": "catch delete error",
+     "effect": "debugLog warning only; user gets no feedback and the row stays"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A failed archive delete is only logged; the user sees no message.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessTabView.swift:565"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The delete + notify + CloudKit uploadDeletion sequence is repeated in several views instead of one helper.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessTabView.swift:558",
+      "Emuqu/Sources/Views/HistoryView.swift:335",
+      "Emuqu/Sources/Views/TrendsV2View.swift:263",
+      "Emuqu/Sources/Views/MainTabView+Tabs.swift:204",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:408"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "0b2b1d7a070ad4a1"
+   }
+  },
+  {
+   "key": "func FitnessTabView.exportLatestGPX()",
+   "hash": "6cbd1fbcf6ef8da4",
+   "does": "GPX export: finds the newest of the last 20 workouts with a GPS polyline (off-main), writes a temp GPX file, and opens the preview sheet; sets an Export alert message when there are no workouts, no tracked workout, or decode/write failed.",
+   "entry": "Toolbar menu button in FitnessTabView+DataMenu.swift:53",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.latestTrackedWorkout(entries:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.writeGPX(session:polyline:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [
+    "file:temp GPX file (GPXExporter.writeToTempFile)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "entries non-empty",
+     "effect": "false → exportMessage 'No workouts yet…', return"
+    },
+    {
+     "at": "+7",
+     "cond": "a tracked workout found",
+     "effect": "false → exportMessage 'None of your recent workouts have a GPS track…', return"
+    },
+    {
+     "at": "+12",
+     "cond": "written URL non-nil",
+     "effect": "false → exportMessage 'Couldn't decode GPS track for export.' (also used when the file write threw), return; true → gpxPreviewPayload set"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.latestTrackedWorkout(entries:)": "68f55a99b644f32d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "a746e478136654e9",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.writeGPX(session:polyline:)": "2c3168ca3bb4d522"
+   }
+  },
+  {
+   "key": "func FitnessTabView.latestTrackedWorkout(entries:)",
+   "hash": "be5a25c16125b3a1",
+   "does": "Runs firstEntryWithPolyline on a detached user-initiated task and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.firstEntryWithPolyline(_:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.firstEntryWithPolyline(_:archive:)": "b92bb8f9907a1a33"
+   }
+  },
+  {
+   "key": "func FitnessTabView.firstEntryWithPolyline(_:archive:)",
+   "hash": "3541fdf562068aaa",
+   "does": "Iterates the first 20 entries, lightweight-retrieving each and returning the first with a non-empty gpsPolyline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each of the first 20 entries",
+     "effect": "iterates"
+    },
+    {
+     "at": "+5",
+     "cond": "retrieve succeeds and polyline non-empty",
+     "effect": "false → continue (read errors swallowed by try?); true → return (session, polyline)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a"
+   }
+  },
+  {
+   "key": "func FitnessTabView.writeGPX(session:polyline:)",
+   "hash": "81a1b1898c39c82e",
+   "does": "Off-main: decodes the polyline to CLLocations and writes a temp GPX file via GPXExporter (errors logged by attempt and returned as nil URL).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:temp GPX file"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "decoded track empty",
+     "effect": "returns ([], nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)": "65d6fe9d8e38b012",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func FitnessTabView.handleImportResult(_:)",
+   "hash": "8008fa762b599b46",
+   "does": "Handles .fileImporter result: imports the first URL, or sets an import alert on failure.",
+   "entry": "SwiftUI .fileImporter completion (via withFitnessImports)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .success",
+     "effect": "→ guard first URL"
+    },
+    {
+     "at": "+3",
+     "cond": "urls.first nil",
+     "effect": "returns silently"
+    },
+    {
+     "at": "+5",
+     "cond": "case .failure",
+     "effect": "importMessage 'Couldn't open file: …'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "bb9ecbc1646db22c"
+   }
+  },
+  {
+   "key": "func FitnessTabView.importGPX(from:)",
+   "hash": "6733e7b1f9248f49",
+   "does": "Reads a security-scoped GPX file, parses it as a workout, refuses if an archived workout has the same start, else builds an HRVSession, archives it, notifies, and reports sport/duration (capped 48 h)/GPS point count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.isArchivedWorkout(startingAt:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [
+    "file:user-picked GPX (security-scoped)",
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "notif:archive changed (RRCollector.notifyArchiveChanged)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive, Archive.swift:470)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "security-scoped access started",
+     "effect": "true → stopAccessing in defer"
+    },
+    {
+     "at": "+7",
+     "cond": "start time already archived",
+     "effect": "true → importMessage 'already in your history', return"
+    },
+    {
+     "at": "+16",
+     "cond": "catch parse/read/archive error",
+     "effect": "importMessage 'Import failed: <error>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)": "d9ce53f199efc000",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)": "fd68276977030bb1",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.isArchivedWorkout(startingAt:)": "ce49f563ebd7e2eb"
+   }
+  },
+  {
+   "key": "func FitnessTabView.isArchivedWorkout(startingAt:)",
+   "hash": "ec0c2eef1e039019",
+   "does": "Collects start dates of archived workouts and asks HealthWorkoutImporter.isAlreadyArchived whether `start` matches one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+   }
+  },
+  {
+   "key": "func FitnessTabView.listenForWatchAcknowledge()",
+   "hash": "d6a591ce83719324",
+   "does": "Async loop over NotificationCenter .watchAcknowledgedFinished notifications; each one clears lastCompletedSession (closing the summary sheet).",
+   "entry": "SwiftUI .task on body; NotificationCenter async sequence",
+   "calls": [],
+   "reads": [
+    "notif:watchAcknowledgedFinished"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each notification",
+     "effect": "clears lastCompletedSession (also closes a hero-opened sheet, see FitnessTabView+Strap.swift:196)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)",
+   "hash": "29852276e4c57ccd",
+   "does": "Starts a workout: remembers the recorder's previous targetZone, sets the new one, calls recorder.start(sport:source:intervalPlan:thresholds:route:); if start throws, puts the previous targetZone back and shows the error's localizedDescription (errorDescription for WorkoutRecorderError) in the start-error alert; 'Recorder not ready yet.' when no recorder.",
+   "entry": "closure:onStart from WorkoutPreflightView",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder.targetZone"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "recorder exists",
+     "effect": "false → startError 'Recorder not ready yet.', return"
+    },
+    {
+     "at": "+20",
+     "cond": "start throws",
+     "effect": "targetZone restored; startError = localizedDescription"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "3ccf53157fe3d7cd",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "init PhaseObservingStateBody(recorder:recordingBody:defaultBody:)",
+   "hash": "2bcde73c433d5d94",
+   "does": "Stores the recorder, its lifecycle, and the two body builders.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PhaseObservingStateBody.body",
+   "hash": "50451fda87395c06",
+   "does": "Switches on lifecycle.phase: recordingBody for .recording/.finalizing, defaultBody for .idle/.finished/.failed.",
+   "entry": "SwiftUI View.body",
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.phase"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "phase .recording or .finalizing",
+     "effect": "recording screen"
+    },
+    {
+     "at": "+4",
+     "cond": "phase .idle, .finished or .failed",
+     "effect": "default dashboard"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe"
+   }
+  },
+  {
+   "key": "func RecorderBox.bind(core:conversation:)",
+   "hash": "3d855381142b71a6",
+   "does": "Creates the WorkoutRecorder once (no-op if one exists).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [
+    "mem:RecorderBox.recorder"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recorder already set",
+     "effect": "early return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)": "2283c317b2fb1315"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,547 @@
+{
+ "file": "Emuqu/Sources/Views/TrainingSettingsPage.swift",
+ "hash": "566872b51875878c",
+ "role": "Training settings page: training goal picker, training-load toggle with a schedulable training break (start/end/reason), and the hide-Fitness-tab toggle.",
+ "types": [
+  "TrainingSettingsPage: struct (View) — training preferences bound to SettingsManager.settings"
+ ],
+ "state": [],
+ "toplevel": "Environment reads SettingsManager and LanguageManager. No globals.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TrainingSettingsPage.settingsBinding",
+   "hash": "c89d93d6bf40f369",
+   "does": "Binding<UserSettings> get/set over settingsManager.settings.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.body",
+   "hash": "2363ac97f7bc72ae",
+   "does": "Form with goal, training-load and fitness-tab sections; title 'Training'.",
+   "entry": "SwiftUI body; pushed from SettingsView.recoveryTrainingSection and SettingsSearchIndex 'Training' entry",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalSection",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadSection",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalSection": "1b01f19107fbc615",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabSection": "626d012fe8c82244",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadSection": "35066b0712dd5c45"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.goalSection",
+   "hash": "258b403a5ae777ab",
+   "does": "'Goal' section with goal fields and footer.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFields",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFields": "83902701c9655189",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFooter": "3544c0846ef683cf"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.goalFields",
+   "hash": "ba66454892387f08",
+   "does": "Picker bound to settings.trainingGoal over TrainingGoal cases plus a caption with the current goal's localizedBlurb.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding",
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.displayName",
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.localizedBlurb"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.displayName": "d27470559d6b71ad",
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.localizedBlurb": "272cc42ef871e51e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "2c840f18eafd1ab7"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.goalFooter",
+   "hash": "a0d70e68bba5883c",
+   "does": "Footer: goal informs Flo and does not change the recovery score.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.trainingLoadSection",
+   "hash": "1fc7d3904329dd50",
+   "does": "'Training Load' section with load fields and footer.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFields",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFields": "b35d4135464bb0a6",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFooter": "37d433a9bfe661e4"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.trainingLoadFields",
+   "hash": "a9efcb6ed5aa798f",
+   "does": "Toggle bound to settings.enableTrainingLoadIntegration followed by the detail fields.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadDetailFields"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same settings.enableTrainingLoadIntegration toggle is also on PerformanceSettingsPage with a different description ('dashboard skips all training surfaces'); two UIs write one field.",
+     "evidence": [
+      "Emuqu/Sources/Views/TrainingSettingsPage.swift:74",
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:231"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "2c840f18eafd1ab7",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadDetailFields": "8f3fb9318cf93a29"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.trainingLoadDetailFields",
+   "hash": "f0232feb23a18ba0",
+   "does": "Shows training-break fields only when training load is enabled.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingBreakFields"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.enableTrainingLoadIntegration",
+     "effect": "renders trainingBreakFields; else nothing (an existing break stays stored but hidden)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingBreakFields": "07d231452971b37d"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.trainingBreakFields",
+   "hash": "8b887c63a2a2d0ad",
+   "does": "Shows the on-break card when a break start date exists, otherwise an orange 'Schedule Training Break' button.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.onBreakCard",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.startBreakButton"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.trainingBreakStartDate != nil",
+     "effect": "onBreakCard; nil → startBreakButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.onBreakCard": "0ca53cdc5ca1e993",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.startBreakButton": "d0f49fd3f83de1ef"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.startBreakButton",
+   "hash": "9375d9062f3c3816",
+   "does": "Button that sets trainingBreakStartDate = now and trainingBreakEndDate = now + 7 days.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.onBreakCard",
+   "hash": "0e542b9a66d46903",
+   "does": "Card with header, start/end pickers, reason field and clear button.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakHeaderRow",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakStartPicker",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakEndPicker",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakReasonField",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.clearBreakButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakEndPicker": "193047eacfc7e172",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakHeaderRow": "4827c3f06efb3150",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakReasonField": "c4a608fffc02b50f",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakStartPicker": "37b2280ad4d39ceb",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.clearBreakButton": "195c911ed42d2ac6"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.breakHeaderRow",
+   "hash": "31acf4d3b599cae9",
+   "does": "Orange header reading 'On Break' when UserSettings.isOnTrainingBreak (today within start…end), else 'Break Scheduled'.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "settings.isOnTrainingBreak",
+     "effect": "'On Break'; false → 'Break Scheduled' (also shown for a break whose end date has passed)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "isOnTrainingBreak is false both before the start and after the end, so a break that ended in the past is labelled 'Break Scheduled' indefinitely until the user clears it.",
+     "evidence": [
+      "Emuqu/Sources/Views/TrainingSettingsPage.swift:127",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:745"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.breakStartPicker",
+   "hash": "36fc1cb31980e0fc",
+   "does": "Date picker for the break start; set routes through setBreakStart.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::func TrainingSettingsPage.setBreakStart(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "trainingBreakStartDate is nil (?? fallback)",
+     "effect": "shows today (unreachable in practice: card only shown when start is non-nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::func TrainingSettingsPage.setBreakStart(_:)": "b5539448b74ef67a"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.breakEndPicker",
+   "hash": "f62cd99a74d248c1",
+   "does": "Date picker for the break end, constrained to dates ≥ start; writes trainingBreakEndDate.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "trainingBreakEndDate is nil (?? fallback)",
+     "effect": "shows now + 7 days (inner ?? → Date() if that computation fails); not written until changed"
+    },
+    {
+     "at": "+7",
+     "cond": "trainingBreakStartDate is nil (?? fallback)",
+     "effect": "range lower bound is now"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrainingSettingsPage.setBreakStart(_:)",
+   "hash": "357d6a7455ee049e",
+   "does": "Sets trainingBreakStartDate and pulls trainingBreakEndDate up to the start when the end would be earlier.",
+   "entry": "Binding setter of breakStartPicker (TrainingSettingsPage.swift:141), fired when the user changes the From date",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "end date exists and is before the new start",
+     "effect": "end set to start; else end untouched"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.breakReasonField",
+   "hash": "2d82e0dca4c4836d",
+   "does": "Optional reason TextField bound to trainingBreakReason (empty stores nil).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "trainingBreakReason nil (?? fallback)",
+     "effect": "shows empty string"
+    },
+    {
+     "at": "+5",
+     "cond": "typed text empty",
+     "effect": "stores nil; else stores text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.clearBreakButton",
+   "hash": "6117a7cece5b2e36",
+   "does": "Red 'Clear Break' button nil-ing break start, end and reason (three separate settings writes).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.trainingLoadFooter",
+   "hash": "260570ff173fb2d4",
+   "does": "Footer explaining a training break hides load from the morning reading and informs Flo.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.hideFitnessTabSection",
+   "hash": "038b4a7be80be2a0",
+   "does": "'Fitness Tab' section with the hide toggle and footer.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFields",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFields": "2ddf7dfe0e487ad5",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFooter": "b2e0bad2bf8304a3"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.hideFitnessTabFields",
+   "hash": "a1133b124856afb1",
+   "does": "Toggle bound to settings.hideFitnessTab with a caption that changes with its state.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "settings.hideFitnessTab",
+     "effect": "caption 'Workout recording is removed from the tab bar.'; false → hint to hide if only using HRV/overnight"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "hideFitnessTab is also toggled on PerformanceSettingsPage, contradicting this page's own comment that settings must not be mirrored on two UIs (the 'single source of truth' rule at lines 219-223); docs list both locations.",
+     "evidence": [
+      "Emuqu/Sources/Views/TrainingSettingsPage.swift:217",
+      "Emuqu/Sources/Views/TrainingSettingsPage.swift:221",
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:240",
+      "docs/USERS_MANUAL.md:39"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "d682cf1396e78539",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "2c840f18eafd1ab7"
+   }
+  },
+  {
+   "key": "var TrainingSettingsPage.hideFitnessTabFooter",
+   "hash": "957d0a15254f96e2",
+   "does": "Footer: the AI assistant is told which surfaces are off.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

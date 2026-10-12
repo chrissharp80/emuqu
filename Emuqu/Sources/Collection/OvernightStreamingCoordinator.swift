@@ -1,8 +1,10 @@
 import Foundation
 
 /// Overnight capture in bluetooth-central (streaming) mode: starting the
-/// stream, the keep-alive timer, reconnect handling, the morning gather, and
-/// the merge of the strap's own internal recording into the streamed night.
+/// stream, the keep-alive timer, reconnect handling, and the merge of the
+/// strap's own internal recording into the streamed night. The morning
+/// gather itself is `MorningSessionPipeline.gatherOvernightData`
+/// (RRCollector+OvernightGather).
 ///
 /// ## Why this is not on `RRCollector`
 ///

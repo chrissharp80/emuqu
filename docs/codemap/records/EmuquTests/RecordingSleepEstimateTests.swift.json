@@ -1,0 +1,200 @@
+{
+ "file": "EmuquTests/RecordingSleepEstimateTests.swift",
+ "hash": "0c752037a06a2fdb",
+ "role": "XCTest suite pinning RecordingSleepEstimate (90 % of recordings over 180 min, 85 % otherwise) and OvernightReportRenderer.computeOvernightSleepStats: no invented deep sleep without Apple Health sleep, shared estimate for empty sleep, and measured deep sleep kept.",
+ "types": [
+  "RecordingSleepEstimateTests: class — @MainActor XCTestCase for the recording-length sleep estimate and Overnight PDF sleep stats"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecordingSleepEstimateTests.renderer()",
+   "hash": "6ab5045df58ed624",
+   "does": "Test helper: OvernightReportRenderer over a PDFReportGenerator with default UserSettings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testFullNightEstimateIsNinetyPercentOfTheRecording()",
+   "hash": "06fc35d5212e3d2f",
+   "does": "Asserts a 480-min recording estimates 432 min asleep and 90 % efficiency.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent": "8eb93a57b54b022c"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testShortRecordingEstimateIsEightyFivePercent()",
+   "hash": "dc697ff3bb939fc2",
+   "does": "Asserts a 150-min recording estimates 127 min asleep (85 %, truncated).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testEmptyRecordingEstimatesNothing()",
+   "hash": "1f984fce7f241f40",
+   "does": "Asserts a 0-min recording estimates 0 asleep and 0 % efficiency.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent": "8eb93a57b54b022c"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testPDFWithoutAppleHealthSleepPrintsNoDeepSleep()",
+   "hash": "fc9a4938ee440f5b",
+   "does": "For 480 and 150 min with nil sleep data, asserts the PDF stats have nil deep sleep, the missing-value placeholder, and sleepMinutes equal to RecordingSleepEstimate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for minutes in [480, 150]",
+     "effect": "runs the assertions for a full night and a short recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)": "88adc00603697aac",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)": "150082e778d78fa6",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)": "6efba92e1c1f0927",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)": "7682b06dd6639186",
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()": "351b40924004a042"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testPDFWithEmptyAppleHealthSleepUsesTheSharedEstimate()",
+   "hash": "3c577a5e92d9c715",
+   "does": "With PDFReportGenerator.SleepData.empty (0 total, no boundaries), asserts sleepMinutes 432 and nil deep sleep for 480 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)": "88adc00603697aac",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)": "150082e778d78fa6",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)": "6efba92e1c1f0927",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)": "7682b06dd6639186",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "bee13aa0f06b3126",
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()": "351b40924004a042"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testPDFKeepsMeasuredDeepSleep()",
+   "hash": "5c22e1739af8adab",
+   "does": "With measured sleep (420 total, 75 deep), asserts sleepMinutes 420 and deepSleepMinutes 75 (sleepStatsFromHealthKitTotal returns first; the boundary and recording-estimate paths are not reached).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)": "88adc00603697aac",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)": "7682b06dd6639186",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "bee13aa0f06b3126",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted": "5232932b73a9171c",
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()": "351b40924004a042"
+   }
+  },
+  {
+   "key": "func RecordingSleepEstimateTests.testPDFLeavesUnmeasuredDeepSleepNil()",
+   "hash": "3e3fed92d50bd673",
+   "does": "With 420 total but nil deep sleep, asserts deepSleepMinutes nil and deepFormatted is the missing placeholder.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)": "88adc00603697aac",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)": "7682b06dd6639186",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "bee13aa0f06b3126",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted": "5232932b73a9171c",
+    "EmuquTests/RecordingSleepEstimateTests.swift::func RecordingSleepEstimateTests.renderer()": "351b40924004a042"
+   }
+  }
+ ],
+ "deps": {}
+}

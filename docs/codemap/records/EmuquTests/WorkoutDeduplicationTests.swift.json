@@ -1,0 +1,297 @@
+{
+ "file": "EmuquTests/WorkoutDeduplicationTests.swift",
+ "hash": "5e7e41c79e988556",
+ "role": "XCTest suite for HealthKitManager.deduplicateWorkouts (forwarding to TrainingHealthQueries.deduplicateWorkouts): same-type near-start merging, ≥60% span-overlap merging across types, and richest-data survivor selection.",
+ "types": [
+  "WorkoutDeduplicationTests: class — XCTestCase for workout deduplication"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)",
+   "hash": "5433cda5fb0d4ed2",
+   "does": "Fixture: builds a HealthKitManager.WorkoutSummary at minutesFromEpoch*60 s with type (default running), duration minutes (30), calories (200), optional avg/max HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testEmptyArrayReturnsEmpty()",
+   "hash": "5ca77d78051dd32d",
+   "does": "Asserts an empty input returns empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The forwarder HealthKitManager.deduplicateWorkouts that every test in this file calls has no production caller; production code calls TrainingHealthQueries.deduplicateWorkouts directly (from mergeArchiveAuthoritative and line 197). The forwarder exists only for these tests.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:21",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:120",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:197",
+      "EmuquTests/WorkoutDeduplicationTests.swift:30"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testSingleWorkoutReturnsSame()",
+   "hash": "43b810d1c869962e",
+   "does": "Asserts a single workout is returned unchanged in count.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testNoDuplicatesPreservesAll()",
+   "hash": "d21a8549d8f5af12",
+   "does": "Asserts three workouts of different types 100 minutes apart all survive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testDuplicatesSameTypeWithin5MinDeduped()",
+   "hash": "45c499675b519822",
+   "does": "Asserts two runs starting 2 minutes apart collapse to one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testKeepsWorkoutWithHRData()",
+   "hash": "67d086a4db375d2b",
+   "does": "Asserts that of two runs 2 minutes apart, the one with HR data (avg 145) survives.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testOverlappingDifferentTypesCollapse()",
+   "hash": "c3380a286cf39e75",
+   "does": "Asserts a walk and a run with identical 35-minute spans collapse to one and the walk with avgHR 115 survives.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testDifferentTypesNoOverlapStaySeparate()",
+   "hash": "d07b963a8ba5064a",
+   "does": "Asserts a 30-min ride and a run starting 35 min later (no overlap) stay separate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testDistinctNonOverlappingWorkoutsNotDeduped()",
+   "hash": "3c2dfabdc126ddaa",
+   "does": "Asserts two 30-min runs starting 20 min apart (33% overlap, >5 min apart) both survive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The production doc comment on deduplicateWorkouts says two rules are BOTH required, the first being starts within 5 minutes; the code scans a 30-minute window and merges on same-type-within-300 s OR >=60% overlap. This test comment (lines 89-93) describes the code, so the tests pin behaviour that contradicts the production doc comment.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:40",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:79",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:81",
+      "EmuquTests/WorkoutDeduplicationTests.swift:89"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testExactly5MinBoundaryDeduped()",
+   "hash": "748b3e69ca99d96e",
+   "does": "Asserts runs starting exactly 300 s apart collapse (gap <= 300 inclusive).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testTripleDuplicateReducesToOne()",
+   "hash": "0906a81d0255f453",
+   "does": "Asserts three runs within 3 minutes collapse to one and the one with maxHR 175 survives.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testMixedDuplicatesAndUniques()",
+   "hash": "39da220406d3429a",
+   "does": "Asserts a mix of a run pair, a single ride and a swim pair reduces to 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  },
+  {
+   "key": "func WorkoutDeduplicationTests.testUnsortedInputStillDedupes()",
+   "hash": "539d1309d02be617",
+   "does": "Asserts unsorted input (later run first) still collapses and the richer one (avgHR 140) survives.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+   }
+  }
+ ],
+ "deps": {}
+}

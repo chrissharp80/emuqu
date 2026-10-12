@@ -1,0 +1,604 @@
+{
+ "file": "EmuquTests/RouteNavigationEnginesTests.swift",
+ "hash": "94ad44591eeec2b4",
+ "role": "Deterministic tests for route-navigation engines: SavedRouteStepBuilder.detectTurns, TurnAlertEngine threshold state machine and TurnAlertFormatter, TurnMarkerEngine leg deltas, ActiveRouteSession synthetic engagement/sticky step advance/snapshot, and WorkoutLiveNamespace.isSameRoute.",
+ "types": [
+  "RouteNavigationEnginesTests: class (@MainActor) — XCTestCase for route navigation engines"
+ ],
+ "state": [
+  "mem:ActiveRouteSession.shared (mutated by engage/disengage)",
+  "mem:LanguageManager.shared language (pinned to English in setUp)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "ActiveRouteSession tests engage and disengage the production singleton ActiveRouteSession.shared inside the app host; any route the host had engaged is cleared, and a concurrent host user of the singleton would observe the synthetic route.",
+   "evidence": [
+    "EmuquTests/RouteNavigationEnginesTests.swift:343",
+    "EmuquTests/RouteNavigationEnginesTests.swift:392",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift:32"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RouteNavigationEnginesTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "setUp: calls super then pins the app language to English (restored in teardown) so English copy assertions hold.",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LanguageManager.shared locale/bundle",
+    "ud:AppleLanguages (UserDefaults.standard app domain, via AppLanguage.apply; only when the host language is not English)",
+    "notif:LanguageManager.languageDidChangeNotification (only when host is not English)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testDetectTurnsStraightLine()",
+   "hash": "fd29ae3520938701",
+   "does": "Asserts detectTurns on a 50-point straight north-going line returns [].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "0dca5885f9b9b0b4",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "342afee2df2de171",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "c5006ff92b6dd419",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testDetectTurnsOneSharpRightTurn()",
+   "hash": "c2af17a039294447",
+   "does": "Builds 11 fixes east then 10 north (~5 m spacing) and asserts detectTurns returns exactly [10].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 0...10",
+     "effect": "appends an eastward fix"
+    },
+    {
+     "at": "+10",
+     "cond": "for i in 1...10",
+     "effect": "appends a northward fix from the corner"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "0dca5885f9b9b0b4",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "342afee2df2de171",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "c5006ff92b6dd419",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testDetectTurnsCollapsesNearbyTurns()",
+   "hash": "7311a578e7fa2efb",
+   "does": "Builds a 5 m right-then-left jitter followed by 30 eastward fixes and asserts detectTurns returns at most one turn.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for i in 1...30",
+     "effect": "appends an eastward fix ~5.5 m apart"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertLessThanOrEqual(turns.count, 1) also passes when both turns are dropped (0), so it cannot distinguish collapsing to one turn from losing the turn entirely.",
+     "evidence": [
+      "EmuquTests/RouteNavigationEnginesTests.swift:87"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "0dca5885f9b9b0b4",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "342afee2df2de171",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "c5006ff92b6dd419",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertOutsideFarWindowDoesNotFire()",
+   "hash": "d08c120df655613f",
+   "does": "Asserts TurnAlertEngine.evaluate at 200 m to the turn emits no payload.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Test comments describe bounded windows ('only fires inside the FAR window (135-165 m)', 'NEAR: 60m inside [52.5, 67.5]') but production fires at any distance <= the upper edge with no lower bound (crossedThreshold checks dist <= far+window/2 only); the assertions still pass but the documented behaviour is wrong.",
+     "evidence": [
+      "EmuquTests/RouteNavigationEnginesTests.swift:92",
+      "EmuquTests/RouteNavigationEnginesTests.swift:126",
+      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:84",
+      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:162"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertFiresAllThreeThresholdsInOrderMonotonic()",
+   "hash": "7bd59239cdf3aab5",
+   "does": "Steps one state through 150 m (level 1), 145 m (no refire), 60 m (level 2), 20 m (level 3) and 20 m again (no refire), asserting each level fires once in order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.withDistance(_:_:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.withDistance(_:_:)": "43267a5d45b530b1"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertResetsOnStepAdvance()",
+   "hash": "46349470ee25215c",
+   "does": "With prior state (step 0, level 3) and a step-1 result at 150 m, asserts the state resets and level 1 fires with lastStepIndex 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertArrivalFiresOnce()",
+   "hash": "9c56255e79d3b33f",
+   "does": "With remaining 15 m, asserts the first evaluate emits an arrival payload and the second (with carried state) emits nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertFormatterRoundsImperialDistance()",
+   "hash": "de507843eac35857",
+   "does": "Asserts render of a 200 m level-1 payload in imperial starts with 'In 650 feet, ' and contains lower-cased 'turn right'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertFormatterAtTurnSpeaksInstructionAlone()",
+   "hash": "c973ec2b95a09b1e",
+   "does": "Asserts a level-3 payload renders the instruction alone.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnAlertFormatterArrivalUsesDestinationLabel()",
+   "hash": "3d299e5a08a9d60d",
+   "does": "Asserts an arrival payload renders 'You've arrived at Saturday loop.'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnMarkerInitsThenFiresOnAdvance()",
+   "hash": "9d9c5d634affaf3b",
+   "does": "Runs TurnMarkerEngine through init (step 0, HR 130), same-step tick (HR 140) and advance to step 1 (250 m, 130 s, HR 145, elev 12) and asserts first two ticks have no payload, then legDuration 130, legDistance 250, legAvgHR 138 (truncated mean of 3 samples) and elevation gain 12.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "67903a6e659ecb9e",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnMarkerPaceNilForTinyLeg()",
+   "hash": "eb9a1e62cfe062d3",
+   "does": "Asserts a 30 m leg still emits a payload but legPaceSecPerKm is nil (<=50 m floor).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "67903a6e659ecb9e",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testTurnMarkerSkipsTinyElevation()",
+   "hash": "b0da5d172538d6cd",
+   "does": "Asserts a leg with 5 m elevation gain reports nil legElevationGainMeters (<10 m suppressed).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "67903a6e659ecb9e",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testActiveRouteSessionAdvancesStepIndexNoRegression()",
+   "hash": "2cc5e79763b8e0d5",
+   "does": "Engages 3 synthetic steps on ActiveRouteSession.shared and asserts currentStep gives index 0 at the start, index 1 with 'Arrive' upcoming near step B's far end, arrived at the destination, and index >=2 after jittering back to the start (sticky, no regression); disengages before and after.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)"
+   ],
+   "reads": [
+    "mem:ActiveRouteSession.shared"
+   ],
+   "writes": [
+    "mem:ActiveRouteSession.shared"
+   ],
+   "branches": [
+    {
+     "at": "+57",
+     "cond": "r2 is nil",
+     "effect": "?? false makes the 'Arrive' assertion fail"
+    },
+    {
+     "at": "+64",
+     "cond": "r3 is nil",
+     "effect": "?? false makes the arrived assertion fail"
+    },
+    {
+     "at": "+71",
+     "cond": "r4 is nil",
+     "effect": "?? 0 makes the >=2 assertion fail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The r2 fix (35.00040,-89.64950) is 5.6 m from the vertex shared by step B's end and step C's start, so steps 1 and 2 tie exactly in advanceStepIndex; step 1 wins only because the loop keeps the first minimum with strict '<'. The comment says the point was pushed 'so step B wins decisively', which is false; reordering the scan or using '<=' would flip the asserted index.",
+     "evidence": [
+      "EmuquTests/RouteNavigationEnginesTests.swift:361",
+      "EmuquTests/RouteNavigationEnginesTests.swift:366",
+      "EmuquTests/RouteNavigationEnginesTests.swift:319",
+      "EmuquTests/RouteNavigationEnginesTests.swift:322",
+      "Emuqu/Sources/Services/ActiveRouteSession.swift:229"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "de370ac254078587",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "cc31108ef4706d1c",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "bea77fcf99ca4cc5",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "81a763ff06dd8038",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "d5c6bb73f4d5d6d4",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "3343f89777a0135f",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4ff6d823f02a58db",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "02b0b05e6043dcad",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)": "12bc1406715c83ef"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testActiveRouteSessionSnapshotLifecycle()",
+   "hash": "03a2415754caed4f",
+   "does": "Asserts ActiveRouteSession.shared.snapshot() is nil after disengage, has label 'test', 1 step and 111 m after engaging one synthetic step, and nil again after disengage.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)"
+   ],
+   "reads": [
+    "mem:ActiveRouteSession.shared"
+   ],
+   "writes": [
+    "mem:ActiveRouteSession.shared"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "cc31108ef4706d1c",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "bea77fcf99ca4cc5",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "81a763ff06dd8038",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "c0ce08ecb6d252c2",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)": "12bc1406715c83ef"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testRouteHistoryMatchesRouteNamesIgnoringCase()",
+   "hash": "0be6881e8a4e286b",
+   "does": "Asserts isSameRoute matches 'River Loop' case-insensitively and rejects 'Hill Loop'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "1df22bd32140c82a"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.testRouteHistoryNeverMatchesAWorkoutWithNoRecognizedRoute()",
+   "hash": "0816ebd50eed9d22",
+   "does": "Asserts isSameRoute(nil, ...) is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "1df22bd32140c82a"
+   }
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.makePolyline(_:)",
+   "hash": "adb435994ed19953",
+   "does": "Builds an MKPolyline from coordinates via the buffer's base address.",
+   "entry": null,
+   "calls": [
+    "ext:MKPolyline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "buffer baseAddress is nil (empty array)",
+     "effect": "returns an empty MKPolyline(); otherwise MKPolyline(coordinates:count:)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)",
+   "hash": "b5b25fc3a126b00f",
+   "does": "Builds an ActiveRouteSession.StepResult with defaulted index, instructions, distance 100, remaining 500, destination 'test', arrived false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.withDistance(_:_:)",
+   "hash": "b7354084852decde",
+   "does": "Copies a StepResult with a new distanceToUpcomingStepMeters.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)",
+   "hash": "48689e962f002c62",
+   "does": "Builds a WorkoutAIContext for sport .walk with the given distance, elapsed seconds, heart rate and elevation gain; every other field nil/zero/empty, units metric.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "hr is nil",
+     "effect": "?? 0 sets peakHR to 0; otherwise peakHR = hr"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

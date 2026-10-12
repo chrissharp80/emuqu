@@ -75,6 +75,10 @@ struct MileMarkerState {
     /// Elapsed seconds at the start of the current split. The split's
     /// duration is `current elapsed - this`.
     var splitStartElapsedSec: Int = 0
+
+    /// The marker unit `lastMarkerIndex` counts in, set by the first
+    /// evaluation. Nil until then.
+    var markerUnit: MileMarkerUnit?
 }
 
 /// Pure-data payload for one mile-marker notification. Skip-when-normal
@@ -131,6 +135,13 @@ enum WorkoutMileMarkerEngine {
     ///
     /// Refuses to fire in the first 60 s: a GPS jitter that pretends we
     /// covered 1.6 km in 30 s shouldn't false-fire mile 1.
+    ///
+    /// The interval and the units preference are re-read every tick, and
+    /// `lastMarkerIndex` only means something in the unit it was counted in.
+    /// When the resolved unit changes mid-workout (km → 5 km, or a units
+    /// flip under `.everyDistanceUnit`) the split restarts here, silently,
+    /// so the next marker is a whole split of the new unit rather than a
+    /// marker muted for tens of km or one spanning the whole workout.
     static func evaluate(
         context: WorkoutAIContext,
         state: MileMarkerState,
@@ -140,23 +151,44 @@ enum WorkoutMileMarkerEngine {
         guard context.elapsedSeconds >= 60 else { return (nil, state) }
         let resolved = resolvedUnit(for: interval, unitsImperial: unitsImperial)
         let currentIndex = markerIndex(context: context, unit: resolved)
-        guard currentIndex > state.lastMarkerIndex else { return (nil, state) }
-        let payload = MileMarkerPayload(
-            markerIndex: currentIndex, markerUnit: resolved,
+        if let counted = state.markerUnit, counted != resolved {
+            return (nil, splitStarting(at: context, unit: resolved, index: currentIndex))
+        }
+        var current = state
+        current.markerUnit = resolved
+        guard currentIndex > state.lastMarkerIndex else { return (nil, current) }
+        let payload = makePayload(context: context, state: state, unit: resolved, index: currentIndex)
+        return (payload, splitStarting(at: context, unit: resolved, index: currentIndex))
+    }
+
+    /// The announcement for crossing marker `index` of `unit`, measured from
+    /// the split `state` started.
+    private static func makePayload(
+        context: WorkoutAIContext, state: MileMarkerState, unit: MileMarkerUnit, index: Int
+    ) -> MileMarkerPayload {
+        let cadence = shiftedCadence(context: context)
+        return MileMarkerPayload(
+            markerIndex: index, markerUnit: unit,
             splitDurationSec: max(0, context.elapsedSeconds - state.splitStartElapsedSec),
             splitPaceSecPerKm: splitPace(context: context, state: state),
             hrZoneLabel: hrZoneLabel(context: context),
             totalDistanceMeters: context.distanceMeters, totalElapsedSec: context.elapsedSeconds,
-            cadenceSpm: shiftedCadence(context: context)?.spm,
-            cadenceShiftSpm: shiftedCadence(context: context)?.shift,
+            cadenceSpm: cadence?.spm,
+            cadenceShiftSpm: cadence?.shift,
             splitElevationGainMeters: splitElevation(context: context, state: state)
         )
-        return (payload, MileMarkerState(
-            lastMarkerIndex: currentIndex,
+    }
+
+    /// State for a split that starts at this snapshot, with marker `index`
+    /// of `unit` counted as already announced.
+    private static func splitStarting(at context: WorkoutAIContext, unit: MileMarkerUnit, index: Int) -> MileMarkerState {
+        MileMarkerState(
+            lastMarkerIndex: index,
             splitStartDistanceMeters: context.distanceMeters,
             splitStartElevationMeters: context.elevationGainMeters,
-            splitStartElapsedSec: context.elapsedSeconds
-        ))
+            splitStartElapsedSec: context.elapsedSeconds,
+            markerUnit: unit
+        )
     }
 
     /// Which marker we're at. A time-based interval indexes by 10-minute
@@ -242,11 +274,14 @@ private extension MileMarkerUnit {
 
 // MARK: - Formatter
 //
-// Pure render — payload → speakable string. Caps total content at the
-// research-derived 4-second target by elision (drop optional fields,
-// shorten labels). Imperial vs metric resolution lives here because
-// the speakable string is the only place it matters; the engine works
-// in SI so its math stays uniform.
+// Pure render — payload → speakable string. Aims at the research-derived
+// 4-second target by leaving fields out: the engine sets the
+// skip-when-normal ones (cadence, climb) only when they are worth saying,
+// and the renderer drops whatever is nil. There is no length check and no
+// label shortening, so a line with every field can run past 4 seconds.
+// Imperial vs metric resolution lives here because the speakable string is
+// the only place it matters; the engine works in SI so its math stays
+// uniform.
 
 enum MileMarkerFormatter {
     /// Render a payload as a single short utterance in the app language

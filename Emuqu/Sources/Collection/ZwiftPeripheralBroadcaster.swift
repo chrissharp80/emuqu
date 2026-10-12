@@ -40,6 +40,10 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     // feature. The manager is created lazily in `startBroadcasting()`.
     private(set) var isAdvertising: Bool = false
     private(set) var subscriberCount: Int = 0
+    /// A broadcast is wanted but cannot run: Bluetooth is off, denied or
+    /// unsupported, or CoreBluetooth refused to advertise. Exposed so the UI
+    /// can tell the rider that Zwift cannot see the sensor.
+    private(set) var isBroadcastBlocked: Bool = false
     /// A broadcast was asked for and not stopped. A new peripheral manager
     /// reports `.unknown` until the radio answers, so the request is kept and
     /// carried out when the state turns `.poweredOn`.
@@ -53,8 +57,6 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     @ObservationIgnored private var peripheralManager: CBPeripheralManager?
     @ObservationIgnored private var hrMeasurementChar: CBMutableCharacteristic?
     @ObservationIgnored private var cpMeasurementChar: CBMutableCharacteristic?
-    @ObservationIgnored private var cpFeatureChar: CBMutableCharacteristic?
-    @ObservationIgnored private var sensorLocationChar: CBMutableCharacteristic?
     private var subscribedCentrals: Set<CBCentral> = []
 
     // MARK: Service / characteristic UUIDs (BLE SIG)
@@ -81,7 +83,8 @@ final class ZwiftPeripheralBroadcaster: NSObject {
         wantsBroadcast = true
         let manager = existingOrNewPeripheralManager()
         guard manager.state == .poweredOn else {
-            debugLog("[Zwift] Waiting for Bluetooth before advertising")
+            isBroadcastBlocked = Self.isRadioUnusable(manager.state)
+            debugLog("[Zwift] Waiting for Bluetooth before advertising", level: isBroadcastBlocked ? .warning : .info)
             return
         }
         if isAdvertising { return }
@@ -94,6 +97,7 @@ final class ZwiftPeripheralBroadcaster: NSObject {
             CBAdvertisementDataServiceUUIDsKey: [Self.heartRateService, Self.cyclingPowerService]
         ])
         isAdvertising = true
+        isBroadcastBlocked = false
     }
 
     /// Lazily create the peripheral manager on first use. This is the only
@@ -111,6 +115,11 @@ final class ZwiftPeripheralBroadcaster: NSObject {
         peripheralManager?.stopAdvertising()
         peripheralManager?.removeAllServices()
         isAdvertising = false
+        isBroadcastBlocked = false
+        clearSubscribers()
+    }
+
+    private func clearSubscribers() {
         subscribedCentrals.removeAll()
         subscriberCount = 0
     }
@@ -120,25 +129,30 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     /// Either argument can be nil — broadcasts whichever profile has data.
     func update(heartRate: Int?, powerWatts: Int?) {
         guard isAdvertising, let peripheralManager else { return }
-        if let hr = heartRate, hr > 0, let char = hrMeasurementChar {
-            // HR Measurement layout: byte 0 flags, then BPM. Flag bit 0 = 0
-            // means BPM is uint8 (range 0-255, perfectly enough for HR).
-            let data = Data([0x00, UInt8(min(255, max(0, hr)))])
+        if let hr = heartRate, let char = hrMeasurementChar, let data = Self.heartRateMeasurementPacket(bpm: hr) {
             peripheralManager.updateValue(data, for: char, onSubscribedCentrals: nil)
         }
-        if let watts = powerWatts, watts >= 0, let char = cpMeasurementChar {
-            // CPS Measurement layout: bytes 0–1 flags (u16, little-endian),
-            // bytes 2–3 instantaneous power (int16, watts). We only set
-            // the mandatory power field — no pedal balance, no crank revs,
-            // no torque. Zwift only needs the power.
-            let clamped = Int16(min(2000, max(0, watts)))
-            let raw = UInt16(bitPattern: clamped)
-            let data = Data([
-                0x00, 0x00,                       // flags = 0 → only mandatory power present
-                UInt8(raw & 0xFF), UInt8(raw >> 8)
-            ])
+        if let watts = powerWatts, let char = cpMeasurementChar, let data = Self.cyclingPowerMeasurementPacket(watts: watts) {
             peripheralManager.updateValue(data, for: char, onSubscribedCentrals: nil)
         }
+    }
+
+    /// HR Measurement layout: byte 0 flags, then BPM. Flag bit 0 = 0 means
+    /// BPM is uint8 (range 0-255, enough for HR). nil for a non-positive BPM.
+    nonisolated static func heartRateMeasurementPacket(bpm: Int) -> Data? {
+        guard bpm > 0 else { return nil }
+        return Data([0x00, UInt8(min(255, bpm))])
+    }
+
+    /// CPS Measurement layout: bytes 0–1 flags (u16, little-endian), bytes
+    /// 2–3 instantaneous power (int16, watts, clamped 0...2000). Only the
+    /// mandatory power field is set — no pedal balance, crank revs or torque.
+    /// nil for negative watts.
+    nonisolated static func cyclingPowerMeasurementPacket(watts: Int) -> Data? {
+        guard watts >= 0 else { return nil }
+        let raw = UInt16(bitPattern: Int16(min(2000, watts)))
+        // flags = 0 → only the mandatory power field is present
+        return Data([0x00, 0x00, UInt8(raw & 0xFF), UInt8(raw >> 8)])
     }
 
     // MARK: Internal
@@ -177,9 +191,17 @@ final class ZwiftPeripheralBroadcaster: NSObject {
         let sensorLocation = Self.readOnlyCharacteristic(Self.sensorLocationChar_UUID, value: Data([0x06]))
         cpService.characteristics = [cpMeasurement, cpFeature, sensorLocation]
         self.cpMeasurementChar = cpMeasurement
-        self.cpFeatureChar = cpFeature
-        self.sensorLocationChar = sensorLocation
         return cpService
+    }
+
+    /// Off, denied or unsupported: the radio will not advertise until the
+    /// user changes something. `.unknown` / `.resetting` settle on their own.
+    private static func isRadioUnusable(_ state: CBManagerState) -> Bool {
+        switch state {
+        case .poweredOff, .unauthorized, .unsupported: return true
+        case .poweredOn, .unknown, .resetting: return false
+        @unknown default: return false
+        }
     }
 
     private static func readOnlyCharacteristic(_ uuid: CBUUID, value: Data) -> CBMutableCharacteristic {
@@ -196,9 +218,12 @@ extension ZwiftPeripheralBroadcaster: CBPeripheralManagerDelegate {
     }
 
     /// A broadcast asked for before the radio was ready starts now.
+    /// Losing the radio ends the advertisement and drops every subscriber.
     private func radioStateChanged(_ state: CBManagerState) {
         guard state == .poweredOn else {
             isAdvertising = false
+            clearSubscribers()
+            isBroadcastBlocked = wantsBroadcast && Self.isRadioUnusable(state)
             return
         }
         if wantsBroadcast, !isAdvertising { startBroadcasting() }
@@ -206,6 +231,9 @@ extension ZwiftPeripheralBroadcaster: CBPeripheralManagerDelegate {
 
     nonisolated func peripheralManager(_: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         Task { @MainActor in
+            // A subscribe queued before stopBroadcasting (or a radio loss)
+            // must not re-add a subscriber to a broadcast that has ended.
+            guard self.isAdvertising else { return }
             self.subscribedCentrals.insert(central)
             self.subscriberCount = self.subscribedCentrals.count
         }
@@ -223,6 +251,7 @@ extension ZwiftPeripheralBroadcaster: CBPeripheralManagerDelegate {
             if let error {
                 debugLog("[Zwift] Advertising failed: \(error.localizedDescription)", level: .warning)
                 self.isAdvertising = false
+                self.isBroadcastBlocked = self.wantsBroadcast
             }
         }
     }

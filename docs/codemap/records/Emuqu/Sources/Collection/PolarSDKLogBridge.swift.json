@@ -1,0 +1,87 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarSDKLogBridge.swift",
+ "hash": "3001fa10fc135e4e",
+ "role": "Filters the Polar SDK's log stream into the app debug log and narrates disconnects; split off PolarManager for type-size reasons.",
+ "types": [
+  "PolarSDKLogBridge: enum — SDK log filter + disconnect narration"
+ ],
+ "state": [
+  "mem:PolarSDKLogBridge.suppressed (private static let, 5 substrings: 'PMD Data','Factor not stored',' HEX ','peripheral with session discovered','Scanning next')"
+ ],
+ "toplevel": "Only the static suppressed list.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PolarSDKLogBridge.message(_:)",
+   "hash": "ecdf8ac7721f4493",
+   "does": "Drops SDK log lines containing any suppressed substring; logs every other line to the debug log prefixed '[PolarSDK]'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug log (DebugLogger)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "line contains none of the suppressed substrings",
+     "effect": "true → debugLog it; false → return silently"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarSDKLogBridge.narrateDisconnect(wasStreaming:pairingError:)",
+   "hash": "818d9293fcee637c",
+   "does": "Logs a disconnect: a plain line when not streaming; during a session a line saying identity is kept while reconnecting, plus a warning when the drop was a pairing error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug log (DebugLogger)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wasStreaming",
+     "effect": "false → log 'Device disconnected (not streaming)' and return; true → session narration"
+    },
+    {
+     "at": "+6",
+     "cond": "pairingError",
+     "effect": "true → extra warning-level 'Pairing failure reported on disconnect'; false → nothing more"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarSDKLogBridge.noteFeatureReady(_:)",
+   "hash": "f99d4516b7a394e5",
+   "does": "Logs an SDK feature the app does not map, via debugLogExternal with cause .strap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug log (DebugLogger)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b"
+   }
+  }
+ ],
+ "deps": {}
+}

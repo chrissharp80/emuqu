@@ -1,0 +1,572 @@
+{
+ "file": "EmuquTests/ConversationStoreTests.swift",
+ "hash": "fb42f61ee43265d3",
+ "role": "XCTest suite for ConversationStore (JSON-file chat history persistence): round-trip, clear, cross-instance reads, overwrite semantics, undecodable-file set-aside, held-save retry. Uses the internal init(fileURL:saveDebounceMs:) with a per-test temp directory and a 25 ms debounce.",
+ "types": [
+  "ConversationStoreTests: class (XCTestCase) — tests for ConversationStore"
+ ],
+ "state": [
+  "mem:ConversationStoreTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>) — saved NSTimeZone.default",
+  "file:<tmp>/ConversationStoreTests-<UUID>/conversation.json (lazy tempDir/fileURL per test instance)",
+  "testDebounceMs = 25 (instance let)"
+ ],
+ "toplevel": "lazy fileURL = tempDir/conversation.json; testDebounceMs = 25. Pins NSTimeZone.default to UTC for the class although no test here depends on the time zone (ChatTurn dates are fixed epoch values).",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The class pins NSTimeZone.default to UTC though none of its tests format or bucket dates; the boilerplate is copied, not needed, and mutates process-global state for the class run.",
+   "evidence": [
+    "EmuquTests/ConversationStoreTests.swift:23",
+    "EmuquTests/ConversationStoreTests.swift:69"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ConversationStoreTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves the process-global NSTimeZone.default into the class's OSAllocatedUnfairLock then sets NSTimeZone.default to TestTimeZone.utc for every test in the class.",
+   "entry": "XCTest class-level setUp, run once before the first test in the class",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default (process-global)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores NSTimeZone.default from the saved value (when one was captured) and clears the lock.",
+   "entry": "XCTest class-level tearDown, run once after the last test in the class",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default (process-global)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists in the lock",
+     "effect": "true: NSTimeZone.default restored to it; false: default left as-is (UTC from setUp)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let ConversationStoreTests.tempDir",
+   "hash": "1b96e66a1478325b",
+   "does": "Lazy initializer: builds <temporaryDirectory>/ConversationStoreTests-<UUID>/ and creates it with try? (failure ignored), returning the URL.",
+   "entry": "Lazy stored-property initializer, evaluated on first access of tempDir (fileURL or tearDownWithError)",
+   "calls": [
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/ConversationStoreTests-<UUID>/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.tearDownWithError()",
+   "hash": "b666d94b0279bc0e",
+   "does": "Per-test teardown: removes the temp directory (try?, errors ignored) then calls super.",
+   "entry": "XCTest per-test tearDownWithError",
+   "calls": [
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/ConversationStoreTests-<UUID>/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "f6ff8541dca342f8"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.makeStore()",
+   "hash": "19645397f5d1a880",
+   "does": "Returns a ConversationStore bound to this test's fileURL with a 25 ms save debounce.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.makeTurns(count:)",
+   "hash": "ac8b8e70bb8ae38a",
+   "does": "Builds `count` ChatTurns alternating user/assistant with text 'turn-i' and createdAt 1_700_000_000+i.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "i is even",
+     "effect": "true: role .user; false: role .assistant"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)",
+   "hash": "8813a2a82164c5c4",
+   "does": "Polls predicate every 20 ms until it returns true or a 30 s deadline passes; on timeout records XCTFail at the caller's file/line.",
+   "entry": null,
+   "calls": [
+    "ext:Thread.sleep",
+    "ext:XCTFail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "Date() < deadline",
+     "effect": "true: keep polling; false: exit loop and XCTFail 'Timed out waiting for ...'"
+    },
+    {
+     "at": "+9",
+     "cond": "predicate() is true",
+     "effect": "true: return immediately (success); false: sleep 20 ms and retry"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Synchronisation by wall-clock polling of a debounced background queue; a 30 s ceiling bounds failure time, but tests remain timing-dependent on the DispatchQueue (comment cites CI run 33191820285 failing with 3 s).",
+     "evidence": [
+      "EmuquTests/ConversationStoreTests.swift:85",
+      "EmuquTests/ConversationStoreTests.swift:94"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)",
+   "hash": "a8365a3dbdb15724",
+   "does": "Waits (via waitUntil) until store.load().count equals expected; the failure message embeds the count read when the message string was built.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The timeout message string \"\\(expected) persisted turns (have \\(store.load().count))\" is evaluated once, before polling starts, so on failure it reports the count read at the start (normally 0), not the count at the deadline; the \"have 0\" diagnostic quoted from CI run 33191820285 in the comment is therefore not evidence the write never landed.",
+     "evidence": [
+      "EmuquTests/ConversationStoreTests.swift:114",
+      "EmuquTests/ConversationStoreTests.swift:87",
+      "EmuquTests/ConversationStoreTests.swift:104"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "39bba82e48c5b44f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testEmptyLoadReturnsEmptyArray()",
+   "hash": "b3a88051fc38eb96",
+   "does": "Asserts a fresh store over a missing file loads 0 turns.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testSaveThenLoadReturnsTheSameTurns()",
+   "hash": "5524e79f55b610ba",
+   "does": "Saves 4 turns, waits for persistence, asserts loaded ids, texts and roles equal the saved turns in order.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testRolesAreSerializedAndDecodedCorrectly()",
+   "hash": "d5839f6730091f1d",
+   "does": "Saves a user turn and an assistant turn with providerID .anthropic and modelID 'claude-3'; asserts roles, providerID and modelID survive the JSON round trip.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "loaded.count == 2",
+     "effect": "false: returns early (the preceding XCTAssertEqual already failed) to avoid an out-of-bounds trap; true: asserts per-field values"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testClearRemovesPersistedFile()",
+   "hash": "4caff48cd323b234",
+   "does": "Saves 3 turns, then clear(); polls until the file no longer exists and asserts load() is empty and the file is gone.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "39bba82e48c5b44f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testNewInstanceReadsPriorWrites()",
+   "hash": "d6de9c9c84c4a234",
+   "does": "Writes 2 turns with one store and asserts a second store over the same URL loads them ('turn-0','turn-1').",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testSaveOverwritesPreviousContents()",
+   "hash": "b47b185f061f3a17",
+   "does": "Saves 5 turns then the last 2; asserts the file holds exactly turn-3 and turn-4 (save replaces rather than appends).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testAnUndecodableHistoryIsSetAsideAndSavingResumes()",
+   "hash": "1e97ea3f4d99d839",
+   "does": "Writes truncated JSON, asserts load() returns empty, saves 2 turns and asserts they persist, exactly one '*undecodable*' file exists in the dir with the corrupt bytes, and needsReloadFromDisk is false (load flagged the file; mergedWithDisk set it aside via UndecodableFile.setAside and cleared the flag).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)",
+    "file:conversation.undecodable-<unix>.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk": "c1e1072e58417519",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f",
+    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "f6ff8541dca342f8"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testClearReplacesAnUndecodableHistory()",
+   "hash": "37836da1286e609f",
+   "does": "Writes truncated JSON, load() flags it, clear() deletes it and resets the flag, then save of 3 turns persists (waits for count 3). Only assertion is the waitUntil timeout.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named \"ClearReplacesAnUndecodableHistory\" but never asserts the corrupt bytes are gone or that no *.undecodable-* file was created; the only check is that 3 turns eventually decode.",
+     "evidence": [
+      "EmuquTests/ConversationStoreTests.swift:227",
+      "EmuquTests/ConversationStoreTests.swift:235"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testRetryingWithNothingPendingWritesNothing()",
+   "hash": "68e7059460e10c53",
+   "does": "Calls retryHeldSave() on a fresh store, sleeps 100 ms, asserts no file was written (writePending false makes retry a no-op).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Negative assertion after a fixed 100 ms sleep: a regression that wrote the file later than 100 ms after retryHeldSave would still pass.",
+     "evidence": [
+      "EmuquTests/ConversationStoreTests.swift:241"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "c5edee68d81706b7",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testTruncatedSaveDoesNotResurrectOldTurns()",
+   "hash": "61adb270316da534",
+   "does": "Saves 8 turns, then the last 4; asserts the persisted texts equal the 4 kept ones (no merge with prior disk contents when the file was readable).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()"
+   ],
+   "reads": [
+    "file:conversation.json (test temp)"
+   ],
+   "writes": [
+    "file:conversation.json (test temp)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Asserts the same behaviour as testSaveOverwritesPreviousContents (save N turns, wait, save a suffix, assert only the suffix is on disk); the merge path it names (mergedWithDisk) is only taken when unreadableOnDisk is set, which neither test sets.",
+     "evidence": [
+      "EmuquTests/ConversationStoreTests.swift:193",
+      "EmuquTests/ConversationStoreTests.swift:251",
+      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:199"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,218 @@
+{
+ "file": "EmuquTests/CloudRetryProgressTests.swift",
+ "hash": "7b81b22f8bf7d96a",
+ "role": "Tests that the CloudKit upload backoff expression lets every deferred session become eligible again (regression for a bucket % period expression that deferred forever), still backs off with more failures, spreads sessions across cycles and caps the shift exponent.",
+ "types": [
+  "CloudRetryProgressTests: class — @MainActor XCTestCase for retry backoff progress"
+ ],
+ "state": [
+  "workedExampleUUID: static UUID whose stableRetryBucket is 1"
+ ],
+ "toplevel": "Static workedExampleUUID fixture.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Every 'fix' test evaluates the test's own copy of the backoff expression (defers(), with literals 6 and 32) instead of CloudKitSyncManager.shouldDeferForBackoff (private, using maxBackoffExponent/maxBackoffCycles and the real pushCycleCounter); a regression in the production expression or its constants passes this suite. Only stableRetryBucket is production code here.",
+   "evidence": [
+    "EmuquTests/CloudRetryProgressTests.swift:33",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:208"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CloudRetryProgressTests.defers(bucket:failCount:cycle:)",
+   "hash": "b0a0fbbe935e1898",
+   "does": "Re-implements the backoff test: period = min(2^min(failCount,6), 32), offset = bucket % period, defer unless (cycle+offset) % period == 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Duplicates the body of CloudKitSyncManager.shouldDeferForBackoff with hard-coded caps instead of calling it.",
+     "evidence": [
+      "EmuquTests/CloudRetryProgressTests.swift:33",
+      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:208"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CloudRetryProgressTests.oldDefers(bucket:failCount:)",
+   "hash": "9b6e3935c703bd63",
+   "does": "Re-implements the old buggy expression bucket % min(2^failCount, 32) != 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudRetryProgressTests.testTheOldExpressionNeverBecomesEligible()",
+   "hash": "462d12cdb8ee398f",
+   "does": "Asserts the worked-example UUID's stableRetryBucket is 1 and the old expression defers on 1,000 repeated evaluations at failCount 1.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.oldDefers(bucket:failCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for 1,000 iterations",
+     "effect": "asserts oldDefers(1, 1) is true each time (constant inputs, so iterations add nothing)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "4e02b72514715785",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.oldDefers(bucket:failCount:)": "d004cfbf76e99966"
+   }
+  },
+  {
+   "key": "func CloudRetryProgressTests.testEverySessionBecomesEligibleWithinItsPeriod()",
+   "hash": "0e43c5f8f64e3718",
+   "does": "For failCount 1...8 and seven bucket values, asserts some cycle within the period makes the session eligible.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for failCount in 1...8",
+     "effect": "computes the period and loops buckets"
+    },
+    {
+     "at": "+3",
+     "cond": "for each of 7 bucket values",
+     "effect": "asserts some cycle in 0..<period does not defer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+   }
+  },
+  {
+   "key": "func CloudRetryProgressTests.testATransientFailureRetriesOnceTheCycleAdvances()",
+   "hash": "18c668303d493694",
+   "does": "Counts cycles 0..<16 where the worked-example session at failCount 1 is eligible and asserts more than one.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "cycle where defers(...) is false",
+     "effect": "increments attempts; deferred cycles are skipped by the where clause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "4e02b72514715785",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "996d210a1b353bb7",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+   }
+  },
+  {
+   "key": "func CloudRetryProgressTests.testHigherFailureCountsRetryLessOften()",
+   "hash": "15bf3cb16cebbe74",
+   "does": "Asserts attempts in 256 cycles for bucket 5 strictly decrease from failCount 1 to 3 to 6, and failCount 6 still gets >0 attempts.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "996d210a1b353bb7"
+   }
+  },
+  {
+   "key": "func CloudRetryProgressTests.attempts(failCount:)",
+   "hash": "37653e1cab32547d",
+   "does": "Counts cycles in 0..<256 where defers(bucket 5, failCount) is false.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+   }
+  },
+  {
+   "key": "func CloudRetryProgressTests.testDistinctSessionsAreSpreadAcrossCycles()",
+   "hash": "f5357de34a7fd7ab",
+   "does": "Computes, for buckets 0..<64 at failCount 3, the first eligible cycle and asserts more than one distinct first cycle.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+   }
+  },
+  {
+   "key": "func CloudRetryProgressTests.testTheExponentIsCappedBeforeShifting()",
+   "hash": "38c18a7b3d4fe125",
+   "does": "Calls defers with failCount 7, 32, 63 and 200 inside XCTAssertNoThrow.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 4 large failCounts",
+     "effect": "evaluates defers inside XCTAssertNoThrow"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertNoThrow around a non-throwing Bool expression can never fail; an over-wide shift would trap the process rather than throw, so the assertion adds nothing and the test checks the local copy, not production.",
+     "evidence": [
+      "EmuquTests/CloudRetryProgressTests.swift:111"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+   }
+  }
+ ],
+ "deps": {}
+}

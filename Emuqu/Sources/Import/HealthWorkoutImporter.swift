@@ -130,4 +130,36 @@ struct HealthWorkoutImporter {
             return (sample.start.addingTimeInterval(seconds / 2), perMinute)
         }
     }
+
+    /// Cadence on every whole second from `start` to `end` that a step window
+    /// covers, at that window's steps per minute.
+    ///
+    /// The workout builder fills a second from a cadence sample only within a
+    /// few seconds of it, so one midpoint per window would leave a
+    /// multi-minute HealthKit step batch with cadence on a handful of seconds.
+    /// Holding the rate across the window, as the rebuild does for pace and
+    /// METs, keeps it on every second the window measured. Where windows
+    /// overlap, the finest one is listed last, and the builder keeps the last.
+    nonisolated static func cadenceSamples(
+        from steps: [HealthSampleWindow], coveringFrom start: Date, to end: Date
+    ) -> [(Date, Double)] {
+        finestLast(steps).flatMap { window -> [(Date, Double)] in
+            guard let rate = cadenceSamples(from: [window]).first?.1 else { return [] }
+            let first = max(window.start, start)
+            let seconds = Int(min(window.end, end).timeIntervalSince(first))
+            guard seconds >= 0 else { return [] }
+            return (0 ... seconds).map { (first.addingTimeInterval(Double($0)), rate) }
+        }
+    }
+
+    /// Windows ordered so that, where an iPhone and an Apple Watch window
+    /// overlap, the shorter (finer) one comes later and wins in a
+    /// latest-wins fill, whatever order HealthKit returned them in. Equal
+    /// lengths fall back to start time, so the order never depends on the
+    /// query's unspecified result order.
+    nonisolated static func finestLast(_ windows: [HealthSampleWindow]) -> [HealthSampleWindow] {
+        windows.sorted { lhs, rhs in
+            lhs.duration != rhs.duration ? lhs.duration > rhs.duration : lhs.start < rhs.start
+        }
+    }
 }

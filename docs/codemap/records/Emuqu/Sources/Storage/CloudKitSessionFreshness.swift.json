@@ -1,0 +1,444 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift",
+ "hash": "5dbb4899f62249c3",
+ "role": "Last-writer-wins rules for sessions held on several devices: whole-second modifiedAt stamp comparison, stamping records/edits, merging a newer iCloud copy over the local one, plus CloudPullCoordinator's refresh-if-newer path.",
+ "types": [
+  "CloudKitSessionFreshness: enum — namespace for freshness rules",
+  "CloudKitSessionFreshness.Decision: enum — importRemote | keepLocal",
+  "extension CloudPullCoordinator — refreshIfRemoteIsNewer / replaceLocalCopy"
+ ],
+ "state": [
+  "ck:HRVSession.modifiedAt (plain date field, modifiedAtField)",
+  "mem:CloudKitSessionFreshness.fieldRejected (OSAllocatedUnfairLock<Bool>, per launch)"
+ ],
+ "toplevel": "static let modifiedAtField = \"modifiedAt\"; private static let fieldRejected = OSAllocatedUnfairLock(initialState: false).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)",
+   "hash": "d084f86ceffa3f96",
+   "does": "Remote stamp nil → keepLocal; local nil → importRemote; otherwise importRemote only if remote whole-second stamp is strictly greater than local's.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remoteModifiedAt nil",
+     "effect": "keepLocal"
+    },
+    {
+     "at": "+2",
+     "cond": "localModifiedAt nil (remote set)",
+     "effect": "importRemote"
+    },
+    {
+     "at": "+3",
+     "cond": "remote > local (whole seconds)",
+     "effect": "importRemote; equal or older → keepLocal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.stamp(at:)",
+   "hash": "d3167d98b265731e",
+   "does": "Returns `now` truncated down to whole seconds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.wholeSeconds(_:)",
+   "hash": "a8473b1d89397e8f",
+   "does": "timeIntervalSince1970 rounded down.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSessionFreshness.modifiedAt(of:)",
+   "hash": "097752cd3061726b",
+   "does": "Reads the record's modifiedAt Date field (nil if absent).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ck:HRVSession.modifiedAt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSessionFreshness.stampRecord(_:from:)",
+   "hash": "063e130a5f8d7675",
+   "does": "Writes session.modifiedAt onto the record's modifiedAt field unless the session has no stamp or the field was rejected by production schema this launch.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:CloudKitSessionFreshness.fieldRejected"
+   ],
+   "writes": [
+    "ck:HRVSession.modifiedAt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no modifiedAt or field rejected this launch",
+     "effect": "returns without writing the field"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.stampEdit(of:in:)",
+   "hash": "2f25aeee009c8e90",
+   "does": "Runs stampEditNow in a detached utility task and awaits it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampEditNow(of:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampEditNow(of:in:)": "0f41de8510694bb3"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.stampEditNow(of:in:)",
+   "hash": "50777594dfeae31c",
+   "does": "archive.update(id, requestingReupload: false) setting modifiedAt = stamp(); logs a warning on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/index.json",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "update throws",
+     "effect": "logs warning ('other devices keep their copy') and swallows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "1e4a5922d1acfc50",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)",
+   "hash": "68a648fa6dd1a451",
+   "does": "Logs the failed upload when sessionId is given; if the error's description names the 'modifiedAt' field and either says 'production schema' or carries a schema-rejection CKError code (serverRejectedRequest/invalidArguments, isSchemaRejection), sets fieldRejected so later uploads omit the field, logging an error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.isSchemaRejection(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSessionFreshness.fieldRejected"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionId provided",
+     "effect": "logs 'Upload failed for <id>'"
+    },
+    {
+     "at": "+5",
+     "cond": "message lacks 'modifiedAt', or has neither 'production schema' nor a schema-rejection code",
+     "effect": "returns; else flags the field rejected for the launch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.isSchemaRejection(_:)": "cda1befbcb219489",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.isSchemaRejection(_:)",
+   "hash": "a9003473f113359b",
+   "does": "True for a CKError with code serverRejectedRequest or invalidArguments.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not a CKError",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)",
+   "hash": "88dc6880e34daf43",
+   "does": "Conflict resolution on upload: if the server copy is newer (and this is not a restore over a tombstone), marks the session uploaded and returns false without touching the record; otherwise clears server keys absent locally, copies every local key, re-applies the restore marker if the server had it, returns true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ck:HRVSession (server record fields)"
+   ],
+   "writes": [
+    "ck:HRVSession (server record fields)",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "decision keepLocal, or restoring and server isDeleted == 1",
+     "effect": "proceeds to overwrite; otherwise yields"
+    },
+    {
+     "at": "+6",
+     "cond": "record name is a UUID",
+     "effect": "markUploaded(sessionId) before returning false"
+    },
+    {
+     "at": "+10",
+     "cond": "for server keys missing from local",
+     "effect": "set to nil (clears legacy plaintext fields)"
+    },
+    {
+     "at": "+13",
+     "cond": "for every local key",
+     "effect": "copied onto server record"
+    },
+    {
+     "at": "+16",
+     "cond": "server isDeleted was restoredMarker (-1)",
+     "effect": "keeps -1 instead of the local 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)": "ea2b3c0c3b9fc296",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.replacing(_:with:)",
+   "hash": "4b38562913f02917",
+   "does": "Builds the merged session from the newer remote copy: restores local HealthKit-only fields; keeps local sleep entirely when the remote has no sleep window, or keeps local sleepSnapshot when windows match; keeps local auto-window result when remote was user-adjusted without one; keeps local HealthKit export stamp when remote has none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "remote has no sleepStart, sleepEnd and segments",
+     "effect": "keepSleep(local)"
+    },
+    {
+     "at": "+5",
+     "cond": "same sleep window as local",
+     "effect": "sleepSnapshot = remote ?? local; different window → remote snapshot (nil after strip → backfill)"
+    },
+    {
+     "at": "+6",
+     "cond": "remote.sleepSnapshot ?? local.sleepSnapshot",
+     "effect": "falls back to local snapshot when remote has none"
+    },
+    {
+     "at": "+8",
+     "cond": "remote windowUserAdjusted and no autoWindowResult",
+     "effect": "copies local autoWindowResult/Score"
+    },
+    {
+     "at": "+12",
+     "cond": "remote healthKitExportedAt nil",
+     "effect": "copies local export time and failure count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "851c95f949e98fb6",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)": "e6d07acb5dc81d91",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "7d6537466e814742"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.keepSleep(of:in:)",
+   "hash": "17b2a440d2ecb7b0",
+   "does": "Copies local sleep start/end/segments/userAdjusted into merged; snapshot = merged's ?? local's.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "merged.sleepSnapshot ?? local.sleepSnapshot",
+     "effect": "local snapshot when merged has none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshness.sameSleepWindow(_:_:)",
+   "hash": "2108672f6e1cfde9",
+   "does": "True when both sessions have equal sleep start, end, segments and userAdjusted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)",
+   "hash": "0a4155a8463132e7",
+   "does": "For a session held locally: compares the record's modifiedAt with the index entry's (read through the locked SessionArchive.entryById); when remote is newer and the session still exists and its asset can be fetched, replaces the local copy; otherwise no-op outcome.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.replaceLocalCopy(from:sessionId:remoteModifiedAt:)"
+   ],
+   "reads": [
+    "ck:HRVSession.modifiedAt",
+    "mem:SessionArchive.sessionIdLookup",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "decision importRemote AND session exists AND asset URL obtained",
+     "effect": "replaceLocalCopy; else RecordOutcome() (nothing)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)": "764c01faa9273790",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)": "ea2b3c0c3b9fc296",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.replaceLocalCopy(from:sessionId:remoteModifiedAt:)": "f5ae62f876a88625",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56"
+   }
+  },
+  {
+   "key": "func CloudPullCoordinator.replaceLocalCopy(from:sessionId:remoteModifiedAt:)",
+   "hash": "aeb3acf70bac54af",
+   "does": "Decodes the iCloud payload off-main, sets its modifiedAt to the record's, merges via replacing() with the lightweight local copy, archives with skipSameNightMerge and no re-upload request, marks uploaded (dropping a pending older local upload); returns refreshed=1 and a backfill id if the merged copy lacks a sleep snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)"
+   ],
+   "reads": [
+    "file:CKAsset fileURL",
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/index.json",
+    "notif:flowRecoveryArchiveChanged",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "local lightweight retrieve returns nil",
+     "effect": "RecordOutcome() — nothing replaced"
+    },
+    {
+     "at": "+12",
+     "cond": "replacement.sleepSnapshot == nil",
+     "effect": "backfillId = sessionId; else nil"
+    },
+    {
+     "at": "+13",
+     "cond": "decode/retrieve/archive throws",
+     "effect": "importFailure: key-wait / newer-schema skipped quietly, others set lastPullErrorMessage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "8706cc7b863388cb",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)": "d68a5f48b5e3ea2d",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

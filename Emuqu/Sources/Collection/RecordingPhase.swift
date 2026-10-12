@@ -4,11 +4,12 @@ import Foundation
 ///
 /// Transitions:
 ///   .idle → .streaming / .overnightStreaming / .deviceRecording
-///   .streaming → .analyzing → .awaitingAcceptance → .idle
-///   .overnightStreaming → .paused → .overnightStreaming (resume)
+///   .streaming → .analyzing → .idle (a quick reading is saved at stop, not reviewed)
 ///   .overnightStreaming → .analyzing → .awaitingAcceptance → .idle
-///   .paused → .analyzing → .awaitingAcceptance → .idle (finalize)
-///   .deviceRecording → .analyzing → .awaitingAcceptance → .idle
+///   .overnightStreaming → .analyzing → .paused → .overnightStreaming (pause, resume)
+///   .paused → .awaitingAcceptance (Done on an analysed night) or .idle (Done on a short one)
+///   .deviceRecording → .idle (the strap stops for the download) → .awaitingAcceptance → .idle
+///   .analyzing → .idle (a night that failed)
 ///   Any → .idle (reset/reject)
 enum RecordingPhase: Equatable, CustomStringConvertible {
     case idle
@@ -18,19 +19,6 @@ enum RecordingPhase: Equatable, CustomStringConvertible {
     case paused(sessionId: UUID)
     case analyzing
     case awaitingAcceptance
-
-    var isRecording: Bool {
-        switch self {
-        case .streaming, .overnightStreaming, .deviceRecording:
-            true
-        default:
-            false
-        }
-    }
-
-    var isActive: Bool {
-        self != .idle
-    }
 
     var description: String {
         switch self {

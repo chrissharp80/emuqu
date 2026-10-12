@@ -1,0 +1,528 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+StoreForwarding.swift",
+ "hash": "be2256fae6c19266",
+ "role": "Forwarders from SessionArchive's public API to ArchiveStore (built per access), plus updateTags and pure static helpers.",
+ "types": [
+  "SessionArchive: extension — forwarding API to ArchiveStore"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionArchive._archive(_:skipSameNightMerge:)",
+   "hash": "92fd389d0799c333",
+   "does": "Forwards to ArchiveStore._archive (caller holds the lock).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "71b5c97dd70f4908",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive._retrieve(_:)",
+   "hash": "be38840a393b3ea7",
+   "does": "Forwards to ArchiveStore._retrieve (caller holds the lock).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "6843baad12c58853",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.archiveBatch(_:)",
+   "hash": "9000be564519a880",
+   "does": "Forwards to ArchiveStore.archiveBatch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveBatch(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveBatch(_:)": "0e671c7a07f2832c",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.delete(_:)",
+   "hash": "da7f5d08db09c6b8",
+   "does": "Forwards to ArchiveStore.delete.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "662868c15ff59756",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.entryById(_:)",
+   "hash": "06250aec6627e093",
+   "does": "Locked lookup for callers outside the lock (CloudPullCoordinator.refreshIfRemoteIsNewer, tests): takes archiveLock around ArchiveStore.entryById, which reads index and may fill sessionIdLookup. Code already holding the lock calls store.entryById directly (NSLock is not re-entrant).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "writes": [
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "e7bc37418ad20f4e",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.exists(_:)",
+   "hash": "6824f18b729ee023",
+   "does": "Forwards to ArchiveStore.exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.exists(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.exists(_:)": "0e91e400fff1b044",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.forgetDeletedSession(_:)",
+   "hash": "187fc23b40d2f0a8",
+   "does": "Permanently forgets a deleted session: forwards to ArchiveStore.unmarkAsDeleted (the same removal from the deleted list, deletion time forgotten, deleted.json saved; throws).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "bbb92c30dc6a2963",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.trashedSession(_:)",
+   "hash": "afa0e04bd68b0e2e",
+   "does": "Forwards to ArchiveStore.trashedSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashedSession(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashedSession(_:)": "8b70a452027fde40",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.discardTrashed(_:)",
+   "hash": "330693d527a96c56",
+   "does": "Forwards to ArchiveStore.discardTrashed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)": "92307549c8d57283",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.expiredDeletionIds(keepDays:)",
+   "hash": "efe381e7daf6d0ae",
+   "does": "Forwards to ArchiveStore.expiredDeletionIds(keepDays:) (default 90): the deleted session ids past the Trash retention.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "var SessionArchive.trashedIds",
+   "hash": "61774f4e07606808",
+   "does": "Forwards to ArchiveStore.trashedIds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "160713aed5eced1c",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.markAsDeleted(_:)",
+   "hash": "d12cdaf50fa8b9a0",
+   "does": "Forwards to ArchiveStore.markAsDeleted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.markAsDeleted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.markAsDeleted(_:)": "e25aac416ed7796d",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.unmarkAsDeleted(_:)",
+   "hash": "bca145e3bc77857e",
+   "does": "Forwards to ArchiveStore.unmarkAsDeleted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "bbb92c30dc6a2963",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.sessionExists(for:)",
+   "hash": "23f851fd9d5acb23",
+   "does": "Forwards to ArchiveStore.sessionExists(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sessionExists(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sessionExists(for:)": "18284c8ab2094ace",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.holdsCopy(of:)",
+   "hash": "81c9d32567506535",
+   "does": "Forwards to ArchiveStore.holdsCopy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.holdsCopy(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.holdsCopy(of:)": "9c560b80717c1d15",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.wasIntentionallyDeleted(_:)",
+   "hash": "33c54c0283d4ad5d",
+   "does": "Forwards to ArchiveStore.wasIntentionallyDeleted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)": "d64f34e2444e2f57",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.deletionTime(of:)",
+   "hash": "3ba55d6830073ee0",
+   "does": "Forwards to ArchiveStore.deletionTime(of:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "321394cc916f6032",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.linkedSegments(for:)",
+   "hash": "6233de3f4ebba7e9",
+   "does": "Forwards to ArchiveStore.linkedSegments(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.linkedSegments(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.linkedSegments(for:)": "c4d6baa24d3d2e46",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "var SessionArchive.entries",
+   "hash": "42272d61faef4a08",
+   "does": "Forwards to ArchiveStore.entries (sorted, cached).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "85c67e62d7a10529",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.entries(from:to:)",
+   "hash": "c1fecd13c4286676",
+   "does": "Forwards to ArchiveStore.entries(from:to:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(from:to:)": "c947469d64a3f90c",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.entries(includingTags:excludingTags:)",
+   "hash": "9b862b22e2c1a362",
+   "does": "Forwards to ArchiveStore.entries(includingTags:excludingTags:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(includingTags:excludingTags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only EmuquTests/ArchiveIntegrityTests.swift:270.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+StoreForwarding.swift:35",
+      "EmuquTests/ArchiveIntegrityTests.swift:270"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(includingTags:excludingTags:)": "c70a482044e9f276",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "var SessionArchive.deletedIds",
+   "hash": "fe3fe51770eba36a",
+   "does": "Forwards to ArchiveStore.deletedIds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds": "7828e04f3b31abf9",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.hasSessionNear(date:toleranceMinutes:)",
+   "hash": "95d93c313314abf5",
+   "does": "Forwards to ArchiveStore.hasSessionNear(date:toleranceMinutes:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hasSessionNear(date:toleranceMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hasSessionNear(date:toleranceMinutes:)": "e6279980b9ab558d",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.updateTags(_:tags:notes:)",
+   "hash": "04c076d517a52887",
+   "does": "Replaces a session's tags and notes in place via update(id) (locked read-modify-write, requestingReupload default true → stamps modifiedAt and posts reupload request); nil notes clears the note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931"
+   }
+  },
+  {
+   "key": "func SessionArchive.loadAndDecodeSessionFile(at:decoder:)",
+   "hash": "865d9db0b9bb01b1",
+   "does": "Forwards to ArchiveStore.loadAndDecodeSessionFile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)": "93ff92a48b7f6d45"
+   }
+  },
+  {
+   "key": "func SessionArchive.looksEncrypted(_:)",
+   "hash": "49c5a8268af566a9",
+   "does": "Forwards to ArchiveStore.looksEncrypted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests (ArchiveIntegrityTests.swift:445, ArchiveIntegrityTests+Codec.swift:205).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+StoreForwarding.swift:60",
+      "EmuquTests/ArchiveIntegrityTests.swift:445"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "b882b578163b2c45"
+   }
+  },
+  {
+   "key": "func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)",
+   "hash": "baaadd32559c001e",
+   "does": "Forwards to ArchiveStore.normalizedSplitNightSegments (used by HistoryViewModel and MorningResultsView detail cards).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "e56bcd318057030c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb"
+   }
+  }
+ ],
+ "deps": {}
+}

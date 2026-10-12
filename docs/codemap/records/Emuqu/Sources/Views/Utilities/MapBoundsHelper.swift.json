@@ -1,0 +1,72 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift",
+ "hash": "dae36545cd2b3195",
+ "role": "Single helper computing an MKCoordinateRegion bounding route coordinates with padding/minimum span.",
+ "types": [
+  "MapBoundsHelper: enum — region(for:...)"
+ ],
+ "state": [],
+ "toplevel": "Callers: Alpha1ReportCards+Report.swift:621, FitnessPostSummaryView+Share.swift:418, WorkoutPreflightView.swift:532, FitnessRecordingView+Tiles.swift:863.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)",
+   "hash": "1f3797893cb9e4d6",
+   "does": "Returns a region centred on the lat/lon midpoint with span (max-min)*paddingFactor floored at minimumDelta and capped at 180°/360°. Longitudes go through unwrappedLongitudes, so a route across the ±180° meridian is bounded across it and its centre is normalised back into ±180°. Empty input returns a 0,0-centred region with emptyFallbackDelta span.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.unwrappedLongitudes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "min/max nil (empty input)",
+     "effect": "return 0,0 fallback region"
+    },
+    {
+     "at": "+18",
+     "cond": "unwrapped centre longitude > 180",
+     "effect": "subtract 360"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Doc calls this \"the one shared implementation for the app's route maps\", yet three other units recompute the same min/max bounding region with their own padding: TrailRow.mapRegion, RecapCard.snapshotOptions, WorkoutPDFRenderer.mapSnapshotOptions.",
+     "evidence": [
+      "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift:5",
+      "Emuqu/Sources/Views/DiscoverTrailsView.swift:783",
+      "Emuqu/Sources/Views/RecapCard.swift:323",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:296"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.unwrappedLongitudes(_:)": "455b68e74af97aed"
+   }
+  },
+  {
+   "key": "func MapBoundsHelper.unwrappedLongitudes(_:)",
+   "hash": "d8b3ee86409a46bb",
+   "does": "Returns the longitudes unchanged unless their raw extent exceeds 180°, in which case negative ones are shifted by +360° so the extent is the route's real width across the antimeridian.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty or extent <= 180°",
+     "effect": "return input"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

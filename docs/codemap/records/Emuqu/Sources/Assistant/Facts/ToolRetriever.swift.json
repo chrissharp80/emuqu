@@ -1,0 +1,536 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift",
+ "hash": "7f5e16992fd334aa",
+ "role": "BM25-based tool retrieval: `retrieve` trims a tool list to the top-K plus essentials using a cached index keyed by catalog hash and the tool list itself (fast-exits when ≤ targetK, which is always today), `ranked`/`fitting` order and budget-trim tools for Apple Intelligence's small window. Also declares the private BM25Index.",
+ "types": [
+  "ToolRetriever: enum (namespace) — retrieve, ranked, fitting, tokenizer, essentials",
+  "BM25Index: private final class (Sendable) — per-tool term frequencies, document frequency, BM25 scoring",
+  "BM25Index.ScoredTool: struct — tool + score"
+ ],
+ "state": [
+  "mem:ToolRetriever.indexCache (OSAllocatedUnfairLock<(index: BM25Index?, hash: String?, tools: [ToolSpec])>)",
+  "mem:ToolRetriever.essentialToolNames (9 compact tool names)",
+  "mem:ToolRetriever.stopWords",
+  "mem:ToolRetriever.doubledFinals (b d g m n p t)",
+  "mem:BM25Index.k1 = 1.5",
+  "mem:BM25Index.b = 0.75"
+ ],
+ "toplevel": "Static lets: indexCache lock initialised to (nil, nil, []); essentialToolNames {get_today, get_session, get_workout_live, get_training_load, get_user, lookup_fact, location_situation, location_current, location_current_detailed}; stopWords (English stop words, question words, LLM boilerplate incl. 'user', 'data', 'show'); doubledFinals.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "retrieve()'s whole ranking path (index build, BM25, floor, essentials) is unreachable in production: its only caller passes the compact schema (~20 read + ≤18 action tools) with targetK 40, so the guard at line 111 always returns the tools unchanged, as the file's own doc admits.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:111",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:550"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
+   "hash": "3711eaf4f4999f44",
+   "does": "If tools.count ≤ targetK returns tools unchanged (always, in production). Otherwise ensures the cached BM25 index for catalogHash, tokenizes the query, returns essentials only for empty queries or all-zero scores, else top-K above max(0.05, 10% of max) plus missing essentials, logging the ratio.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.topScoring(_:targetK:scoreFloor:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.withEssentials(_:from:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.essentialsOnly(from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:ToolRetriever.indexCache"
+   ],
+   "writes": [
+    "mem:ToolRetriever.indexCache"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "tools.count > targetK",
+     "effect": "false: returns tools unchanged (the production case); true: ranks"
+    },
+    {
+     "at": "+9",
+     "cond": "query has tokens",
+     "effect": "false: essentialsOnly"
+    },
+    {
+     "at": "+11",
+     "cond": "index ?? []",
+     "effect": "index nil (not possible after ensureIndex) -> no scores -> essentials only"
+    },
+    {
+     "at": "+12",
+     "cond": "top score exists and > 0",
+     "effect": "false: essentialsOnly; true: top-K + essentials"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "The only caller passes registry.catalogHash() as the catalogHash argument, and Swift evaluates it before retrieve's guard runs. That means every send JSON-encodes the whole fact schema and SHA-256-hashes it, and then the guard at line 111 discards the result because the compact schema is always ≤ targetK.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:551",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:228",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:232",
+      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:111"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)": "c72f55dd2a50924c",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.essentialsOnly(from:)": "dada2b4598504d60",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.topScoring(_:targetK:scoreFloor:)": "1baa106962ebeaa1",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.withEssentials(_:from:)": "be9a8cced9bc2925",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ToolRetriever.ranked(for:tools:)",
+   "hash": "735ba6d1774d9983",
+   "does": "Orders every tool: BM25-matched tools by score (fresh index over `tools`), then essentials, then the rest in input order; nothing dropped. Used by AppleFoundationProvider before fitting().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "query tokens empty or tools empty (ternary)",
+     "effect": "true: no scored tools; false: builds BM25Index and scores"
+    },
+    {
+     "at": "+7",
+     "cond": "tool is essential and not already listed",
+     "effect": "appended after scored tools"
+    },
+    {
+     "at": "+10",
+     "cond": "tool not yet listed",
+     "effect": "appended in input order"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "ae28dbedd3b1cf02",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "1ddd2faf1274de10"
+   }
+  },
+  {
+   "key": "func ToolRetriever.fitting(_:budget:cost:)",
+   "hash": "e245b0f672bc4d7c",
+   "does": "Greedy budget fit over the ranked list: keeps each tool whose cost fits the remaining budget, skipping (not stopping at) ones that don't; returns kept tools and tokens used.",
+   "entry": null,
+   "calls": [
+    "closure:cost — AppleToolCatalog.estimatedTokens(for:) from AppleFoundationProvider.swift:462, or test closures"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each ranked tool",
+     "effect": "computes price"
+    },
+    {
+     "at": "+9",
+     "cond": "used + price <= budget",
+     "effect": "false: skip tool (continue); true: keep and add price"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "e799060c3c4e6da6"
+   }
+  },
+  {
+   "key": "func ToolRetriever.topScoring(_:targetK:scoreFloor:)",
+   "hash": "ab2927cde8fcca0e",
+   "does": "Takes scored tools in order until targetK reached or a score falls below the floor.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each scored entry",
+     "effect": "iterates"
+    },
+    {
+     "at": "+7",
+     "cond": "retained.count >= targetK or score < floor",
+     "effect": "break; else append"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ToolRetriever.withEssentials(_:from:)",
+   "hash": "fc459b0051ca80b1",
+   "does": "Appends essentials from `tools` not already retained, after the scored list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "tool not retained and essential",
+     "effect": "append and record name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "ae28dbedd3b1cf02"
+   }
+  },
+  {
+   "key": "func ToolRetriever.isEssential(_:)",
+   "hash": "9f58060bc3ba7bec",
+   "does": "Membership test in essentialToolNames.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ToolRetriever.essentialToolNames"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ToolRetriever.essentialsOnly(from:)",
+   "hash": "5c204fec45c5f831",
+   "does": "Filters tools to the essential names, preserving input order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "ae28dbedd3b1cf02"
+   }
+  },
+  {
+   "key": "func ToolRetriever.ensureIndex(for:hash:)",
+   "hash": "3221b1deaeebf802",
+   "does": "Under the lock, rebuilds BM25Index over `tools` unless the cached hash AND the cached tool list match and an index exists; stores the index with the hash and the list, so a changed list under an unchanged hash rebuilds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)"
+   ],
+   "reads": [
+    "mem:ToolRetriever.indexCache"
+   ],
+   "writes": [
+    "mem:ToolRetriever.indexCache"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cache.hash == hash && cache.tools == tools && index != nil",
+     "effect": "true: keep cached index; false: rebuild and store"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "1ddd2faf1274de10",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
+   }
+  },
+  {
+   "key": "func ToolRetriever.tokenize(_:)",
+   "hash": "13954821412f88cd",
+   "does": "Lowercases, splits on non-alphanumerics, and passes each run to appendToken (drops ≤1-char and stop words, applies stemming).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.appendToken(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each character",
+     "effect": "scans"
+    },
+    {
+     "at": "+4",
+     "cond": "letter or number",
+     "effect": "append to current token"
+    },
+    {
+     "at": "+6",
+     "cond": "separator with non-empty current",
+     "effect": "flush token via appendToken and reset"
+    },
+    {
+     "at": "+11",
+     "cond": "trailing token non-empty",
+     "effect": "flush last token"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.appendToken(_:to:)": "c884dc894a0ff333"
+   }
+  },
+  {
+   "key": "func ToolRetriever.appendToken(_:to:)",
+   "hash": "0a323d9612b222d4",
+   "does": "Drops single-character tokens and stop words, appends the stemmed token.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.stem(_:)"
+   ],
+   "reads": [
+    "mem:ToolRetriever.stopWords"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "token.count > 1",
+     "effect": "false: dropped"
+    },
+    {
+     "at": "+2",
+     "cond": "token is a stop word",
+     "effect": "dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.stem(_:)": "c130171e74fc63e6"
+   }
+  },
+  {
+   "key": "func ToolRetriever.stem(_:)",
+   "hash": "57f031e9f8eeb6f4",
+   "does": "Light suffix stripping: tokens ≥4 chars lose the first matching suffix of ['ing','ed','s','ly'] when at least 3 chars remain; after 'ing'/'ed' a doubled final b/d/g/m/n/p/t is undone (running → run, stopped → stop; falling stays fall). 'es' is not stripped, so times/zones/rates stem like time/zone/rate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.undoubled(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "token.count < 4",
+     "effect": "returns token unchanged"
+    },
+    {
+     "at": "+2",
+     "cond": "first of ing, ed, s, ly that is a suffix and leaves > 2 chars",
+     "effect": "strips it; 'ing'/'ed' bases go through undoubled; none: token unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "suffix is ing or ed",
+     "effect": "undoubled(base); else base"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.undoubled(_:)": "63400e4eef603c1c"
+   }
+  },
+  {
+   "key": "func ToolRetriever.undoubled(_:)",
+   "hash": "53e2eadc42c892f0",
+   "does": "Returns base with its final letter dropped when the last two letters are the same and in doubledFinals (b d g m n p t); else base unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ToolRetriever.doubledFinals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "last two letters equal and in doubledFinals",
+     "effect": "drops one; else base"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init BM25Index(tools:)",
+   "hash": "4a505f68bcc37c9a",
+   "does": "Builds per-tool term-frequency documents (via termFrequencies), document frequencies, total doc count and average document length (1 when empty).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.termFrequencies(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each tool",
+     "effect": "builds Document and adds its length"
+    },
+    {
+     "at": "+10",
+     "cond": "for each distinct term",
+     "effect": "df += 1"
+    },
+    {
+     "at": "+17",
+     "cond": "docs empty (ternary)",
+     "effect": "true: avgDocLength 1; false: totalLen / count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.termFrequencies(for:)": "f92b78de5cbbd5ff"
+   }
+  },
+  {
+   "key": "func BM25Index.nameTokens(of:)",
+   "hash": "6a7e31ca9d9a9ee8",
+   "does": "Tokenizes a tool name after replacing '_', '.', '-' with spaces.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567"
+   }
+  },
+  {
+   "key": "func BM25Index.termFrequencies(for:)",
+   "hash": "f012aa1601095de1",
+   "does": "Weighted bag of words: name tokens ×3, description tokens ×1, each property name and property description token ×1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.nameTokens(of:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each name token",
+     "effect": "+3"
+    },
+    {
+     "at": "+5",
+     "cond": "for each description token",
+     "effect": "+1"
+    },
+    {
+     "at": "+10",
+     "cond": "for each input-schema property",
+     "effect": "processes name and description"
+    },
+    {
+     "at": "+11",
+     "cond": "for each property-name token",
+     "effect": "+1"
+    },
+    {
+     "at": "+14",
+     "cond": "for each property-description token",
+     "effect": "+1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.nameTokens(of:)": "19f859db40caf9ea",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567"
+   }
+  },
+  {
+   "key": "func BM25Index.score(queryTokens:tools:)",
+   "hash": "6431f3bee4c4e7e2",
+   "does": "Scores every indexed document against the query tokens with BM25, keeps only positive scores, sorts descending. The `tools` parameter is ignored; results come from the documents the index was built with.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.bm25(_:queryTokens:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each document",
+     "effect": "computes bm25"
+    },
+    {
+     "at": "+5",
+     "cond": "score > 0",
+     "effect": "append; zero-score tools omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.bm25(_:queryTokens:)": "2031bca7bbf85ee3"
+   }
+  },
+  {
+   "key": "func BM25Index.bm25(_:queryTokens:)",
+   "hash": "346e06b4350c6f05",
+   "does": "Sums BM25 contributions over query tokens: idf = ln(1 + (N - df + 0.5)/(df + 0.5)), saturated tf with k1 1.5, b 0.75 length normalization.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each query token",
+     "effect": "duplicates in the query count again"
+    },
+    {
+     "at": "+3",
+     "cond": "doc contains term with tf > 0",
+     "effect": "false: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "documentFrequency[term] ?? 0",
+     "effect": "term absent from df (impossible when tf > 0) -> 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962"
+   }
+  }
+ ],
+ "deps": {}
+}

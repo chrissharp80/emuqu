@@ -11,11 +11,13 @@ import XCTest
 /// encoder, and may explain a 30–50% chunk of "imaginary cache hits"
 /// on its own.
 ///
-/// All four provider request encoders (`AnthropicProvider`,
-/// `OpenAICompatibleStreamer`, `GeminiProvider`) already set
-/// `.sortedKeys`. This test is the regression net: byte-for-byte
-/// equality across 100 encode passes of the same payload. If anyone
-/// ever drops `.sortedKeys` in a refactor, this fails.
+/// The provider request encoders (`AnthropicProvider`,
+/// `OpenAICompatibleStreamer`, `GeminiProvider`) set `.sortedKeys`. The
+/// regression net is the "production request encoders" section below: it
+/// builds requests through `AnthropicProvider.makeRequest` and
+/// `OpenAICompatibleStreamer.requestFor` and fails if either drops
+/// `.sortedKeys`. `GeminiProvider.makeRequest` is private and not covered.
+/// The first three tests only pin the Foundation contract on local types.
 final class JSONOrderingTests: XCTestCase {
 
     /// Test payload that exercises nested keys, arrays, and
@@ -110,5 +112,51 @@ final class JSONOrderingTests: XCTestCase {
             encodings.insert(try encoder.encode(cc))
         }
         XCTAssertEqual(encodings.count, 1, "cache_control encoding must be byte-stable")
+    }
+
+    // MARK: - The production request encoders
+
+    /// The body `AnthropicProvider.makeRequest` sends is exactly the
+    /// `.sortedKeys` encoding of the body it was given. The control shows the
+    /// body is order-sensitive (its declared key order is not sorted), so a
+    /// `makeRequest` without `.sortedKeys` fails the second assertion.
+    func testAnthropicRequestBodyIsEncodedWithSortedKeys() throws {
+        let body = AnthropicProvider.RequestBody(
+            model: "claude-test", max_tokens: 1024,
+            system: AnthropicProvider.cacheAwareSystemBlocks("rules"),
+            messages: [.init(role: "user", content: .plain("How did I sleep?"))],
+            stream: true, tools: nil
+        )
+        let url = try XCTUnwrap(URL(string: "https://example.invalid/v1/messages"))
+        let request = try AnthropicProvider.makeRequest(url: url, apiKey: "test-key", body: body)
+        let sorted = JSONEncoder()
+        sorted.outputFormatting = [.sortedKeys]
+
+        XCTAssertNotEqual(try JSONEncoder().encode(body), try sorted.encode(body), "Control: the declared key order is already sorted")
+        XCTAssertEqual(request.httpBody, try sorted.encode(body), "makeRequest no longer encodes with .sortedKeys")
+    }
+
+    /// `OpenAICompatibleStreamer.requestFor` builds the DeepSeek / OpenAI
+    /// request. Its body type is private, so the check is on the bytes: the
+    /// body declares model, messages, stream, stream_options in that order,
+    /// and only a sorted encoding puts "messages" before "model" and
+    /// "stream" before "stream_options".
+    func testOpenAICompatibleRequestBodyIsEncodedWithSortedKeys() throws {
+        let endpoint = try XCTUnwrap(URL(string: "https://example.invalid/chat/completions"))
+        let call = OpenAICompatibleStreamer.StreamCall(
+            providerID: .deepseek, endpoint: endpoint, reasoning: DeepSeekProvider.reasoning,
+            messages: [ChatTurn(role: .user, text: "How did I sleep?")],
+            model: DeepSeekProvider.models[0], contextRendered: "", systemPrompt: "rules",
+            tools: [], toolRounds: []
+        )
+        let body = try XCTUnwrap(OpenAICompatibleStreamer.requestFor(call, apiKey: "test-key").httpBody)
+        let text = String(decoding: body, as: UTF8.self)
+        let messages = try XCTUnwrap(text.range(of: #""messages":"#)).lowerBound
+        let model = try XCTUnwrap(text.range(of: #""model":"#)).lowerBound
+        let stream = try XCTUnwrap(text.range(of: #""stream":"#)).lowerBound
+        let streamOptions = try XCTUnwrap(text.range(of: #""stream_options":"#)).lowerBound
+
+        XCTAssertLessThan(messages, model, "requestFor no longer encodes with .sortedKeys")
+        XCTAssertLessThan(stream, streamOptions, "requestFor no longer encodes with .sortedKeys")
     }
 }

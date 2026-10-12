@@ -1,0 +1,1076 @@
+{
+ "file": "Emuqu/Sources/Models/RRModels.swift",
+ "hash": "9bba59086509a85b",
+ "role": "Core RR-interval and HRV-result model types: the beat point/series with timing helpers, artifact flags, time/frequency/nonlinear/ANS metric structs, training-context snapshot, the persisted HRVAnalysisResult, and localisation of its stored English window classification/selection-reason strings.",
+ "types": [
+  "RRPoint: struct — one RR beat (t_ms cumulative start, rr_ms, optional wallClockMs and device HR), Codable/Equatable",
+  "RRSeries: struct — ordered RRPoints + sessionId + startDate with duration, gap and time-conversion helpers",
+  "ArtifactFlags: struct — per-beat artifact classification (isArtifact, ArtifactType, confidence, corrected)",
+  "ArtifactFlags.ArtifactType: enum — none/ectopic/missed/extra/technical",
+  "TimeDomainMetrics: struct — meanRR, SDNN, RMSSD, pNN50, SDSD, HR stats (with hrRangeIsApproximate marking a mean ± SD stand-in range), triangular index; custom Codable with schemaVersion",
+  "FrequencyDomainMetrics: struct — VLF/LF/HF/LF:HF/total power + normalized units",
+  "NonlinearMetrics: struct — SD1/SD2, entropies, DFA α1/α2/R²",
+  "ANSMetrics: struct — stress/PNS/SNS indexes, HRV readiness, respiration, nocturnal HR dip",
+  "PeakCapacity: struct — highest sustained RMSSD window summary",
+  "TrainingContext: struct — ATL/CTL/TSB/yesterday TRIMP/VO2max/five most recent workouts snapshot frozen with a session",
+  "WorkoutSnapshot: struct — date/type/duration/load (userScaledLoad, stored as `trimp`) of one workout",
+  "HRVAnalysisResult: struct — complete persisted analysis for a window incl. window-selection provenance and overnight HR summary",
+  "HRVAnalysisResult.TimeRange: struct — Codable ms range for organized-recovery zones",
+  "HRVAnalysisResult: extension — display (localized) window classification and selection reason",
+  "WindowSelectionReasonText: enum — parses WindowSelector's English reason strings back into numbers and re-renders them localized",
+  "WindowSelectionReasonText.Numbers: struct — parsed value/α1/CV/position"
+ ],
+ "state": [
+  "mem:ArtifactFlags.clean (static let, non-artifact flag)",
+  "mem:TimeDomainMetrics.currentSchemaVersion = 1 (written to archive as schemaVersion)"
+ ],
+ "toplevel": "Codable synthesis for RRPoint, RRSeries, ArtifactFlags, FrequencyDomainMetrics, NonlinearMetrics, ANSMetrics, PeakCapacity, TrainingContext, WorkoutSnapshot, HRVAnalysisResult (persisted in the session archive / CloudKit payloads); TimeDomainMetrics has hand-written CodingKeys including schemaVersion and hrRangeIsApproximate. Static let ArtifactFlags.clean.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRPoint.shifted(by:)",
+   "hash": "7ca651531c92089b",
+   "does": "Returns a copy of the RRPoint with t_ms and wallClockMs (if present) both increased by offsetMs; rr_ms and hr unchanged. Used to rebase child segments onto a parent timeline during merges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "var RRPoint.isPhysiologicallyValid",
+   "hash": "ae3635cfb43b33ef",
+   "does": "True when rr_ms is inside HRVConstants.RRInterval valid range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "RRPoint.isPhysiologicallyValid has no production caller; only EmuquTests/RRModelsTests.swift:44 references it (grep of Emuqu/ and EmuquTests/).",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:31",
+      "EmuquTests/RRModelsTests.swift:44"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+   }
+  },
+  {
+   "key": "init RRPoint(t_ms:rr_ms:)",
+   "hash": "9ba54388df23068b",
+   "does": "Legacy memberwise init for internal-recording beats: sets t_ms, rr_ms; wallClockMs and hr nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+   "hash": "e9acba1ba4592cdb",
+   "does": "Full init setting t_ms, rr_ms, wallClockMs and optional hr (default nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRPoint.endMs",
+   "hash": "e663cbeb6e6e79cf",
+   "does": "Beat end time: t_ms + rr_ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRPoint.clockDriftMs",
+   "hash": "60788e7a5ba762f8",
+   "does": "Wall-clock minus cumulative time for this beat (wallClockMs - t_ms), nil without a wall clock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wallClockMs is nil",
+     "effect": "returns nil; otherwise returns wallClockMs - t_ms"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "RRPoint.clockDriftMs has no production caller; only EmuquTests/RRModelsTests.swift:36 references it (grep of Emuqu/ and EmuquTests/).",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:64",
+      "EmuquTests/RRModelsTests.swift:36"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var RRSeries.durationMs",
+   "hash": "b1d404bd5f5cdf8a",
+   "does": "Series duration from first beat start to last beat end in ms (last.endMs - first.t_ms); 0 when empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points has no first/last (empty)",
+     "effect": "returns 0; otherwise last.endMs - first.t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "var RRSeries.durationMinutes",
+   "hash": "63db6857da2ec80c",
+   "does": "durationMs / 60000 as minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "var RRSeries.hasWallClockTimestamps",
+   "hash": "4c1807ef6c54c408",
+   "does": "True when the FIRST point has a wallClockMs (streaming-mode series). Later points are not inspected.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+   }
+  },
+  {
+   "key": "var RRSeries.wallClockDurationMs",
+   "hash": "24ca51409b6cf97f",
+   "does": "lastWall - firstWall in ms, nil when first or last point lacks wallClockMs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "first or last point lacks wallClockMs",
+     "effect": "returns nil; otherwise last.wallClockMs - first.wallClockMs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+   }
+  },
+  {
+   "key": "var RRSeries.estimatedDataLossPercent",
+   "hash": "cea110a5b8e1b499",
+   "does": "Estimated % of stream lost: (wallDuration - rrDuration)/wallDuration*100, 0 when RR time >= wall time, nil without wall clocks. Shown as the 'Data loss' row in RecoveryScoreDetailView when >0.5%.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wall-clock duration missing or <= 0",
+     "effect": "returns nil (row hidden by caller)"
+    },
+    {
+     "at": "+4",
+     "cond": "drift (wall - RR) <= 0",
+     "effect": "returns 0.0; otherwise returns drift/wallDuration*100"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs": "d0449d0e5ae38295"
+   }
+  },
+  {
+   "key": "func RRSeries.detectGaps(thresholdMs:)",
+   "hash": "bf3429d45f5827a7",
+   "does": "Lists consecutive-beat gaps where wall-clock advance minus the previous beat's rr_ms >= thresholdMs (default 2000), as (i-1, i, gapMs) tuples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no wall clocks on first point or fewer than 2 points",
+     "effect": "returns []"
+    },
+    {
+     "at": "+3",
+     "cond": "loop over indices 1..<count",
+     "effect": "each index evaluated once"
+    },
+    {
+     "at": "+4",
+     "cond": "gap is nil (either beat lacks wall clock) or below threshold",
+     "effect": "skips index; otherwise appends gap tuple"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "RRSeries.detectGaps has no production caller; only EmuquTests/RRModelsTests.swift:143 references it (grep of Emuqu/ and EmuquTests/).",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:114",
+      "EmuquTests/RRModelsTests.swift:143"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)": "787e0af90a710dc3",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "01a075db218b6989"
+   }
+  },
+  {
+   "key": "func RRSeries.gapMs(endingAt:)",
+   "hash": "c73d28136d5e4a13",
+   "does": "(wall[i] - wall[i-1]) - rr[i-1] in ms; nil when either beat lacks wallClockMs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either beat lacks wallClockMs",
+     "effect": "returns nil; otherwise the gap value (can be negative when several beats share one BLE packet timestamp)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+   }
+  },
+  {
+   "key": "func RRSeries.absoluteTime(at:)",
+   "hash": "9049ed5c2eacc7d6",
+   "does": "Date of beat `index` from startDate + t_ms; nil when index out of range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index < 0 or >= count",
+     "effect": "returns nil; otherwise startDate + t_ms/1000"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "RRSeries.absoluteTime(at:) has no production caller; only EmuquTests/RRModelsTests.swift:117 references it (grep of Emuqu/ and EmuquTests/).",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:142",
+      "EmuquTests/RRModelsTests.swift:117"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RRSeries.absoluteTimeWallClock(at:)",
+   "hash": "2c894241606c4aa5",
+   "does": "Date of beat `index` from startDate + wallClockMs when present, else startDate + t_ms; nil out of range. Used by overnight chart tooltips.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index out of range",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "point has wallClockMs",
+     "effect": "uses wall clock; otherwise falls back to t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+   }
+  },
+  {
+   "key": "func RRSeries.absoluteTime(fromRelativeMs:)",
+   "hash": "77b69148caf42646",
+   "does": "startDate + relativeMs/1000 as a Date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.relativeMs(from:)": "19e202068f45eef7"
+   }
+  },
+  {
+   "key": "func RRSeries.wallClockTime(forTMs:)",
+   "hash": "597973fe525c1e92",
+   "does": "Converts a cumulative-RR offset to a wall-clock Date: binary-searches the beat whose t_ms is closest and returns its wall-clock time; falls back to startDate + tMs when the series lacks wall clocks or is empty. Used for overnight nadir clock time and charts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(fromRelativeMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no wall clocks on first point or empty series",
+     "effect": "returns absoluteTime(fromRelativeMs: tMs)"
+    },
+    {
+     "at": "+5",
+     "cond": "absoluteTimeWallClock returned nil",
+     "effect": "falls back to startDate + tMs (cannot happen for an in-range index)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(fromRelativeMs:)": "bd9136deb1060666",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)": "b828c96564df6c4f",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "9dd9dec04ac4869d",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "01a075db218b6989"
+   }
+  },
+  {
+   "key": "func RRSeries.closestIndex(to:key:)",
+   "hash": "e87ac6061242bb2a",
+   "does": "Lower-bound binary search over points by `key`, then picks the previous index if it is strictly closer to target. Requires non-empty, key-ordered points.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "low < high",
+     "effect": "continues halving"
+    },
+    {
+     "at": "+5",
+     "cond": "key(mid) < target",
+     "effect": "low = mid+1; else high = mid"
+    },
+    {
+     "at": "+12",
+     "cond": "low > 0 and previous point strictly closer",
+     "effect": "returns low-1; otherwise returns low"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRSeries.relativeMs(from:)",
+   "hash": "98f8c7ddb56392a5",
+   "does": "Milliseconds from startDate to date via MillisecondOffset.between with fallback 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "RRSeries.relativeMs(from:) has no production caller; only EmuquTests/RRModelsTests.swift:131 references it (grep of Emuqu/ and EmuquTests/).",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:212",
+      "EmuquTests/RRModelsTests.swift:131"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func RRSeries.indexClosestToWallClock(_:)",
+   "hash": "f7893edd751a2512",
+   "does": "Index of the beat closest to an absolute date via binary search, keyed on wallClockMs when every point has one and on t_ms otherwise (one ordered key either way); nil for an empty series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "some point lacks wallClockMs",
+     "effect": "search on t_ms; otherwise on wallClockMs"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "RRSeries.indexClosestToWallClock has no production caller; only EmuquTests/RRModelsTests.swift:206 references it (grep of Emuqu/ and EmuquTests/).",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:221",
+      "EmuquTests/RRModelsTests.swift:206"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "9dd9dec04ac4869d",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+   }
+  },
+  {
+   "key": "var RRSeries.actualEndDate",
+   "hash": "d2e743aff837d058",
+   "does": "End Date of the series: startDate + last wallClockMs when present, else startDate + durationMs. Used by SessionMerger timeline when session.endDate is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "last point has wallClockMs",
+     "effect": "uses wall clock; otherwise startDate + durationMs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "init ArtifactFlags(isArtifact:type:confidence:)",
+   "hash": "4b704c8ea225b99c",
+   "does": "Legacy ArtifactFlags init: sets isArtifact/type/confidence, corrected=false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ArtifactFlags(isArtifact:type:confidence:corrected:)",
+   "hash": "c1f6e513084a017f",
+   "does": "Full ArtifactFlags init including corrected.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+   "hash": "51d065de4dd491c4",
+   "does": "Fixture init: stores given metrics, approximates minHR=meanHR-sdHR, maxHR=meanHR+sdHR and marks hrRangeIsApproximate true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Convenience init without min/max HR has no production caller (TimeDomainAnalysis, EliteHRV importer and chart preview all use the full init); only tests use it.",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:303",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:243"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)",
+   "hash": "e34ee7dac4d5bbb6",
+   "does": "Full TimeDomainMetrics init storing every field including measured min/max HR; hrRangeIsApproximate false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init TimeDomainMetrics(from:)",
+   "hash": "be1ef079b3627147",
+   "does": "Decodes TimeDomainMetrics from archive: reads and discards optional schemaVersion, requires the seven core doubles, optional triangularIndex, defaults missing minHR/maxHR to meanHR ∓ sdHR, and sets hrRangeIsApproximate from the stored marker or, without one, true when either bound was missing.",
+   "entry": "Decodable synthesis/use: called by JSONDecoder when HRVAnalysisResult is decoded from the archive/CloudKit payload.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "schemaVersion absent",
+     "effect": "defaults to 0 and is discarded (value never used)"
+    },
+    {
+     "at": "+16",
+     "cond": "minHR absent (legacy archive)",
+     "effect": "minHR = meanHR - sdHR (approximation)"
+    },
+    {
+     "at": "+17",
+     "cond": "maxHR absent (legacy archive)",
+     "effect": "maxHR = meanHR + sdHR (approximation)"
+    },
+    {
+     "at": "+18",
+     "cond": "hrRangeIsApproximate absent",
+     "effect": "true when min or max was absent; otherwise the stored value"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Legacy results without minHR/maxHR get mean±SD substituted; hrRangeIsApproximate now marks them, but HRVDetailV2View's 'HR range' cell does not read the marker and still shows the approximation as if measured.",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:369",
+      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:482"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TimeDomainMetrics.encode(to:)",
+   "hash": "b9b1d73f2723e4c7",
+   "does": "Encodes TimeDomainMetrics with schemaVersion=1 plus all fields; triangularIndex only if present; hrRangeIsApproximate written (true) only when set.",
+   "entry": "Encodable: called by JSONEncoder when persisting HRVAnalysisResult.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "hrRangeIsApproximate",
+     "effect": "encode true; otherwise the key is omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FrequencyDomainMetrics.lfNu",
+   "hash": "9f0f123022434666",
+   "does": "LF normalized units LF/(LF+HF)*100; nil when LF+HF <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lf+hf <= 0",
+     "effect": "returns nil; otherwise lf/sum*100"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FrequencyDomainMetrics.hfNu",
+   "hash": "3809a9803fba7b28",
+   "does": "HF normalized units HF/(LF+HF)*100; nil when LF+HF <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lf+hf <= 0",
+     "effect": "returns nil; otherwise hf/sum*100"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)",
+   "hash": "d724a45500ffee3d",
+   "does": "Memberwise TrainingContext init.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingContext.acuteChronicRatio",
+   "hash": "54f3be2b89be8ee1",
+   "does": "ATL/CTL acute:chronic ratio; nil when CTL <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ctl <= 0",
+     "effect": "returns nil; otherwise atl/ctl"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init TrainingContext(from:relativeTo:)",
+   "hash": "d78b9a0b2710ef74",
+   "does": "Failable init from a HealthKit TrainingLoad: nil without metrics; yesterday TRIMP looked up at startOfDay(referenceDate)-1 day (0 if missing); ATL/CTL/TSB sanitized to finite; vo2Max and daysSinceHardWorkout copied; up to 5 most recent workouts snapshotted (nil if none). Callers: SessionAcceptanceService.swift:144, ReanalysisService.swift:410, ReanalysisService+Sleep.swift:536, SessionDataMigrations+TrainingRecalibration.swift:121, WorkoutRecorder+Lifecycle.swift:506, RRCollector.swift:395.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "load.metrics is nil",
+     "effect": "returns nil (no context)"
+    },
+    {
+     "at": "+5",
+     "cond": "calendar date nil or no TRIMP entry for yesterday",
+     "effect": "yesterdayTrimp = 0"
+    },
+    {
+     "at": "+15",
+     "cond": "no workout snapshots",
+     "effect": "recentWorkouts = nil; otherwise the array"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)": "cc1400fa3c727215",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)": "0e0b5d75fde12dd2",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingContext.sanitized(_:)",
+   "hash": "46222d41e6a7f1a5",
+   "does": "Replaces non-finite ATL/CTL with 0 and non-finite TSB with (safeCtl - safeAtl).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "atl finite",
+     "effect": "keeps it; else 0"
+    },
+    {
+     "at": "+4",
+     "cond": "ctl finite",
+     "effect": "keeps it; else 0"
+    },
+    {
+     "at": "+5",
+     "cond": "tsb finite",
+     "effect": "keeps it; else derived ctl-atl from sanitized values"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingContext.snapshots(of:)",
+   "hash": "37d518aea32afe7b",
+   "does": "Maps the first 5 load.recentWorkouts to WorkoutSnapshot(date, typeDescription, durationMinutes, trimp=userScaledLoad). The list is newest-first because TrainingLoad.init sorts it (Emuqu/Sources/Collection/TrainingLoad.swift:31), so these are the 5 most recent (asserted by EmuquTests/RRModelsTests.swift:338).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "5d7b7cae1db5737e",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.displayWindowClassification",
+   "hash": "87ffb6b91e7bfdf8",
+   "does": "Returns windowClassification localized for the five known English storage keys (4 WindowClassification raw values + 'Peak Capacity'); unknown values returned as stored; nil when unset. Shown in HRVDetailV2View Quality grid and MorningResults reanalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "windowClassification is nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "stored == 'Organized Recovery'",
+     "effect": "localized 'Organized Recovery'"
+    },
+    {
+     "at": "+5",
+     "cond": "stored == 'Flexible / Unconsolidated'",
+     "effect": "localized string"
+    },
+    {
+     "at": "+6",
+     "cond": "stored == 'High Variability'",
+     "effect": "localized string"
+    },
+    {
+     "at": "+7",
+     "cond": "stored == 'Insufficient Data'",
+     "effect": "localized string"
+    },
+    {
+     "at": "+8",
+     "cond": "stored == 'Peak Capacity' (written by HRVAnalysisPipeline:461)",
+     "effect": "localized string"
+    },
+    {
+     "at": "+9",
+     "cond": "any other value",
+     "effect": "returned verbatim"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.displayWindowSelectionReason",
+   "hash": "6afaa4aa95abe42c",
+   "does": "Returns windowSelectionReason re-rendered in the app language via WindowSelectionReasonText, or the stored English string when unparseable; nil when unset. Used by ReportSectionRenderer PDF section.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.localized(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "windowSelectionReason nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+2",
+     "cond": "localized(stored) returns nil (unrecognised shape)",
+     "effect": "falls back to the stored English string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.localized(_:)": "afa1067b05c39859"
+   }
+  },
+  {
+   "key": "func WindowSelectionReasonText.localized(_:)",
+   "hash": "840eea94bb601bd3",
+   "does": "Recognises the 4 English shapes WindowSelector writes ('No consolidated recovery detected', 'Organized Recovery (RMSSD x ms, α1=y, CV z%) at p%', 'Manual selection at p% (RMSSD …)', 'Peak <metric> (v ms, α1=…, CV …%) at p%') and returns a localized sentence with locale-formatted numbers; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.numbers(in:valueAfter:)",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.peakMetric(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stored is exactly 'No consolidated recovery detected'",
+     "effect": "returns localized version"
+    },
+    {
+     "at": "+5",
+     "cond": "prefix 'Organized Recovery (' and numbers parse after '(RMSSD '",
+     "effect": "returns localized organized-recovery sentence"
+    },
+    {
+     "at": "+8",
+     "cond": "prefix 'Manual selection at ' and numbers parse",
+     "effect": "returns localized manual-selection sentence"
+    },
+    {
+     "at": "+11",
+     "cond": "prefix 'Peak ', peakMetric parses and numbers parse (bracketed value)",
+     "effect": "returns localized peak sentence with the full metric name, e.g. 'SDNN (Total Power proxy)'. Otherwise falls through to return nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Parses WindowSelector's English format strings by substring markers ('(RMSSD ', 'α1=', 'CV ', ') at '); any wording change in selectionReason/peakSelectionReason/manualSelectionReason silently reverts the UI/PDF to English. RecoveryDetailCopy.storedWindowMethod parses the same strings independently.",
+     "evidence": [
+      "Emuqu/Sources/Models/RRModels.swift:690",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:385",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:705",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:829",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:639"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.numbers(in:valueAfter:)": "db71f96024fe5296",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.peakMetric(in:)": "fa287aece797c899",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4"
+   }
+  },
+  {
+   "key": "func WindowSelectionReasonText.numbers(in:valueAfter:)",
+   "hash": "61c1974affceb5eb",
+   "does": "Extracts the measured value (after marker up to ' ms', or the bracketed value when marker nil), α1 (after 'α1=' up to ','), CV (after 'CV ' up to '%') and position; formats value/CV to 1 dp and α1 to 2 dp in the app locale. Nil if value, α1 token, CV or position missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.bracketedValue(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.positionPercent(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.formatted(_:digits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "marker is nil or field not found",
+     "effect": "uses bracketedValue(in:)"
+    },
+    {
+     "at": "+2",
+     "cond": "value not a Double, α1 token absent, CV not a Double, or position absent",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "α1 token not numeric (stored 'N/A')",
+     "effect": "α1 shown as '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.bracketedValue(in:)": "a2146406bd115191",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "949f264071cb2b3d",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.formatted(_:digits:)": "9d5624b7351a16a7",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.positionPercent(in:)": "023853cb6a006aeb"
+   }
+  },
+  {
+   "key": "func WindowSelectionReasonText.positionPercent(in:)",
+   "hash": "73cb940f04e00303",
+   "does": "Position % in the reason: for manual lines the integer after 'Manual selection at ' before '%'; otherwise the integer after the last ') at ' with the trailing '%' dropped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "starts with 'Manual selection at '",
+     "effect": "parses position from the leading field"
+    },
+    {
+     "at": "+4",
+     "cond": "no ') at ' found",
+     "effect": "returns nil; otherwise Int of the tail minus last char (nil if not numeric)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "949f264071cb2b3d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func WindowSelectionReasonText.peakMetric(in:)",
+   "hash": "799a74fecd4c867d",
+   "does": "The metric between 'Peak ' and the ' (' that opens the numbers (the last one before ' ms, α1='): 'SDNN', 'RMSSD' or 'SDNN (Total Power proxy)'; nil when the markers are missing or out of order.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "'Peak ', ' ms, α1=' and an opening ' (' between them found in order",
+     "effect": "return the text between; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelectionReasonText.bracketedValue(in:)",
+   "hash": "13f8114339d28626",
+   "does": "Returns the text between the last '(' before ' ms, α1=' and that marker; nil if either is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "' ms, α1=' or a preceding '(' not found",
+     "effect": "returns nil; otherwise the substring"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func WindowSelectionReasonText.field(_:after:before:)",
+   "hash": "727a129060cabb7f",
+   "does": "Returns the substring between the first occurrence of `start` and the next `end` after it; nil if either missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "start not found or end not found after it",
+     "effect": "returns nil; otherwise substring"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func WindowSelectionReasonText.formatted(_:digits:)",
+   "hash": "2701b1753aea392c",
+   "does": "Formats a Double with fixed fraction digits in LanguageManager.appLocale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

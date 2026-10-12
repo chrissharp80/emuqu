@@ -71,7 +71,7 @@ extension WorkoutAIContextBuilder {
         let inputs = contextInputs()
         return WorkoutAIContext(
             sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
-            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.location.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
+            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
             currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: recorder.cadenceStepsPerMin, powerWatts: recorder.powerWatts, footPodActive: recorder.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
             currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy,
             elevationGainMeters: recorder.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
@@ -106,7 +106,10 @@ extension WorkoutAIContextBuilder {
     /// Match is direction-agnostic: a saved "Daily 1" loop matches whether
     /// the user is walking it the same way as the day they saved it OR in
     /// reverse. Sets `recorder.plannedRoute` + the direction flag so the banner +
-    /// AI coach speak about it correctly. Single-shot per workout.
+    /// AI coach speak about it correctly. Runs first at
+    /// `RouteLibrary.detectionTriggerMeters` of track, then, while nothing
+    /// matches, after each further stretch of that length, so a loop joined
+    /// after a warm-up leg is still recognised.
     ///
     /// We deliberately do NOT auto-mine random history — only the user's
     /// curated saved library. Surprise auto-binds against random old
@@ -115,9 +118,9 @@ extension WorkoutAIContextBuilder {
     func attemptAutoRouteDetection(sport: Sport) {
         let track = recorder.location.track
         let traveled = recorder.trackLengthMeters(track)
-        guard traveled >= RouteLibrary.detectionTriggerMeters else { return }
+        guard traveled >= max(RouteLibrary.detectionTriggerMeters, recorder.nextRouteDetectionAtMeters) else { return }
 
-        recorder.routeDetectionAttempted = true
+        recorder.nextRouteDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
         guard let match = RouteLibrary.findMatch(
             currentTrack: track,
             sport: sport,
@@ -174,14 +177,15 @@ extension WorkoutAIContextBuilder {
               let progress = routeProgress(at: loc, on: route)
         else { return nil }
         let climbsAhead = Self.climbsAhead(on: route, pastDistance: progress.distanceAlongMeters)
+        let onClimb = Self.climbInProgress(on: route, pastDistance: progress.distanceAlongMeters)
         let altitudes = route.trackpoints.map(\.altitudeMeters)
         let routeMax = altitudes.max() ?? 0
         return WorkoutAIContext.RouteTopology(
             climbsAhead: climbsAhead,
-            totalAscentRemainingMeters: climbsAhead.reduce(0.0) { $0 + $1.gainMeters },
+            totalAscentRemainingMeters: climbsAhead.reduce(onClimb?.remainingGainMeters ?? 0) { $0 + $1.gainMeters },
             peakAltitudeMeters: routeMax,
             altitudeAboveRouteMinMeters: max(0, loc.altitude - (altitudes.min() ?? 0)),
-            steepestGradeAheadPercent: climbsAhead.map(\.gradePercent).max(),
+            steepestGradeAheadPercent: (climbsAhead.map(\.gradePercent) + [onClimb?.gradePercent].compactMap { $0 }).max(),
             metersToPeak: Self.metersToPeak(route: route, altitudes: altitudes, routeMax: routeMax, progress: progress),
             turnsAhead: computeUpcomingTurns(route: route, fromDistanceAlongMeters: progress.distanceAlongMeters)
         )
@@ -202,6 +206,17 @@ extension WorkoutAIContextBuilder {
                     roadName: climb.roadName
                 )
             }
+    }
+
+    /// The climb the user is part-way up, if any: its gain pro-rated to the
+    /// length still ahead, and its grade. `climbsAhead` lists only climbs
+    /// that start beyond the user, so without this the ascent remaining and
+    /// the steepest grade ahead left out the rest of the current climb.
+    private static func climbInProgress(on route: Route, pastDistance: Double) -> (remainingGainMeters: Double, gradePercent: Double)? {
+        guard let climb = route.climbs.first(where: { $0.startDistanceMeters <= pastDistance && pastDistance < $0.endDistanceMeters }),
+              climb.lengthMeters > 0 else { return nil }
+        let shareAhead = (climb.endDistanceMeters - pastDistance) / climb.lengthMeters
+        return (climb.gainMeters * shareAhead, climb.averageGradePercent)
     }
 
     /// Distance from the user's projected position to the route's high point.
@@ -383,8 +398,9 @@ extension WorkoutAIContextBuilder {
     }
 
     /// Distance comes from the recorder's authoritative `recorder.distanceMeters`
-    /// (max of GPS / pedometer / foot-pod / PM5). elapsed = wall-clock since
-    /// sessionStartDate.
+    /// (max of GPS / pedometer / foot-pod / PM5). Elapsed is the workout
+    /// clock the user sees (`recorder.elapsedSeconds`, stopped while paused),
+    /// nil before the session has a start date.
     ///
     /// Elevation uses the recorder's canonical motion-side accumulator
     /// so the threshold check sees the same number the live ticker
@@ -405,7 +421,7 @@ extension WorkoutAIContextBuilder {
             alpha1: recorder.dfa.currentAlpha1,
             cadenceSPM: recorder.motion.cadenceStepsPerMin,
             distanceMeters: recorder.distanceMeters,
-            elapsedSec: recorder.sessionStartDate.map { Int(Date().timeIntervalSince($0)) },
+            elapsedSec: recorder.sessionStartDate.map { _ in recorder.elapsedSeconds },
             elevationGainMeters: recorder.elevationGainMeters,
             gradePercent: computeCurrentGradePercent()
         )
@@ -504,10 +520,9 @@ extension WorkoutAIContextBuilder {
     }
 
     /// Estimate current grade from the tail end of the captured track. Uses
-    /// the most recent ~100 m of cumulative distance and its elevation delta.
-    /// Returns nil when the window doesn't cover enough ground or the
-    /// elevation noise floor hasn't been cleared. This is deliberately coarse
-    /// — one GPS sample's altitude swings ±5 m, so short windows are noise.
+    /// the most recent ~100 m of cumulative distance and its elevation delta
+    /// (`gradeWindowRise`). Returns nil when the window doesn't cover enough
+    /// ground; a rise under the 2 m noise floor reads as flat.
     ///
     /// `track.last` is always non-nil past the count guard.
     /// Optional binding is used for the refactor-spec "zero magic" rule rather
@@ -518,11 +533,23 @@ extension WorkoutAIContextBuilder {
         let window = WorkoutGeometry.trailingGradeWindow(track: track)
         guard window.meters >= 50 else { return nil }   // too short to trust
         guard let endFix = track.last else { return nil }
-        let rise = endFix.altitude - track[window.startIdx].altitude
+        let rise = gradeWindowRise(from: track[window.startIdx], to: endFix)
         // Ignore altitude deltas below the known jitter floor so flat
         // segments don't report "+2.3% grade" from GPS noise.
         guard abs(rise) >= 2.0 else { return 0 }
         return (rise / window.meters) * 100.0
+    }
+
+    /// Altitude change across the grade window. From the barometer when it
+    /// has a sample at or before the window's first fix (about ±0.5 m, the
+    /// source the elevation gain uses), measured to its newest sample.
+    /// Otherwise from the two GPS fixes, whose altitude swings ±5–10 m each,
+    /// so a single noisy fix would read as several percent of grade.
+    private func gradeWindowRise(from startFix: CLLocation, to endFix: CLLocation) -> Double {
+        let baro = recorder.location.barometricSamples
+        guard let startBaro = baro.last(where: { $0.timestamp <= startFix.timestamp }),
+              let endBaro = baro.last else { return endFix.altitude - startFix.altitude }
+        return endBaro.altitudeMeters - startBaro.altitudeMeters
     }
 
 }

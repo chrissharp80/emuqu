@@ -39,26 +39,41 @@ import Security
 //
 //   UserDefaults  — synchronous, on the launch critical path. A cache only.
 //   Keychain      — authoritative, survives delete, syncs across devices.
+//                   One synchronizable item PER INSTALL (its own account),
+//                   plus the legacy `primary` item earlier builds wrote. Every
+//                   item of the service is read and merged; an install writes
+//                   only its own. A new phone that writes before iCloud
+//                   Keychain has delivered the older items therefore adds an
+//                   item instead of racing them for one slot, which iCloud
+//                   Keychain would settle by picking a winner rather than by
+//                   the merge rules below.
 //
-// `persist` fans out to both, and `resolve` merges both monotonically, so a
-// tier that is empty or stale can only ever lose to a tier that knows more.
-// That is what makes the anchor tamper-resistant without any server.
+// Every update reads all tiers, merges them monotonically, and writes the
+// result back to the tiers that differ, so a tier that is empty or stale can
+// only ever lose to a tier that knows more. A tier that holds a record this
+// build cannot decode (a newer build's schema, corruption) is never written
+// over: it is left for a build that can read it. That is what makes the
+// anchor tamper-resistant without any server.
 //
 // There is a THIRD copy of `trialStartDate`, and this type does NOT own it:
 // `UserSettings.trialStartDate` rides the pre-existing `CloudKitSettingsSync`.
 // `SettingsManager.adoptTrialStart(_:)` writes the anchor's start out to it,
 // and every reader of the trial clock falls back to it when the anchor has
-// no start (`anchor.trialStartDate ?? settings.trialStartDate`). Nothing
-// reads it back into the anchor. Do not read the list above as "the anchor
-// also writes settings" — it does not, and deleting that mirror on the
-// assumption that it does would drop the only copy that survives a device
+// no start (`anchor.trialStartDate ?? settings.trialStartDate`). A start
+// `restoreFromJSON` brings back from iCloud comes in through the same call, as
+// a device start that can only move earlier. Do not read the list above as
+// "the anchor also writes settings" — it does not, and deleting that mirror on
+// the assumption that it does would drop the only copy that survives a device
 // change with iCloud Keychain switched off.
 enum EntitlementAnchor {
     /// The durable facts. Monotonic by construction, apart from the App
     /// Store's trial start, which follows the signed-in Apple ID — see
     /// `merged`.
     struct Record: Codable, Equatable {
-        /// Once true, always true. Set only on proof of a sandbox receipt.
+        /// Once true, always true. Set by migrating the legacy TestFlight flag
+        /// (`recordBetaTester`) or by the one-time history check at the first
+        /// store-build launch when the device already holds sessions
+        /// (`evaluatedHistory`).
         var isBetaTester: Bool
         /// Earliest trial start kept on this device without the App Store's
         /// record: an earlier build's start, or one restored from synced
@@ -194,45 +209,19 @@ enum EntitlementAnchor {
     /// first frame. Callers that need the authoritative answer use
     /// `resolve(wallClock:)`, which is safe to run after launch.
     static func cached() -> Record {
-        loadFromDefaults() ?? .empty
+        readDefaults().storedRecord ?? .empty
     }
 
-    /// Merges every tier, writes the result back to all of them, and returns
-    /// it. This is the authoritative read. It touches the keychain, so it
-    /// belongs off the synchronous launch path — `StoreKitManager.boot()`
-    /// calls it after the first frame paints.
+    /// Merges every tier, writes the result back to the tiers that differ,
+    /// and returns it. This is the authoritative read. It touches the
+    /// keychain, so it belongs off the synchronous launch path —
+    /// `StoreKitManager.boot()` calls it after the first frame paints. The
+    /// launch gate gets the same promotion from `recordHistoryCheck`, which
+    /// `StoreKitManager.grandfatherExistingUserIfNeeded` runs on every
+    /// non-Debug launch before the gate reads the anchor.
     @discardableResult
     static func resolve(wallClock: Date) -> Record {
-        let combined = merged(loadFromDefaults(), loadFromKeychain()) ?? .empty
-        let advancedRecord = advanced(combined, to: wallClock)
-        persist(advancedRecord)
-        return advancedRecord
-    }
-
-    /// The read the launch gate uses.
-    ///
-    /// Returns the UserDefaults cache when it already carries a positive
-    /// answer, and only falls through to the keychain when it does not.
-    ///
-    /// That fall-through is the whole point. The gate runs from
-    /// `AppLaunchTasks.loadDataAndContinue()`, which is reached from the
-    /// FIRST `.task` on the root view — ahead of `runDeferredBoot()` →
-    /// `StoreKitManager.boot()`, where the anchor is otherwise reconciled.
-    /// For a beta tester who has deleted and reinstalled, or restored onto
-    /// a new phone, UserDefaults is empty and their status exists only in
-    /// the synchronizable keychain. Reading the fast tier alone would hand
-    /// that person a paywall, which is the exact outcome the anchor exists
-    /// to prevent.
-    ///
-    /// Cost is shaped to match: a launch where the anchor is already
-    /// populated does no keychain I/O at all, and the one launch where it
-    /// is not pays a single read plus the write that promotes the answer
-    /// into the fast tier for every subsequent read.
-    @discardableResult
-    static func resolvedForGate(wallClock: Date) -> Record {
-        let fast = cached()
-        if fast.isBetaTester || fast.trialStartDate != nil { return fast }
-        return resolve(wallClock: wallClock)
+        update(wallClock: wallClock) { $0 }.updated
     }
 
     /// Records — permanently — that this Apple ID is a beta tester.
@@ -244,32 +233,32 @@ enum EntitlementAnchor {
     /// onto that Apple ID for the App Store build.
     @discardableResult
     static func recordBetaTester(wallClock: Date) -> Record {
-        var record = resolve(wallClock: wallClock)
-        guard !record.isBetaTester else { return record }
-        record.isBetaTester = true
-        persist(record)
-        debugLog("[Entitlement] beta tester recorded — grandfathered permanently", level: .info)
-        return record
+        let result = update(wallClock: wallClock) { record in
+            var marked = record
+            marked.isBetaTester = true
+            return marked
+        }
+        if !result.resolved.isBetaTester {
+            debugLog("[Entitlement] beta tester recorded — grandfathered permanently", level: .info)
+        }
+        return result.updated
     }
 
     /// Persists `evaluatedHistory` for this launch's look at the device.
     @discardableResult
     static func recordHistoryCheck(hasHistory: Bool, wallClock: Date) -> Record {
-        let record = resolve(wallClock: wallClock)
-        let updated = evaluatedHistory(record, hasHistory: hasHistory, wallClock: wallClock)
-        guard updated != record else { return record }
-        persist(updated)
-        if updated.isBetaTester, !record.isBetaTester {
+        let result = update(wallClock: wallClock) { evaluatedHistory($0, hasHistory: hasHistory, wallClock: wallClock) }
+        if result.updated.isBetaTester, !result.resolved.isBetaTester {
             debugLog("[Entitlement] existing history found at first launch — grandfathered as a beta tester", level: .info)
         }
-        return updated
+        return result.updated
     }
 
     /// Adopts a trial start as a device start — `SettingsManager.adoptTrialStart`
-    /// passes one here when the anchor holds none earlier. Keeps the earlier
-    /// of the two, so this can only ever shorten a trial kept without the App
-    /// Store's record, never extend it. The App Store's own start goes through
-    /// `recordStoreTrialStart` instead.
+    /// passes one here when the anchor holds none earlier (a start restored
+    /// from iCloud). Keeps the earlier of the two, so this can only ever
+    /// shorten a trial kept without the App Store's record, never extend it.
+    /// The App Store's own start goes through `recordStoreTrialStart` instead.
     ///
     /// The start is also a moment time has provably reached, so the high-water
     /// mark moves up to it. Without that, a new phone whose clock is set before
@@ -278,10 +267,7 @@ enum EntitlementAnchor {
     /// clock stayed back.
     static func adoptTrialStart(_ candidate: Date?, wallClock: Date) {
         guard let candidate else { return }
-        let record = resolve(wallClock: wallClock)
-        let updated = adopting(record, trialStart: candidate)
-        guard updated != record else { return }
-        persist(updated)
+        update(wallClock: wallClock) { adopting($0, trialStart: candidate) }
     }
 
     /// `record` with `candidate` adopted as the device's trial start: the
@@ -299,10 +285,7 @@ enum EntitlementAnchor {
     /// replaces any start an earlier build kept here: a trial bought now
     /// grants the thirty days its terms promise.
     static func recordStoreTrialStart(_ start: Date, wallClock: Date) {
-        let record = resolve(wallClock: wallClock)
-        let updated = recordingStoreTrialStart(record, start: start)
-        guard updated != record else { return }
-        persist(updated)
+        update(wallClock: wallClock) { recordingStoreTrialStart($0, start: start) }
     }
 
     /// `record` with `start` as the App Store's trial start, and the
@@ -316,18 +299,55 @@ enum EntitlementAnchor {
 
     // MARK: - Persistence fan-out
 
-    private static func persist(_ record: Record) {
-        saveToDefaults(record)
-        saveToKeychain(record)
+    /// What one stored copy held.
+    private enum TierRead: Equatable {
+        case absent
+        case record(Record)
+        /// Present but undecodable (a newer build's schema, corruption) or
+        /// not readable right now. Never written over.
+        case unreadable
+
+        var storedRecord: Record? {
+            if case let .record(stored) = self { return stored }
+            return nil
+        }
+    }
+
+    /// Every tier as read at the start of one update.
+    private struct Tiers {
+        let defaults: TierRead
+        /// All keychain items of the service, merged.
+        let keychain: Record?
+        /// This install's own keychain item, the only one written.
+        let ownKeychain: TierRead
+    }
+
+    /// Reads every tier, merges them, advances the high-water mark, applies
+    /// `change`, and writes the result to each tier that holds something
+    /// different and is not unreadable. Returns the merged record before
+    /// `change` and the result after it.
+    @discardableResult
+    private static func update(wallClock: Date, _ change: (Record) -> Record) -> (resolved: Record, updated: Record) {
+        let tiers = readTiers()
+        let resolved = advanced(merged(tiers.defaults.storedRecord, tiers.keychain) ?? .empty, to: wallClock)
+        let updated = change(resolved)
+        if tiers.defaults != .record(updated), tiers.defaults != .unreadable { saveToDefaults(updated) }
+        if tiers.ownKeychain != .record(updated), tiers.ownKeychain != .unreadable { saveToKeychain(updated) }
+        return (resolved, updated)
+    }
+
+    private static func readTiers() -> Tiers {
+        let keychain = loadFromKeychain()
+        return Tiers(defaults: readDefaults(), keychain: keychain.merged, ownKeychain: keychain.own)
     }
 
     // MARK: - Tier 1: UserDefaults (fast cache)
 
     private static let defaultsKey = "entitlement.anchor.v1"
 
-    private static func loadFromDefaults() -> Record? {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else { return nil }
-        return decode(data)
+    private static func readDefaults() -> TierRead {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else { return .absent }
+        return decode(data).map { TierRead.record($0) } ?? .unreadable
     }
 
     private static func saveToDefaults(_ record: Record) {
@@ -338,54 +358,109 @@ enum EntitlementAnchor {
     // MARK: - Tier 2: Keychain (durable, iCloud-synced)
 
     private static let keychainService = "com.chrissharp.flowrecovery.entitlement"
-    private static let keychainAccount = "primary"
 
-    /// Base query shared by read, update and delete.
+    /// UserDefaults key holding this install's keychain account name.
+    private static let accountDefaultsKey = "entitlement.anchor.account"
+
+    /// This install's own item. Created once per install; a reinstall (or a
+    /// wipe that sweeps the key) starts a new one, and the old item is still
+    /// read and merged.
+    private static var ownKeychainAccount: String {
+        if let stored = UserDefaults.standard.string(forKey: accountDefaultsKey) { return stored }
+        let created = "install-" + UUID().uuidString
+        UserDefaults.standard.set(created, forKey: accountDefaultsKey)
+        return created
+    }
+
+    /// Every synchronizable item of the service, whatever its account.
     ///
-    /// `kSecAttrSynchronizable: true` is what makes the item follow the
+    /// `kSecAttrSynchronizable: true` is what makes the items follow the
     /// Apple ID through iCloud Keychain. A synchronizable item CANNOT use a
     /// `...ThisDeviceOnly` accessibility class, which is why this uses
     /// `kSecAttrAccessibleAfterFirstUnlock` rather than the
     /// device-only variant `APIKeyStore` uses for provider API keys — those
     /// deliberately must not leave the device; this deliberately must.
-    private static var keychainQuery: [CFString: Any] {
+    private static var keychainServiceQuery: [CFString: Any] {
         [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: keychainService,
-            kSecAttrAccount: keychainAccount,
             kSecAttrSynchronizable: true
         ]
     }
 
-    private static func loadFromKeychain() -> Record? {
-        var query = keychainQuery
-        query[kSecReturnData] = true
-        query[kSecMatchLimit] = kSecMatchLimitOne
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return nil }
-        return decode(data)
+    /// One item: the service query narrowed to `account`.
+    private static func keychainQuery(account: String) -> [CFString: Any] {
+        var query = keychainServiceQuery
+        query[kSecAttrAccount] = account
+        return query
     }
 
+    /// Every item merged, and this install's own item as read. When the items
+    /// cannot even be listed, nothing is known and the own item counts as
+    /// unreadable, so nothing is written over it.
+    private static func loadFromKeychain() -> (merged: Record?, own: TierRead) {
+        guard let accounts = keychainAccounts() else { return (nil, .unreadable) }
+        let own = ownKeychainAccount
+        var combined: Record?
+        var ownRead = TierRead.absent
+        for account in accounts {
+            let read = readKeychainItem(account: account)
+            combined = merged(combined, read.storedRecord)
+            if account == own { ownRead = read }
+        }
+        return (combined, ownRead)
+    }
+
+    /// The account names of every item of the service; [] when there is
+    /// none, nil when the keychain could not be queried (logged).
+    private static func keychainAccounts() -> [String]? {
+        var query = keychainServiceQuery
+        query[kSecReturnAttributes] = true
+        query[kSecMatchLimit] = kSecMatchLimitAll
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return [] }
+        guard status == errSecSuccess, let items = result as? [[String: Any]] else {
+            debugLog("[Entitlement] keychain list failed (status \(status))", level: .warning)
+            return nil
+        }
+        return items.compactMap { $0[kSecAttrAccount as String] as? String }
+    }
+
+    private static func readKeychainItem(account: String) -> TierRead {
+        var query = keychainQuery(account: account)
+        query[kSecReturnData] = true
+        query[kSecMatchLimit] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return .absent }
+        guard status == errSecSuccess, let data = result as? Data else {
+            debugLog("[Entitlement] keychain read failed (status \(status))", level: .warning)
+            return .unreadable
+        }
+        return decode(data).map { TierRead.record($0) } ?? .unreadable
+    }
+
+    /// Writes this install's own item.
     private static func saveToKeychain(_ record: Record) {
         guard let data = encode(record) else { return }
         let attributes: [CFString: Any] = [
             kSecValueData: data,
             kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
         ]
-        let updateStatus = SecItemUpdate(keychainQuery as CFDictionary, attributes as CFDictionary)
+        let query = keychainQuery(account: ownKeychainAccount)
+        let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if updateStatus == errSecSuccess { return }
         guard updateStatus == errSecItemNotFound else {
             debugLog("[Entitlement] keychain update failed (status \(updateStatus))", level: .warning)
             return
         }
-        addToKeychain(attributes)
+        addToKeychain(attributes, query: query)
     }
 
     /// No existing item to update — insert one instead.
-    private static func addToKeychain(_ attributes: [CFString: Any]) {
-        var addQuery = keychainQuery
+    private static func addToKeychain(_ attributes: [CFString: Any], query: [CFString: Any]) {
+        var addQuery = query
         for (key, value) in attributes {
             addQuery[key] = value
         }
@@ -412,7 +487,8 @@ enum EntitlementAnchor {
     #if DEBUG
         static func resetForUITesting() {
             UserDefaults.standard.removeObject(forKey: defaultsKey)
-            SecItemDelete(keychainQuery as CFDictionary)
+            UserDefaults.standard.removeObject(forKey: accountDefaultsKey)
+            SecItemDelete(keychainServiceQuery as CFDictionary)
         }
     #endif
 

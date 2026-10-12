@@ -1,0 +1,98 @@
+{
+ "file": "EmuquTests/BLESensorManagerLazyCentralTests.swift",
+ "hash": "9b1fcc75db18b455",
+ "role": "XCTest suite asserting FootPodManager and Concept2Manager do not build a CBCentralManager (which triggers the iOS Bluetooth prompt) on init or on workout hold/stop/disconnect teardown paths.",
+ "types": [
+  "BLESensorManagerLazyCentralTests: class — @MainActor XCTestCase for lazy BLE central creation"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BLESensorManagerLazyCentralTests.testFootPodManagerInitBuildsNoCentral()",
+   "hash": "72e75d46ecb70a7a",
+   "does": "Asserts a new FootPodManager has nil centralIfCreated.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::init FootPodManager()"
+   ],
+   "reads": [
+    "ud:fitness.footpod.knownDevices (init loadKnownDevices, host UserDefaults.standard)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::init FootPodManager()": "bbba630a2aebfb6c"
+   }
+  },
+  {
+   "key": "func BLESensorManagerLazyCentralTests.testConcept2ManagerInitBuildsNoCentral()",
+   "hash": "980132020580958f",
+   "does": "Asserts a new Concept2Manager has nil centralIfCreated.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::init Concept2Manager()"
+   ],
+   "reads": [
+    "ud:fitness.concept2.knownDevices (init loadKnownDevices, host UserDefaults.standard)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::init Concept2Manager()": "46cbec17d2fd0e9f"
+   }
+  },
+  {
+   "key": "func BLESensorManagerLazyCentralTests.testFootPodTeardownPathsBuildNoCentral()",
+   "hash": "4f07000d54face30",
+   "does": "Calls holdLinkForWorkout(true/false), stopScanning and disconnect on a FootPodManager and asserts no central was built.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::init FootPodManager()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()"
+   ],
+   "reads": [
+    "ud:fitness.footpod.knownDevices (init loadKnownDevices, host UserDefaults.standard)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "b9ba282009a86785",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)": "5d8e481a809cc2de",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39",
+    "Emuqu/Sources/Collection/FootPodManager.swift::init FootPodManager()": "bbba630a2aebfb6c"
+   }
+  },
+  {
+   "key": "func BLESensorManagerLazyCentralTests.testConcept2TeardownPathsBuildNoCentral()",
+   "hash": "1d0bb8637e39b13e",
+   "does": "Calls holdLinkForWorkout(false), stopScanning and disconnect on a Concept2Manager and asserts no central was built.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::init Concept2Manager()",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.disconnect()"
+   ],
+   "reads": [
+    "ud:fitness.concept2.knownDevices (init loadKnownDevices, host UserDefaults.standard)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.disconnect()": "118b776d5e4d9528",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)": "9187ae9f8cd2a455",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "cd2a8668172269eb",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::init Concept2Manager()": "46cbec17d2fd0e9f"
+   }
+  }
+ ],
+ "deps": {}
+}

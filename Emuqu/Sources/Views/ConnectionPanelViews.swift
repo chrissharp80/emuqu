@@ -16,7 +16,8 @@ struct ConnectionPanel: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Header + status badge react through collector's throttled proxy
+            // Header + status badge read PolarManager's observable state
+            // (connection state, feed status, live HR) directly
             ConnectionPanelHeader(polarManager: polarManager)
 
             // Route to state-specific sub-view; each observes PolarManager in isolation
@@ -137,17 +138,14 @@ private struct ConnectionPanelDisconnected: View {
     var polarManager: PolarManager
     let selectedSessionType: SessionType?
 
+    /// H10 first (the authoritative RR source) for overnight and nap
+    /// recordings; a quick spot check keeps the stored order. The panel is
+    /// only shown for overnight, nap and quick sessions
+    /// (`RecordView.connectionSection`).
     private var filteredKnownDevices: [PolarManager.KnownDevice] {
         let devices = polarManager.knownDevices
-        guard let sessionType = selectedSessionType else { return devices }
-        switch sessionType {
-        case .overnight, .nap, .workout:
-            // Workouts prefer H10 (authoritative RR during exercise) just like
-            // overnight/nap sessions.
-            return devices.sorted { $0.deviceType == .h10 && $1.deviceType != .h10 }
-        case .quick, .breathe:
-            return devices
-        }
+        guard selectedSessionType != .quick else { return devices }
+        return devices.sorted { $0.deviceType == .h10 && $1.deviceType != .h10 }
     }
 
     // When the user denied Bluetooth at the system prompt,

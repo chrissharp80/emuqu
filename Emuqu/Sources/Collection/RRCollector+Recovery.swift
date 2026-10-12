@@ -57,6 +57,8 @@ extension SessionRecoveryCoordinator {
     /// and filed as that night, never as tonight.
     func recoverFromDevice() async throws -> HRVSession? {
         debugLog("[Recovery] ========== START recoverFromDevice ==========")
+        // An earlier operation's error must not stand in for this one's.
+        collector.lastError = nil
         try checkRecoverable()
         collector.polarManager.beginTransfer()
         let recording = try await downloadForRecovery()

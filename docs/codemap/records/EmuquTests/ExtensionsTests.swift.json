@@ -1,0 +1,78 @@
+{
+ "file": "EmuquTests/ExtensionsTests.swift",
+ "hash": "e780069d73fdec4f",
+ "role": "XCTest suite for the helpers left in Emuqu/Sources/Utilities/Extensions.swift: DurationFormatter.hoursMinutes(minutes:) (\"1h 23m\" formatting).",
+ "types": [
+  "ExtensionsTests: class — XCTestCase for Utilities/Extensions.swift helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ExtensionsTests.testHoursAndMinutes()",
+   "hash": "7525a229f559ef34",
+   "does": "Asserts hoursMinutes(minutes:) renders 83 → \"1h 23m\" and 605 → \"10h 5m\".",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
+   }
+  },
+  {
+   "key": "func ExtensionsTests.testWholeHoursDropTheMinutes()",
+   "hash": "47e9504c8e69a828",
+   "does": "Asserts a whole number of hours has no minutes part: 60 → \"1h\", 480 → \"8h\".",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
+   }
+  },
+  {
+   "key": "func ExtensionsTests.testUnderAnHourShowsMinutesOnly()",
+   "hash": "236e9e24e8209231",
+   "does": "Asserts durations under an hour show minutes only: 45 → \"45m\", 0 → \"0m\".",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
+   }
+  },
+  {
+   "key": "func ExtensionsTests.testNegativeDurationsClampToZero()",
+   "hash": "6b0c633983d2567c",
+   "does": "Asserts a negative duration clamps to zero: -30 → \"0m\".",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
+   }
+  }
+ ],
+ "deps": {}
+}

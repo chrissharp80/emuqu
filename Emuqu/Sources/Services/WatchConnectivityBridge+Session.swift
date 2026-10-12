@@ -10,14 +10,12 @@ import Foundation
 
 extension WatchConnectivityBridge: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        let reachable = session.isReachable
-        Task { @MainActor in
-            self.isReachable = reachable
-        }
-
         guard activationState == .activated else { return }
         // No no-Watch cache to clear or mark: iOS activates
         // unconditionally and Apple's framework emits whatever it emits.
+
+        // Start / stop commands issued before activation went out now.
+        sendHeldDualChannelMessages()
 
         // Push the current strap state to the Watch as the very first
         // thing iOS does after activation. The change observation set up
@@ -37,15 +35,15 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         // come from the Watch app foregrounding, the Watch itself
         // waking, or the framework re-establishing the IDS channel —
         // any of which means `sendMessage` should work again.
-        if session.isReachable {
+        let reachable = session.isReachable
+        if reachable {
             Self.resetTimeoutCount()
         }
-        let reachable = session.isReachable
+        guard !reachable else { return }
         Task { @MainActor in
-            self.isReachable = reachable
             // Wrist HR arrives only over the live channel; once it is gone,
             // the last reading is no longer current.
-            if !reachable { self.latestWatchHR = nil }
+            self.latestWatchHR = nil
         }
     }
 
@@ -98,9 +96,11 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// when the iPhone wasn't reachable at the time. Without this handler,
     /// any Watch tap that arrived during a backgrounded iPhone state was
     /// silently dropped — the user's "Watch did nothing" complaint.
-    /// Dedupes against the last-seen timestamp so a context that's already
-    /// been processed via `didReceiveMessage` (race during foreground
-    /// transition) doesn't fire its action twice.
+    /// Dedupes against the last-seen timestamp of the queued channels
+    /// (`acceptsQueuedIntent`), so a context delivered again doesn't fire its
+    /// action twice. The live `didReceiveMessage` path records no timestamp:
+    /// the Watch sends each intent either live or queued, never both
+    /// (`WatchSessionManager`).
     ///
     /// An intent older than `maxQueuedIntentAge`, or past its `expiresAt`, is
     /// dropped: the context is delivered whenever the iPhone app next wakes,
@@ -124,7 +124,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         let ts = (snapshot["ts"] as? Double) ?? 0
         if ts > 0, ts <= lastProcessedContextTimestamp { return false }
         if ts > 0 { lastProcessedContextTimestamp = ts }
-        guard !Self.isStaleQueuedIntent(ts), !Self.isExpired(snapshot) else {
+        guard !isStale(snapshot, ts: ts) else {
             debugLog("[WatchBridge] dropped a queued Watch intent from \(Int(Date().timeIntervalSince1970 - ts)) s ago", level: .warning)
             return false
         }
@@ -133,6 +133,18 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             return false
         }
         return true
+    }
+
+    /// Past its `expiresAt`, or older than `maxQueuedIntentAge`. A stamped
+    /// End is judged by its stamp alone: the Watch keeps it actionable for
+    /// 12 h (`WatchSessionManager.queuedStopLifetime`) because its own session
+    /// has already ended, and `predatesCurrentWorkout` still drops one tapped
+    /// before the workout now recording began.
+    private func isStale(_ snapshot: [String: Any], ts: Double) -> Bool {
+        if Self.isExpired(snapshot) { return true }
+        let typeRaw = snapshot[MessageKey.type.rawValue] as? String
+        if typeRaw == MessageType.stopWorkoutFromWatch.rawValue, snapshot["expiresAt"] is Double { return false }
+        return Self.isStaleQueuedIntent(ts)
     }
 
     /// A stop, pause or resume stamped before the recording workout's start.
@@ -155,7 +167,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
 
     /// The Watch stamps every workout control it queues (start, stop, pause,
     /// resume, acknowledge) with `expiresAt`, seconds since 1970, one minute
-    /// after the tap (`WatchSessionManager.withQueueExpiry`); past it, the tap
+    /// after the tap, 12 h for an End (`WatchSessionManager.withQueueExpiry`); past it, the tap
     /// no longer means "now". An intent without the stamp is judged by its
     /// `ts` alone (`isStaleQueuedIntent`).
     nonisolated private static func isExpired(_ snapshot: [String: Any]) -> Bool {
@@ -212,19 +224,19 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// prefer real strap RRs from the Watch when iOS's own PolarManager isn't
     /// holding the strap connection.
     ///
-    /// This batch's RR samples are (a) kept on
-    /// `latestWatchStrapRRMillis` for back-compat observers, and (b) APPENDED
-    /// to `pendingWatchStrapRR` so the recorder can drain a full burst on its
-    /// next tick. Without the queue, dense beat periods (3+ samples between
-    /// two recorder ticks) lose samples to the simple overwrite.
+    /// This batch's RR samples are APPENDED to `pendingWatchStrapRR` so the
+    /// recorder can drain a full burst on its next tick. Without the queue,
+    /// dense beat periods (3+ samples between two recorder ticks) lose
+    /// samples to a simple overwrite.
+    ///
+    /// The heart rate is this sample's own: nil when it carries none or an
+    /// implausible one, so a fresh `latestWatchStrapAt` never presents an
+    /// earlier sample's heart rate as current.
     private func handleWatchStrapSample(_ message: [String: Any]) {
         guard !Self.isStaleStrapSample(message) else { return }
-        if let hr = WatchPayloadBounds.plausibleHeartRate(message["hr"] as? Int) {
-            latestWatchStrapHR = hr
-        }
+        latestWatchStrapHR = WatchPayloadBounds.plausibleHeartRate(message["hr"] as? Int)
         let rrThisBatch = Self.rrMillis(in: message)
         if !rrThisBatch.isEmpty {
-            latestWatchStrapRRMillis = rrThisBatch
             pendingWatchStrapRRLock.lock()
             pendingWatchStrapRR.append(contentsOf: rrThisBatch)
             // The Watch forwards whenever it holds the strap, workout or not,
@@ -290,13 +302,17 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         return controlReply(start, sport: sportRaw)
     }
 
+    /// The four plain controls are answered here whether or not their
+    /// callback is wired yet (`phoneNotReady` when it is not). Sent on to
+    /// `handleIncoming` instead, an unwired one came straight back here, and
+    /// the two called each other until the stack overflowed.
     private func handleIncomingWithReply(_ message: [String: Any]) -> [String: Any] {
         guard let typeRaw = message[MessageKey.type.rawValue] as? String,
               let type = MessageType(rawValue: typeRaw)
         else { return Self.refusalReply(.unknownMessage) }
-        if let handler = controlHandler(for: type) {
+        if Self.plainControls.contains(type) {
             debugLog("[WatchBridge] received \(typeRaw)")
-            return controlReply(handler)
+            return controlReply(controlHandler(for: type))
         }
         switch type {
         case .startWorkoutFromWatch:
@@ -312,8 +328,14 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         }
     }
 
+    /// The control messages `controlHandler(for:)` maps to a callback.
+    private static let plainControls: [MessageType] = [
+        .stopWorkoutFromWatch, .pauseWorkoutFromWatch, .resumeWorkoutFromWatch, .acknowledgeFinishedFromWatch
+    ]
+
     /// The four plain stop/pause/resume/acknowledge controls, which differ only
-    /// in which callback they invoke. Nil for everything else.
+    /// in which callback they invoke. Nil for everything else, and for a
+    /// control whose callback is not wired yet.
     private func controlHandler(for type: MessageType) -> (() -> WatchControlRefusal?)? {
         switch type {
         case .stopWorkoutFromWatch: return onStopWorkoutFromWatch
@@ -382,29 +404,30 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// / speaking / etc.). Called by `VoiceConversationController` on
     /// every state transition. Routes through `sendMessage` for live
     /// freshness; falls back to `transferUserInfo` for reliable delivery
-    /// when the Watch is briefly unreachable, matching the strap-state
-    /// push pattern.
+    /// when the Watch is unreachable or the live send fails, so each state
+    /// is delivered once. The Watch drops a state older than the last it
+    /// applied, by `ts`.
     @MainActor
     func pushVoiceChatState(_ stateLabel: String) {
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.activationState == .activated else { return }
-        let payload: [String: Any] = [
+        let payload: [String: any Sendable] = [
             "type": "voiceChatState",
             "voiceChatState": stateLabel,
             "ts": Date().timeIntervalSince1970
         ]
-        if session.isReachable {
-            // `@Sendable`: WatchConnectivity calls the error handler on its own
-            // queue, and a closure inheriting this method's main-actor
-            // isolation asserts main at entry.
-            session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
-                // Errors are expected when the Watch app isn't in the
-                // foreground; transferUserInfo (below) covers the
-                // queued-delivery case.
-            }
+        guard session.isReachable else {
+            session.transferUserInfo(payload)
+            return
         }
-        session.transferUserInfo(payload)
+        // `@Sendable`: WatchConnectivity calls the error handler on its own
+        // queue, and a closure inheriting this method's main-actor
+        // isolation asserts main at entry. A failure is expected when the
+        // Watch app isn't in the foreground; the state is then queued.
+        session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
+            WCSession.default.transferUserInfo(payload)
+        }
     }
 }
 

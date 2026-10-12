@@ -1,0 +1,143 @@
+{
+ "file": "Tools/validation/port_time_domain.py",
+ "hash": "fe967228cef884ba",
+ "role": "Python port of the RMSSD/SDNN/meanRR/pNN50 path of TimeDomainAnalyzer.computeTimeDomain (TimeDomainAnalysis.swift @ e028039): drop flagged beats, local-median ectopic keep-mask, successive differences only between originally adjacent kept beats with no recording break.",
+ "types": [],
+ "state": [
+  "LOCAL_MEDIAN_WINDOW=10, ECTOPIC_THRESHOLD=0.20, BREAK_TOLERANCE_MS=2000 (lines 16-18)"
+ ],
+ "toplevel": "Constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def ectopic_keep_mask",
+   "hash": "90b133fd9531416b",
+   "does": "Ectopic keep-mask: for series longer than 10, keeps a beat when it is within 20 % of the median of up to 10 neighbours (5 each side, excluding itself).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "series length <= 10",
+     "effect": "keeps all"
+    },
+    {
+     "at": "+6",
+     "cond": "for each beat",
+     "effect": "evaluate"
+    },
+    {
+     "at": "+9",
+     "cond": "no neighbours",
+     "effect": "keep"
+    },
+    {
+     "at": "+13",
+     "cond": "even neighbour count",
+     "effect": "median = mean of middle pair"
+    },
+    {
+     "at": "+14",
+     "cond": "median <= 0",
+     "effect": "keep"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def is_recording_break",
+   "hash": "492abb8806b7c7b3",
+   "does": "True when the gap between the end of the previous beat and the next beat's timestamp exceeds prev rr + 2000 ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _adjacent",
+   "hash": "03474365193a7040",
+   "does": "Successive differences between consecutive clean beats that are both kept, adjacent in the original indexing, and not separated by a recording break.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each consecutive pair",
+     "effect": "test"
+    },
+    {
+     "at": "+3",
+     "cond": "both kept, adjacent, no break",
+     "effect": "append difference"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def compute_time_domain",
+   "hash": "493950d6af3b6268",
+   "does": "computeTimeDomain over [ws,we): needs valid bounds and >= 10 unflagged beats; RMSSD/pNN50 from gated adjacent differences, falling back to ungated adjacent differences when the gate leaves none; meanRR and sample SDNN over all unflagged beats. Returns None when no difference survives.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_time_domain.py::def is_recording_break",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask",
+    "Tools/validation/port_time_domain.py::def _adjacent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bounds invalid",
+     "effect": "None"
+    },
+    {
+     "at": "+4",
+     "cond": "for each beat in window",
+     "effect": "collect"
+    },
+    {
+     "at": "+5",
+     "cond": "beat not flagged",
+     "effect": "added to clean"
+    },
+    {
+     "at": "+8",
+     "cond": "index > 0 and recording break before it",
+     "effect": "added to break set"
+    },
+    {
+     "at": "+9",
+     "cond": "fewer than 10 clean beats",
+     "effect": "None"
+    },
+    {
+     "at": "+13",
+     "cond": "no gated differences",
+     "effect": "retry without gate"
+    },
+    {
+     "at": "+15",
+     "cond": "still none",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def _adjacent": "039d925f3b120301",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
+    "Tools/validation/port_time_domain.py::def is_recording_break": "d466268e8a19ca17"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -70,9 +70,12 @@ extension TrendsV2View {
 
     /// Chart layers:
     ///   1. Daily dots (raw rMSSD / current metric)
-    ///   2. 7-day rolling baseline line
+    ///   2. Rolling baseline line: the mean of the last 7 readings, however
+    ///      many days they span
     ///   3. **Shaded normal-range band: mean ±1 SD over 60 days**
     ///   4. Color-coded out-of-band dots
+    /// Every reading in the selected period is drawn: the period selector is
+    /// the only cap on trend input (ARCHITECTURE.md, "Trend cap contract").
     /// Plus chartXSelection so a drag pins a value pill to the dot
     /// nearest the gesture ("Scrubbable").
     /// Building-baseline overlay (fewer than 4 overnight readings in the last
@@ -89,27 +92,21 @@ extension TrendsV2View {
                 buildingBaselineOverlay
             }
         }
-        if let pt = scrubbedDate.flatMap({ nearestPoint(to: $0, in: Self.chartVisiblePoints(pts)) }) {
+        if let pt = scrubbedDate.flatMap({ nearestPoint(to: $0, in: pts) }) {
             scrubPill(point: pt, band: band)
         }
     }
 
-    /// The newest readings the chart draws, capped for performance on "All".
-    /// The baseline line, scrubbing and the audio graph use the same set so
-    /// they line up with the dots.
-    static func chartVisiblePoints(_ pts: [MetricPoint]) -> [MetricPoint] {
-        Array(pts.suffix(120))
-    }
-
+    /// The dots, the baseline line, scrubbing and the audio graph all use the
+    /// same readings, so they line up.
     func metricChart(points pts: [MetricPoint], band: BaselineStats) -> some View {
-        let bandLow = band.hasData ? band.mean - band.sd : nil
-        let bandHigh = band.hasData ? band.mean + band.sd : nil
-        let visiblePoints = Self.chartVisiblePoints(pts)
+        let bandLow = band.hasData ? band.low : nil
+        let bandHigh = band.hasData ? band.high : nil
         return Chart {
-            normalRangeBand(band: band, points: visiblePoints)
-            dailyDots(visiblePoints, bandLow: bandLow, bandHigh: bandHigh)
-            baselineLine(from: visiblePoints.first?.date)
-            scrubMarks(points: visiblePoints)
+            normalRangeBand(band: band, points: pts)
+            dailyDots(pts, bandLow: bandLow, bandHigh: bandHigh)
+            baselineLine(from: pts.first?.date)
+            scrubMarks(points: pts)
         }
         .chartXSelection(value: $scrubbedDate)
         .accessibilityChartDescriptor(
@@ -117,20 +114,21 @@ extension TrendsV2View {
                 title: String(localized: "\(selectedMetric.localizedName) trend", bundle: LanguageManager.appBundle),
                 xLabel: String(localized: "Date", bundle: LanguageManager.appBundle),
                 yLabel: selectedMetric.localizedName,
-                points: visiblePoints.map { (date: $0.date, value: $0.value) }
+                points: pts.map { (date: $0.date, value: $0.value) }
             )
         )
     }
 
-    /// Shaded normal-range band — 60-day mean ±1 SD — plus its dashed mean line.
+    /// Shaded normal-range band — the 60-day `BaselineStats.low`…`high` (±1
+    /// SD, in log space for log-normal metrics) — plus its dashed mean line.
     @ChartContentBuilder
     func normalRangeBand(band: BaselineStats, points: [MetricPoint]) -> some ChartContent {
-        if band.hasData {
+        if band.hasData, let span = Self.bandSpan(points) {
             RectangleMark(
-                xStart: .value("Start", points.first?.date ?? Date()),
-                xEnd: .value("End", points.last?.date ?? Date()),
-                yStart: .value("Lower", band.mean - band.sd),
-                yEnd: .value("Upper", band.mean + band.sd)
+                xStart: .value("Start", span.start),
+                xEnd: .value("End", span.end),
+                yStart: .value("Lower", band.low),
+                yEnd: .value("Upper", band.high)
             )
             .foregroundStyle(AppTheme.primary.opacity(0.08))
             RuleMark(y: .value("Baseline", band.mean))
@@ -139,16 +137,45 @@ extension TrendsV2View {
         }
     }
 
-    /// One dot per reading, tinted when it falls outside the normal range.
+    /// The dates the band spans: the first to the last reading, widened by
+    /// half a day each side when they are one reading, so the band never has
+    /// zero width. Nil with no readings.
+    static func bandSpan(_ points: [MetricPoint]) -> (start: Date, end: Date)? {
+        guard let first = points.first?.date, let last = points.last?.date else { return nil }
+        guard first == last else { return (first, last) }
+        return (first.addingTimeInterval(-12 * 3600), last.addingTimeInterval(12 * 3600))
+    }
+
+    /// One dot per reading, tinted when it falls outside the normal range:
+    /// the caution colour on the worse side, the optimal colour on the better
+    /// side, and caution either way for Balance, which has no better side.
     func dailyDots(_ points: [MetricPoint], bandLow: Double?, bandHigh: Double?) -> some ChartContent {
-        ForEach(points) { p in
-            let outOfBand = (bandLow.map { p.value < $0 } ?? false) || (bandHigh.map { p.value > $0 } ?? false)
+        let higherIsBetter = Self.higherIsBetter(selectedMetric)
+        return ForEach(points) { p in
             PointMark(
                 x: .value("Date", p.date),
                 y: .value(selectedMetric.localizedName, p.value)
             )
             .symbolSize(30)
-            .foregroundStyle(outOfBand ? AppTheme.wongCaution : AppTheme.primary.opacity(0.7))
+            .foregroundStyle(Self.dotColor(p.value, bandLow: bandLow, bandHigh: bandHigh, higherIsBetter: higherIsBetter))
+        }
+    }
+
+    @MainActor static func dotColor(_ value: Double, bandLow: Double?, bandHigh: Double?, higherIsBetter: Bool?) -> Color {
+        let above = bandHigh.map { value > $0 } ?? false
+        let below = bandLow.map { value < $0 } ?? false
+        guard above || below else { return AppTheme.primary.opacity(0.7) }
+        guard let higherIsBetter else { return AppTheme.wongCaution }
+        return above == higherIsBetter ? AppTheme.wongOptimal : AppTheme.wongCaution
+    }
+
+    /// Which way is better for a metric: higher for Recovery, RMSSD, SDNN and
+    /// HF Power, lower for Stress and Mean HR, neither for Balance (LF/HF).
+    static func higherIsBetter(_ metric: Metric) -> Bool? {
+        switch metric {
+        case .recoveryScore, .rmssd, .sdnn, .hfPower: true
+        case .meanHR, .stress: false
+        case .balance: nil
         }
     }
 
@@ -188,9 +215,9 @@ extension TrendsV2View {
                 .font(.system(size: dt13, weight: .semibold).monospacedDigit())
                 .foregroundStyle(AppTheme.textPrimary)
             if let delta = band.deltaPercent(pt.value) {
-                Text(verbatim: deltaLabel(delta))
+                Text(verbatim: Self.deltaLabel(delta))
                     .font(.system(size: dt11, weight: .medium))
-                    .foregroundStyle(deltaColor(delta))
+                    .foregroundStyle(deltaColor(pct: delta, higherIsBetter: Self.higherIsBetter(selectedMetric)))
             }
         }
         .padding(.horizontal, 8)
@@ -237,30 +264,16 @@ extension TrendsV2View {
         }
     }
 
-    func deltaLabel(_ pct: Double) -> String {
+    /// "+12% vs baseline": the scrub pill's and the stats grid's delta line.
+    static func deltaLabel(_ pct: Double) -> String {
         let sign = pct >= 0 ? "+" : ""
         return String(localized: "\(sign)\(Int(pct.rounded()))% vs baseline", bundle: LanguageManager.appBundle)
-    }
-
-    /// Text colour for the delta. Stress and Mean HR: higher = worse.
-    /// Recovery, RMSSD, SDNN, HF Power: higher = better. Balance (LF/HF) has
-    /// no better direction, so its delta stays neutral, as `balanceColor`
-    /// does.
-    @MainActor func deltaColor(_ pct: Double) -> Color {
-        if abs(pct) < 5 || selectedMetric == .balance { return AppTheme.textSecondary }
-        let isInverted = selectedMetric == .stress || selectedMetric == .meanHR
-        let goodDirection = isInverted ? pct < 0 : pct > 0
-        return goodDirection ? AppTheme.wongOptimalText : AppTheme.wongCautionText
     }
 
     struct MetricPoint: Identifiable {
         let id: Date
         let date: Date
         let value: Double
-
-        func outOfBand(mean: Double, sd: Double) -> Bool {
-            value < mean - sd || value > mean + sd
-        }
     }
 
     /// Map sessions → metric points for the requested metric. Recovery
@@ -343,16 +356,18 @@ extension TrendsV2View {
         }
     }
 
-    /// Color the stats-grid delta line. Direction is encoded on the
-    /// cell via `higherIsBetter`; the numeric percent is carried on the
-    /// cell (`deltaPercent`) so we never re-parse the localized label —
-    /// a `.contains("+")` / `split("%")` parse breaks the moment the
-    /// string is translated. Below ±5% reads as neutral (within noise).
-    func deltaColor(pct: Double?, higherIsBetter: Bool?) -> Color {
+    /// Text colour for a delta line, the stats grid's and the scrub pill's.
+    /// Direction comes from `higherIsBetter` (nil, as for Balance, stays
+    /// neutral); the numeric percent is carried on the cell (`deltaPercent`)
+    /// so we never re-parse the localized label — a `.contains("+")` /
+    /// `split("%")` parse breaks the moment the string is translated. Below
+    /// ±5% reads as neutral (within noise). The status colours' text shades,
+    /// which clear 4.5:1 as words on the cards.
+    @MainActor func deltaColor(pct: Double?, higherIsBetter: Bool?) -> Color {
         guard let direction = higherIsBetter, let pct else { return AppTheme.textSecondary }
         if abs(pct) < 5 { return AppTheme.textSecondary }
         let goodDirection = direction ? pct > 0 : pct < 0
-        return goodDirection ? AppTheme.wongOptimal : AppTheme.wongCaution
+        return goodDirection ? AppTheme.wongOptimalText : AppTheme.wongCautionText
     }
 
     struct GridCell {
@@ -456,10 +471,7 @@ extension TrendsV2View {
             guard let b = baseline, let pct = b.deltaPercent(mean), abs(pct) >= 1 else { return nil }
             return pct
         }()
-        let delta: String? = deltaPct.map { pct in
-            let sign = pct >= 0 ? "+" : ""
-            return String(localized: "\(sign)\(Int(pct.rounded()))% vs baseline", bundle: LanguageManager.appBundle)
-        }
+        let delta: String? = deltaPct.map(deltaLabel)
         return GridCell(label: label, value: valueStr, subline: subline, delta: delta, deltaPercent: deltaPct, higherIsBetter: higherIsBetter)
     }
 
@@ -495,8 +507,9 @@ extension TrendsV2View {
             // Counts readings in the current range and tag filter, not days.
             return [String(localized: "Trends need at least 3 readings in this view. Readings so far: \(pts.count).", bundle: LanguageManager.appBundle)]
         }
-        let directionInfo = computeDirection(pts.map { TrendVerdict.Reading(date: $0.date, value: $0.value) }, scale: trendScale(metric))
-        var out = [directionSentence(name: metric.localizedName, glyph: directionInfo.glyph, days: days)]
+        let readings = pts.map { TrendVerdict.Reading(date: $0.date, value: $0.value) }
+        let movement = TrendVerdict.evaluate(readings, scale: trendScale(metric)).movement
+        var out = [directionSentence(name: metric.localizedName, movement: movement, days: days)]
         let spread = variationStats(metric: metric, points: pts)
         if spread.cv > 0 {
             out.append(variationSentence(metric: metric, cv: spread.cv))
@@ -510,24 +523,26 @@ extension TrendsV2View {
     /// One whole sentence per direction and period. It was built from
     /// pieces, "Your \(name) is \(label) over the last \(range)", which read
     /// "Your mean hr is building trend over the last all time." and could not
-    /// follow another language's word order.
-    static func directionSentence(name: String, glyph: String, days: Int?) -> String {
+    /// follow another language's word order. Keyed on the verdict's
+    /// movement itself, not on the glyph a card draws for it.
+    static func directionSentence(name: String, movement: TrendVerdict.Movement, days: Int?) -> String {
         let b = LanguageManager.appBundle
-        switch (glyph, days) {
-        case let ("arrow.up.right", days?): return String(localized: "\(name): rising over the last \(days) days.", bundle: b)
-        case ("arrow.up.right", nil): return String(localized: "\(name): rising across all your readings.", bundle: b)
-        case let ("arrow.down.right", days?): return String(localized: "\(name): falling over the last \(days) days.", bundle: b)
-        case ("arrow.down.right", nil): return String(localized: "\(name): falling across all your readings.", bundle: b)
-        case let ("arrow.right", days?): return String(localized: "\(name): stable over the last \(days) days.", bundle: b)
-        case ("arrow.right", nil): return String(localized: "\(name): stable across all your readings.", bundle: b)
-        default: return String(localized: "\(name): not enough readings yet to call a trend.", bundle: b)
+        switch (movement, days) {
+        case let (.up, days?): return String(localized: "\(name): rising over the last \(days) days.", bundle: b)
+        case (.up, nil): return String(localized: "\(name): rising across all your readings.", bundle: b)
+        case let (.down, days?): return String(localized: "\(name): falling over the last \(days) days.", bundle: b)
+        case (.down, nil): return String(localized: "\(name): falling across all your readings.", bundle: b)
+        case let (.flat, days?): return String(localized: "\(name): stable over the last \(days) days.", bundle: b)
+        case (.flat, nil): return String(localized: "\(name): stable across all your readings.", bundle: b)
+        case (.insufficient, _): return String(localized: "\(name): not enough readings yet to call a trend.", bundle: b)
         }
     }
 
     /// #19 — RMSSD/SDNN are log-normal; a raw mean±SD band flags ~70%
     /// of readings as "outliers" and calls normal weeks "51% high". For those
-    /// metrics compute the CV and outlier band in LOG space (mean ± 2 SD ≈ 95%
-    /// coverage). Other metrics keep the raw path.
+    /// metrics, and the spectral ones read on the same log scale (HF Power,
+    /// Balance), compute the CV and outlier band in LOG space (mean ± 2 SD ≈
+    /// 95% coverage). Other metrics keep the raw path.
     static func variationStats(metric: Metric, points pts: [MetricPoint]) -> (cv: Double, outliers: Int) {
         guard isLogNormal(metric) else { return rawVariationStats(points: pts) }
         let lnValues = pts.map(\.value).filter { $0 > 0 }.map { log($0) }
@@ -541,17 +556,22 @@ extension TrendsV2View {
         )
     }
 
+    /// CV and outliers on the raw values. An outlier is more than 2 SD from
+    /// the mean (≈ 95% coverage), the same spread-based rule as the log path,
+    /// so the count follows the user's own variability.
     static func rawVariationStats(points pts: [MetricPoint]) -> (cv: Double, outliers: Int) {
         let mean = pts.map(\.value).reduce(0, +) / Double(pts.count)
-        let variance = pts.map { pow($0.value - mean, 2) }.reduce(0, +) / Double(pts.count)
+        let sd = sqrt(pts.map { pow($0.value - mean, 2) }.reduce(0, +) / Double(pts.count))
         return (
-            mean > 0 ? sqrt(variance) / mean * 100 : 0,
-            pts.filter { abs($0.value - mean) > mean * 0.25 }.count
+            mean > 0 ? sd / mean * 100 : 0,
+            sd > 0 ? pts.filter { abs($0.value - mean) > 2 * sd }.count : 0
         )
     }
 
+    /// Metrics whose spread is read in log space: those `trendScale` reads
+    /// as logarithms (RMSSD, SDNN, HF Power, Balance).
     static func isLogNormal(_ metric: Metric) -> Bool {
-        metric == .rmssd || metric == .sdnn
+        trendScale(metric) == .logarithmic
     }
 
     /// The scale the trend verdict reads a metric on: the log-normal HRV

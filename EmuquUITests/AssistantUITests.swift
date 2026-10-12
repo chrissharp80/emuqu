@@ -16,8 +16,9 @@ import XCTest
 ///   • The chat surface tolerates "no API key configured" gracefully
 ///     (no crash, no blocking modal that can't be dismissed).
 ///
-/// Tests `XCTSkipUnless` cleanly when the AI tab is disabled in
-/// Settings → Performance → enableAIAssistant.
+/// Every test launches as a fresh install, where enableAIAssistant
+/// (Settings → Performance) is on, so a Flo tab that cannot be reached is a
+/// failure, not a skip.
 @MainActor
 final class AssistantUITests: XCTestCase {
 
@@ -37,36 +38,20 @@ final class AssistantUITests: XCTestCase {
 
     /// Not a four-predicate guess over "Assistant" / "Coach" / "Flo" / "AI".
     /// The tab is titled "Flo"; "Coach" means the in-workout trigger voice and
-    /// is not a tab at all.
-    private func navigateToAssistant() throws {
-        guard UITestNav.selectTab(app, identifier: UITestID.tabCoach, title: UITestID.tabCoachTitle) else {
-            throw XCTSkip("Flo tab disabled in this build " +
-                          "(Settings → Performance → enableAIAssistant)")
-        }
+    /// is not a tab at all. A fresh install has the tab, so not finding it
+    /// fails the test (and, with `continueAfterFailure` off, stops it there).
+    private func navigateToAssistant() {
+        let found = UITestNav.selectTab(app, identifier: UITestID.tabCoach, title: UITestID.tabCoachTitle)
+        XCTAssertTrue(found, "The Flo tab must be reachable on a fresh install — \(UITestFind.onScreen(app))")
     }
 
-    // MARK: - Disclaimer flow
-
-    /// The first time the user opens the Assistant, `DisclaimerSheet`
-    /// presents with a four-point disclosure. The sheet is
-    /// non-dismissible until acknowledged. We assert it's reachable
-    /// and tappable away with the standard "Got it" / "Continue" /
-    /// "Accept" CTA.
-    func testFirstOpenPresentsDisclaimer() throws {
-        try navigateToAssistant()
-        // Identified, not a `Got it / Accept / Continue` label predicate,
-        // which would also match the *health* disclaimer's CTA one layer
-        // down.
-        UITestFind.acceptAssistantDisclaimer(app)
-        // "The chat input field must be reachable" is not true of the
-        // default configuration: with
-        // Apple's on-device model and no API key, `ChatInputBar` renders no
-        // composer at all and the prefab chips are the input surface. Note
-        // also that `TextField(axis: .vertical)` reports as a text view rather
-        // than a text field once it can grow, so the composer is matched
-        // across element types rather than as `textFields[...]`.
-        // On a simulator with no Apple Intelligence and no key, Flo shows its
-        // setup screen instead, which is the input surface there.
+    /// After the disclosure, Flo shows something the user can ask through:
+    /// the composer, the prefab chips (the only input with Apple's on-device
+    /// model and no key), or the setup screen when no model is available.
+    private func assertInputSurfaceIsShown(_ context: String) {
+        // `TextField(axis: .vertical)` reports as a text view rather than a
+        // text field once it can grow, so the composer is matched across
+        // element types rather than as `textFields[...]`.
         let surfaces = [
             UITestFind.anyElement(in: app, identifier: UITestID.assistantComposer),
             UITestFind.anyElement(in: app, identifier: UITestID.assistantPrefabChips),
@@ -74,9 +59,27 @@ final class AssistantUITests: XCTestCase {
         ]
         XCTAssertTrue(
             surfaces.contains { $0.waitForExistence(timeout: UITestTiming.s(8)) },
-            "After dismissing the disclaimer, Flo must present a composer, its prefab chips or its setup screen — " +
+            "\(context): Flo must present a composer, its prefab chips or its setup screen — " +
                 UITestFind.onScreen(app)
         )
+    }
+
+    // MARK: - Disclaimer flow
+
+    /// The first time the user opens the Assistant, `DisclaimerSheet`
+    /// presents with its disclosure, and it cannot be dismissed until
+    /// acknowledged. A fresh install must show it, its accept button
+    /// ("I understand — continue", found by identifier) must take it away,
+    /// and Flo's input surface must be there behind it.
+    func testFirstOpenPresentsDisclaimer() throws {
+        navigateToAssistant()
+        // Identified, not a label predicate, which would also match the
+        // *health* disclaimer's CTA one layer down.
+        XCTAssertTrue(
+            UITestFind.acceptAssistantDisclaimer(app),
+            "A fresh install must present the Flo disclosure and accept it — \(UITestFind.onScreen(app))"
+        )
+        assertInputSurfaceIsShown("After dismissing the disclaimer")
     }
 
     // MARK: - Prefab questions
@@ -86,7 +89,7 @@ final class AssistantUITests: XCTestCase {
     /// — that would fire a real send if a provider is configured —
     /// but we assert at least one is rendered.
     func testPrefabQuestionsRender() throws {
-        try navigateToAssistant()
+        navigateToAssistant()
         UITestFind.acceptAssistantDisclaimer(app, timeout: UITestTiming.s(3))
 
         // The chips sit above the composer whenever a model can answer (with
@@ -110,22 +113,27 @@ final class AssistantUITests: XCTestCase {
     // MARK: - No-API-key state
 
     /// Without any configured API key + with Apple Intelligence
-    /// available, the chat tab must not present a blocking alert. The
-    /// user should be able to type a message even if sending it would
-    /// fail; the failure surfaces inline as a turn, not as a modal.
+    /// available, the chat tab must not present a blocking alert, and once
+    /// the disclosure is accepted the user can reach the input surface; a
+    /// failed send surfaces inline as a turn, not as a modal.
     func testNoAPIKeyDoesNotBlockChat() throws {
-        try navigateToAssistant()
-        // Dismiss disclaimer if up.
-        let acceptPredicate = NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@",
-                                          "Got it", "Accept")
-        if app.buttons.matching(acceptPredicate).firstMatch.waitForExistence(timeout: UITestTiming.s(3)) {
-            app.buttons.matching(acceptPredicate).firstMatch.tap()
-        }
+        navigateToAssistant()
+        // The accept button sits at the end of a scrolling sheet; the helper
+        // scrolls to it (a plain tap can land off-screen and leave the sheet up).
+        XCTAssertTrue(
+            UITestFind.acceptAssistantDisclaimer(app),
+            "The Flo disclosure must be shown and accepted first — \(UITestFind.onScreen(app))"
+        )
         // Wait briefly for any pending alert.
         let alert = app.alerts.firstMatch
         XCTAssertFalse(
             alert.waitForExistence(timeout: UITestTiming.s(2)),
             "Assistant must not present a blocking alert when no API key is configured"
+        )
+        assertInputSurfaceIsShown("With no API key")
+        XCTAssertFalse(
+            app.buttons[UITestID.assistantDisclaimerAccept].exists,
+            "The disclosure is still up over the chat — \(UITestFind.onScreen(app))"
         )
     }
 }

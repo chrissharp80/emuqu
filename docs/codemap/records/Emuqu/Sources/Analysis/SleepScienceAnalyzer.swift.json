@@ -1,0 +1,893 @@
+{
+ "file": "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift",
+ "hash": "ad3e2fe4d63f31cb",
+ "role": "Pure sleep-science scoring: fragmentation index, NREM/REM cycle detection, deep/REM half-night architecture, Ohayon age norms and the 0-100 enhanced Sleep score; also rebuilds a SleepData from the timeline editor state and defines SleepData.measuredSleepEfficiency.",
+ "types": [
+  "SleepScienceAnalyzer: enum — namespace of static analysis functions",
+  "SleepAnalysis: struct — result bundle, including the enhanced score's sections",
+  "EnhancedScoreSections: struct — the enhanced score's six sections in points, exposed on SleepAnalysis.sections",
+  "SleepCycle: struct — one detected cycle",
+  "SleepArchitecture: struct — half-night deep/REM distribution + score",
+  "AgeAdjustedNorms: struct — expected stage ranges and deviations for an age",
+  "SleepCycleBuilder: struct (private) — streaming cycle accumulator",
+  "HalfNightStages: struct (private) — per-half deep/REM minute accumulator",
+  "EnhancedScoreWeights: enum — section points and thresholds of the enhanced score",
+  "SleepData: extension — measuredSleepEfficiency"
+ ],
+ "state": [
+  "mem:SleepScienceAnalyzer.SleepArchitecture.unknown (static let, score 50)",
+  "mem:SleepScienceAnalyzer.EnhancedScoreWeights.* (static lets: duration 25, efficiency 20, stageHalf 10, fragmentation 15, cycles 10, architecture 10, ratioCap 1.1, unmeasuredEfficiencyRatio 0.5, unmeasuredSectionRatio 0.5, population deep 20%/REM 25%, deviationPenaltySlope 0.5, cycleLengthHours 1.5, minimumExpectedCycles 3, durationDebt threshold 0.85 / ceiling 90 / floor 60)"
+ ],
+ "toplevel": "Static constants above; no global code. EnhancedScoreWeights is also read directly by SleepDetailV2View+Breakdown.swift and HelpScienceAccuracyTests.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "SleepDetailV2View+Breakdown re-implements the duration, efficiency, stage-half and cycle sub-scores of the enhanced score (rescaled to 0-100) instead of reading the analyzer's per-section values, which it now exposes as SleepAnalysis.sections; until the view reads them, any formula change here (such as this pass's neutral credit for unmeasured continuity/cycles and the below-range stage penalty) must be mirrored by hand there or the breakdown rows disagree with the shown score.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:464",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:479",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:502",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:206",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:215",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:225",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:243",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:253"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SleepScienceAnalyzer.EnhancedScoreSections.total",
+   "hash": "e9c8761a8f8482c3",
+   "does": "Sum of the six section points: duration + efficiency + stages + continuity + cycles + architecture (before the duration-debt cap and clamp).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepScienceAnalyzer.SleepCycle.isComplete",
+   "hash": "7f2d9c5c6cc9add9",
+   "does": "True when the cycle contains any REM minutes (remMinutes > 0); used to count complete cycles in analyze.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)",
+   "hash": "ff0071256384e5c3",
+   "does": "Entry point: for a night with nightSleepMinutes > 0 sorts stageIntervals, computes fragmentation/awakenings, and — only when deep or REM minutes are non-nil — cycles, architecture and age norms; then the enhanced score's sections, with continuity unmeasured (nil fragmentation) when the night's wake was not measured (measuredSleepEfficiency nil) and cycles unmeasured (nil count) without stage data, so both score neutral half credit; returns SleepAnalysis (reported fragmentationIndex/cycleCount as measured, enhancedScore, sections) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.SleepCycle.isComplete",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "nightSleepMinutes > 0",
+     "effect": "false: returns nil (no analysis); true: continues"
+    },
+    {
+     "at": "+9",
+     "cond": "hasStages (deep or REM minutes non-nil)",
+     "effect": "true: detectSleepCycles over sorted intervals; false: cycles = []"
+    },
+    {
+     "at": "+10",
+     "cond": "hasStages",
+     "effect": "true: analyzeArchitecture; false: SleepArchitecture.unknown (neutral score 50)"
+    },
+    {
+     "at": "+11",
+     "cond": "hasStages",
+     "effect": "true: ageNorms(userAge:sleepData:) (nil without age); false: nil"
+    },
+    {
+     "at": "+15",
+     "cond": "measuredSleepEfficiency == nil (wake not measured)",
+     "effect": "true: continuity scored unmeasured (half credit); false: from fragmentationIndex"
+    },
+    {
+     "at": "+16",
+     "cond": "hasStages",
+     "effect": "true: cycles scored from completeCycles; false: unmeasured (half credit)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "ARCHITECTURE.md says the enhanced score is used only when stage data is available and the weighted Tier-2 formula is the fallback when no stage breakdown exists (FEATURES.md says the same), but analyze returns non-nil for every night with nightSleepMinutes > 0, stages or not, so calculateSleepScore always returns the enhanced score (which now gives unmeasured sections neutral credit) and the weighted formula runs only for zero-minute nights. The docs still describe the old split.",
+     "evidence": [
+      "docs/ARCHITECTURE.md:369",
+      "docs/ARCHITECTURE.md:370",
+      "docs/FEATURES.md:71",
+      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:80",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:121",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:142"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "6f4c6833a3f0186f",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.SleepCycle.isComplete": "ca44c9605bb05fc5",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)",
+   "hash": "52a494f0dceab7dd",
+   "does": "Builds AgeAdjustedNorms from the user's age and the night's deep%/REM% of nightSleepMinutes (nil stage minutes count as 0%); nil when age unknown. The only caller has already returned for a zero-minute night, so the division is safe.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userAge non-nil",
+     "effect": "false: returns nil; true: computes norms"
+    },
+    {
+     "at": "+5",
+     "cond": "deepSleepMinutes ?? 0",
+     "effect": "nil deep minutes treated as 0% deep (norm isDeepInRange false); harmless for scoring because stagesScore only reads norms for a non-nil stage"
+    },
+    {
+     "at": "+6",
+     "cond": "remSleepMinutes ?? 0",
+     "effect": "nil REM treated as 0% REM, same as above"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)",
+   "hash": "93bef3f006bbe966",
+   "does": "Returns (index, awakeningCount): awakenings = distinct awake runs in intervals; index = min(100, awakenings/hour*10 + wake%*2) where hours and wake% use totalSleep+awake minutes. Constants from SleepScienceConstants (10, 2).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.countAwakenings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "totalSleepMinutes > 0",
+     "effect": "false: returns (0, 0); true: computes"
+    },
+    {
+     "at": "+10",
+     "cond": "totalHours > 0",
+     "effect": "true: awakenings/hour; false: 0. Always true after the guard at 125 since awakeMinutes >= 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.countAwakenings(_:)": "115947fcda6f2a8b"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.countAwakenings(_:)",
+   "hash": "44a687fa9f609da3",
+   "does": "Counts awake episodes in the interval list, where consecutive .awake intervals form one awakening. Leading/trailing awake intervals in the list are counted too.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each interval",
+     "effect": "iterates in given (sorted) order"
+    },
+    {
+     "at": "+4",
+     "cond": "stage == .awake and previous was not awake",
+     "effect": "true: increments count; false: no change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.detectSleepCycles(intervals:)",
+   "hash": "09b1da0cad0cc9cf",
+   "does": "Drops awake intervals, then feeds the rest through SleepCycleBuilder and closes the final cycle at the last interval end; returns [SleepCycle]. Non-REM, non-awake stages (deep, core, unspecified) all count as NREM.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::init SleepScienceAnalyzer.SleepCycleBuilder(cycleStart:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.consume(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.finish(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "any non-awake interval exists",
+     "effect": "false: returns []; true: builder starts at first interval start"
+    },
+    {
+     "at": "+7",
+     "cond": "for each sleep interval",
+     "effect": "consume(interval)"
+    },
+    {
+     "at": "+10",
+     "cond": "last interval has an end",
+     "effect": "always true when first exists; else-branch returns builder.cycles without finishing (unreachable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.consume(_:)": "db01e45f2961ae0c",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.finish(at:)": "8ed81fef399fd829",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::init SleepScienceAnalyzer.SleepCycleBuilder(cycleStart:)": "cf823d82e649e722"
+   }
+  },
+  {
+   "key": "init SleepScienceAnalyzer.SleepCycleBuilder(cycleStart:)",
+   "hash": "d0cdc5ede2b4eedc",
+   "does": "Initializer storing the first cycle's start date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.SleepCycleBuilder.consume(_:)",
+   "hash": "1e125d407fa3a94e",
+   "does": "Adds one interval to the running cycle: REM adds to remMinutes (absorbing any pending post-REM NREM run back into the cycle); NREM before REM adds to nremMinutes; NREM after REM accumulates a pending run and closes the cycle at the run's start once it reaches 15 minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.closeCycle(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "interval is not REM",
+     "effect": "false (REM): pending NREM merged into nremMinutes, inREM=true, rem minutes added, return; true: continue"
+    },
+    {
+     "at": "+11",
+     "cond": "inREM",
+     "effect": "false: NREM before any REM — added to nremMinutes, return; true: tracked as post-REM run"
+    },
+    {
+     "at": "+15",
+     "cond": "remExitStart ?? interval.start",
+     "effect": "first NREM interval after REM sets the run start; later ones keep it"
+    },
+    {
+     "at": "+17",
+     "cond": "remExitCount >= 15 and remExitStart set",
+     "effect": "true: closeCycle(at: run start); false: return and keep waiting. remExitStart is always set at 208, so only the 15-minute test matters"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.closeCycle(at:)": "3ee39d1125e3ba93",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.SleepCycleBuilder.closeCycle(at:)",
+   "hash": "13f891d4f6cf6ba1",
+   "does": "Appends a SleepCycle (number, start, end=boundary, nrem/rem minutes, duration = nrem+rem minutes, not wall-clock span), then starts the next cycle at the boundary seeded with the confirming NREM minutes and resets REM state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.SleepCycleBuilder.finish(at:)",
+   "hash": "6b333fb98e62c61c",
+   "does": "Folds any unconfirmed post-REM NREM into the current cycle, appends it as a final cycle ending at lastEnd if it holds >= 30 minutes, and returns all cycles.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "nremMinutes + remMinutes >= 30",
+     "effect": "false: final fragment dropped, returns existing cycles; true: appended"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)",
+   "hash": "8e6cf1b9d5886044",
+   "does": "Splits deep/REM minutes at the midpoint of sleepStart..sleepEnd, computes % of deep in first half and % of REM in second half (clamped 0-100), flags >=55% as front/back loaded, and scores each half via halfScore (0-50 each).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageMinutesPerHalf(intervals:midpoint:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.share(_:of:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.halfScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sleepStart and sleepEnd both non-nil",
+     "effect": "false: returns .unknown (score 50); true: computes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.halfScore(_:)": "3155d486298f5843",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.share(_:of:)": "4ed0a45ac24870e4",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageMinutesPerHalf(intervals:midpoint:)": "e28ef8d72accedee",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.halfScore(_:)",
+   "hash": "66930c7f56b60de2",
+   "does": "Maps a share percentage to 0-50 points: (share-50)*2 clamped to [0,50] (50% -> 0, 75%+ -> 50).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.share(_:of:)",
+   "hash": "92f286cbe0f80ee3",
+   "does": "Returns halfMinutes as a percentage of totalMinutes, capped at 100; 0 when total is nil or 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "total non-nil and > 0",
+     "effect": "false: 0; true: min(100, half/total*100)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.stageMinutesPerHalf(intervals:midpoint:)",
+   "hash": "10c42fd5fdf9bcda",
+   "does": "Accumulates deep/REM minutes per half of the night via HalfNightStages.add for every interval.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.add(_:midpoint:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each interval",
+     "effect": "halves.add(interval, midpoint)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.add(_:midpoint:)": "ceed03154291b71d"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.HalfNightStages.add(_:midpoint:)",
+   "hash": "1439a3bb2fd5825f",
+   "does": "Adds an interval's minutes to the first half, the second half, or splits them proportionally (Int-truncated first part) when the interval spans the midpoint.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addFirst(_:_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addSecond(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "interval ends at/before midpoint",
+     "effect": "true: all minutes to first half"
+    },
+    {
+     "at": "+4",
+     "cond": "interval starts at/after midpoint",
+     "effect": "true: all to second half; else split by time fraction"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addFirst(_:_:)": "284d7368b6b3c26c",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addSecond(_:_:)": "a77ba026cd628e4a",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.HalfNightStages.addFirst(_:_:)",
+   "hash": "67eb7837e19dbddf",
+   "does": "Adds minutes to firstDeep or firstREM according to stage; other stages ignored.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stage == .deep",
+     "effect": "adds to firstDeep"
+    },
+    {
+     "at": "+2",
+     "cond": "stage == .rem",
+     "effect": "adds to firstREM"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.HalfNightStages.addSecond(_:_:)",
+   "hash": "a89c6a18d69c5dec",
+   "does": "Adds minutes to secondDeep or secondREM according to stage; other stages ignored.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stage == .deep",
+     "effect": "adds to secondDeep"
+    },
+    {
+     "at": "+2",
+     "cond": "stage == .rem",
+     "effect": "adds to secondREM"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)",
+   "hash": "7d698b5b92f6562f",
+   "does": "Looks up expected deep/REM ranges and efficiency for the age decade and returns AgeAdjustedNorms with deviations from range midpoints and in-range flags. The efficiency argument is ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.expectedStages(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.expectedStages(forAge:)": "9beb1d047f31801b",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.expectedStages(forAge:)",
+   "hash": "b799bdf3a54c6afd",
+   "does": "Ohayon-2004 table: returns (deep range, REM range, expected efficiency) for an age band.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "age < 20",
+     "effect": "deep 17-25, REM 20-25, eff 90"
+    },
+    {
+     "at": "+5",
+     "cond": "20..<30",
+     "effect": "15-22, 20-25, 88"
+    },
+    {
+     "at": "+6",
+     "cond": "30..<40",
+     "effect": "13-20, 19-24, 85"
+    },
+    {
+     "at": "+7",
+     "cond": "40..<50",
+     "effect": "10-18, 18-23, 83"
+    },
+    {
+     "at": "+8",
+     "cond": "50..<60",
+     "effect": "8-15, 17-22, 80"
+    },
+    {
+     "at": "+9",
+     "cond": "60..<70",
+     "effect": "5-13, 16-21, 78"
+    },
+    {
+     "at": "+10",
+     "cond": "default (70+)",
+     "effect": "3-10, 15-20, 75"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)",
+   "hash": "570f2ede9fe39297",
+   "does": "The enhanced score from its inputs in one call: enhancedScoreSections then enhancedScore(of:). A nil fragmentationIndex (wake not measured) or cycleCount (no stage data) scores that section at unmeasuredSectionRatio. analyze builds the sections itself (it also returns them); this entry is called from tests.",
+   "entry": "XCTest: SleepScienceAnalyzerTests (score helper and enhanced-score cases)",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production code calls computeEnhancedScore any more: analyze builds the sections once (enhancedScoreSections) and scores them (enhancedScore(of:)). Only SleepScienceAnalyzerTests call it.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:469",
+      "EmuquTests/SleepScienceAnalyzerTests.swift:231"
+     ],
+     "found": "fix pass b03"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "6f4c6833a3f0186f"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)",
+   "hash": "7db7d1075bc0701b",
+   "does": "Final enhanced score: sections.total capped by durationDebtCapped at ratio (night+nap hours)/max(typicalSleepHours,1), clamped to 0-100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.durationDebtCapped(_:ratio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.durationDebtCapped(_:ratio:)": "a35af0d3e9ad8082",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)",
+   "hash": "107bf8dfe7f90ac5",
+   "does": "The six sections in points: duration min((night+nap hours)/max(target,1), 1.1)*25; efficiencyRatio*20; stagesScore (0-20); continuity 15*(1-index/100) floored at 0, or 15*0.5 when fragmentationIndex is nil; cycles min(count/expected,1)*10 with expected = max(3, nightHours/1.5), or 10*0.5 when cycleCount is nil; architecture score/100*10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.efficiencyRatio(sleepData:ageNorms:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stagesScore(sleepData:ageNorms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "fragmentationIndex nil",
+     "effect": "continuity = fragmentationPoints * unmeasuredSectionRatio (7.5)"
+    },
+    {
+     "at": "+21",
+     "cond": "cycleCount nil",
+     "effect": "cycles = cyclePoints * unmeasuredSectionRatio (5)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.efficiencyRatio(sleepData:ageNorms:)": "07c0af52f0696c06",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stagesScore(sleepData:ageNorms:)": "55eaec12b09ac96f",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.efficiencyRatio(sleepData:ageNorms:)",
+   "hash": "e82db6748bc02602",
+   "does": "Efficiency section ratio: 0.5 when efficiency was not measured; else measured efficiency / (age-expected efficiency, or SleepConstants.goodEfficiency 85) capped at 1.1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "measuredSleepEfficiency non-nil",
+     "effect": "false: returns 0.5 (neutral); true: computes ratio"
+    },
+    {
+     "at": "+6",
+     "cond": "ageNorms?.expectedEfficiency ?? goodEfficiency",
+     "effect": "no age norms: population 85% used"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.stagesScore(sleepData:ageNorms:)",
+   "hash": "d4d6e8df731d28b3",
+   "does": "Stage section (0-20): deep half + REM half via stageHalf, passing the age-expected deep/REM range when norms exist; a stage with nil minutes gets neutral 5; a zero-minute night returns 10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageHalf(minutes:night:populationTargetPct:expectedRange:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "night > 0",
+     "effect": "false: returns stageHalfPoints (10, i.e. both halves neutral); true: scores halves"
+    },
+    {
+     "at": "+15",
+     "cond": "deep ?? 5, rem ?? 5",
+     "effect": "nil stage minutes contribute neutral 5 points each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageHalf(minutes:night:populationTargetPct:expectedRange:)": "8ed9ca0e4e70b20f",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.stageHalf(minutes:night:populationTargetPct:expectedRange:)",
+   "hash": "41d92095d8544899",
+   "does": "One stage's 0-10 points from its share of the night: without an expected range, share / population target * 10 capped at 10; with one, full 10 at or above the range's lower bound, else 10 - (lowerBound - share)*0.5 floored at 0, so the score falls smoothly from the lower bound.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "expectedRange is nil",
+     "effect": "true: population-target formula; false: continue"
+    },
+    {
+     "at": "+10",
+     "cond": "share at or above the lower bound",
+     "effect": "true: full 10 points; false (below range): penalised by distance below the bound"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepScienceAnalyzer.durationDebtCapped(_:ratio:)",
+   "hash": "c37ba53ab237c39e",
+   "does": "Duration-debt cap: when (night+nap)/target < 0.85, caps total at 60 + ratio/0.85*30 (90 at threshold, 60 at 0); otherwise returns total unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rawDurationRatio < 0.85",
+     "effect": "false: returns total; true: min(total, ceiling)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+   "hash": "e5b64b06a3416664",
+   "does": "Builds a SleepData from the timeline editor's edited segments: clips each segment's intervals, counts interval-less segments' envelopes as unspecified sleep, then recomputes totals. Called from SleepTimelineEditorView+Handles.swift:446 (commit → onSave → ReanalysisService writes session.sleepSnapshot).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.adjustedSegment(_:original:allIntervals:envelopeUnspecifiedTotal:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.rebuiltSleepData(original:state:segments:intervals:envelopeUnspecified:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "state.segments non-empty",
+     "effect": "false: returns original unchanged; true: rebuilds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.adjustedSegment(_:original:allIntervals:envelopeUnspecifiedTotal:)": "021b67b641a19fd1",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.rebuiltSleepData(original:state:segments:intervals:envelopeUnspecified:)": "ff31820644aa494f",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.rebuiltSleepData(original:state:segments:intervals:envelopeUnspecified:)",
+   "hash": "583c737c71d77bfe",
+   "does": "Assembles the edited SleepData: total sleep = interval non-awake minutes + envelope minutes, inBed = total + awake, deep/REM only if the original had them, efficiency recomputed (original when inBed 0), boundaries from min/max segment edges, edits = state.edits; napSleepMinutes and the other fields copied from original, so a timeline edit keeps the night's qualifying nap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "segments min start ?? original.sleepStart",
+     "effect": "segments non-empty (guarded by caller) so the min is used"
+    },
+    {
+     "at": "+13",
+     "cond": "segments max end ?? original.sleepEnd",
+     "effect": "same, max end used"
+    },
+    {
+     "at": "+15",
+     "cond": "original.deepSleepMinutes != nil",
+     "effect": "true: interval deep total; false: nil"
+    },
+    {
+     "at": "+16",
+     "cond": "original.remSleepMinutes != nil",
+     "effect": "true: interval REM total; false: nil"
+    },
+    {
+     "at": "+19",
+     "cond": "inBedMinutes > 0",
+     "effect": "true: SleepData.efficiencyPercent(total, inBed); false: original efficiency"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzer.adjustedSegment(_:original:allIntervals:envelopeUnspecifiedTotal:)",
+   "hash": "287311cf227d9770",
+   "does": "Clips one editor segment's intervals to its bounds, appends them to the running timeline, and returns a SleepSegment with its sleep/stage/awake minutes; an interval-less segment counts its whole envelope as sleep and adds it to the envelope total.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "clipped intervals empty",
+     "effect": "true: segment sleep = envelope minutes (>=0), added to envelopeUnspecifiedTotal; false: interval sleep total"
+    },
+    {
+     "at": "+18",
+     "cond": "original.deepSleepMinutes != nil",
+     "effect": "deep minutes or nil"
+    },
+    {
+     "at": "+19",
+     "cond": "original.remSleepMinutes != nil",
+     "effect": "REM minutes or nil"
+    },
+    {
+     "at": "+20",
+     "cond": "original.deepSleepMinutes != nil",
+     "effect": "core minutes or nil (gated on deep, not core)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c"
+   }
+  },
+  {
+   "key": "var SleepData.measuredSleepEfficiency",
+   "hash": "8f503d4f617294bc",
+   "does": "Sleep efficiency or nil when boundarySource is .healthKitHREstimated (passive Watch HR estimate whose stored efficiency is 100% by construction). Read by the enhanced score, Sleep detail views, analysis inputs and AI facts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "boundarySource == .healthKitHREstimated",
+     "effect": "true: nil; false: stored sleepEfficiency"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

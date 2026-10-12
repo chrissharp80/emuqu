@@ -1,0 +1,46 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift",
+ "hash": "cf590d3b722c6c20",
+ "role": "Forwarders from RecoveryScoreCalculator to ScoreDetailBuilder plus the TierInputs typealias, kept for call-site stability.",
+ "types": [
+  "RecoveryScoreCalculator: extension — detail forwarders; typealias TierInputs = ScoreDetailBuilder.TierInputs"
+ ],
+ "state": [],
+ "toplevel": "typealias TierInputs.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreCalculator.buildTierComposite(_:)",
+   "hash": "8c715ec1c75b9d1f",
+   "does": "Forwards to ScoreDetailBuilder.buildTierComposite. Called unqualified at RecoveryScoreCalculator.swift:655.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "6dca408cb769ec28"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+   "hash": "254286863f746bbb",
+   "does": "Forwards to ScoreDetailBuilder.baselineStalenessDays. Called unqualified from RecoveryScoreCalculator+Tiers.swift:85.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22"
+   }
+  }
+ ],
+ "deps": {}
+}

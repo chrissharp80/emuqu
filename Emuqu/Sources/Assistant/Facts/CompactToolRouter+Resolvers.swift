@@ -103,23 +103,16 @@ extension CompactToolRouter {
     }
 
     func resolveSleep(args: [String: String]) async -> FactValue {
-        let which = args["which"] ?? "latest"
-        switch which {
-        case "latest":
-            return await registry.resolveAsync("sleep.latest")
-        case "by_date":
-            guard let date = args["date"] else {
-                return .missing(reason: .invalidParameter, detail: "which='by_date' requires 'date'")
-            }
-            return await registry.resolveAsync("sleep.by_date(\(date))")
-        case "recent":
-            guard let period = args["period"] else {
-                return .missing(reason: .invalidParameter, detail: "which='recent' requires 'period'")
-            }
-            return await registry.resolveAsync("sleep.recent(\(period))")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for get_sleep")
-        }
+        await dispatch(
+            args["which"] ?? "latest",
+            tool: "get_sleep",
+            plain: ["latest": "sleep.latest"],
+            parameterized: [
+                "by_date": .init("sleep.by_date", "date"),
+                "recent": .init("sleep.recent", "period")
+            ],
+            args: args
+        )
     }
 
     /// `which` → fact-key suffix, for every `get_workout` variant whose whole
@@ -168,35 +161,32 @@ extension CompactToolRouter {
     }
 
     func resolveListWorkouts(args: [String: String]) async -> FactValue {
-        guard let period = args["period"] else {
-            return .missing(reason: .invalidParameter, detail: "list_workouts requires 'period'")
-        }
-        let which = args["which"] ?? "list"
-        switch which {
-        case "list":
-            return await registry.resolveAsync("workout.list(\(period))")
-        case "count":
-            return await registry.resolveAsync("workout.count(\(period))")
-        case "recent":
-            return await registry.resolveAsync("workout.recent(\(period))")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for list_workouts")
-        }
+        await dispatch(
+            args["which"] ?? "list",
+            tool: "list_workouts",
+            plain: [:],
+            parameterized: Self.periodRows(prefix: "workout", ["list", "count", "recent"]),
+            args: args
+        )
     }
 
     func resolveWalks(args: [String: String]) async -> FactValue {
-        guard let which = args["which"], let period = args["period"] else {
+        guard let which = args["which"] else {
             return .missing(reason: .invalidParameter, detail: "get_walks requires 'which' and 'period'")
         }
-        switch which {
-        case "count": return await registry.resolveAsync("walks.count(\(period))")
-        case "list": return await registry.resolveAsync("walks.list(\(period))")
-        case "total_distance_m": return await registry.resolveAsync("walks.total_distance_m(\(period))")
-        case "total_trimp": return await registry.resolveAsync("walks.total_trimp(\(period))")
-        case "hardest": return await registry.resolveAsync("walks.hardest(\(period))")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for get_walks")
-        }
+        return await dispatch(
+            which,
+            tool: "get_walks",
+            plain: [:],
+            parameterized: Self.periodRows(prefix: "walks", ["count", "list", "total_distance_m", "total_trimp", "hardest"]),
+            args: args
+        )
+    }
+
+    /// Rows where each `which` value is the fact name `<prefix>.<which>`
+    /// filled with the `period` argument.
+    private static func periodRows(prefix: String, _ names: [String]) -> [String: ParameterizedRow] {
+        Dictionary(uniqueKeysWithValues: names.map { ($0, ParameterizedRow("\(prefix).\($0)", "period")) })
     }
 
     /// `rmssd` and `hr` are window-selected; everything else is a flat key.
@@ -251,9 +241,23 @@ extension CompactToolRouter {
         let field = args["field"] ?? "profile"
         if let bundle = Self.userBundles[field] { return await resolveBundle(bundle) }
         // Anything else is an explicit field name — try profile, then settings.
-        let profileResult = await registry.resolveAsync("user.profile.\(field)")
-        if !profileResult.isMissingUnknownKey { return profileResult }
+        let profileKey = "user.profile.\(field)"
+        if catalogDeclares(profileKey) { return await registry.resolveAsync(profileKey) }
         return await registry.resolveAsync("user.settings.\(field)")
+    }
+
+    /// Whether some namespace declares `key` as a fixed or composite fact —
+    /// asked of the catalog itself rather than read from a missing value's
+    /// message text.
+    private func catalogDeclares(_ key: String) -> Bool {
+        registry.namespaces.contains { $0.entries.contains { Self.entry($0, hasKey: key) } }
+    }
+
+    private static func entry(_ entry: FactEntry, hasKey key: String) -> Bool {
+        switch entry {
+        case .fixed(let k, _, _, _, _), .composite(let k, _, _, _, _, _): k == key
+        case .parameterized, .action: false
+        }
     }
 
     /// The two `field` values that answer with a record of several facts.
@@ -385,12 +389,11 @@ extension CompactToolRouter {
         guard let field = args["field"] else {
             return .missing(reason: .invalidParameter, detail: "get_score_meta requires 'field'")
         }
-        switch field {
-        case "algorithm_version": return await registry.resolveAsync("score.algorithm.version")
-        case "history_recomputed": return await registry.resolveAsync("score.history.recomputed_under_v2")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown field='\(field)' for get_score_meta")
-        }
+        return await dispatch(
+            field, tool: "get_score_meta", selector: "field",
+            plain: ["algorithm_version": "score.algorithm.version", "history_recomputed": "score.history.recomputed_under_v2"],
+            args: args
+        )
     }
 
     func resolveBreadcrumbs(args: [String: String]) async -> FactValue {
@@ -405,12 +408,11 @@ extension CompactToolRouter {
         guard let field = args["field"] else {
             return .missing(reason: .invalidParameter, detail: "get_routes requires 'field'")
         }
-        switch field {
-        case "count": return await registry.resolveAsync("routes.library.count")
-        case "list": return await registry.resolveAsync("routes.library.list")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown field='\(field)' for get_routes (use action tools to mutate)")
-        }
+        return await dispatch(
+            field, tool: "get_routes (use action tools to mutate)", selector: "field",
+            plain: ["count": "routes.library.count", "list": "routes.library.list"],
+            args: args
+        )
     }
 
     func resolveTags(args: [String: String]) async -> FactValue {
@@ -453,31 +455,19 @@ extension CompactToolRouter {
         guard let field = args["field"] else {
             return .missing(reason: .invalidParameter, detail: "get_assistant_state requires 'field'")
         }
-        switch field {
-        case "memory_list": return await registry.resolveAsync("assistant.memory.list")
-        case "memory_count": return await registry.resolveAsync("assistant.memory.count")
-        case "memory_auto_extract_enabled": return await registry.resolveAsync("assistant.memory.auto_extract_enabled")
-        case "contacts_list": return await registry.resolveAsync("assistant.contacts.list")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown field='\(field)' for get_assistant_state")
-        }
+        return await dispatch(
+            field, tool: "get_assistant_state", selector: "field",
+            plain: [
+                "memory_list": "assistant.memory.list",
+                "memory_count": "assistant.memory.count",
+                "memory_auto_extract_enabled": "assistant.memory.auto_extract_enabled",
+                "contacts_list": "assistant.contacts.list"
+            ],
+            args: args
+        )
     }
 
     // MARK: - Helpers
-
-    /// Parse a JSON args object into `[String: String]` — same coercion
-    /// rules as the registry's action-arg parser (numbers/bools coerced
-    /// to their string representation; missing keys absent).
-    func parseArgs(_ json: String) -> [String: String] {
-        guard let data = json.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [:] }
-        var out: [String: String] = [:]
-        for (key, value) in obj {
-            if let s = value as? String { out[key] = s } else if let n = value as? Int { out[key] = String(n) } else if let d = value as? Double { out[key] = String(d) } else if let b = value as? Bool { out[key] = b ? "true" : "false" }
-        }
-        return out
-    }
 
     /// Resolve N keys and bundle into one `.record` FactValue keyed by
     /// display label. Used by tools that return a bag of related fields
@@ -490,22 +480,5 @@ extension CompactToolRouter {
             children[label] = await registry.resolveAsync(key)
         }
         return .record(children)
-    }
-}
-
-// MARK: - FactValue convenience
-
-private extension FactValue {
-    /// True when this value is `.missing(reason: .notRecorded, detail
-    /// containing 'no such key')` — i.e. the key didn't exist in the
-    /// catalog. `resolveUser` uses this to decide whether to fall back
-    /// to the settings namespace when the user passed a bare field name.
-    var isMissingUnknownKey: Bool {
-        if case .missing(let reason, let detail) = self,
-           reason == .notRecorded,
-           let detail, detail.hasPrefix("no such key") {
-            return true
-        }
-        return false
     }
 }

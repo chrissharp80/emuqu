@@ -1,0 +1,34 @@
+{
+ "file": "Tools/copy_linter/prohibited_terms.json",
+ "hash": "bb3c28911a19b25c",
+ "role": "Config for lint.py: the FDA copy perimeter. Keys: user_facing_prohibited (62 {pattern,reason} regexes, nearly all (?i)), coach_response_prohibited (5 regexes; not read by lint.py — consumed by scripts/check_perimeter_sync.sh), allowlist_strings (10 exact strings exempt everywhere, one Dutch), allowlist_paths (20 path prefixes), scan_paths (Emuqu/Sources/, EmuquWatch Watch App/, Emuqu/Localizable.xcstrings, Emuqu/Help.xcstrings), negation_guards (4 regexes), plus many _comment/_note keys recording audit history.",
+ "types": [],
+ "state": [
+  "file:Tools/copy_linter/prohibited_terms.json"
+ ],
+ "toplevel": "Pure data; read by Tools/copy_linter/lint.py:main, scripts/check_perimeter_sync.sh (asserts MedicalTermLexicon covers user_facing_prohibited and coach_response_prohibited) and mutated temporarily by scripts/verify_gates_fail.sh:428-429. The header _comment (line 2) still describes scope as \"Swift String literals in Views/Components/Onboarding\", superseded by _scan_note_2026_08_22.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "scripts/check_perimeter_sync.sh header says user_facing_prohibited has 21 patterns; the file has 62. allowlist_paths lists Emuqu/Sources/Views/Onboarding/OnboardingDisclaimerPage.swift and CHANGELOG.md, neither of which exists.",
+   "evidence": [
+    "scripts/check_perimeter_sync.sh:9",
+    "Tools/copy_linter/prohibited_terms.json:297"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "_negation_guards_note says guards apply only to \"a phrase pattern that cannot appear in user-facing copy\", but guard \"(do not|don't|never) (tell|say|use|...)\" matches common user copy and excuses whole Swift literals (see lint.py:313,326).",
+   "evidence": [
+    "Tools/copy_linter/prohibited_terms.json:327",
+    "Tools/copy_linter/lint.py:313"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

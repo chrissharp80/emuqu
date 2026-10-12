@@ -13,8 +13,12 @@ final class StrapRecoveryFlowTests: XCTestCase {
         .appendingPathComponent("StrapRecoveryFlowTests-\(UUID().uuidString)", isDirectory: true)
     private lazy var archive = SessionArchive(directory: directory)
 
+    override func setUp() async throws {
+        try await super.setUp()
+        isolateFromHostRecordingState()
+    }
+
     override func tearDown() async throws {
-        PersistedRecordingState.clear()
         do {
             try FileManager.default.removeItem(at: directory)
         } catch {
@@ -32,7 +36,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         manager.downloadLedger = StrapDownloadLedger(
             defaults: UserDefaults(suiteName: "StrapRecoveryFlowTests-\(UUID().uuidString)") ?? .standard
         )
-        return RRCollector(polarManager: manager, healthKit: HealthKitManager(), archive: archive)
+        return RRCollector.withoutCloudAcceptance(polarManager: manager, archive: archive)
     }
 
     private func exerciseId(_ start: Date) -> String {
@@ -243,5 +247,61 @@ final class StrapRecoveryFlowTests: XCTestCase {
             let wall = index < 200 ? t : t + Int64(minutes) * 60_000
             return RRPoint(t_ms: t, rr_ms: 1000, wallClockMs: wall, hr: 60)
         }
+    }
+}
+
+// MARK: - Host isolation
+
+/// The app's key for the interrupted-session prompts the user dismissed
+/// (`PersistedRecordingState.dismissedKey`, private there).
+private let hostDismissedInterruptionsKey = "RRCollector.dismissedInterruptedSessionIds"
+
+extension XCTestCase {
+    /// Runs the rest of the test against no persisted recording and no live
+    /// workout, and puts the app host's own back in teardown.
+    ///
+    /// The collector's recording, discard and recovery flows read and write
+    /// process-global state: the persisted recording state in
+    /// `UserDefaults.standard` (which `rejectSession` and
+    /// `PersistedRecordingState.clear()` wipe, with the dismissed-prompt
+    /// list), and the live workout recorder behind
+    /// `AppDependencies.current.app.recorderBox`. On a test host holding a
+    /// real interrupted night or a running workout, a test would read them
+    /// and wipe the night's record.
+    @MainActor
+    func isolateFromHostRecordingState() {
+        let savedState = PersistedRecordingState.load()
+        let savedDismissed = UserDefaults.standard.stringArray(forKey: hostDismissedInterruptionsKey)
+        PersistedRecordingState.clear()
+        let dependencies = AppDependencies()
+        dependencies.overrides.recorderBox = RecorderBox()
+        AppDependencies.current = dependencies
+        addTeardownBlock { @MainActor in
+            AppDependencies.reset()
+            PersistedRecordingState.clear()
+            if let savedState {
+                PersistedRecordingState.save(savedState)
+            }
+            UserDefaults.standard.set(savedDismissed, forKey: hostDismissedInterruptionsKey)
+        }
+    }
+}
+
+extension RRCollector {
+    /// A collector whose acceptance service sends nothing to iCloud: the
+    /// default one uploads accepted nights and deletes the live backup of a
+    /// rejected one through the host's `CloudKitSyncManager`.
+    static func withoutCloudAcceptance(polarManager: PolarManager, archive: SessionArchive) -> RRCollector {
+        let healthKit = HealthKitManager()
+        let rawBackup = RawRRBackup()
+        let baselineTracker = BaselineTracker()
+        let acceptance = SessionAcceptanceService(
+            archive: archive, healthKit: healthKit, baselineTracker: baselineTracker, rawBackup: rawBackup,
+            onCloudSync: { _ in }, onCloudDelete: { _ in }
+        )
+        return RRCollector(
+            polarManager: polarManager, healthKit: healthKit, archive: archive, rawBackup: rawBackup,
+            baselineTracker: baselineTracker, acceptanceService: acceptance
+        )
     }
 }

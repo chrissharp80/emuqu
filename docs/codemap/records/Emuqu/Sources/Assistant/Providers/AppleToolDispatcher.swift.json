@@ -1,0 +1,149 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift",
+ "hash": "8e8f19cd1ee6d7f9",
+ "role": "MainActor singleton bridging Foundation Models tool calls to CompactToolRouter: holds the active FactResolverRegistry for an Apple turn, enforces the per-turn tool-call budget, refuses web_search on-device, and caps each result to the attempt's ToolOutputAllowance.",
+ "types": [
+  "AppleToolDispatcher: class (@MainActor) — singleton tool bridge"
+ ],
+ "state": [
+  "mem:AppleToolDispatcher.shared (static singleton)",
+  "mem:AppleToolDispatcher.currentRegistry (FactResolverRegistry?)",
+  "mem:AppleToolDispatcher.callsThisTurn",
+  "mem:AppleToolDispatcher.outputAllowance (initial AppleContextCompactor.ToolOutputAllowance.unsized)",
+  "mem:AppleToolDispatcher.refusedTools = [\"web_search\"]"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references AppleToolDispatcher (grep of EmuquTests); the budget/refusal/allowance logic has no coverage.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:87",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:109"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init AppleToolDispatcher()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private init enforcing the singleton.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleToolDispatcher.setRegistry(_:)",
+   "hash": "6b4ae8e88c52b70e",
+   "does": "Sets the active registry (nil clears it) and resets the call counter. Called from AssistantViewModel+Routing.swift:563 before an Apple send and :290 / AssistantViewModel.swift:580 to clear.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleToolDispatcher.setToolOutputAllowance(_:)",
+   "hash": "a3fe9b7c944f3e87",
+   "does": "Installs the attempt's tool-output allowance and resets the call counter (called by AppleFoundationProvider.runStream before each attempt).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleToolDispatcher.toolTokensSpent",
+   "hash": "f7414e31963561de",
+   "does": "Tokens spent from the current allowance by tool calls and results.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
+   "hash": "34ba04804d66c6b6",
+   "does": "Resolves one Apple tool call: with no registry returns a JSON error string; charges the call text to the allowance; returns a refusal JSON for web_search or when the per-turn budget is exceeded; otherwise resolves via CompactToolRouter and returns the FactValue tool-result JSON cut to the allowance.",
+   "entry": "Invoked through AppleToolAdapter.call when the on-device model calls a tool",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)"
+   ],
+   "reads": [
+    "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
+   ],
+   "writes": [
+    "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentRegistry nil",
+     "effect": "returns {\"error\":\"tool dispatcher has no registry…\"} string (not charged); else proceeds"
+    },
+    {
+     "at": "+5",
+     "cond": "refusal(for:) non-nil",
+     "effect": "returns and charges the refusal JSON; else resolves the tool"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "abe88f24be3ad452",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "91acb46f4275096a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "2a0cf8feb56eb33d",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)": "7235a36d374e5f20"
+   }
+  },
+  {
+   "key": "func AppleToolDispatcher.refusal(for:)",
+   "hash": "fb826cbef0c56a1a",
+   "does": "Returns a FactValue.missing refusal for web_search (not counted) or, after incrementing the call count, when the count exceeds AssistantToolRunner.maxToolCallsPerTurn; nil otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "name is web_search",
+     "effect": "missing(.invalidParameter, \"web search isn't available on the on-device model\")"
+    },
+    {
+     "at": "+5",
+     "cond": "callsThisTurn ≤ maxToolCallsPerTurn",
+     "effect": "nil (allowed); else missing(.rateLimited, \"tool budget exceeded…\")"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

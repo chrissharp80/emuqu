@@ -1,0 +1,1159 @@
+{
+ "file": "Emuqu/Sources/Assistant/MetricsVerifier.swift",
+ "hash": "791d06ec603aaeb2",
+ "role": "Runtime hallucination guard for the AI coach: regex-scans a drafted reply for 'current value' claims (live HR/power/alpha1/HR drift; TSB/ATL/CTL/ACWR; overnight RMSSD/recovery score; last night's sleep duration/efficiency), compares against live snapshot or app state, returns span-precise Discrepancies plus corrected text, and buffers corrections for the next turn's system prompt.",
+ "types": [
+  "MetricsVerifier: enum — namespace of pure claim checks",
+  "MetricsVerifier.Discrepancy: struct — metric/claimed/actual/delta/range of one wrong claim",
+  "MetricsVerifier.LiveValues: struct (private) — HR/power/alpha1/drift live values one live pass checks",
+  "MetricsVerifier.AppStateVerifyResult: struct — discrepancies (original-text ranges) + correctedText",
+  "MetricsVerifier.ClaimCheck: struct (private) — actual/tolerance/metric/negateOnSpelled/formatter",
+  "MetricsVerifier.CorrectionBuffer: struct (private) — pending + delivered corrections",
+  "MetricsVerifier.SpelledRewrite: struct (private) — original vs normalized NSRange of one spelled-number rewrite"
+ ],
+ "state": [
+  "mem:MetricsVerifier.corrections (OSAllocatedUnfairLock<CorrectionBuffer>: pending — recorded, not yet in a prompt, max 4; delivered — in a prompt whose reply has not been verified, max 4; process-local)",
+  "static let sleepDurationPatterns (3 regexes)",
+  "static let generalSleepMarkers / otherNightMarkers / timeMarkers / targetMarkers / clauseSeparators (sentence- and clause-filter regexes)",
+  "static let onesAndTeens / tens (word->int maps for spelled numbers)"
+ ],
+ "toplevel": "Static regex constants and word maps (sleep duration patterns, sleep/time/target/clause markers, onesAndTeens/tens) and the corrections lock. All patterns are compiled lazily through DebugLogger.compiledPattern which caches and NSLogs compile failures.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MetricsVerifier.heartRateDiscrepancies(in:actual:)",
+   "hash": "5ba2835f15e1131c",
+   "does": "Live heart-rate check on the (normalised) text: nil actual returns []; otherwise claimsMatching with the 'your [current/live] HR|heart rate [is|'s] ... N [bpm|beats per minute]' / 'HR right now N' pattern, tolerance 5 bpm, formatted 'N bpm'. The claim shape ('your <metric> is' / '<metric> right now') is required; the unit is optional after it, and a number followed by a range dash, '/', a decimal, a percent or a time unit is not a reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "actual value is nil (no live reading)",
+     "effect": "returns []; else claimsMatching"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.powerDiscrepancies(in:actual:)",
+   "hash": "92b239d315d92e71",
+   "does": "Live power check on the (normalised) text: nil actual returns []; otherwise claimsMatching with the 'your [current/live] power|wattage [is] ... N [W|watts]' / 'power right now N' pattern, tolerance 15 W, formatted 'N W'. The claim shape ('your <metric> is' / '<metric> right now') is required; the unit is optional after it, and a number followed by a range dash, '/', a decimal, a percent or a time unit is not a reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "actual value is nil (no live reading)",
+     "effect": "returns []; else claimsMatching"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.alpha1Discrepancies(in:actual:)",
+   "hash": "9078ab331b4740b3",
+   "does": "Live DFA alpha1 check on the (normalised) text: nil actual returns []; otherwise claimsMatching with the 'your [DFA] α1|alpha 1 [is] ... N.NN' / 'α1 right now N.NN' (decimal required) pattern, tolerance 0.10, formatted '%.2f'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "actual value is nil (no live reading)",
+     "effect": "returns []; else claimsMatching"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.hrDriftDiscrepancies(in:actual:)",
+   "hash": "248e969821b344ab",
+   "does": "Live HR drift check on the (normalised) text: nil actual returns []; otherwise claimsMatching with the 'your [HR] drift [is] ... N%' / 'drift right now N%' (percent required) pattern, tolerance 1.5 points, formatted '%.1f%%'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "actual value is nil (no live reading)",
+     "effect": "returns []; else claimsMatching"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.verify(_:against:)",
+   "hash": "a797c572c0033b47",
+   "does": "Public entry for live-workout claims against the recorder's WorkoutAIContext (voice pipeline before TTS): nil snapshot returns []; otherwise passes HR, power, alpha1 and liveHRDriftPercent to verifyLive, which checks the spelled-number-normalised text and returns ranges in the ORIGINAL text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyLive(_:values:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot is nil",
+     "effect": "returns [] (no live workout => nothing verified); else verifyLive"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyLive(_:values:)": "d990303e98a1e5c0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.verify(_:againstLive:)",
+   "hash": "b0751f17bd06df9b",
+   "does": "Live-workout claims against the broker's AssistantContext.LiveWorkoutSnapshot, for a caller with no recorder (the typed-chat pipeline): nil returns []; otherwise verifyLive with HR, power and alpha1 (the broker carries no drift, so drift is not checked). Ranges index the original text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyLive(_:values:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "live snapshot is nil",
+     "effect": "returns []; else verifyLive"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyLive(_:values:)": "d990303e98a1e5c0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.verifyLive(_:values:)",
+   "hash": "651be82d3c9c0e9a",
+   "does": "Normalises spelled numbers (so a voice reply's 'one hundred sixty' / 'one-sixty' is checked as 160), runs the HR, power, alpha1 and drift checks on the normalised text, and maps each discrepancy's range back to the original text via remap (one that cannot be mapped is logged and dropped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:actual:)": "25e9be67d7ba2a73",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:actual:)": "c1302db3fce4d18e",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:actual:)": "6e0b7e6010b87648",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "383514dd97103109",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:actual:)": "c604f746e8ea1c37",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "65d19c4dd59b6117",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.verifyAppStateClaims(_:)",
+   "hash": "6e6666b24f451743",
+   "does": "Public entry for app-state claims (MainActor), run on every model reply: first retires the correction reminders the reply's prompt carried (acknowledgeDeliveredCorrections), then normalises spelled numbers, runs training-load, overnight and last-night-sleep checks on the normalised text, maps each range back to the original text (remap logs and drops one that fails) and returns them with correctedText (original with only the claimed spans replaced, overlapping spans skipped; nil if none).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acknowledgeDeliveredCorrections()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.lastNightSleepDiscrepancies(in:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current (via TrainingLoadRegistry.live)",
+    "ud:training-load pause settings (TrainingLoadVisibility)",
+    "archive:SessionArchive.entries (index) + retrieveLightweight of today's overnight / the get_sleep latest session, only when the text names RMSSD or sleep"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.corrections (delivered reminders cleared)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acknowledgeDeliveredCorrections()": "fdee28d3425745ae",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4932de40589c71c4",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.lastNightSleepDiscrepancies(in:)": "c875f949e0554985",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "383514dd97103109",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)": "c131b61d77430555",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "65d19c4dd59b6117",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)": "7f489dd6c3da0dc9"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.trainingLoadDiscrepancies(in:)",
+   "hash": "69d06877e0e65931",
+   "does": "Training-load check: returns [] while training load is paused (TrainingLoadVisibility.isPaused — the prompt then omits the load numbers) or the registry is cold; otherwise matches TSB (with an explicit minus or spelled 'negative', which is negated), ATL and CTL claims, each optionally joined to the number by is/of/at/now/currently/today/sitting/sits/reads/stands at/right now or ':'/'=' ('TSB is -8.8', 'TSB of', 'TSB: '), each with a lookahead refusing durations/percent; tolerances 2/3/3; then ACWR. Formats TSB %+.1f, ATL/CTL %.1f.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acwrDiscrepancies(in:acwr:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current (TrainingLoadRegistry.live)",
+    "ud:UserSettings training-load visibility / training break (via settingsManager)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "training load paused, or TrainingLoadRegistry.live() returns nil",
+     "effect": "returns [] — no load claim verified; otherwise runs TSB/ATL/CTL/ACWR checks"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "fc01ae42d73cc6b8",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acwrDiscrepancies(in:acwr:)": "7b43218e2d2e945b",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.acwrDiscrepancies(in:acwr:)",
+   "hash": "c00751273e8ba65a",
+   "does": "ACWR check: when the registry ACWR is non-nil, matches 'ACWR [is/of/at/...|:] N' with tolerance 0.15, formatted %.2f.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "acwr is nil (ctl 0)",
+     "effect": "returns []; else claimsMatching"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.overnightDiscrepancies(in:)",
+   "hash": "c45a79d51e4c5502",
+   "does": "Overnight check against today's reliable overnight (DeterministicIntent.todaysOvernightEntry — the night recovery_score_today in the prompt names): no such night returns [] (an older night is not what the model was given). RMSSD is checked (rmssdClaims) only when the text names RMSSD and the session file decodes with an analysis; the recovery score comes from the archive index entry and is checked by recoveryScoreClaims.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.rmssdClaims(in:rmssd:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recoveryScoreClaims(in:score10:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (index: reliability, date, recoveryScore)",
+    "archive:today's overnight session (lightweight decode, only when the text names RMSSD)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no reliable overnight whose midpoint is today",
+     "effect": "returns [] (nothing checked)"
+    },
+    {
+     "at": "+5",
+     "cond": "text names RMSSD and the session has analysisResult.timeDomain.rmssd",
+     "effect": "adds rmssdClaims; else RMSSD not checked (no decode when RMSSD is not named)"
+    },
+    {
+     "at": "+9",
+     "cond": "index entry has recoveryScore",
+     "effect": "adds recoveryScoreClaims; else recovery not checked"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)": "30b0039a7f4b7999",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recoveryScoreClaims(in:score10:)": "de2c9b32580b35d9",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.rmssdClaims(in:rmssd:)": "0c1e39142e083c57",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.rmssdClaims(in:rmssd:)",
+   "hash": "1d80722af16d0d76",
+   "does": "RMSSD claims: 'RMSSD [is|of|at|now|currently|today|...|:] N [ms]' (not followed by a decimal, percent or duration), tolerance 8 ms, formatted '%.0f ms'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.recoveryScoreClaims(in:score10:)",
+   "hash": "7d85585ee8b60544",
+   "does": "Recovery claim check: matches 'recovery [score] [is|of|at|now|currently|today|...|:] N' (not followed by a duration/percent), compares to the dashboard's integer RecoveryScoreCalculator.displayScore(score10*10) with tolerance 4 (0-100 scale), then passes each hit through onTheClaimsScale to accept/correct 0-10-scale claims.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.onTheClaimsScale(_:score10:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "formatted value is a whole number",
+     "effect": "formats '%.0f', else '%.1f' (the integer display score always takes '%.0f'; a claimed fraction keeps one decimal)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.onTheClaimsScale(_:score10:)": "1649bb9889d650d3"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.onTheClaimsScale(_:score10:)",
+   "hash": "50388be59aace077",
+   "does": "Post-filter for recovery discrepancies: drops a claim within 1.0 of the 0-10 score; keeps claims >10 as 0-100 discrepancies; re-expresses claims <=10 as 0-10 corrections (actual formatted 0-10, delta on 0-10 scale).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "d.claimed does not parse as Double",
+     "effect": "returns d unchanged (claimed is formatter output so it always parses)"
+    },
+    {
+     "at": "+3",
+     "cond": "|claimed - score10| <= 1.0",
+     "effect": "returns nil — treated as the same score on the 0-10 scale"
+    },
+    {
+     "at": "+4",
+     "cond": "claimed > 10",
+     "effect": "returns d (0-100 discrepancy already outside tolerance 4)"
+    },
+    {
+     "at": "+5",
+     "cond": "score10 is whole",
+     "effect": "actual10 formatted %.0f else %.1f; returns a new Discrepancy on the 0-10 scale"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.lastNightSleepDiscrepancies(in:)",
+   "hash": "edeef0f6ae6b4541",
+   "does": "Last-night sleep check: returns [] unless the text mentions sleep/slept/asleep/efficien (so no archive read otherwise) and latestOvernightSleep finds the frozen sleep of the night get_sleep 'latest' answers about; then runs sleepDiscrepancies with its nightSleepMinutes and measuredSleepEfficiency.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.latestOvernightSleep()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [
+    "archive:HRVSession.sleepSnapshot of OvernightArchive.latest (only when the text talks about sleep)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "text does not mention sleep, or no frozen sleep for the latest night",
+     "effect": "returns []; otherwise checks duration + efficiency"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.latestOvernightSleep()": "417b82eb34f1aede",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.latestOvernightSleep()",
+   "hash": "8bfec5bf748d77e7",
+   "does": "The frozen sleepSnapshot (nightSleepMinutes > 0) of the session OvernightArchive.latest returns — the one get_sleep 'latest' answers from — when it is an overnight; nil otherwise. Never falls back to an older night: when that night has no snapshot yet get_sleep answers from a live HealthKit read this cannot see, so nothing is checked.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (index, reliable readings)",
+    "archive:HRVSession.sleepSnapshot of the latest reading"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no latest reading, it is not an overnight, it has no sleepSnapshot, or 0 sleep minutes",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)",
+   "hash": "c8e5bb55563f9801",
+   "does": "Sleep claims: duration discrepancies plus (when efficiency known) efficiency discrepancies, then keeps only those whose sentence is not a norm/advice/other-night sentence and that do not overlap an already kept one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationDiscrepancies(in:nightMinutes:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepEfficiencyDiscrepancies(in:efficiency:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isNotAboutLastNight(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "efficiency is non-nil (wake measured)",
+     "effect": "adds efficiency discrepancies; else efficiency not checked"
+    },
+    {
+     "at": "+6",
+     "cond": "discrepancy sentence is about another night/norm OR overlaps an earlier kept discrepancy",
+     "effect": "skipped; otherwise appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isNotAboutLastNight(_:in:)": "4c9ba58cd257ef38",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationDiscrepancies(in:nightMinutes:)": "6c102f31aa1f13b1",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepEfficiencyDiscrepancies(in:efficiency:)": "ab8f7195178519fa"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.sleepDurationDiscrepancies(in:nightMinutes:)",
+   "hash": "9e91206337da2e17",
+   "does": "Runs the three sleep-duration regexes (case-insensitive) over the text and turns each match into a Discrepancy via durationDiscrepancy; a pattern that fails to compile is skipped (logged by compiledPattern).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.durationDiscrepancy(from:in:nightMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.durationDiscrepancy(from:in:nightMinutes:)": "d4c21a36e1a93813",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.durationDiscrepancy(from:in:nightMinutes:)",
+   "hash": "8722ceaf4ad97b6d",
+   "does": "One sleep-duration match -> Discrepancy when the claim parses, it is about now (no time/target marker before the end of its clause), and it differs from nightMinutes by >5 min (precise claim) or >30 min (whole hours); renders claimed/actual in long ('hours') or short ('h') form matching the claim.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimedSleepMinutes(_:in:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isAboutTheCurrentValue(_:in:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationText(_:longForm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "claim group missing OR hours unparseable OR the claim's sentence, up to the end of its clause, has time/target markers OR range conversion fails",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+12",
+     "cond": "delta <= 5 (precise) / <= 30 (whole hours)",
+     "effect": "returns nil (within tolerance); else builds Discrepancy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimedSleepMinutes(_:in:)": "79684c99e2c8861d",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isAboutTheCurrentValue(_:in:)": "333ddbb9ac4ed4d4",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationText(_:longForm:)": "b0f69d545534646f"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.claimedSleepMinutes(_:in:)",
+   "hash": "73285c99466478d4",
+   "does": "Parses the hours (decimal allowed) and optional minutes groups into total minutes and whether the claim is finer than a whole hour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hours text not a Double",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "minutes group absent",
+     "effect": "minutes 0; present but unparseable -> 0 (?? 0); isPrecise = minutes present or hours has '.'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.sleepDurationText(_:longForm:)",
+   "hash": "81365ab4b36d2a46",
+   "does": "Formats minutes as '6h 55m'/'7h' (short) or '6 hours and 55 minutes'/'1 hour and 1 minute'/'7 hours' (long).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "longForm false",
+     "effect": "returns 'Hh' when rest==0 else 'Hh Mm'"
+    },
+    {
+     "at": "+4",
+     "cond": "hours == 1",
+     "effect": "'1 hour' else 'N hours'"
+    },
+    {
+     "at": "+5",
+     "cond": "rest == 0",
+     "effect": "returns hour text only"
+    },
+    {
+     "at": "+6",
+     "cond": "rest == 1",
+     "effect": "' and 1 minute' else ' and N minutes'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.sleepEfficiencyDiscrepancies(in:efficiency:)",
+   "hash": "48665d032595b0db",
+   "does": "Sleep-efficiency claims ('sleep efficiency of 95%', '95% sleep efficiency', '95% efficient') with tolerance 1 point, kept only when the sentence mentions sleep/slept/asleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isInSleepSentence(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.claimsMatching(in:pattern:check:)": "eb682bff69ec6fcd",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isInSleepSentence(_:in:)": "356ee2f51c9bd235"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.isInSleepSentence(_:in:)",
+   "hash": "db240d169bad5aad",
+   "does": "True when the sentence containing the range matches sleep|slept|asleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)": "bd8a3843f37532cd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.isNotAboutLastNight(_:in:)",
+   "hash": "d0909e2b969f34e2",
+   "does": "True when the sentence containing the range matches general sleep-norm markers (need, recommend, adults, per night, ranges 'N-N', 'to N') or other-night markers (month/weekday names, 'nights', 'weeks', dates).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)": "bd8a3843f37532cd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.sentence(containing:in:matches:)",
+   "hash": "4b03d1830c49bb3b",
+   "does": "Finds the Foundation sentence holding the range and returns whether the case-insensitive pattern matches inside it; a pattern that fails to compile yields false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentenceRange(containing:in:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentenceRange(containing:in:)": "b6c86b3acdb8ebfd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.correctedText(from:applying:)",
+   "hash": "be0b2b61cc1ea5e5",
+   "does": "Returns text with each discrepancy's range replaced by its actual value, applied back-to-front; a range that overlaps one already applied (or lies outside the text) is skipped, so two checks claiming the same span never splice with stale indices; nil when there are no discrepancies.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "found is empty",
+     "effect": "returns nil (caller keeps original)"
+    },
+    {
+     "at": "+5",
+     "cond": "range within the text and ending at or before the start of the last applied range",
+     "effect": "replaced; otherwise skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.claimsMatching(in:pattern:check:)",
+   "hash": "99f348e6f0bff061",
+   "does": "Generic matcher: compiles the pattern (cached, case-insensitive), maps every match through discrepancy(from:); a compile failure returns [] after compiledPattern NSLogs it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.discrepancy(from:in:ns:check:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "regex fails to compile",
+     "effect": "returns [] (the comment at 33-43 says failures are logged, but the metric is then unchecked); else maps matches"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.discrepancy(from:in:ns:check:)": "c3107b690fdfdd23",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.discrepancy(from:in:ns:check:)",
+   "hash": "b2fbf8e488dcddc0",
+   "does": "Turns one match into a Discrepancy: requires value+claim groups, a parseable value and a claim about the current value (isAboutTheCurrentValue: no time/target marker before the end of the claim's clause); negates spelled 'negative N' when allowed; returns nil within tolerance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isAboutTheCurrentValue(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "value/claim group missing, value not a Double, or the claim's sentence up to the end of its clause is past/target/comparison",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+11",
+     "cond": "check.negateOnSpelled and claim text contains 'negative'",
+     "effect": "claimed = -|claimed|; else unchanged"
+    },
+    {
+     "at": "+15",
+     "cond": "delta <= tolerance or range conversion fails",
+     "effect": "returns nil; else Discrepancy with formatter-rendered claimed/actual"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isAboutTheCurrentValue(_:in:)": "333ddbb9ac4ed4d4",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "0a19fe8de02ad85a"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.isAboutTheCurrentValue(_:in:)",
+   "hash": "8da29be9a99b47ef",
+   "does": "False when the part of the claim's sentence up to the end of the claim's own clause (clauseEnd) has any time marker (ago, yesterday, last week, earlier, before...) or target/comparison marker (average, keep, if, should, under, over, than, higher...). A marker in a later clause ('Recovery 72, slightly down from 76 yesterday') does not exempt the claim; one before it ('Yesterday, recovery was 55') does.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentenceRange(containing:in:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.clauseEnd(after:in:ns:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.clauseEnd(after:in:ns:)": "5344122511bc4053",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)": "bd8a3843f37532cd",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentenceRange(containing:in:)": "b6c86b3acdb8ebfd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.clauseEnd(after:in:ns:)",
+   "hash": "6ba2d738bcc81de1",
+   "does": "UTF-16 offset where the clause holding `range` ends: the first clause separator after the range within the sentence (',', ';', '(', em/en dash, ' - ', vs, versus, compared, but, while, whereas, from), else the sentence end.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a separator is found after the range",
+     "effect": "its location; else NSMaxRange(sentence)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)": "bd8a3843f37532cd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.sentenceRange(containing:in:)",
+   "hash": "132230130a6f6fa9",
+   "does": "Returns the Foundation .bySentences range that contains range.location, unioned with the range; falls back to the range itself.",
+   "entry": null,
+   "calls": [
+    "ext:NSString.enumerateSubstrings(.bySentences)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sentence does not contain range.location",
+     "effect": "continue enumerating; when found, union + stop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentence(containing:in:matches:)": "bd8a3843f37532cd"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.formatForLog(_:)",
+   "hash": "269c9c90407d4df3",
+   "does": "Formats discrepancies as one '[Hallucination guard] metric=claimed:X actual:Y Δd | ...' log line; '' when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "discrepancies empty",
+     "effect": "returns ''"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.recordCorrections(_:)",
+   "hash": "6ff0001dde035813",
+   "does": "Appends discrepancies to the process-local pending corrections under the lock, skipping ones already pending with the same metric/claimed/actual, then keeps only the newest 4 pending.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:MetricsVerifier.corrections.pending"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "input empty",
+     "effect": "returns without locking"
+    },
+    {
+     "at": "+3",
+     "cond": "an identical metric+claimed+actual is already pending",
+     "effect": "skipped; else appended"
+    },
+    {
+     "at": "+8",
+     "cond": "more than 4 pending",
+     "effect": "trimmed to the last 4 (oldest dropped)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.pendingCorrectionsBlock()",
+   "hash": "57dc526c0ec5e980",
+   "does": "The reminder for the prompt being composed (called by AssistantSystemPrompt.variableSections on every send): moves pending corrections into delivered (keeping the newest 4) and renders every delivered one with correctionsBlock; nil when none. Retires nothing, so a prompt re-composed for a fallback provider or by a test carries the same reminder until a reply is verified.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctionsBlock(_:)"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.corrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.corrections (pending -> delivered)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctionsBlock(_:)": "16baf72168b33933"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.consumePendingCorrectionsBlock()",
+   "hash": "0b711b523b3832e6",
+   "does": "One-shot form: atomically takes the newest 4 of delivered + pending corrections, empties the buffer, and renders them with correctionsBlock (nil when none). No production caller; tests use it to read and reset the buffer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctionsBlock(_:)"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.corrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.corrections (emptied)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctionsBlock(_:)": "16baf72168b33933"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.acknowledgeDeliveredCorrections()",
+   "hash": "3e9078a196b35f3a",
+   "does": "Clears the delivered corrections under the lock: a reply has come back, so the model has seen them. Pending ones (recorded after the prompt was composed) are kept for the next prompt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:MetricsVerifier.corrections.delivered"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.correctionsBlock(_:)",
+   "hash": "7e13a587b2d8e3e9",
+   "does": "Renders corrections as one system-prompt section: '# Last turn correction — DO NOT FABRICATE', a paragraph telling the model the saved reply was corrected and which tool to call per metric, then '• You said metric=claimed — actual was actual.' per correction; nil for an empty list.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "list empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+9",
+     "cond": "for each correction",
+     "effect": "appends one bullet line"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.normalizeSpelledNumbers(_:)",
+   "hash": "cc6c8a084a03c115",
+   "does": "Public wrapper returning only the normalised text (spelled numbers to digits).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "383514dd97103109"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.normalizeWithRewrites(_:)",
+   "hash": "6b8de05cbfc5b118",
+   "does": "Rewrites each spelled-number match into digits via spelledNumberReplacement ('negative thirty-one point seven' -> '-31.7', 'one hundred and sixty' -> '160', 'one-sixty' -> '160', 'point seven five' -> '.75'), recording original/normalized ranges for every rewrite; returns the input unchanged with no rewrites if the pattern does not compile. Every spelled number is rewritten, but only for matching: callers map ranges back and correct the original text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::var MetricsVerifier.spelledNumberPattern",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledNumberReplacement(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "spelled-number regex fails to compile",
+     "effect": "returns (text, []) — normalisation disabled"
+    },
+    {
+     "at": "+8",
+     "cond": "for each match",
+     "effect": "processes it"
+    },
+    {
+     "at": "+9",
+     "cond": "replacement is nil",
+     "effect": "match skipped (left as words)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledNumberReplacement(_:)": "31590975dc7bcb8e",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::var MetricsVerifier.spelledNumberPattern": "fd172ac59b443ccf",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.remap(_:from:to:rewrites:)",
+   "hash": "1efbff9ae6e6caa7",
+   "does": "Moves a discrepancy's range from normalized to original text via originalOffset for start (snap to start) and end (snap to end); when the resulting NSRange does not convert, logs a warning naming the metric and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "mapped NSRange not convertible to a Range in the original",
+     "effect": "logs '[MetricsVerifier] dropped a <metric> correction' (warning) and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.discrepancy(from:in:ns:check:)": "c3107b690fdfdd23",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)": "6aee566251bed7fd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)",
+   "hash": "71878b3b21190298",
+   "does": "Maps a normalized-text UTF-16 offset to the original: accumulates shift from rewrites ending before it; an offset strictly inside a rewrite snaps to the rewrite's original start or end.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each rewrite in order",
+     "effect": "examines it"
+    },
+    {
+     "at": "+3",
+     "cond": "offset at/after rewrite's normalized end",
+     "effect": "shift updated; continue"
+    },
+    {
+     "at": "+7",
+     "cond": "offset inside the rewrite (after its start)",
+     "effect": "returns original end (snapToEnd) or start"
+    },
+    {
+     "at": "+8",
+     "cond": "snapToEnd",
+     "effect": "returns NSMaxRange(original) else original.location"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
+   }
+  },
+  {
+   "key": "var MetricsVerifier.spelledNumberPattern",
+   "hash": "84fc25c15b7ad5b4",
+   "does": "Builds the spelled-number regex string from onesAndTeens (longest first), tens and digit words: optional 'negative', then the first of a hundreds form ('a|<digit> hundred [and] <below-hundred>'), the hyphenated 'one|two-<tens>[-<digit>]' form, or a below-hundred number (tens[-ones] | ones/teen), then optional 'point' followed by one or more digit words.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricsVerifier.spelledNumberReplacement(_:)",
+   "hash": "c158490c53f2996b",
+   "does": "Turns one matched phrase into its digit string: splits on whitespace and '-', drops 'negative' and 'and', reads the integer part (spelledInteger) before 'point' and concatenates each digit word after it, prefixing '-' when the phrase starts with 'negative'. Nil when a word is not a number word.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledInteger(_:)"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.onesAndTeens"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "integer part does not parse",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "no fraction digits",
+     "effect": "integer only; else 'integer.fraction'"
+    },
+    {
+     "at": "+7",
+     "cond": "first word is 'negative'",
+     "effect": "prefixes '-'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledInteger(_:)": "48632052d4c8d3b7"
+   }
+  },
+  {
+   "key": "func MetricsVerifier.spelledInteger(_:)",
+   "hash": "ab241b9ca6838a12",
+   "does": "Integer value of number words: 'hundred' multiplies what came before (at least 1); 'a' is 1; a tens word after a lone ones word 1-9 with no 'hundred' is the 'one-sixty' form (ones*100 + tens); otherwise tens and ones/teens add. Nil for an empty list or a non-number word.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:MetricsVerifier.onesAndTeens",
+    "mem:MetricsVerifier.tens"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no words",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "word is 'hundred'",
+     "effect": "value = max(value,1)*100, marks hundred seen"
+    },
+    {
+     "at": "+8",
+     "cond": "word is 'a'",
+     "effect": "value = 1"
+    },
+    {
+     "at": "+10",
+     "cond": "word is a tens word",
+     "effect": "ones*100+tens when value is 1-9 and no hundred yet, else adds"
+    },
+    {
+     "at": "+12",
+     "cond": "word is a ones/teens word",
+     "effect": "adds"
+    },
+    {
+     "at": "+14",
+     "cond": "anything else",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

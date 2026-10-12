@@ -18,6 +18,8 @@ import os
 // finishes first; the loser is cancelled and never awaited. Returns nil on
 // timeout or error (the error is logged; the caller falls through to the
 // next radius / bails) so we never propagate a timeout error up the chain.
+// Work that finishes first cancels the timer, and cancelling the caller
+// cancels the work.
 //
 // Not a task group: a group waits for every child before it returns, so work
 // that ignores cancellation (a continuation whose callback never fires) held
@@ -26,14 +28,48 @@ func runWithTimeout<T: Sendable>(
     seconds: Double,
     operation: @Sendable @escaping () async throws -> T
 ) async -> T? {
+    let work = Task { await resultOrNil(operation) }
+    return await withTaskCancellationHandler {
+        await firstOf(work, orNilAfter: seconds)
+    } onCancel: {
+        work.cancel()
+    }
+}
+
+/// `work`'s result, or nil once `seconds` pass first (then `work` is
+/// cancelled). Whichever comes second is dropped by the gate; a finished
+/// `work` cancels the timer.
+private func firstOf<T: Sendable>(_ work: Task<T?, Never>, orNilAfter seconds: Double) async -> T? {
     await withCheckedContinuation { continuation in
         let gate = FirstResultGate(continuation)
-        let work = Task { gate.resume(await resultOrNil(operation)) }
+        let timer = timeoutTimer(after: seconds, gate: gate, work: work)
         Task {
-            await sleepQuietly(UInt64(seconds * 1_000_000_000), context: "runWithTimeout")
-            gate.resume(nil)
-            work.cancel()
+            gate.resume(await work.value)
+            timer.cancel()
         }
+    }
+}
+
+/// Resolves `gate` with nil and cancels `work` after `seconds`, unless the
+/// timer is cancelled first.
+private func timeoutTimer<T: Sendable>(
+    after seconds: Double, gate: FirstResultGate<T>, work: Task<T?, Never>
+) -> Task<Void, Never> {
+    Task {
+        guard await sleptUninterrupted(seconds) else { return }
+        gate.resume(nil)
+        work.cancel()
+    }
+}
+
+/// Sleeps `seconds`; false when the sleep was cancelled first (the work
+/// finished, so the timer has nothing left to do).
+private func sleptUninterrupted(_ seconds: Double) async -> Bool {
+    do {
+        try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+        return true
+    } catch {
+        return false
     }
 }
 

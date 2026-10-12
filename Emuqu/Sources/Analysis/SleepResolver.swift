@@ -65,19 +65,69 @@ enum SleepResolver {
 
     // MARK: - Output
 
-    /// Result of resolution. `writeToHealthKit` is the sole authorization
-    /// to export sleep to HK — set only in row 2 (session, no Watch).
+    /// Result of resolution. Whether the night is exported to HealthKit is
+    /// decided from `sleepData.boundarySource` (`.hrEstimated` /
+    /// `.healthKitHREstimated` mean this app is the only source — see
+    /// `exportSleepIfSoleSource`); row 2 (session, no Watch) is the row that
+    /// tags `.hrEstimated`.
     struct Resolution: Equatable {
         let sleepData: SleepData
-        let writeToHealthKit: Bool
 
+        /// Equal when both resolve the same night: every total and boundary,
+        /// and each stage interval and segment by content.
+        /// Interval ids are left out — every construction draws a fresh UUID,
+        /// so two resolutions of one night never share them.
         static func == (lhs: Resolution, rhs: Resolution) -> Bool {
-            lhs.writeToHealthKit == rhs.writeToHealthKit
-                && lhs.sleepData.nightSleepMinutes == rhs.sleepData.nightSleepMinutes
-                && lhs.sleepData.awakeMinutes == rhs.sleepData.awakeMinutes
-                && lhs.sleepData.sleepStart == rhs.sleepData.sleepStart
-                && lhs.sleepData.sleepEnd == rhs.sleepData.sleepEnd
-                && lhs.sleepData.stageIntervals.count == rhs.sleepData.stageIntervals.count
+            Summary(lhs.sleepData) == Summary(rhs.sleepData)
+                && lhs.sleepData.stageIntervals.map(StageContent.init) == rhs.sleepData.stageIntervals.map(StageContent.init)
+                && lhs.sleepData.segments.map(SegmentContent.init) == rhs.sleepData.segments.map(SegmentContent.init)
+        }
+
+        /// The night's totals and boundaries.
+        private struct Summary: Equatable {
+            let dates: [Date?]
+            let minutes: [Int?]
+            let efficiency: Double
+            let source: HealthKitManager.SleepBoundarySource
+
+            init(_ night: SleepData) {
+                dates = [night.date, night.inBedStart, night.sleepStart, night.sleepEnd]
+                minutes = [
+                    night.nightSleepMinutes, night.inBedMinutes, night.deepSleepMinutes,
+                    night.remSleepMinutes, night.napSleepMinutes, night.awakeMinutes
+                ]
+                efficiency = night.sleepEfficiency
+                source = night.boundarySource
+            }
+        }
+
+        /// One stage interval without its id.
+        private struct StageContent: Equatable {
+            let stage: HealthKitManager.SleepStage
+            let start: Date
+            let end: Date
+            let provenance: HealthKitManager.SleepStageProvenance
+
+            init(_ interval: HealthKitManager.SleepStageInterval) {
+                stage = interval.stage
+                start = interval.start
+                end = interval.end
+                provenance = interval.provenance
+            }
+        }
+
+        /// One display segment, every field.
+        private struct SegmentContent: Equatable {
+            let bounds: [Date]
+            let minutes: [Int?]
+
+            init(_ segment: HealthKitManager.SleepSegment) {
+                bounds = [segment.sleepStart, segment.sleepEnd]
+                minutes = [
+                    segment.totalSleepMinutes, segment.deepSleepMinutes, segment.remSleepMinutes,
+                    segment.coreSleepMinutes, segment.awakeMinutes
+                ]
+            }
         }
     }
 
@@ -109,13 +159,13 @@ enum SleepResolver {
         // sleep start backward by an hour or more.
         let watchStages = dropIphoneEarlySleepGuesses(classifyWatchSamples(ctx.watchSamples))
         let augmented = maybeAugment(watchStages, ctx: ctx, envelope: envelope)
-        let combined = resolvingOverlaps(mergeStagesAcrossSources(augmented + (ctx.autoSleepExtension?.stageIntervals ?? [])))
+        let combined = mergeStagesAcrossSources(augmented + (ctx.autoSleepExtension?.stageIntervals ?? []))
         let (clipped, effectiveEnvelope) = clipRescuingWatchSleep(combined, envelope: envelope)
         let sleepData = assemble(
             stages: clipped, envelope: effectiveEnvelope, ctx: ctx,
             source: ctx.autoSleepExtension != nil ? .hrValidated : .healthKit
         )
-        return Resolution(sleepData: sleepData, writeToHealthKit: false)
+        return Resolution(sleepData: sleepData)
     }
 
     /// The recording envelope must NEVER be able to erase real
@@ -131,22 +181,25 @@ enum SleepResolver {
     /// against the same bad bounds and never recovers — exactly the "sleep won't
     /// show, no refresh works" report.
     ///
-    /// Rescue: if the Watch actually recorded non-awake sleep but the clip
-    /// dropped ALL of it, the envelope is untrustworthy. Re-clip against the
-    /// union of the (non-degenerate part of the) envelope and the Watch's own
-    /// stage span, so the real sleep survives. Healthy nights — where the
-    /// recording envelope already covers the Watch stages — never enter this
-    /// branch and are completely unchanged.
+    /// Rescue: if the Watch actually recorded non-awake sleep that ran past
+    /// the recording's start but the clip dropped ALL of it, the envelope is
+    /// untrustworthy. Re-clip against the union of the (non-degenerate part of
+    /// the) envelope and the span of the Watch's own (non-iPhone) sleep, so
+    /// the real sleep survives. Healthy nights — where the recording envelope
+    /// already covers the Watch stages — never enter this branch and are
+    /// completely unchanged; nor does a recording made after the night's sleep
+    /// had ended (a daytime reading), which has no claim on that sleep.
     private static func clipRescuingWatchSleep(
         _ combined: [HealthKitManager.SleepStageInterval],
         envelope: [DateInterval]
     ) -> ([HealthKitManager.SleepStageInterval], [DateInterval]) {
         let clipped = clipToEnvelope(combined, envelope: envelope)
-        guard combined.contains(where: { $0.stage != .awake }),
-              !clipped.contains(where: { $0.stage != .awake }),
-              let spanStart = combined.map(\.start).min(),
-              let spanEnd = combined.map(\.end).max(),
-              spanEnd > spanStart
+        let watchSleep = combined.filter { $0.stage != .awake && $0.provenance != .iphone }
+        guard !clipped.contains(where: { $0.stage != .awake }),
+              let spanStart = watchSleep.map(\.start).min(),
+              let spanEnd = watchSleep.map(\.end).max(),
+              let recordingStart = envelope.first?.start,
+              spanEnd > recordingStart
         else { return (clipped, envelope) }
         let watchSpan = DateInterval(start: spanStart, end: spanEnd)
         let rescued = unionIntervals(envelope.filter { $0.duration > 0 } + [watchSpan])
@@ -163,8 +216,7 @@ enum SleepResolver {
         let sleepData = assemble(
             stages: stages, envelope: envelope, ctx: ctx, source: .hrEstimated
         )
-        let hasContent = sleepData.nightSleepMinutes > 0
-        return Resolution(sleepData: sleepData, writeToHealthKit: hasContent)
+        return Resolution(sleepData: sleepData)
     }
 
     // MARK: - Row 3: Watch only
@@ -180,12 +232,12 @@ enum SleepResolver {
         // authoritative and any iPhone `asleepUnspecified` sample that
         // predates the Watch's detailed stages by >15 min is dropped.
         let watchStages = dropIphoneEarlySleepGuesses(rawStages)
-        let merged = resolvingOverlaps(mergeStagesAcrossSources(watchStages))
+        let merged = mergeStagesAcrossSources(watchStages)
         let clipped = clipToEnvelope(merged, envelope: envelope)
         let sleepData = assemble(
             stages: clipped, envelope: envelope, ctx: ctx, source: .healthKit
         )
-        return Resolution(sleepData: sleepData, writeToHealthKit: false)
+        return Resolution(sleepData: sleepData)
     }
 
     // MARK: - Row 4: nothing
@@ -200,7 +252,7 @@ enum SleepResolver {
             boundarySource: .recordingBounds,
             splitGapMinutes: ctx.splitGapMinutes
         )
-        return Resolution(sleepData: empty, writeToHealthKit: false)
+        return Resolution(sleepData: empty)
     }
 
     // MARK: - Envelope
@@ -615,7 +667,18 @@ enum SleepResolver {
     }
 
     /// Row 2: run the full HRV classifier against the session envelope.
-    /// Returns stages tagged `.hrvDerived`.
+    /// Returns stages tagged `.hrvDerived` (the classifier builds them with
+    /// the default `.watch`; they are re-tagged here so the night never
+    /// reads as Watch-staged).
+    ///
+    /// Classification is anchored at the detected sleep onset (a sustained HR
+    /// drop) rather than the envelope start, so a strap put on at 8 PM is not
+    /// "asleep 8:00 PM" by default. `detectSleepOnset` caps the onset at
+    /// `SleepConstants.maxHREstimatedOnsetLatencyMin` (20 min) after the
+    /// recording starts, so an 8 PM strap with sleep at 9:30 is anchored at
+    /// 8:20 and the classifier decides the 70 minutes before sleep window by
+    /// window. With no clear drop the envelope start stands. The onset and the
+    /// envelope offsets are both wall-clock ms from the recording start.
     private static func inferStagesFromRR(
         ctx: Context,
         envelope: [DateInterval]
@@ -624,21 +687,18 @@ enum SleepResolver {
               let first = envelope.first, let last = envelope.last else { return [] }
         let envelopeStartMs = MillisecondOffset.between(first.start, and: sessionStart, fallback: 0)
         let sleepEndMs = MillisecondOffset.between(last.end, and: sessionStart, fallback: 0)
-        // Anchor classification at the ACTUAL sleep onset (a
-        // sustained HR drop) rather than the recording/envelope start. A strap
-        // user who clips the strap on at 8 PM but doesn't sleep until 9:30 would
-        // otherwise get every calm-but-awake pre-bed window classified as
-        // sleep → "asleep 8:00 PM" every night. `detectSleepOnset`
-        // returns ms-from-recording-start (same units as the envelope offsets)
-        // or nil when there's no clear drop — in which case the envelope-start
-        // anchor stands rather than risk dropping the night.
         let detectedOnsetMs = SleepBoundaryResolver.detectSleepOnset(in: ctx.rrPoints)
         let sleepStartMs = max(envelopeStartMs, detectedOnsetMs ?? envelopeStartMs)
         guard sleepEndMs > sleepStartMs else { return [] }
-        return HRVSleepStageClassifier.classify(
+        let stages = HRVSleepStageClassifier.classify(
             rrPoints: ctx.rrPoints, sleepStartMs: sleepStartMs,
             sleepEndMs: sleepEndMs, recordingStart: sessionStart
         )?.stageIntervals ?? []
+        return stages.map { interval in
+            var derived = interval
+            derived.provenance = .hrvDerived
+            return derived
+        }
     }
 
     // MARK: - SleepData Assembly
@@ -661,7 +721,7 @@ enum SleepResolver {
         let (deep, rem) = stageTotals(stages)
         return SleepData(
             date: ctx.fallbackDate,
-            inBedStart: inBedStart(envelope: envelope, ctx: ctx, sleepStages: sleepStages),
+            inBedStart: inBedStart(ctx: ctx, sleepStages: sleepStages),
             sleepStart: sleepStages.map(\.start).min(),
             sleepEnd: sleepStages.map(\.end).max(),
             totalSleepMinutes: total,
@@ -677,19 +737,17 @@ enum SleepResolver {
         )
     }
 
-    /// Priority: Apple-supplied "in bed" envelope segment → strap recording
-    /// start (the user pressed Start before bed, a reliable "got into bed"
-    /// signal) → sleep start (no latency computable).
-    ///
-    /// Falling straight through to sleepStart for
-    /// users without Sleep Schedule wind-down would make `sleepLatencyMinutes`
-    /// always nil even though the strap recording-start time is known.
+    /// Priority: the earliest linked strap recording start (the user pressed
+    /// Start before bed, a reliable "got into bed" signal) → sleep start (no
+    /// latency computable). Never the envelope: without a recording it is the
+    /// bedtime search window, which opens two hours before bedtime and is not
+    /// a time in bed (`SleepData.sleepLatencyMinutes` reads this when the
+    /// night has no stages).
     private static func inBedStart(
-        envelope: [DateInterval],
         ctx: Context,
         sleepStages: [HealthKitManager.SleepStageInterval]
     ) -> Date? {
-        envelope.first?.start ?? ctx.sessionBounds?.start ?? sleepStages.map(\.start).min()
+        ctx.linkedSessionBounds.map(\.start).min() ?? ctx.sessionBounds?.start ?? sleepStages.map(\.start).min()
     }
 
     /// Deep and REM minutes. A night whose source staged it (any deep or REM

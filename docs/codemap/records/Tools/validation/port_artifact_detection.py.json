@@ -1,0 +1,181 @@
+{
+ "file": "Tools/validation/port_artifact_detection.py",
+ "hash": "064be760841ae00e",
+ "role": "Python port of ArtifactDetector.detectArtifacts (Emuqu/Sources/Analysis/ArtifactDetection.swift @ e028039): rolling-median ratio classifier labelling each RR as technical/extra/missed/ectopic/none, plus artifactPercentage.",
+ "types": [],
+ "state": [
+  "WINDOW=50, ECTOPIC=0.20, MISSED=0.50, EXTRA=0.30, MIN_RR=300, MAX_RR=2000 (lines 11-13)",
+  "CLEAN flag dict (line 48)"
+ ],
+ "toplevel": "Constants and CLEAN template.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def _median_sorted",
+   "hash": "786de92e5954a05e",
+   "does": "Median of an already-sorted list (mean of the two middle values for even length).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "even length",
+     "effect": "average of middle pair; else middle element"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def rolling_median",
+   "hash": "3ccc26198e0f1045",
+   "does": "Centred rolling median with half-width window//2 (25): maintains a sorted window via bisect insert/remove, returning one median per input element (edges use truncated windows).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def _median_sorted"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty input",
+     "effect": "returns []"
+    },
+    {
+     "at": "+5",
+     "cond": "initial fill",
+     "effect": "insert first half+1 values"
+    },
+    {
+     "at": "+8",
+     "cond": "for each later index",
+     "effect": "slide"
+    },
+    {
+     "at": "+10",
+     "cond": "new right index in range",
+     "effect": "insert it"
+    },
+    {
+     "at": "+13",
+     "cond": "left index to drop >= 0",
+     "effect": "remove one equal value"
+    },
+    {
+     "at": "+15",
+     "cond": "value found at bisect position",
+     "effect": "delete it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def _median_sorted": "359d54399a6cac31"
+   }
+  },
+  {
+   "key": "def _flag",
+   "hash": "211bb2899d4845c9",
+   "does": "Builds a flag dict {isArtifact, type, confidence}.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def classify",
+   "hash": "42c55f27b62ac2a7",
+   "does": "Classifies one RR against its local median: outside 300-2000 ms -> technical(1.0); below 0.7*median -> extra if below 0.5*median else ectopic (artifact only if ratio > 0.20); above 1.2*median -> missed if above 1.5*median else ectopic; otherwise ectopic if ratio > 0.20 else clean.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def _flag"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr outside 300...2000",
+     "effect": "technical, confidence 1"
+    },
+    {
+     "at": "+5",
+     "cond": "rr < median*(1-0.30)",
+     "effect": "short-beat path"
+    },
+    {
+     "at": "+7",
+     "cond": "rr < median*0.5",
+     "effect": "extra; else ectopic flagged only when ratio > 0.20"
+    },
+    {
+     "at": "+10",
+     "cond": "rr > median*1.20",
+     "effect": "long-beat path"
+    },
+    {
+     "at": "+11",
+     "cond": "rr > median*1.5",
+     "effect": "missed with confidence ratio/0.5; else ectopic with ratio/0.2"
+    },
+    {
+     "at": "+14",
+     "cond": "ratio > 0.20",
+     "effect": "ectopic; else CLEAN copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def _flag": "b2294a2932deea8e"
+   }
+  },
+  {
+   "key": "def detect_artifacts",
+   "hash": "fdc163ec16655138",
+   "does": "Whole-series detector: computes rolling medians of the RR list and classifies every RR; returns a list of flag dicts.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def rolling_median",
+    "Tools/validation/port_artifact_detection.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty list",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def classify": "b0af3f132c997846",
+    "Tools/validation/port_artifact_detection.py::def rolling_median": "659f88aef1b40b43"
+   }
+  },
+  {
+   "key": "def artifact_percentage",
+   "hash": "1fa6f66238608ff8",
+   "does": "Percentage (0-100) of flagged entries in flags[start:end] after clamping start>=0 and end<=len.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "clamped end <= start",
+     "effect": "returns 0.0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

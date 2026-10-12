@@ -1,0 +1,571 @@
+{
+ "file": "Emuqu/Sources/Import/RRDataImporter.swift",
+ "hash": "118c6c33ba10f5af",
+ "role": "Stateless importer for single-file RR data (CSV/Kubios/JSON/TXT) plus the result and error types for Elite HRV summary and Emuqu multi-session RR exports; detects format, parses, validates and builds an HRVSession.",
+ "types": [
+  "RRDataImporter: final class (Sendable) — RR file importer, extended by +CSV, +JSON, +EliteHRV, +FlowHRV",
+  "RRDataImporter.ImportFormat: enum (String, CaseIterable, Identifiable) — csv|json|txt|kubios|eliteHRV|flowHRVMultiSession",
+  "RRDataImporter.EliteHRVSummaryResult: struct (+ SessionSummary) — per-row Elite HRV metrics",
+  "RRDataImporter.FlowHRVMultiSessionResult: struct (+ SessionRRData) — per-session raw RR from an Emuqu export",
+  "RRDataImporter.ImportError: enum (LocalizedError)",
+  "RRDataImporter.ImportResult: struct — single-file parse result",
+  "RRDataImporter.ParsedRRFile: struct (private)"
+ ],
+ "state": [
+  "mem:RRDataImporter.storableRRRange (static 1...30000 ms)",
+  "mem:RRDataImporter.maximumRecordingSpanMs (static 7 days)",
+  "mem:RRDataImporter.recordingTimestampRange (static 0...7 days ms)",
+  "file:<user-picked security-scoped URL> (read)"
+ ],
+ "toplevel": "Used by ImportDataView (+Actions); ImportDataView+Actions.parseFile routes Emuqu and Elite files before ever calling importFile, which also detects both and refuses them with a pointer to batch import.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RRDataImporter.ImportFormat.id",
+   "hash": "a8312734410457a2",
+   "does": "ImportFormat.id = rawValue.",
+   "entry": "Identifiable witness used by ForEach in ImportDataView+Preview.swift:47",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRDataImporter.ImportFormat.displayName",
+   "hash": "efaf056f585926eb",
+   "does": "Localized display name per format.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .csv",
+     "effect": "'CSV'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .json",
+     "effect": "'JSON'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .txt",
+     "effect": "'Text (RR values)'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .kubios",
+     "effect": "'Kubios Export'"
+    },
+    {
+     "at": "+7",
+     "cond": "case .eliteHRV",
+     "effect": "'Elite HRV Summary'"
+    },
+    {
+     "at": "+8",
+     "cond": "case .flowHRVMultiSession",
+     "effect": "'Emuqu RR Export'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RRDataImporter.ImportFormat.description",
+   "hash": "6dc557b8e57e8ba0",
+   "does": "Localized one-line description per format for the import screen's format list (ImportDataView+Preview.swift:61).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .csv",
+     "effect": "comma-separated ms text"
+    },
+    {
+     "at": "+4",
+     "cond": "case .json",
+     "effect": "JSON array text"
+    },
+    {
+     "at": "+5",
+     "cond": "case .txt",
+     "effect": "plain text one per line"
+    },
+    {
+     "at": "+6",
+     "cond": "case .kubios",
+     "effect": "Kubios export text"
+    },
+    {
+     "at": "+7",
+     "cond": "case .eliteHRV",
+     "effect": "Elite summary text"
+    },
+    {
+     "at": "+8",
+     "cond": "case .flowHRVMultiSession",
+     "effect": "Emuqu multi-session text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RRDataImporter.storableRR(_:)",
+   "hash": "0578aaeb5bfcee18",
+   "does": "Returns ms when within 1...30000, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "storableRRRange contains ms",
+     "effect": "ms; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount",
+   "hash": "925533d7b3e8cca1",
+   "does": "SessionRRData.beatCount = rrIntervals.count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.durationMinutes",
+   "hash": "0ee1e390847ed0cd",
+   "does": "SessionRRData.durationMinutes = sum of RR ms / 60000.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRDataImporter.ImportError.errorDescription",
+   "hash": "0e60997db22c97de",
+   "does": "Localized error message for each ImportError case.",
+   "entry": "LocalizedError witness; read via error.localizedDescription in ImportDataView+Actions",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fileNotFound",
+     "effect": "'The selected file could not be found.'"
+    },
+    {
+     "at": "+5",
+     "cond": "unreadableFile",
+     "effect": "'Unable to read the file contents.'"
+    },
+    {
+     "at": "+7",
+     "cond": "invalidFormat(details)",
+     "effect": "'Invalid file format: <details>'"
+    },
+    {
+     "at": "+9",
+     "cond": "noRRData",
+     "effect": "'No RR interval data found in file.'"
+    },
+    {
+     "at": "+11",
+     "cond": "insufficientData(found,required)",
+     "effect": "'Not enough data: ... found of required'"
+    },
+    {
+     "at": "+13",
+     "cond": "invalidRRValues(details)",
+     "effect": "'Invalid RR values: <details>'"
+    },
+    {
+     "at": "+15",
+     "cond": "invalidTimestamps(session)",
+     "effect": "'Session <s> has timestamps that cannot belong to one recording...'"
+    },
+    {
+     "at": "+17",
+     "cond": "recordingTooLong",
+     "effect": "'...add up to more than a week...'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RRDataImporter.ImportResult.beatCount",
+   "hash": "925533d7b3e8cca1",
+   "does": "ImportResult.beatCount = rrIntervals.count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRDataImporter.ImportResult.durationMinutes",
+   "hash": "0ee1e390847ed0cd",
+   "does": "ImportResult.durationMinutes = sum of RR ms / 60000.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.importFile(at:)",
+   "hash": "1a8bf6ddce69e019",
+   "does": "Reads the security-scoped file as UTF-8 via readFile(at:) and imports its text via importContent(_:fileName:) with the URL's last path component.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readFile(at:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importContent(_:fileName:)"
+   ],
+   "reads": [
+    "file:<picked RR file>"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The caller ImportDataView+Actions.parseFile already opened the same security-scoped URL and read/decoded it as UTF-8 via readTextContents (identical logic to readUTF8), then importFile reads and decodes the file a second time.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter.swift:211",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:73",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:119"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importContent(_:fileName:)": "af6913cbcfa71156",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readFile(at:)": "a3ac7f0bb7c5300c"
+   }
+  },
+  {
+   "key": "func RRDataImporter.readFile(at:)",
+   "hash": "4df44f8b2b4b6bf7",
+   "does": "Opens the URL's security scope, reads and UTF-8-decodes it via readUTF8(at:), and closes the scope; throws fileNotFound when the scope cannot be opened, unreadableFile when the read or decode fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readUTF8(at:)"
+   ],
+   "reads": [
+    "file:<picked RR file>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "startAccessingSecurityScopedResource succeeds",
+     "effect": "continue; otherwise throw fileNotFound"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readUTF8(at:)": "60daca1213227123"
+   }
+  },
+  {
+   "key": "func RRDataImporter.importContent(_:fileName:)",
+   "hash": "17b9bc1bf244cb62",
+   "does": "Detects the format from the text and the file name's extension, parses it, validates the intervals (count/range/span) and returns an ImportResult with the file name, recording date and metadata; throws the parser's or validate's ImportError (Elite and Emuqu multi-session text throw invalidFormat pointing at batch import).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectFormat(content:extension:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.validate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectFormat(content:extension:)": "872fcc5db5a1a906",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)": "2f3b6ed7febf4cf4",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.validate(_:)": "97f77f12306fe05d",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+   }
+  },
+  {
+   "key": "func RRDataImporter.readUTF8(at:)",
+   "hash": "0deceae881b96790",
+   "does": "Reads the file's Data and decodes UTF-8; read failure is logged and rethrown as unreadableFile, non-UTF-8 content throws unreadableFile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<picked RR file>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "Data(contentsOf:) throws",
+     "effect": "catch: debugLog the error, throw ImportError.unreadableFile"
+    },
+    {
+     "at": "+8",
+     "cond": "String(data:encoding:.utf8) succeeds",
+     "effect": "return text; otherwise throw unreadableFile (UTF-16 / Latin-1 exports rejected)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same read+UTF-8 decode as ImportDataView.readTextContents.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter.swift:211",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:73"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRDataImporter.parse(_:as:)",
+   "hash": "e861db1ce5afad51",
+   "does": "Dispatches parsing by detected format: JSON->parseJSON, CSV/Kubios->parseCSV, TXT->parsePlainText; Elite and Emuqu multi-session throw invalidFormat telling the user to use batch import.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "format .json",
+     "effect": "parseJSON"
+    },
+    {
+     "at": "+5",
+     "cond": "format .csv or .kubios",
+     "effect": "parseCSV (Kubios gets no special handling)"
+    },
+    {
+     "at": "+8",
+     "cond": "format .txt",
+     "effect": "parsePlainText, no metadata/date"
+    },
+    {
+     "at": "+10",
+     "cond": "format .eliteHRV (detectDelimitedFormat found an Elite summary header)",
+     "effect": "throw invalidFormat('Elite HRV summary format detected...'); reached when importFile/importContent is handed an Elite file directly"
+    },
+    {
+     "at": "+14",
+     "cond": "format .flowHRVMultiSession (detectDelimitedFormat found an Emuqu export header)",
+     "effect": "throw invalidFormat('Emuqu multi-session format detected...'); reached when importFile/importContent is handed an Emuqu export directly"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "504ff6254cf0d106",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "b09b77b8d266884f",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RRDataImporter.validate(_:)",
+   "hash": "7db303434a1db850",
+   "does": "Throws noRRData when empty, insufficientData when <60 beats, invalidRRValues when >25% of values are outside 300-2000 ms, recordingTooLong when the RR sum exceeds 7 days.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrIntervals non-empty",
+     "effect": "continue; otherwise throw noRRData"
+    },
+    {
+     "at": "+5",
+     "cond": "count >= 60",
+     "effect": "continue; otherwise throw insufficientData(found,60)"
+    },
+    {
+     "at": "+11",
+     "cond": "invalid count > count/4",
+     "effect": "throw invalidRRValues; otherwise continue"
+    },
+    {
+     "at": "+15",
+     "cond": "RR sum <= 7 days",
+     "effect": "pass; otherwise throw recordingTooLong"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RRDataImporter.createSession(from:startingAt:)",
+   "hash": "ce8d6bb9f182b48b",
+   "does": "Builds an HRVSession starting at startDate (default type .overnight): RR points with cumulative timestamps in an RRSeries keyed by the session's own id, endDate = start + RR sum, note 'Imported from <file>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each RR interval",
+     "effect": "append RRPoint at running time"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+   }
+  },
+  {
+   "key": "func RRDataImporter.detectFormat(content:extension:)",
+   "hash": "afa715172ea2eb63",
+   "does": "Detects the format: JSON if the trimmed text starts with '[' or '{'; delimited (CSV/Elite/Kubios) if extension is csv or text contains ',' or ';'; otherwise plain text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectDelimitedFormat(content:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "trimmed text starts with [ or {",
+     "effect": ".json"
+    },
+    {
+     "at": "+7",
+     "cond": "ext == csv or content contains , or ;",
+     "effect": "detectDelimitedFormat; otherwise .txt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectDelimitedFormat(content:)": "c685097b46d098f5"
+   }
+  },
+  {
+   "key": "func RRDataImporter.detectDelimitedFormat(content:)",
+   "hash": "335650e6085014e1",
+   "does": "Classifies delimited text: Elite summary header -> .eliteHRV; Emuqu multi-session header -> .flowHRVMultiSession; text containing 'kubios', 'rr interval' or 'artifact' anywhere -> .kubios; else .csv.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isEliteHRVSummary(content)",
+     "effect": ".eliteHRV"
+    },
+    {
+     "at": "+4",
+     "cond": "isFlowHRVMultiSession(content)",
+     "effect": ".flowHRVMultiSession"
+    },
+    {
+     "at": "+9",
+     "cond": "lowercased content contains kubios / rr interval / artifact",
+     "effect": ".kubios (parsed identically to CSV); otherwise .csv"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "96ca398e8619f984"
+   }
+  },
+  {
+   "key": "func RRDataImporter.isEliteHRVSummary(_:)",
+   "hash": "7a965df98daa2a3a",
+   "does": "True when the first line looks like an Elite HRV summary header: contains rmssd_clean or rmssd_raw, or datetime+rmssd+n_rr, or member+rmssd+hrv.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "content has a first line",
+     "effect": "use it lowercased; ?? '' otherwise (returns false)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.isFlowHRVMultiSession(_:)",
+   "hash": "469bcd2c67ef59e9",
+   "does": "True when the first line contains session_date, timestamp_ms and rr_ms (Emuqu multi-session export header).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "content has a first line",
+     "effect": "use it lowercased; ?? '' otherwise (false)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

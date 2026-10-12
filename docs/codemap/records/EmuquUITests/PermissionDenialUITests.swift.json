@@ -1,0 +1,159 @@
+{
+ "file": "EmuquUITests/PermissionDenialUITests.swift",
+ "hash": "4f47b528192920d1",
+ "role": "XCUITest of fresh-install (nothing granted) states: Dashboard first-reading prompt, and Get Me Back responding (disclaimer, location guidance, screen, or system prompt) without a location grant.",
+ "types": [
+  "PermissionDenialUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/PermissionDenialUITests.swift:26",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func PermissionDenialUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func PermissionDenialUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PermissionDenialUITests.scrollUntilHittable(_:attempts:)",
+   "hash": "521a7d2adab3872f",
+   "does": "Swipes the app up to `attempts` times until the element exists and isHittable; returns the final exists&&isHittable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each attempt",
+     "effect": "check then swipe"
+    },
+    {
+     "at": "+2",
+     "cond": "element exists and hittable",
+     "effect": "return true"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Calls bare isHittable, which the harness documents raises when no activation point can be derived (EmuquUITests.swift:247-259) instead of returning false",
+     "evidence": [
+      "EmuquUITests/PermissionDenialUITests.swift:38",
+      "EmuquUITests/EmuquUITests.swift:247"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func PermissionDenialUITests.testFreshInstallDashboardShowsTheFirstReadingPrompt()",
+   "hash": "06a04376d8da6693",
+   "does": "Asserts Dashboard tab selection succeeds and a 'Take your first reading' text appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same assertion as DashboardUITests.testDashboardRendersOnFreshInstall",
+     "evidence": [
+      "EmuquUITests/PermissionDenialUITests.swift:53",
+      "EmuquUITests/DashboardUITests.swift:58"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func PermissionDenialUITests.testGetMeBackRespondsWithoutALocationGrant()",
+   "hash": "c1c786f897f6551d",
+   "does": "Selects Fitness, scrolls until the 'Get Me Back' tile is hittable and taps it, then asserts any of: 'I understand' button, 'Get Me Back needs location' text, 'Get Me Back' nav bar, or a SpringBoard alert.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/PermissionDenialUITests.swift::func PermissionDenialUITests.scrollUntilHittable(_:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Requires the Get Me Back tile, which lives in WorkoutPreflightView and renders only once the recorder exists; FitnessTabUITests treats that absence as legitimate on a simulator (best-effort check, XCTSkipUnless), so the two suites disagree on whether this is a failure",
+     "evidence": [
+      "EmuquUITests/PermissionDenialUITests.swift:71",
+      "EmuquUITests/FitnessTabUITests.swift:73",
+      "EmuquUITests/FitnessTabUITests.swift:113"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/PermissionDenialUITests.swift::func PermissionDenialUITests.scrollUntilHittable(_:attempts:)": "2918edc22e6c81c3"
+   }
+  }
+ ],
+ "deps": {}
+}

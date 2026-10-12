@@ -1,0 +1,662 @@
+{
+ "file": "EmuquTests/CloudKitSyncManagerTests.swift",
+ "hash": "9326d5dcef488222",
+ "role": "Tests for CloudKitSyncManager's locally testable logic: upload/deletion no-op guards, onboarding gate, disabled full-sync normalising to idle, JSON+compression round trip, permanent-schema and zone-already-gone error classification, sanitize-drip and health-scrub list handling, and resetLocalSyncState.",
+ "types": [
+  "CloudKitSyncManagerTests: class — @MainActor XCTestCase driving CloudKitSyncManager.shared"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Tests drive the real CloudKitSyncManager.shared and SettingsManager.shared of the host app: resetLocalSyncState (called by testFullSyncReturnsIdleWhenDisabled and testResetLocalSyncStateReturnsToCleanState) runs CloudKitSyncState.resetAll, which deletes the host's sync_state/pending/quarantine/local-only files in the app-group archive directory and the CloudKit change token from UserDefaults; only zoneCreated and lastSyncDate are restored, so running the suite on a device/simulator with a real install wipes its sync bookkeeping and forces a full re-upload/re-pull.",
+   "evidence": [
+    "EmuquTests/CloudKitSyncManagerTests.swift:93",
+    "EmuquTests/CloudKitSyncManagerTests.swift:511",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:352",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift:272",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:593",
+    "EmuquTests/CloudKitSyncManagerTests.swift:503"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CloudKitSyncManagerTests.testUploadSkipsFailedSession()",
+   "hash": "f1da678f9fccb66d",
+   "does": "Calls uploadSession on CloudKitSyncManager.shared with a .failed overnight session and asserts syncState is unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.shared",
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "uploadSession's first guard is cloudUploadsAllowed; on a host with sync off or onboarding incomplete it returns before the session-state gate, and even an attempted upload does not necessarily change syncState, so 'syncState unchanged' does not prove the failed-session gate.",
+     "evidence": [
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:382",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:387",
+      "EmuquTests/CloudKitSyncManagerTests.swift:55"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "733c8572e147ffba"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testUploadSkipsCollectingSession()",
+   "hash": "39a0996eead541ad",
+   "does": "Asserts HRVSession(sessionType:) starts in .collecting and that uploadSession leaves syncState unchanged for it.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.shared",
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "733c8572e147ffba"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testFullSyncReturnsIdleWhenDisabled()",
+   "hash": "86a9017e26c0339a",
+   "does": "Turns iCloudSyncEnabled off on SettingsManager.shared, resets local sync state, runs performFullSync and asserts syncState == .idle, then restores the setting.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "ud:UserSettings (SettingsManager.save)",
+    "file:<appgroup>/<archiveDir>/sync_state.json (deleted)",
+    "ud:UserDefaultsKeys.cloudKitChangeToken",
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate",
+    "mem:CloudKitSyncManager.syncState"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment cites 'CloudKitSyncManager.swift:581' as the line that sets .idle when sync is off; that line is in flagSchemaUnavailable (which sets an error), the .idle assignment is in performFullSync's disabled guard further down.",
+     "evidence": [
+      "EmuquTests/CloudKitSyncManagerTests.swift:98",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:581",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:670"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "68bf143978c6bac0",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()": "c5cc24fdcb0b51a7"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testUploadSessionNoOpWhenDisabled()",
+   "hash": "47b648b7c83c148b",
+   "does": "With iCloudSyncEnabled off, calls uploadSession on a complete session and asserts syncState unchanged; restores the setting.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.shared"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "ud:UserSettings (SettingsManager.save)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "733c8572e147ffba"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testUploadsWaitForOnboarding()",
+   "hash": "8da223b46597ef86",
+   "does": "Asserts cloudUploadsAllowed is false with sync on but onboarding incomplete, true once onboarding is complete, and false with sync off; restores both settings in defer.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "ud:UserSettings (SettingsManager.save)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "733c8572e147ffba"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testUploadDeletionNoOpWhenDisabled()",
+   "hash": "b45cf6a4583fbb05",
+   "does": "With iCloudSyncEnabled off, calls uploadDeletion for a random id and asserts syncState unchanged; restores the setting.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.shared"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "ud:UserSettings (SettingsManager.save)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testCloudKitErrorMessages()",
+   "hash": "9d99013fcbb19501",
+   "does": "Calls CloudKitSyncManager.shared.cloudKitErrorMessage and asserts: a plain NSError keeps its own description; CKError networkFailure and networkUnavailable map to CloudSyncMessages.noInternet, quotaExceeded to storageFull, notAuthenticated to notSignedIn, requestRateLimited with a 30 s retry-after to rateLimited(retryAfter: 30); another code (serverRejectedRequest) keeps its localized description.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)": "e2242d331d4ed5d6",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)": "fbcb1b00aa9383f1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet": "0bed695ddfb9513e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "db52f2cb12d576d4",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull": "6e4b6f9cc8971c41",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testDataCompressionRoundTrip()",
+   "hash": "7c4868c774584582",
+   "does": "Encodes a complete session to ISO-8601 JSON, asserts it is >50 bytes, compresses and decompresses with DataCompression and asserts the bytes match.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testSessionSerializationRoundTrip()",
+   "hash": "2bf7ee10dcce7e95",
+   "does": "Encodes a session to sorted-key JSON, compresses/decompresses, decodes back and asserts id, sessionType and state survive.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.ckError(_:message:)",
+   "hash": "0fa2c37dc4191c39",
+   "does": "Fabricates a CKError with the given code and localized message via an NSError in CKErrorDomain.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorMatchesProductionUploadFailure()",
+   "hash": "75201391fc24191c",
+   "does": "Asserts a serverRejectedRequest 'Cannot create new type HRVSession in production schema' is a permanent schema error.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorMatchesPullSideMessage()",
+   "hash": "0d3d48803e1d4072",
+   "does": "Asserts 'Did not find record type: HRVSession' (serverRejectedRequest) is a permanent schema error.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorMatchesRawBackupLiveSession()",
+   "hash": "06bd8cf075efe5f3",
+   "does": "Asserts 'Cannot create new type RawBackup in production schema' is a permanent schema error.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorMatchesMissingIndexMessages()",
+   "hash": "80bff1b04d20e649",
+   "does": "Asserts invalidArguments errors saying a field is 'not marked queryable', 'sortable' or 'indexable' are permanent schema errors.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorRejectsTransientErrors()",
+   "hash": "3903310e8fe13ad2",
+   "does": "Asserts networkFailure, serverRecordChanged and unknownItem errors with non-schema messages are not permanent schema errors.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorRejectsBareNSError()",
+   "hash": "71d25e90fc6d0568",
+   "does": "Asserts a plain NSURLErrorDomain NSError whose message contains 'Cannot create new type … in production schema' IS classified as a permanent schema error (message-led matching).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Test name says the classifier 'RejectsBareNSError' but the body asserts XCTAssertTrue (it accepts it); the name contradicts the pinned behaviour and misleads readers of failures.",
+     "evidence": [
+      "EmuquTests/CloudKitSyncManagerTests.swift:312",
+      "EmuquTests/CloudKitSyncManagerTests.swift:319"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsZoneAlreadyGoneErrorMatchesZoneNotFoundAndUserDeletedZone()",
+   "hash": "809981396917afea",
+   "does": "Asserts zoneNotFound and userDeletedZone CKErrors are 'zone already gone'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "ec009b4282be6e76",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)": "04f77a177871b1cd",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsZoneAlreadyGoneErrorUnwrapsPartialFailureWhenAllZonesGone()",
+   "hash": "0169a3968e48bd01",
+   "does": "Asserts a partialFailure whose only inner error is zoneNotFound is 'zone already gone'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "ec009b4282be6e76",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)": "04f77a177871b1cd"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsZoneAlreadyGoneErrorRejectsPartialFailureWithRealError()",
+   "hash": "bace4d40ac17b14e",
+   "does": "Asserts a partialFailure mixing zoneNotFound with networkFailure is not 'zone already gone'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "ec009b4282be6e76",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)": "04f77a177871b1cd"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsZoneAlreadyGoneErrorRejectsTransientAndNonCKErrors()",
+   "hash": "1184e1461b707073",
+   "does": "Asserts networkFailure, notAuthenticated, a plain NSURLError and a partialFailure with no per-item errors are not 'zone already gone'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "ec009b4282be6e76",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isZoneAlreadyGoneError(_:)": "04f77a177871b1cd",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testClearSanitizeDripStateRemovesBothKeys()",
+   "hash": "e659e8ba5ba9357c",
+   "does": "Seeds the v4 remaining/initialized and v3 remaining drip keys in standard UserDefaults, calls clearSanitizeDripState (CloudHealthScrubCoordinator.clear, which also removes all v2/v3 legacy keys), and asserts the three seeded keys are cleared; restores prior v4 values in defer but not the v3 key.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.clearSanitizeDripState()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()"
+   ],
+   "reads": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized"
+   ],
+   "writes": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v3.initialized",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v2.initialized"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "a prior v4 remaining list existed",
+     "effect": "restores it; otherwise the key stays removed"
+    },
+    {
+     "at": "+13",
+     "cond": "a prior v4 initialized value existed",
+     "effect": "restores it; otherwise stays removed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()": "7e25fde951a9f3e0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()": "09494044fe0e4fbf",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.clearSanitizeDripState()": "93e4f0de1067ee11"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testHealthScrubDripMarksEachUploadedRecordOnce()",
+   "hash": "f30ee265f34c5c9a",
+   "does": "Marks a UUID uploaded on the shared sync state, seeds the scrub list with it and an id not in iCloud, runs dripReupload and asserts the uploaded id is unmarked and the list empties; re-marks it, runs again and asserts it stays uploaded. Restores defaults and removes the id in defer.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.dripReupload()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)"
+   ],
+   "reads": [
+    "ud:CloudHealthScrubCoordinator.remainingKey",
+    "ud:CloudHealthScrubCoordinator.initializedKey",
+    "mem:CloudKitSyncManager.state"
+   ],
+   "writes": [
+    "ud:CloudHealthScrubCoordinator.remainingKey",
+    "ud:CloudHealthScrubCoordinator.initializedKey",
+    "mem:CloudKitSyncManager.state",
+    "file:<appgroup>/<archiveDir>/sync_state.json"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The first dripReupload calls markRemoved(uploaded) and then saveSyncStateAsync, persisting the random test UUID in pendingUploadIds of the host's real sync_state.json; the defer only calls markDeleted in memory and never saves, so the bogus pending id stays on disk for the next app launch to load.",
+     "evidence": [
+      "EmuquTests/CloudKitSyncManagerTests.swift:449",
+      "EmuquTests/CloudKitSyncManagerTests.swift:457",
+      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:99",
+      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:104",
+      "Emuqu/Sources/Storage/CloudKitSyncState.swift:262"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.dripReupload()": "77bce864dc35c237",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "42b502804961767c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "8500dcc7a519d3b2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5423f0d392aeff36",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testHealthScrubListStartsFromTheUploadedSet()",
+   "hash": "f6bbe2cb213bb083",
+   "does": "Marks a UUID uploaded, clears the scrub list, and asserts remainingIds re-initialises from the uploaded set (contains the id) and sets the initialized flag; restores defaults in defer.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state"
+   ],
+   "writes": [
+    "ud:CloudHealthScrubCoordinator.remainingKey",
+    "ud:CloudHealthScrubCoordinator.initializedKey",
+    "mem:CloudKitSyncManager.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()": "7e25fde951a9f3e0",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()": "26d4baee88e7e324",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "8500dcc7a519d3b2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5423f0d392aeff36",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testMissingRecordOrZoneNeedsNoScrub()",
+   "hash": "678fb23197a19e09",
+   "does": "Asserts meansNoRecord is true for unknownItem, zoneNotFound and userDeletedZone and false for networkUnavailable.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "9292d3dda1d4faf7"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testResetLocalSyncStateReturnsToCleanState()",
+   "hash": "8a2a569e96cb53d8",
+   "does": "Sets zoneCreated true, calls resetLocalSyncState on the shared manager and asserts syncState .idle, lastSyncDate nil (in memory and UserDefaults) and zoneCreated false; restores zoneCreated and any prior lastSyncDate.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate",
+    "ud:UserDefaultsKeys.cloudKitChangeToken",
+    "file:<appgroup>/<archiveDir>/sync_state.json (deleted)",
+    "mem:CloudKitSyncManager.syncState"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "a prior lastSyncDate existed",
+     "effect": "restores it in defer; otherwise it stays removed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "68bf143978c6bac0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()": "c5cc24fdcb0b51a7"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testIsPermanentSchemaErrorUnwrapsPartialFailures()",
+   "hash": "68857b528a874835",
+   "does": "Asserts a partialFailure wrapping a serverRejectedRequest 'Cannot create new type HRVSession in production schema' is a permanent schema error.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1"
+   }
+  }
+ ],
+ "deps": {}
+}

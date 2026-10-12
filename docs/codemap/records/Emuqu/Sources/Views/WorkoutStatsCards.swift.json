@@ -1,0 +1,134 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutStatsCards.swift",
+ "hash": "cc2dc31510fc1851",
+ "role": "Declares WorkoutStatsCards (the post-workout statistics-card builder struct split out of FitnessPostSummaryView), plus two small helpers: WorkoutActiveTime (paused-time-free duration from sample offsets) and LocalizedUnit (MeasurementFormatter in the app language).",
+ "types": [
+  "WorkoutStatsCards: struct (@MainActor, not a View) — holds session/settingsManager/track and builds chart/HRR cards via its extension in WorkoutStatsCards+Cards.swift",
+  "WorkoutActiveTime: enum — namespace for active (un-paused) duration",
+  "LocalizedUnit: enum — unit symbols and measurement strings in the app locale"
+ ],
+ "state": [
+  "WorkoutStatsCards.session: HRVSession (instance let, value)",
+  "WorkoutStatsCards.settingsManager: SettingsManager (instance let, reference to shared settings)",
+  "WorkoutStatsCards.track: [CLLocation] (instance let)"
+ ],
+ "toplevel": "Imports CoreLocation/SwiftUI. WorkoutStatsCards is @MainActor; constructed per access by FitnessPostSummaryView.stats (FitnessPostSummaryView+StatsForwarding.swift:12-14) and by ViewSnapshotTests.makeStats. No globals.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "LocalizedUnit.formatter re-implements UnitsPreference.measurement (same MeasurementFormatter setup: appLocale, .medium, .providedUnit, fixed fraction digits); two copies of unit formatting to keep in sync.",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift:56",
+    "Emuqu/Sources/Models/UnitsPreference.swift:75"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Type comment says the share sheet reaches elevationSeries and hrrProvenanceLabel through a forwarder; those forwarders have no callers.",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift:13",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:48",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:52"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WorkoutStatsCards.units",
+   "hash": "e3858dc0c83a9dc9",
+   "does": "Returns the process-wide units preference by reading UnitsPreferenceStore.current on every access (not cached); that getter reads the App Group suite, falls back to .standard and then writes the legacy value into the suite, defaulting to .auto.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup)",
+    "ud:fitness.unitsPreference (UserDefaults.standard, legacy fallback)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group suite: the getter copies a legacy .standard value into the suite on read, UnitsPreference.swift:136-139)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "func WorkoutActiveTime.seconds(samples:wallClock:)",
+   "hash": "990822e746ca139b",
+   "does": "Returns the active (un-paused) duration: the last WorkoutSample's offsetSec when it is > 0, otherwise the wall-clock fallback passed in (may be nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples non-nil, non-empty and last.offsetSec > 0",
+     "effect": "true: returns last offset as TimeInterval; false: returns wallClock (nil when the session has no endDate)."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LocalizedUnit.symbol(_:)",
+   "hash": "c5c6c79fa79ced73",
+   "does": "Returns the localized unit symbol (e.g. 'km', 'mi') for a Unit using the app-locale MeasurementFormatter with 0 fraction digits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)",
+    "ext:MeasurementFormatter.string(from: Unit)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)": "41ccc691f64442e1"
+   }
+  },
+  {
+   "key": "func LocalizedUnit.format(_:_:fractionDigits:)",
+   "hash": "aed7ecf7c12a0a08",
+   "does": "Formats value+unit as a localized measurement string (e.g. '12.3 km/h') with the given fixed fraction digits (default 0), in the app locale, in the provided unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)",
+    "ext:MeasurementFormatter.string(from: Measurement)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)": "41ccc691f64442e1"
+   }
+  },
+  {
+   "key": "func LocalizedUnit.formatter(fractionDigits:)",
+   "hash": "e8231684ed28f7e4",
+   "does": "Builds a new MeasurementFormatter each call: locale and number-formatter locale = LanguageManager.appLocale, unitStyle .medium, unitOptions .providedUnit, min=max fraction digits = fractionDigits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "ext:MeasurementFormatter"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

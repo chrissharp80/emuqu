@@ -25,6 +25,10 @@ extension HealthWorkoutImporter {
         let startDate: Date
         let sport: Sport
         let capturedSeconds: TimeInterval
+        /// What the user put on the stub, carried onto the rebuilt session so
+        /// replacing the stub does not discard it.
+        let tags: [ReadingTag]
+        let notes: String?
     }
 
     /// Archived workouts short enough that nothing was captured.
@@ -70,15 +74,13 @@ extension HealthWorkoutImporter {
         // `?? nil` flattens the double optional: `retrieveLightweight` returns
         // an optional session, and `attempt` wraps its result in another.
         let stored = attempt("healthImport.readStub") { try archive.retrieveLightweight(entry.sessionId) } ?? nil
-        guard let sport = stored?.workoutMetadata?.sport else {
+        guard let stored, let sport = stored.workoutMetadata?.sport else {
             noteUnrebuildable(entry, captured: captured, readable: stored != nil)
             return nil
         }
         return InterruptedSession(
-            id: entry.sessionId,
-            startDate: entry.date,
-            sport: sport,
-            capturedSeconds: captured
+            id: entry.sessionId, startDate: entry.date, sport: sport,
+            capturedSeconds: captured, tags: stored.tags, notes: stored.notes
         )
     }
 
@@ -131,8 +133,15 @@ extension HealthWorkoutImporter {
     }
 
     /// Rebuild an interrupted recording from Apple Health's passive samples.
+    /// The rebuilt session replaces the stub, so it keeps the stub's tags and
+    /// notes.
     func rebuild(_ stub: InterruptedSession) async -> Result<HRVSession, RebuildFailure> {
-        await rebuild(startingAt: stub.startDate, sport: stub.sport, replacing: stub.id)
+        await rebuild(startingAt: stub.startDate, sport: stub.sport, replacing: stub.id).map { rebuilt in
+            var session = rebuilt
+            session.tags = stub.tags
+            session.notes = stub.notes
+            return session
+        }
     }
 
     /// Rebuild an activity from Apple Health's passive samples for a start time
@@ -272,7 +281,10 @@ extension HealthWorkoutImporter {
         )
     }
 
-    /// Spread each measurement window across the seconds it covers.
+    /// Spread each measurement window across the seconds it covers. Where
+    /// iPhone and Apple Watch windows overlap, the finest one wins
+    /// (`finestLast`), so the result does not depend on HealthKit's
+    /// unspecified result order.
     nonisolated private static func bySecond(
         _ windows: [HealthSampleWindow],
         start: Date,
@@ -280,7 +292,7 @@ extension HealthWorkoutImporter {
         transform: (Double) -> Double?
     ) -> [Int: Double] {
         var out: [Int: Double] = [:]
-        for window in windows {
+        for window in finestLast(windows) {
             guard window.value.isFinite, let value = transform(window.value) else { continue }
             let from = max(0, Int(window.start.timeIntervalSince(start)))
             let to = min(seconds - 1, Int(window.end.timeIntervalSince(start)))
@@ -321,7 +333,7 @@ extension HealthWorkoutImporter {
             // missing here. Distance comes from the totals below instead.
             track: [],
             heartRateSamples: heartRateSamples(from: startDate, to: end),
-            cadenceSamples: Self.cadenceSamples(from: withinBout),
+            cadenceSamples: Self.cadenceSamples(from: withinBout, coveringFrom: startDate, to: end),
             sport: sport
         )
     }

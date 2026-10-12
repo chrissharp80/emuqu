@@ -6,15 +6,15 @@ import SwiftUI
 ///
 /// States:
 ///   • `default`             — score and verdict shown, ring filled to value
-///   • `loading`             — skeleton shimmer, score "—"
+///   • `loading`             — static ring filled 18%, dimmed, score "—"
 ///   • `buildingBaseline`    — progress dots (Day X of N), no score number
-///   • `noData`              — ghost outline + CTA below
-///   • `error(message)`      — ghost outline + error chip below
+///   • `noData`              — dashed-circle glyph + "No reading yet"
+///   • `error(message)`      — warning glyph + the message
 ///
 /// Animation behaviours:
-///   • Reveal: 600ms easeOutQuart ring fill + last 200ms digit roll
-///   • Subtle "breathing": 4-second sine-wave scale (1.0 → 1.005 → 1.0)
-///     when score > 67. Disabled on `UIAccessibility.isReduceMotionEnabled`
+///   • Reveal: 600ms easeOutQuart ring fill + 200ms digit roll ending with it
+///   • Subtle "breathing": 4-second cycle scale (1.0 → 1.005 → 1.0)
+///     when score > 67. Disabled when Reduce Motion is on
 ///   • Day-30+ users get 400ms snappier reveal
 ///
 /// Accessibility: combined element via `.accessibilityElement(children:
@@ -255,24 +255,32 @@ struct ScoreRing: View {
             revealedFraction = 1
         }
         if case let .default(score, _) = state {
-            revealScore(score, curve: easeOutQuart)
+            revealScore(score)
         }
     }
 
-    /// Digit roll for the LAST 200 ms of the reveal
-    /// (independent of total duration). Snappy mode is 400 ms total → digit
-    /// rolls at 200 ms; default is 600 ms → digit rolls at 400 ms. Previous
-    /// code used a 66 % delay, which broke the 200 ms window in snappy mode
-    /// (a 4 ms roll).
-    ///
-    /// Subtle breathing starts once the reveal completes — only when score > 67.
-    private func revealScore(_ score: Int, curve easeOutQuart: Animation) {
+    /// The digit roll: 200 ms on the easeOutQuart curve, starting 200 ms
+    /// before the ring finishes, so it fills the LAST 200 ms of the reveal
+    /// whatever the total. Snappy mode is 400 ms total → digits roll from
+    /// 200 ms; default is 600 ms → from 400 ms.
+    private var digitRoll: Animation {
         let digitRollDuration: Double = 0.2
-        withAnimation(easeOutQuart.delay(max(0, revealDuration - digitRollDuration))) {
+        return Animation.timingCurve(0.25, 1, 0.5, 1, duration: digitRollDuration)
+            .delay(max(0, revealDuration - digitRollDuration))
+    }
+
+    /// One breath: 2 s out and 2 s back, a 4-second cycle.
+    private var breathing: Animation {
+        .easeInOut(duration: 2).repeatForever(autoreverses: true)
+    }
+
+    /// Subtle breathing starts once the reveal completes — only when score > 67.
+    private func revealScore(_ score: Int) {
+        withAnimation(digitRoll) {
             displayedScore = score
         }
         guard score > 67 else { return }
-        withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true).delay(revealDuration)) {
+        withAnimation(breathing.delay(revealDuration)) {
             breathingScale = 1.005
         }
     }
@@ -328,7 +336,7 @@ struct ScoreRing: View {
             return
         }
         withAnimation(easeOutQuart) { revealedFraction = 1 }
-        withAnimation(easeOutQuart.delay(max(0, revealDuration - 0.2))) {
+        withAnimation(digitRoll) {
             displayedScore = newScore
         }
     }
@@ -337,7 +345,7 @@ struct ScoreRing: View {
     private func updateBreathing(for newScore: Int) {
         if newScore > 67 {
             guard breathingScale == 1.0 else { return }
-            withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
+            withAnimation(breathing) {
                 breathingScale = 1.005
             }
         } else if breathingScale != 1.0 {

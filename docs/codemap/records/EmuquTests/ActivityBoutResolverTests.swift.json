@@ -1,0 +1,260 @@
+{
+ "file": "EmuquTests/ActivityBoutResolverTests.swift",
+ "hash": "99e6997667638a74",
+ "role": "XCTest suite for ActivityBoutResolver.end(ofBoutStartingAt:activity:) — the inferred end time of a crashed recording rebuilt from Health step samples: gap tolerance, ordering, empty input, straddling windows, 6h ceiling and the audited constants.",
+ "types": [
+  "ActivityBoutResolverTests: class — XCTestCase for ActivityBoutResolver"
+ ],
+ "state": [],
+ "toplevel": "Stored property start = Date(timeIntervalSince1970: 1_700_000_000) used as the bout start in every test.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ActivityBoutResolverTests.window(_:_:steps:)",
+   "hash": "c7256d4edf2f671a",
+   "does": "Builds a HealthSampleWindow from minute offsets relative to start with the given step value (default 100).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testContinuousSamplesEndAtTheLastOne()",
+   "hash": "d42460003d8b80d8",
+   "does": "Asserts contiguous windows 0-5,5-10,10-42 min end the bout at +42 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testSamplesInAnyOrderProduceTheSameEnd()",
+   "hash": "164e2248dbd6d69b",
+   "does": "Asserts shuffled sample order yields the same end as ordered input.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testShortPauseDoesNotEndTheBout()",
+   "hash": "2c9e1c795b532b4f",
+   "does": "Asserts a 4-minute hole (10→14) does not end the bout; end is +30 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testLongSilenceEndsTheBoutBeforeLaterActivity()",
+   "hash": "699fc8bba3449c23",
+   "does": "Asserts a 140-minute silence ends the bout at +40 min, ignoring later activity at 180-200.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testGapBoundaryIsInclusive()",
+   "hash": "30b88298917c0b20",
+   "does": "Asserts a gap exactly equal to defaultMaxGap continues the bout (end +25) and one minute more ends it at +10 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testNoSamplesMeansNoBout()",
+   "hash": "79e283cfad9fca8d",
+   "does": "Asserts empty activity returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testSamplesEntirelyBeforeTheStartAreIgnored()",
+   "hash": "cb5025fbafdd727a",
+   "does": "Asserts windows ending before start are ignored → nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testZeroStepWindowsAreNotActivity()",
+   "hash": "c9811351726a07df",
+   "does": "Asserts zero-step windows are not activity → nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testWindowStraddlingTheStartCounts()",
+   "hash": "4bfe8a9acdaf7dce",
+   "does": "Asserts a window straddling start (-2→12) counts, end +12 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testBoutIsCappedRegardlessOfHowLongTheSamplesRun()",
+   "hash": "c8e25cad754de025",
+   "does": "Asserts hourly windows running maxBoutDuration+4h are capped at start+maxBoutDuration.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testSampleThatOvershootsTheCeilingIsClippedToIt()",
+   "hash": "e1170861320ab9f2",
+   "does": "Asserts a single 10-hour window is clipped to start+maxBoutDuration.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2",
+    "EmuquTests/ActivityBoutResolverTests.swift::func ActivityBoutResolverTests.window(_:_:steps:)": "1b959d8e5eadb63e"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolverTests.testThresholdsMatchTheAuditedValues()",
+   "hash": "ee1e2e4ea2109ced",
+   "does": "Asserts defaultMaxGap == 600 s and maxBoutDuration == 21600 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

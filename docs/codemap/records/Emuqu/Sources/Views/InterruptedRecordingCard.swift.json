@@ -1,0 +1,106 @@
+{
+ "file": "Emuqu/Sources/Views/InterruptedRecordingCard.swift",
+ "hash": "60e78db5ce0c3137",
+ "role": "Fitness-tab card telling the user a workout recording died (stub) and offering to rebuild it from Apple Health; tap opens the existing Health import sheet.",
+ "types": [
+  "InterruptedRecordingCard: struct — stateless card (stub + onTap)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var InterruptedRecordingCard.body",
+   "hash": "4ee67be45999a03f",
+   "does": "Plain button around the label invoking onTap; accessibility id fitness.interruptedRecordingCard.",
+   "entry": "SwiftUI view-body evaluation (FitnessTabView+DataMenu.swift:91; tap sets showHealthImport = true)",
+   "calls": [
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.label",
+    "closure:onTap → FitnessTabView showHealthImport = true"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.label": "273e3ff9a8dd90fd"
+   }
+  },
+  {
+   "key": "var InterruptedRecordingCard.label",
+   "hash": "f5a6c27f0b7914ea",
+   "does": "Row: orange icon, title/subtitle text, chevron, card background.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.icon",
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.text"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.icon": "c994a7222ac716fc",
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.text": "1eeefff79bc5ed8f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var InterruptedRecordingCard.icon",
+   "hash": "38ae5f6ec47562f5",
+   "does": "White arrow.clockwise.heart symbol in an orange circle.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var InterruptedRecordingCard.text",
+   "hash": "d47f46329e3baf33",
+   "does": "Title 'Rebuild an interrupted recording' and the subtitle.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.subtitle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/InterruptedRecordingCard.swift::var InterruptedRecordingCard.subtitle": "b3467fd8fd2a4401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var InterruptedRecordingCard.subtitle",
+   "hash": "085fcd2695ac668b",
+   "does": "Localized sentence naming the stub's sport and abbreviated start date/time, saying Apple Health still has that hour's data.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

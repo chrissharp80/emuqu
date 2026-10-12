@@ -1,0 +1,632 @@
+{
+ "file": "EmuquUITests/SettingsNavigationUITests.swift",
+ "hash": "629fa22187544a90",
+ "role": "XCUITest walking every page the Settings root pushes, by row identifier: each row's tap leaves the root, the app stays foreground, and back returns. Plus Open Source licenses content and the search route to Delete All My Data. Contact Support (mailto) and Restore Purchases (an action) are not walked; the tap-through delete route is DataDeletionUITests'.",
+ "types": [
+  "SettingsNavigationUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SettingsNavigationUITests.setUp()",
+   "hash": "1326c70ae8da7fd0",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result; then navigates to Settings with up to 3 relaunches.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.navigateToSettings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.navigateToSettings()": "a7c3cb9ce19c087a"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsNavigationUITests.navigateToSettings()",
+   "hash": "a72fdbd4f3af34fa",
+   "does": "Up to 3 times: if More → Settings opens and the settings.profile row appears returns; otherwise terminates, relaunches and re-walks gates. XCTFails after the third attempt.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "for attempt 1...3",
+     "effect": "retry"
+    },
+    {
+     "at": "+19",
+     "cond": "Settings opened and Profile row visible",
+     "effect": "return"
+    },
+    {
+     "at": "+24",
+     "cond": "last attempt",
+     "effect": "break to XCTFail; else terminate/relaunch/toMainUI"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)",
+   "hash": "d892df45aa687ded",
+   "does": "Scrolls the row into view and asserts it exists, taps it, waits up to UITestTiming.s(5) until the row is gone or not safely hittable (UITestFind.isSafelyHittable, which checks frame and app intersection before asking isHittable), asserts app is runningForeground, pops back, re-scrolls and asserts the row is back and safely hittable.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.scrolledIntoView(identifier:label:)",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.waitUntil(_:_:)",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.popToSettingsRoot()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "row missing",
+     "effect": "return (assertion already failed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.popToSettingsRoot()": "45c0940cf3e136ad",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.scrolledIntoView(identifier:label:)": "441b9a3e7fac3eda",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.waitUntil(_:_:)": "f8adbac3457644eb"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.waitUntil(_:_:)",
+   "hash": "74658584d8275835",
+   "does": "Polls condition every 0.1s via RunLoop until true or timeout; returns final condition().",
+   "entry": null,
+   "calls": [
+    "closure:condition from walkSubPage (row exists / UITestFind.isSafelyHittable checks)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "before deadline",
+     "effect": "loop"
+    },
+    {
+     "at": "+3",
+     "cond": "condition true",
+     "effect": "return true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsNavigationUITests.scrolledIntoView(identifier:label:)",
+   "hash": "5850d8ae27ff0d76",
+   "does": "Delegates to UITestNav.scrollTo.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.popToSettingsRoot()",
+   "hash": "5c0519776cc93d67",
+   "does": "Taps the first navigation-bar button if any and waits up to 6s for a navigation bar.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a navigation-bar button exists",
+     "effect": "tap it (assumed Back)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testProfileSubpageRenders()",
+   "hash": "19865be864720694",
+   "does": "Walks the Settings 'Profile' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testBiometricsSubpageRenders()",
+   "hash": "2ea632cce5ede9f1",
+   "does": "Walks the Settings 'Biometrics' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testWearablesSubpageRenders()",
+   "hash": "69132eab2341465c",
+   "does": "Walks the Settings 'Wearables' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testReportsSubpageRenders()",
+   "hash": "47977590ef44e735",
+   "does": "Walks the Settings 'Reports' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testSleepSubpageRenders()",
+   "hash": "13e6e8ff20c1eb28",
+   "does": "Walks the Settings 'Sleep' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testTrainingSubpageRenders()",
+   "hash": "1c08dbc81b25b2ed",
+   "does": "Walks the Settings 'Training' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testModesSubpageRenders()",
+   "hash": "ec81b558fc2ce68d",
+   "does": "Walks the Settings 'Modes' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testAIAssistantSubpageRenders()",
+   "hash": "26f0a090d00283a7",
+   "does": "Walks the Settings 'Flo' row (settings.flo, label fallback 'Flo') via walkSubPage: scrolled into view, tap leaves root, app foreground, back returns. No skip: the row is in every build.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testDataSubpageRenders()",
+   "hash": "8ee3d2114f31467f",
+   "does": "Walks the Settings 'iCloud & Data' row (settings.data) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testTagsSubpageRenders()",
+   "hash": "0c3d173fcfb9ab63",
+   "does": "Walks the Settings 'Tags' row (settings.tags) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testRoutesSubpageRenders()",
+   "hash": "eec961598a9a8708",
+   "does": "Walks the Settings 'My Routes' row (settings.routes) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testPermissionsSubpageRenders()",
+   "hash": "3f463907246dbbc5",
+   "does": "Walks the Settings 'Permissions' row (settings.permissions) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testNotificationsSubpageRenders()",
+   "hash": "ee1e99bd1ac68916",
+   "does": "Walks the Settings 'Notifications' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testAppearanceSubpageRenders()",
+   "hash": "c31052aa7dfce113",
+   "does": "Walks the Settings 'Appearance' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testPerformanceSubpageRenders()",
+   "hash": "e9f0d1f769109ad9",
+   "does": "Walks the Settings 'Performance' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testLanguageSubpageRenders()",
+   "hash": "94b20d725afef660",
+   "does": "Walks the Settings 'Language' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testTroubleshootingSubpageRenders()",
+   "hash": "60efdfa39957ab6b",
+   "does": "Walks the Settings 'Troubleshooting' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testHelpCenterSubpageRenders()",
+   "hash": "8cd85e376abc8e4b",
+   "does": "Walks the Settings 'Help & Learn' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testMetricGuideSubpageRenders()",
+   "hash": "d62b0188a7e1d0ad",
+   "does": "Walks the Settings 'Metric Guide' row (settings.metricGuide) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testMethodologySubpageRenders()",
+   "hash": "2ee99c1ee0d195c8",
+   "does": "Walks the Settings 'How Emuqu scores recovery' row (settings.methodology) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testTermsOfUseSubpageRenders()",
+   "hash": "5bad957122fefaed",
+   "does": "Walks the Settings 'Terms of Use' row (settings.termsOfUse) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testPrivacyPolicySubpageRenders()",
+   "hash": "01677a50bb7ef4c4",
+   "does": "Walks the Settings 'Privacy Policy' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testHealthDisclaimerSubpageRenders()",
+   "hash": "fc5f7e3678eee3a3",
+   "does": "Walks the Settings 'Health Disclaimer' row via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testOpenSourceLicensesSubpageRenders()",
+   "hash": "0db1c9982ae97bb8",
+   "does": "Scrolls to settings.acknowledgements and asserts it exists, taps it, then for polar-ble-sdk, swift-protobuf and Zip waits/swipes up to 10 times and asserts each static text is found; taps the first nav-bar button.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.scrolledIntoView(identifier:label:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "row missing",
+     "effect": "return"
+    },
+    {
+     "at": "+20",
+     "cond": "for each package name",
+     "effect": "search and assert"
+    },
+    {
+     "at": "+23",
+     "cond": "up to 10 swipes while not found",
+     "effect": "swipe up and re-check"
+    },
+    {
+     "at": "+33",
+     "cond": "a nav-bar button exists",
+     "effect": "tap it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.scrolledIntoView(identifier:label:)": "441b9a3e7fac3eda"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testAdvancedDataControlsSubpageRenders()",
+   "hash": "f72a4fc87ab0110c",
+   "does": "Walks the Settings 'Advanced Data Controls' row (settings.advancedDataControls) via walkSubPage (row exists, tap leaves root, app foreground, back returns).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/SettingsNavigationUITests.swift::func SettingsNavigationUITests.walkSubPage(identified:label:file:line:)": "624eb0968e79cee3"
+   }
+  },
+  {
+   "key": "func SettingsNavigationUITests.testDeleteAllDataReachableFromSearch()",
+   "hash": "a148018577c7033b",
+   "does": "Types 'Advanced Data' into the Settings search field, taps the 'Advanced Data Controls' result, asserts the delete row appears, taps it and asserts a 'Delete All My Data' navigation bar appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

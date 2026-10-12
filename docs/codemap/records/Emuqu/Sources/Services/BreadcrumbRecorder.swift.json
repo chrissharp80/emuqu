@@ -1,0 +1,494 @@
+{
+ "file": "Emuqu/Sources/Services/BreadcrumbRecorder.swift",
+ "hash": "97c74ab6042fea09",
+ "role": "@Observable @MainActor singleton for Get Me Back: a 10 m-accuracy background CLLocationManager that throttles fixes (30 s or 25 m) into an active BreadcrumbTrail persisted through BreadcrumbStore, exposes latest location/heading, and resumes a recent trail after relaunch.",
+ "types": [
+  "BreadcrumbRecorder: final class NSObject @Observable @MainActor — breadcrumb recorder",
+  "extension BreadcrumbRecorder: CLLocationManagerDelegate"
+ ],
+ "state": [
+  "BreadcrumbRecorder.shared singleton",
+  "mem:BreadcrumbRecorder.latestLocation",
+  "mem:BreadcrumbRecorder.latestHeading",
+  "mem:BreadcrumbRecorder.activeTrail",
+  "mem:BreadcrumbRecorder.isEngaged",
+  "mem:BreadcrumbRecorder.authorizationStatus",
+  "lastCommittedFix",
+  "pendingEngage",
+  "static movementCommitMeters=25, timeCommitSeconds=30, resumeWindowSeconds=12h"
+ ],
+ "toplevel": "Persistence is delegated to BreadcrumbStore (Breadcrumbs/active.json, archive.json).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init BreadcrumbRecorder()",
+   "hash": "4640d4edd89f8fff",
+   "does": "Configures the manager (10 m accuracy, 10 m filter, otherNavigation, no auto-pause), loads the persisted active trail, and resumes recording if its last activity is under 12 h old.",
+   "entry": "Lazy static BreadcrumbRecorder.shared via AppDependencies.location.breadcrumbRecorder (first touched by FitnessTabView, assistant facts, or DataPurgeService).",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.lastActivity(of:)",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "a trail was loaded and last activity < 12 h ago",
+     "effect": "resume() (starts background location without a user action if authorized); otherwise keep the trail loaded but idle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.lastActivity(of:)": "f3931a2ffce01aa7",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "9b5d689c5969d74d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "ec7d3168e9a8ca29",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.lastActivity(of:)",
+   "hash": "060bf443b2b92c14",
+   "does": "Last fix timestamp of a trail, or its start time when it has no fixes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trail has a last fix",
+     "effect": "its timestamp; ?? startedAt when no fixes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.engage(label:)",
+   "hash": "575078f1e9d69d99",
+   "does": "If permission is undetermined, remembers the label and prompts; if authorized, creates and saves a fresh empty trail, resets the throttle, starts streaming, and marks engaged; otherwise does nothing.",
+   "entry": "Called from FitnessTabView+Sections.swift:54/62 button taps and from applyAuthorization after a grant.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()",
+    "ext:CLLocationManager.requestWhenInUseAuthorization",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/active.json",
+    "mem:BreadcrumbRecorder.activeTrail",
+    "mem:BreadcrumbRecorder.isEngaged"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "status .notDetermined",
+     "effect": "store pendingEngage and request permission, return"
+    },
+    {
+     "at": "+7",
+     "cond": "authorized",
+     "effect": "start fresh trail; otherwise return silently (denied: nothing recorded, no feedback here)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "dfe92fa6ef2dee3f",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "bee1a9275c5ad5f9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.startStreaming()",
+   "hash": "86ef3fc6349a6e22",
+   "does": "Enables background updates with indicator, starts location updates, and starts heading when available.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocationManager.startUpdatingLocation",
+    "ext:CLLocationManager.startUpdatingHeading"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "heading available",
+     "effect": "start heading; otherwise skip"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreadcrumbRecorder.resume()",
+   "hash": "94292739ac607295",
+   "does": "Restarts streaming for a restored trail when not engaged and authorized, continuing the throttle from the trail's last fix.",
+   "entry": "Called from init and GetMeBackView.swift:320 on appear.",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "writes": [
+    "mem:BreadcrumbRecorder.isEngaged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trail exists and not engaged",
+     "effect": "continue; otherwise return"
+    },
+    {
+     "at": "+3",
+     "cond": "authorized",
+     "effect": "start; otherwise return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "dfe92fa6ef2dee3f",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.disengage()",
+   "hash": "f1ac7f3fb23c9180",
+   "does": "Stops location and heading, disables background updates, clears engaged and pending engage; drops the in-memory trail only when the store no longer has an active file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()",
+    "ext:CLLocationManager.stopUpdatingLocation",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "ext:CLLocationManager.stopUpdatingHeading"
+   ],
+   "reads": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [
+    "mem:BreadcrumbRecorder.isEngaged",
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "store has no active trail file",
+     "effect": "clear activeTrail and lastCommittedFix; otherwise keep them loaded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "48c8c6fc3970494c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.endAndArchive()",
+   "hash": "6aec529df9252aaf",
+   "does": "Archives the active trail via the store, stops recording, and clears the in-memory trail.",
+   "entry": "GetMeBackView.swift:284 'End and save' alert button.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/archive.json",
+    "file:Breadcrumbs/active.json",
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "7ed0ae8ae2208fc4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.forgetAfterPurge()",
+   "hash": "d370af04b0193129",
+   "does": "Delete All My Data: stops recording and clears trail, throttle anchor, latest location and latest heading (files removed by the purge).",
+   "entry": "Called from DataPurgeService.swift:592.",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BreadcrumbRecorder.activeTrail",
+    "mem:BreadcrumbRecorder.latestLocation",
+    "mem:BreadcrumbRecorder.latestHeading"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.clearTrail()",
+   "hash": "9c424f50fed7bfbb",
+   "does": "User-confirmed discard: stops recording, deletes the active trail file, and clears the in-memory trail.",
+   "entry": "GetMeBackView.swift:291 'Discard' alert button.",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/active.json",
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "46f8393a76f04151",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.shouldCommit(_:)",
+   "hash": "d939b5a943889825",
+   "does": "Accepts a fix with 0 < accuracy <= 100 m when there is no previous commit, 30 s have elapsed, or the user moved >= 25 m from the last commit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "accuracy > 0",
+     "effect": "continue; otherwise reject"
+    },
+    {
+     "at": "+8",
+     "cond": "accuracy <= 100 m",
+     "effect": "continue; otherwise reject"
+    },
+    {
+     "at": "+10",
+     "cond": "a previous commit exists",
+     "effect": "apply throttle; otherwise accept"
+    },
+    {
+     "at": "+12",
+     "cond": "elapsed >= 30 s",
+     "effect": "accept"
+    },
+    {
+     "at": "+14",
+     "cond": "moved >= 25 m",
+     "effect": "accept; otherwise reject"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.commit(_:)",
+   "hash": "5696d9cbbc4235b0",
+   "does": "Appends the fix to the active trail (setting origin on the first fix), updates the throttle anchor, and persists the trail; no-op without an active trail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/active.json",
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "active trail exists",
+     "effect": "append; otherwise return"
+    },
+    {
+     "at": "+4",
+     "cond": "trail has no origin",
+     "effect": "use this fix as origin"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "bee1a9275c5ad5f9",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.locationManagerDidChangeAuthorization(_:)",
+   "hash": "8bf0c4e2071e22bc",
+   "does": "Hops the authorization status to the MainActor applyAuthorization.",
+   "entry": "CLLocationManagerDelegate callback (creation and each authorization change).",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.applyAuthorization(_:manager:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.applyAuthorization(_:manager:)": "ac9009d527e76770"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.applyAuthorization(_:manager:)",
+   "hash": "8757a94b111dee27",
+   "does": "Publishes the status; on a decided status, consumes the pending engage and completes it when granted; when access is revoked while engaged, disengages (stops location/heading, trail stays on disk); else (if engaged and granted) restarts location and heading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()",
+    "ext:CLLocationManager.startUpdatingLocation"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BreadcrumbRecorder.authorizationStatus"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "status not .notDetermined",
+     "effect": "continue; otherwise return keeping pendingEngage"
+    },
+    {
+     "at": "+7",
+     "cond": "pending engage, granted, not engaged",
+     "effect": "engage with the pending label and return"
+    },
+    {
+     "at": "+11",
+     "cond": "engaged and not granted (revoked)",
+     "effect": "disengage and return"
+    },
+    {
+     "at": "+15",
+     "cond": "engaged and granted",
+     "effect": "restart updates; otherwise return"
+    },
+    {
+     "at": "+17",
+     "cond": "heading available",
+     "effect": "start heading"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "bef212664a1481d4"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.locationManager(_:didUpdateLocations:)",
+   "hash": "69a75138b25d5f16",
+   "does": "Hops the last fix of the batch to MainActor: sets latestLocation, commits it if the throttle allows, and forwards it to AmbientLocationService.record.",
+   "entry": "CLLocationManagerDelegate didUpdateLocations.",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.commit(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BreadcrumbRecorder.latestLocation",
+    "mem:AmbientLocationService._latestLocation"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "batch non-empty",
+     "effect": "process last fix (earlier fixes in a deferred batch are discarded); otherwise return"
+    },
+    {
+     "at": "+4",
+     "cond": "throttle accepts",
+     "effect": "commit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "b4d57ad4cd3b8570",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.commit(_:)": "e5d37428effe2fda",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)": "dc4f744a78db9533",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorder.locationManager(_:didUpdateHeading:)",
+   "hash": "5e766845137246da",
+   "does": "Hops a new compass heading to MainActor latestHeading.",
+   "entry": "CLLocationManagerDelegate didUpdateHeading.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:BreadcrumbRecorder.latestHeading"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreadcrumbRecorder.locationManager(_:didFailWithError:)",
+   "hash": "905fb0d89f973465",
+   "does": "Ignores location errors.",
+   "entry": "CLLocationManagerDelegate didFailWithError.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

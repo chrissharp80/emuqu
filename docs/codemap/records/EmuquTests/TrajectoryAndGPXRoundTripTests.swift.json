@@ -1,0 +1,738 @@
+{
+ "file": "EmuquTests/TrajectoryAndGPXRoundTripTests.swift",
+ "hash": "cf8d2ca2ede46500",
+ "role": "@MainActor XCTest suite pinning TrajectoryVerdict.compute precedence (comeback > overreach > peaking > baseline gate > deep fatigue > rising/rapid > declining) and verdict display copy, plus a GPXExporter → GPXImporter round-trip (point count, 1e-6° coordinates, 1 s timestamps, distance within 0.1%), typed import errors and XXE non-resolution.",
+ "types": [
+  "TrajectoryAndGPXRoundTripTests: class — @MainActor XCTestCase over TrajectoryVerdict and GPXExporter/GPXImporter"
+ ],
+ "state": [
+  "savedDefaultTimeZone: nonisolated static OSAllocatedUnfairLock<TimeZone?> holding the process NSTimeZone.default during the class run"
+ ],
+ "toplevel": "The class-level setUp/tearDown swap the process-global NSTimeZone.default to UTC for the whole class and restore it afterwards.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The TrajectoryVerdict half of this file re-tests the same precedence, baseline gate, deep-fatigue, rising/rapid and rampRate==0 fallback cases that EmuquTests/TrajectoryVerdictTests.swift table-drives, with a second private inputs() builder.",
+   "evidence": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:39",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:270",
+    "EmuquTests/TrajectoryVerdictTests.swift:12",
+    "EmuquTests/TrajectoryVerdictTests.swift:36"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves NSTimeZone.default and sets it to TestTimeZone.utc for the whole class.",
+   "entry": "XCTest runner: class setUp once before the class's tests",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved NSTimeZone.default if any and clears the saved value.",
+   "entry": "XCTest runner: class tearDown after the class's tests",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists",
+     "effect": "true: restores it; false: leaves NSTimeZone.default as is"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Mutates the process-global NSTimeZone.default for the duration of the class; any concurrently running test (parallel testing in-process) or app-host code reading TimeZone.current sees UTC.",
+     "evidence": [
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:27"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testComebackModeOutranksAllSignals()",
+   "hash": "0cc00c2af7b71ddd",
+   "does": "Asserts comeback wins with overreach, peaking, ramp 20 and TSB −40 all set.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testOverreachOutranksPeakingAndComputedSignals()",
+   "hash": "0850e56b664df2c9",
+   "does": "Asserts overreach wins over peaking, ramp 20 and TSB −40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testPeakingOutranksComputedSignals()",
+   "hash": "e69a0f57362c2198",
+   "does": "Asserts peaking wins over ramp 20 and TSB −40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testInsufficientHistoryIsBuildingBaseline()",
+   "hash": "4e922561480a303d",
+   "does": "Asserts sampleCount 7 → buildingBaseline, and nil ctlOneWeekAgo with 30 samples → buildingBaseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testDeepFatigueOverridesRisingCTL()",
+   "hash": "28415b63b2d2d43e",
+   "does": "Asserts ramp +2.7 at TSB −16 → highStrain (deep fatigue precedes the building gate).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testDeepFatigueBoundaryIsMinusFifteenExclusive()",
+   "hash": "51e2743020de9aed",
+   "does": "Asserts TSB −15.1 → highStrain and exactly −15.0 is not highStrain (strict less-than).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testRisingRampIsBuildingUntilItIsRapid()",
+   "hash": "454d754b16b1abee",
+   "does": "Asserts ramp 3 → building and ramp 9 → rapidIncrease at TSB 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testFlatAndMarginallyNegativeRampAreMaintaining()",
+   "hash": "d6e3f85e038c04bf",
+   "does": "Asserts flat CTL with ramp 0 → maintaining, and ramp −0.5 → maintaining (deadband).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testZeroRampRateFallsBackToRawCTLDelta()",
+   "hash": "a70b5ce35aad2457",
+   "does": "Asserts rampRate exactly 0 falls back to the raw CTL delta: +2 delta → building, 0 delta → maintaining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Pins a sentinel the test's own doc calls 'a genuine trap': compute treats rampRate == 0 as 'not supplied' (TrajectoryVerdict.swift:204), so a measured ramp of exactly zero with a +2 CTL delta reads Building; the test asserts that behaviour instead of requiring an explicit optional.",
+     "evidence": [
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:109",
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:117",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:204"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "In the rampRate == 0 fallback the rapid-increase check still reads inputs.rampRate > 8 (TrajectoryVerdict.swift:206), so a fallback CTL delta above 8 can only ever yield .building, never .rapidIncrease; the test pins the fallback but does not cover this branch.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:204",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:206",
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:116"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testFallingCTLWhileFreshIsDetraining()",
+   "hash": "6655c8864db40c3d",
+   "does": "Asserts ramp −3 at TSB 0 → detraining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testFallingCTLWhileFatiguedIsMaintainingNotDetraining()",
+   "hash": "68a9f2555e898e0b",
+   "does": "Asserts ramp −3 at TSB −10 → maintaining (fatigued, not detraining).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testEveryVerdictCaseHasDisplayCopy()",
+   "hash": "0c60d3e03998027c",
+   "does": "Asserts every one of the 9 TrajectoryVerdict cases has non-empty chipLabel, localizedNarrative and localizedAccessibilityLabel.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each listed verdict",
+     "effect": "asserts three non-empty strings"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The 9 cases are a hand-written list, not allCases; a newly added verdict case would not be checked for display copy.",
+     "evidence": [
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:144"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Checks chipLabel, the English glyph label the assistant fact uses, not localizedChipLabel, which the views render (TrajectoryVerdict.swift:25-27,44); a missing or empty localized chip string would not be caught.",
+     "evidence": [
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:149",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:28",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:44"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel": "f67fc74dabbf06cf",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "93152eabbe94cb38",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative": "e8cb5b70455ae7fe"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testGPXRoundTripPreservesTrackpointCount()",
+   "hash": "edb7e6ef32aff065",
+   "does": "Exports 25 fixes to GPX and asserts the parsed track has 25 points.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testGPXRoundTripPreservesCoordinatesToSixDecimals()",
+   "hash": "1219e3aca4f9a7dc",
+   "does": "Exports 10 fixes and asserts each parsed latitude/longitude is within 1e-6° of the original.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each zipped (original, restored) pair",
+     "effect": "asserts both coordinates; zip stops at the shorter track"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testGPXRoundTripPreservesTimestamps()",
+   "hash": "44047955ed9f563b",
+   "does": "Exports 10 fixes and asserts each parsed timestamp is within 1 s of the original.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each zipped (original, restored) pair",
+     "effect": "asserts timestamp equality ±1 s"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testGPXRoundTripPreservesDerivedDistance()",
+   "hash": "995269255ea445d3",
+   "does": "Exports 40 fixes and asserts WorkoutAnalyzer.computeDistance of the parsed track is within max(1 m, 0.1%) of the original.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "64701d6eb47a668f",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testImporterRejectsMalformedXML()",
+   "hash": "458a908e38dae5c4",
+   "does": "Asserts parsing junk bytes throws a GPXImporter.ImportError.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testImporterRejectsGPXWithoutTrackpoints()",
+   "hash": "4173de2e6989a391",
+   "does": "Asserts a GPX with an empty trkseg throws ImportError.noTrackpoints.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "error is .noTrackpoints",
+     "effect": "true: passes; false: XCTFail with the actual error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testImportErrorsHaveUserFacingDescriptions()",
+   "hash": "f84b027c903b194e",
+   "does": "Asserts invalidXML and noTrackpoints both have non-empty errorDescription.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXImporter.ImportError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each listed ImportError",
+     "effect": "asserts a description"
+    },
+    {
+     "at": "+2",
+     "cond": "errorDescription?.isEmpty ?? true",
+     "effect": "nil description counts as empty and fails"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Iterates only [.invalidXML, .noTrackpoints]; ImportError has a third case .noTimestamps (GPXImporter.swift:32, thrown by parseWorkout at :58) whose description is not checked, despite the doc saying every import error must carry copy.",
+     "evidence": [
+      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:237",
+      "Emuqu/Sources/Analysis/GPXImporter.swift:32",
+      "Emuqu/Sources/Analysis/GPXImporter.swift:58"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXImporter.ImportError.errorDescription": "5f5618ae260e17e5"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.testImporterDoesNotResolveExternalEntities()",
+   "hash": "15c16880bc58ebaf",
+   "does": "Writes a temp file 'cycling', builds a GPX whose <type> is an external entity pointing to it, and asserts either parse keeps sport .run with 2 points, or throws .invalidXML (entity never resolved).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/xxe-<UUID>.txt"
+   ],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "catch from parse",
+     "effect": "asserts the error is ImportError.invalidXML; success path asserts sport .run and 2 points"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)": "e08e0acfd6166078",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)",
+   "hash": "342eb43284b4703e",
+   "does": "Test helper: TrajectoryVerdict.Inputs with defaults CTL 50, week-ago 48, 30 samples, no modes, ramp 0, TSB nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.makeTrack(count:)",
+   "hash": "db446b5d155de0b5",
+   "does": "Test helper: `count` synthetic CLLocations from 1_700_000_000 at 5 s spacing.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.location(at:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.location(at:from:)": "782823b4a12ef1fd"
+   }
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.location(at:from:)",
+   "hash": "6fa43209009925f7",
+   "does": "Test helper: one fix stepping 0.0005° lat / 0.0003° lon per index, altitude 250 + i%7, accuracy 5 m, 5 s per index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()",
+   "hash": "57244c9925d39cfd",
+   "does": "Test helper: a 1-hour run workout HRVSession from 1_700_000_000 with 10 km distance and 120 m gain metadata.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  }
+ ],
+ "deps": {}
+}

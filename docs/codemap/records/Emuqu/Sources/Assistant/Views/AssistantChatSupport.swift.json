@@ -1,0 +1,814 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift",
+ "hash": "44bb98ea49e870c1",
+ "role": "Support types for the chat tab: scroll-position preference keys, sheet item wrappers, the extracted ChatInputBar (draft/dictation/inbox consumption/send), the FloInputMode resolver, Apple Intelligence availability status text, and the FloSetupCard shown when no model can answer.",
+ "types": [
+  "ChatScrollPositionKey: struct PreferenceKey — content frame in chatScroll space",
+  "ChatViewportKey: struct PreferenceKey — scroll viewport height",
+  "ConsentSheetItem: struct Identifiable — wraps ProviderID for .sheet(item:)",
+  "ExportShareURL: struct Identifiable — wraps export URL for .sheet(item:)",
+  "ChatInputBar: struct View — prefab chips + composer/mic/send; owns draft, SpeechInputManager, focus",
+  "FloInputMode: enum — setup/suggestions/composer",
+  "AppleIntelligenceStatus: enum — available/notEnabled/modelDownloading/unsupported + explanation",
+  "FloSetupCard: struct View — setup screen with 'Add an API key' button"
+ ],
+ "state": [
+  "static ChatScrollPositionKey.defaultValue = .zero (line 17)",
+  "static ChatViewportKey.defaultValue = 0 (line 24)",
+  "@State ChatInputBar.draft / draftBeforeDictation (field text when dictation started) / speech (SpeechInputManager instance) / voiceErrorMessage, @FocusState inputFocused"
+ ],
+ "toplevel": "#if canImport(FoundationModels) imports FoundationModels and compiles AppleIntelligenceStatus.status(of:) (iOS 26); without it `current` always returns .unsupported. No global state.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ChatScrollPositionKey.reduce(value:nextValue:)",
+   "hash": "ec83238066eef47b",
+   "does": "Preference reducer: keeps the latest reported CGRect (last writer wins).",
+   "entry": "SwiftUI PreferenceKey reduction when transcript reports its frame",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ChatViewportKey.reduce(value:nextValue:)",
+   "hash": "8c1b5089e12c54ca",
+   "does": "Preference reducer: keeps the latest reported viewport height.",
+   "entry": "SwiftUI PreferenceKey reduction",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ConsentSheetItem.id",
+   "hash": "ced2f43f7aeb2e87",
+   "does": "Identifiable id = provider.rawValue.",
+   "entry": "SwiftUI .sheet(item:) identity",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ExportShareURL.id",
+   "hash": "060e0f29e095fd8b",
+   "does": "Identifiable id = url.path.",
+   "entry": "SwiftUI .sheet(item:) identity",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ChatInputBar.inbox",
+   "hash": "cce5921afe669949",
+   "does": "Returns dependencies.assistant.assistantInbox (shared pending-draft / transient-notice holder).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox"
+   ],
+   "reads": [
+    "mem:AssistantInbox"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93"
+   }
+  },
+  {
+   "key": "var ChatInputBar.body",
+   "hash": "479634d808a2535e",
+   "does": "Emits a keyboard-perf signpost, renders prefab chips + composer; consumes the inbox draft on appear, when inbox.pendingDraft changes, when composerState.canSend changes and when Flo's notice/switch state (floNoticeAccepted) changes; cancels dictation on disappear; restores a returned (consent-declined) draft; signposts focus changes.",
+   "entry": "SwiftUI view body evaluation; .onAppear/.onDisappear/.onChange observers",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.prefabChips",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.consumeInboxIfPresent()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.restoreReturnedDraft()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.signpostFocusChange(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.inbox",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.floNoticeAccepted"
+   ],
+   "reads": [
+    "mem:AssistantInbox.pendingDraft",
+    "mem:ComposerState.canSend",
+    "mem:ComposerState.returnedDraft",
+    "mem:AssistantViewModel.hasAcceptedDisclaimer",
+    "mem:SettingsManager.settings.enableAIAssistant"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.consumeInboxIfPresent()": "ca6fbf89ff518d73",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.restoreReturnedDraft()": "7744324013761fb1",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.signpostFocusChange(_:)": "274b26ad1b0bb6c5",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()": "0c97ba93634caa79",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer": "8c16019740c8a15f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.floNoticeAccepted": "d0eeb9d96ac1d377",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.inbox": "6aad8ae84efa1368",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.prefabChips": "6816fca7b9a95702",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
+   }
+  },
+  {
+   "key": "func ChatInputBar.signpostFocusChange(_:)",
+   "hash": "51222d729c5416f9",
+   "does": "Emits KeyboardPerfSignpost event 'ChatInputBar.focusChanged' with detail 'true'/'false'.",
+   "entry": "onChange(of: inputFocused)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:detail:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "focused",
+     "effect": "detail 'true'; else 'false'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:detail:)": "835ef7e403556af0"
+   }
+  },
+  {
+   "key": "var ChatInputBar.prefabChips",
+   "hash": "ee71efc56aaad4ff",
+   "does": "PrefabQuestionChips enabled by composerState.canSend; selecting one calls onSendPrefab (AssistantViewModel.send(prefab:) via connectedInputBar).",
+   "entry": "SwiftUI view body evaluation; chip tap",
+   "calls": [
+    "closure:onSendPrefab — set by AssistantChatView.connectedInputBar (+Sections.swift:514) to viewModel.send(prefab:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)"
+   ],
+   "reads": [
+    "mem:ComposerState.canSend"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "2f45fc298f1c27b1",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.canSend": "5991e7b484d5b439"
+   }
+  },
+  {
+   "key": "var ChatInputBar.composer",
+   "hash": "2a1cdc94cadabd8f",
+   "does": "Shows appleOnlyComposerHint when Apple Intelligence is the active provider, else the full text composer.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.appleOnlyComposerHint",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.fullComposer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isAppleActive",
+     "effect": "hint row (no text field); else fullComposer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.appleOnlyComposerHint": "a1cb284cd4ccc1d4",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.fullComposer": "bdd83f49a7019b6c"
+   }
+  },
+  {
+   "key": "var ChatInputBar.appleOnlyComposerHint",
+   "hash": "9898e93b1c94ceb4",
+   "does": "Caption row explaining that free typing needs a connected model and an API key in Settings.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The hint tells the user to 'add an API key in Settings' whenever Apple Intelligence is the active provider, including when cloud keys are already saved; the composer is hidden on isAppleActive alone, so the correct action (switch model) is never mentioned. The doc comment at 109-110 says this applies with 'no API key'.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:109-110",
+      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:125-126",
+      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:138"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ChatInputBar.fullComposer",
+   "hash": "321180920800724a",
+   "does": "Bottom-aligned HStack of message field, mic button and send button.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.messageField",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButton",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.sendButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.messageField": "f4303ecb8b7bfbcb",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButton": "dfa65a0c0f80807f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.sendButton": "58e6ffc18e424bee"
+   }
+  },
+  {
+   "key": "var ChatInputBar.messageField",
+   "hash": "7383e23f0aca38b2",
+   "does": "Vertical-growing TextField (1–4 lines) bound to draft, focus bound to inputFocused, accessibility id 'assistant.composer', styled via withComposerFieldStyle.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.withComposerFieldStyle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.withComposerFieldStyle(_:)": "7c9d5da3e3cae77b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ChatInputBar.withComposerFieldStyle(_:)",
+   "hash": "c4f671c6c2aaa9cd",
+   "does": "Applies autocorrection off, no autocapitalisation, Writing Tools disabled (iOS 18+), padding, rounded background and accessibility label/hint to the field.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func View.disableWritingToolsIfAvailable()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func View.disableWritingToolsIfAvailable()": "1ab9b3a08a62b76b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChatInputBar.sendButton",
+   "hash": "9f828dedf8b06a3f",
+   "does": "Send button: stops dictation if recording, captures and clears draft, drops focus, calls onSend(text); if the outcome is .rejectedNoProvider the text is put back. Disabled and greyed when !canSend or draft is whitespace.",
+   "entry": "button tap; body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()",
+    "closure:onSend — set by connectedInputBar (+Sections.swift:513) to viewModel.send(text:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+   ],
+   "reads": [
+    "mem:ComposerState.canSend"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "onSend returned .rejectedNoProvider",
+     "effect": "draft restored to the sent text; other outcomes (.dispatched/.queued/.requiresConsent/.rejectedEmpty) leave field empty — consent-required text comes back later via returnedDraft on decline"
+    },
+    {
+     "at": "+15",
+     "cond": "canSend and draft non-blank",
+     "effect": "accent colour icon; else tertiary-label colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()": "0c97ba93634caa79",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var ChatInputBar.micButton",
+   "hash": "320b2d0183cedd4d",
+   "does": "The dictation button (micButtonCore) with the 'Voice input' alert showing voiceErrorMessage; while recording keeps draft = the text typed before dictation followed by speech.transcript; a recogniser failure reported in speech.lastError (SpeechInputManager ends the recording) is shown in the alert.",
+   "entry": "body; onChange(of: speech.transcript / speech.lastError)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButtonCore",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.voiceErrorBinding",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)"
+   ],
+   "reads": [
+    "mem:SpeechInputManager.transcript",
+    "mem:SpeechInputManager.isRecording",
+    "mem:SpeechInputManager.lastError"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "voiceErrorMessage ?? \"\"",
+     "effect": "message text; empty string when nil (alert not shown then)"
+    },
+    {
+     "at": "+8",
+     "cond": "speech.isRecording when transcript changes",
+     "effect": "draft = text before dictation + transcript; otherwise ignored"
+    },
+    {
+     "at": "+11",
+     "cond": "lastError became non-nil",
+     "effect": "voiceErrorMessage = it (alert)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "a0581d1bcd485b0f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButtonCore": "9f363bc8e690fbe5",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.voiceErrorBinding": "1c25ffb4a7dbd5b7",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ChatInputBar.micButtonCore",
+   "hash": "2ed864b4a1b85d1e",
+   "does": "The mic toggle itself: a 44 pt button calling toggleDictation; icon, colour and accessibility label follow speech.isRecording ('mic.fill'/red/'Stop dictation' while recording, else 'mic'/accent/'Start dictation'), with a 'Use your voice to compose a question' hint.",
+   "entry": "button tap; body (via micButton)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SpeechInputManager.isRecording"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "speech.isRecording",
+     "effect": "'mic.fill'; else 'mic'"
+    },
+    {
+     "at": "+6",
+     "cond": "speech.isRecording",
+     "effect": "red; else accent"
+    },
+    {
+     "at": "+10",
+     "cond": "speech.isRecording",
+     "effect": "label 'Stop dictation'; else 'Start dictation'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()": "44c098b4fa6a4fbc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func ChatInputBar.joined(_:_:)",
+   "hash": "b99a8a5417c9ad52",
+   "does": "Static: prefix followed by addition — just the addition when the prefix is blank, just the prefix when the addition is empty, else joined with a space unless the prefix already ends in whitespace.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "prefix blank",
+     "effect": "addition"
+    },
+    {
+     "at": "+2",
+     "cond": "addition empty",
+     "effect": "prefix"
+    },
+    {
+     "at": "+3",
+     "cond": "prefix ends in whitespace",
+     "effect": "concatenate; else insert a space"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ChatInputBar.voiceErrorBinding",
+   "hash": "2b0de2594228ae27",
+   "does": "Binding<Bool> true while voiceErrorMessage is non-nil; setting false clears the message.",
+   "entry": "alert isPresented binding",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "set value is false",
+     "effect": "voiceErrorMessage = nil; true is ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func ChatInputBar.toggleDictation()",
+   "hash": "41389e0dd58b2776",
+   "does": "If recording, stops SpeechInputManager and puts the text typed before dictation followed by its final transcript in draft; otherwise remembers the current draft as draftBeforeDictation and starts dictation asynchronously, showing any start error (LocalizedError description or localizedDescription) in the alert. A second tap while start() awaits permissions is ignored by SpeechInputManager.start (isStarting guard).",
+   "entry": "mic button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "speech.isRecording",
+     "effect": "draft = joined(text before, speech.stop()); return"
+    },
+    {
+     "at": "+9",
+     "cond": "speech.start() throws",
+     "effect": "error captured into voiceErrorMessage (alert shown)"
+    },
+    {
+     "at": "+10",
+     "cond": "error is LocalizedError with errorDescription",
+     "effect": "uses errorDescription; ?? falls back to error.localizedDescription"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "13953803f4185361",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "241347482ec4b62f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "a0581d1bcd485b0f"
+   }
+  },
+  {
+   "key": "func ChatInputBar.stopDictationIfRecording()",
+   "hash": "3d14bbfc348c3ee2",
+   "does": "Cancels dictation (discarding transcript) when recording.",
+   "entry": "onDisappear; send button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.cancel()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "speech.isRecording",
+     "effect": "speech.cancel(); otherwise no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.cancel()": "9c4c45e8fe707d1a"
+   }
+  },
+  {
+   "key": "func ChatInputBar.consumeInboxIfPresent()",
+   "hash": "e78bffee4c5719e5",
+   "does": "Moves AssistantInbox.pendingDraft into the chat. 'Can send now' = composerState.canSend AND Flo is on with its notice accepted (floNoticeAccepted). With Apple active and unable to send it leaves the question queued in the inbox (re-run when canSend or the notice changes). Otherwise clears the inbox and either auto-sends the trimmed text (can send now AND (Apple active OR ends with ?, ？ or ؟)) — a cloud send the view model still rejects with .rejectedNoProvider goes into the field — or adds it to the field after anything already typed.",
+   "entry": "ChatInputBar onAppear / onChange(inbox.pendingDraft) / onChange(composerState.canSend)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.inbox",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.floNoticeAccepted",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.endsWithQuestionMark(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)",
+    "closure:onSend — viewModel.send(text:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+   ],
+   "reads": [
+    "mem:AssistantInbox.pendingDraft",
+    "mem:ComposerState.canSend",
+    "mem:AssistantViewModel.hasAcceptedDisclaimer"
+   ],
+   "writes": [
+    "mem:AssistantInbox.pendingDraft"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "inbox has a pendingDraft",
+     "effect": "continues; nil → return"
+    },
+    {
+     "at": "+3",
+     "cond": "Apple active and cannot send now",
+     "effect": "return, leaving the draft queued in the inbox"
+    },
+    {
+     "at": "+6",
+     "cond": "can send now AND (Apple active OR ends with a question mark)",
+     "effect": "auto-send; on .rejectedNoProvider with a cloud model the text goes into the field. Else prefill (appended to typed text)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test exercises consumeInboxIfPresent's auto-send vs prefill rules (grep of EmuquTests/EmuquUITests for consumeInbox/endsWithQuestionMark finds nothing).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:283"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.endsWithQuestionMark(_:)": "e123a9e80c0c239e",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "a0581d1bcd485b0f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.floNoticeAccepted": "d0eeb9d96ac1d377",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.inbox": "6aad8ae84efa1368"
+   }
+  },
+  {
+   "key": "var ChatInputBar.floNoticeAccepted",
+   "hash": "be393dbb28415c5a",
+   "does": "Whether Flo may answer: AssistantViewModel.aiIsAllowed over the view model's hasAcceptedDisclaimer (and the AI Assistant switch). Read in body only through .onChange, so the bar re-renders when the notice flips and on nothing else of the view model.",
+   "entry": "Read by ChatInputBar.body (.onChange) and consumeInboxIfPresent",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.hasAcceptedDisclaimer",
+    "mem:SettingsManager.settings.enableAIAssistant"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)": "5eeac40f6a95aa7d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69"
+   }
+  },
+  {
+   "key": "func ChatInputBar.restoreReturnedDraft()",
+   "hash": "4ee373c28e20d486",
+   "does": "If the view-model handed back a declined-consent draft, clears composerState.returnedDraft and puts it in the field unless the user has already typed something.",
+   "entry": "onChange(of: composerState.returnedDraft)",
+   "calls": [],
+   "reads": [
+    "mem:ComposerState.returnedDraft"
+   ],
+   "writes": [
+    "mem:ComposerState.returnedDraft"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "returnedDraft non-nil",
+     "effect": "continues; nil → return"
+    },
+    {
+     "at": "+3",
+     "cond": "current draft is blank",
+     "effect": "draft = returned; otherwise returned text is dropped (already cleared)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ChatInputBar.endsWithQuestionMark(_:)",
+   "hash": "320e9258b29f6565",
+   "does": "True when the text's last character is '?', '？' or '؟'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "text has a last character",
+     "effect": "checks membership; empty text → false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FloInputMode.resolve(activeProviderAvailable:appleSelected:)",
+   "hash": "3e1a3bbf324df7d1",
+   "does": "Resolves the input mode: .setup when the active provider is unavailable, else .suggestions for Apple, .composer for a cloud model.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "activeProviderAvailable",
+     "effect": "continues; false → .setup"
+    },
+    {
+     "at": "+2",
+     "cond": "appleSelected",
+     "effect": ".suggestions; else .composer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer": "8c16019740c8a15f"
+   }
+  },
+  {
+   "key": "var AppleIntelligenceStatus.current",
+   "hash": "36d78df22f08f822",
+   "does": "Current Apple Intelligence status: on iOS 26 with FoundationModels, maps SystemLanguageModel.default.availability; otherwise .unsupported.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func AppleIntelligenceStatus.status(of:)",
+    "ext:FoundationModels.SystemLanguageModel.default.availability"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "#available(iOS 26)",
+     "effect": "returns status(of: availability); else falls through to .unsupported"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func AppleIntelligenceStatus.status(of:)": "138a7b05700f98a2"
+   }
+  },
+  {
+   "key": "func AppleIntelligenceStatus.status(of:)",
+   "hash": "7a5554636524724c",
+   "does": "Maps SystemLanguageModel.Availability: .available → .available; unavailable(appleIntelligenceNotEnabled) → .notEnabled; unavailable(modelNotReady) → .modelDownloading; any other reason → .unsupported.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "availability is .unavailable(reason)",
+     "effect": "continues with reason; otherwise .available"
+    },
+    {
+     "at": "+3",
+     "cond": "reason == .appleIntelligenceNotEnabled",
+     "effect": ".notEnabled"
+    },
+    {
+     "at": "+4",
+     "cond": "reason == .modelNotReady",
+     "effect": ".modelDownloading; else .unsupported"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleIntelligenceStatus.explanation",
+   "hash": "772807c84b009d04",
+   "does": "Returns the localized one-sentence explanation for each status (on and free / turn on in Settings / still downloading / needs iPhone 15 Pro+ with iOS 26).",
+   "entry": "read by FloSetupCard.setupText and CoachHomeV2View.swift:474",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".available",
+     "effect": "'Apple Intelligence is on…'"
+    },
+    {
+     "at": "+4",
+     "cond": ".notEnabled",
+     "effect": "'…Turn it on in the Settings app…'"
+    },
+    {
+     "at": "+6",
+     "cond": ".modelDownloading",
+     "effect": "'…still downloading…'"
+    },
+    {
+     "at": "+8",
+     "cond": ".unsupported",
+     "effect": "'…isn't available on this one.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FloSetupCard.body",
+   "hash": "b690d812c845f41c",
+   "does": "Setup card (sparkles icon, 'Set up Flo', explanatory text, Add-an-API-key button); calls ProviderRegistry.keysChanged on appear and whenever scenePhase becomes active.",
+   "entry": "SwiftUI view body evaluation; onAppear; onChange(scenePhase)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.setupText",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.addKeyButton",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderRegistry.activeProvider / activeProviderAvailable (via keysChanged)"
+   ],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "new scenePhase == .active",
+     "effect": "keysChanged(); other phases ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "54aa3690150b5924",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.addKeyButton": "ec4b81d4b7fbf6fe",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.setupText": "df8fca238288fb69",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry": "011c65c2dc3b4ab7",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var FloSetupCard.setupText",
+   "hash": "da1267baaf44387c",
+   "does": "Three centred paragraphs: what Flo needs, the current Apple Intelligence explanation, and the BYOK option with billing/consent note.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.current",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.current": "514de06774065ba8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation": "da17108be4f76166",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FloSetupCard.addKeyButton",
+   "hash": "6b4114564567c757",
+   "does": "Prominent 'Add an API key' button invoking onAddKey (sets AssistantChatView.floSettingsPresented = true).",
+   "entry": "button tap",
+   "calls": [
+    "closure:onAddKey — set by AssistantChatView.emptyState (+Sections.swift:321) to floSettingsPresented = true"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

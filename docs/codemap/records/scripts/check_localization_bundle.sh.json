@@ -1,0 +1,24 @@
+{
+ "file": "scripts/check_localization_bundle.sh",
+ "hash": "eea7c54efe024868",
+ "role": "CI gate: every String(localized:) / NSLocalizedString( call in Emuqu/Sources must contain a `bundle:` argument within its parentheses.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. SOURCE_ROOT=$1 or Emuqu/Sources (missing -> 2). Python masks string literals, finds String(localized:/NSLocalizedString( calls, skips lines starting //, paren-matches the call and requires `bundle:` inside and no `bundle: .main` / `bundle: Bundle.main`. Offenders -> exit 1. Else counts lookups with grep and prints clean. Watch target deliberately excluded. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "README says every lookup must name LanguageManager.appBundle; the gate accepts any `bundle:` argument (e.g. bundle: .main).",
+   "evidence": [
+    "scripts/README.md:73",
+    "scripts/check_localization_bundle.sh:71"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

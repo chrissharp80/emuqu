@@ -1,0 +1,101 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapSignal.swift",
+ "hash": "2920f8a51bbd0555",
+ "role": "Main-actor wake-up primitive: tasks waiting on strap state suspend in wait(timeout:) and are resumed by fire() (true), timeout (false) or cancellation (false).",
+ "types": [
+  "StrapSignal: class (@MainActor final) — continuation registry with per-waiter timeout tasks; one instance lives on StrapLinkRuntime.signal"
+ ],
+ "state": [
+  "mem:StrapSignal.waiters (UUID → continuation)",
+  "mem:StrapSignal.timers (UUID → timeout Task)"
+ ],
+ "toplevel": "Two empty dictionaries initialised at declaration.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapSignal.fire()",
+   "hash": "dbe7c09636215f3e",
+   "does": "Resumes every pending waiter with true and cancels/clears all timeout tasks.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StrapSignal.waiters",
+    "mem:StrapSignal.timers"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapSignal.wait(timeout:)",
+   "hash": "b8ff68963c3cf975",
+   "does": "Suspends the caller until fire(), the optional timeout, or task cancellation; returns true only for fire().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.register(_:_:timeout:)",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.resolve(_:fired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.register(_:_:timeout:)": "603a12f6a97b49b4",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.resolve(_:fired:)": "d4ffa8d34cfd1d21"
+   }
+  },
+  {
+   "key": "func StrapSignal.register(_:_:timeout:)",
+   "hash": "e63318213b4d3cda",
+   "does": "Registers a continuation (resuming false at once if the task is already cancelled) and, when a timeout is given, a Task that sleeps max(timeout,0) seconds then resolves the waiter with false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.resolve(_:fired:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StrapSignal.waiters",
+    "mem:StrapSignal.timers"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "task already cancelled",
+     "effect": "resumes false immediately and does not register"
+    },
+    {
+     "at": "+6",
+     "cond": "timeout is nil",
+     "effect": "returns after registering: waits only for fire()/cancel"
+    },
+    {
+     "at": "+9",
+     "cond": "timer task cancelled (by fire/resolve)",
+     "effect": "returns without resolving; else resolves the waiter with false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.resolve(_:fired:)": "d4ffa8d34cfd1d21",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func StrapSignal.resolve(_:fired:)",
+   "hash": "9697a61e2fe07f15",
+   "does": "Removes and cancels the waiter's timer and resumes its continuation (if still present) with the given value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StrapSignal.waiters",
+    "mem:StrapSignal.timers"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

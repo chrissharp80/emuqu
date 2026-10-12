@@ -1,0 +1,947 @@
+{
+ "file": "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift",
+ "hash": "e2f6712cb574faff",
+ "role": "Extension of SessionHRVDetailView holding the full metrics grid (time/frequency/nonlinear/ANS/data quality) and the overnight trend-comparison section, plus localized unit helpers.",
+ "types": [
+  "SessionHRVDetailView: extension — metrics grid, trend comparison, unit/format helpers",
+  "SessionHRVDetailView.TrendStats: struct (private) — averages of prior reliable overnight sessions (hasData, avgRMSSD, avgHR, avgStress?, avgReadiness?)"
+ ],
+ "state": [],
+ "toplevel": "Comment at top notes the content was split out of SessionHRVDetailView.swift for the 500-line ceiling; private struct TrendStats at line 343-349 is a plain value type.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SessionHRVDetailView.metricsGridSection",
+   "hash": "fe6afaa9e5c313ed",
+   "does": "Builds the 'all metrics' card: time-domain block, divider, optional frequency block, nonlinear block, optional ANS block, divider, data-quality block, wrapped in zenCard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.timeDomainMetrics",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.frequencyDomainMetrics",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.nonlinearMetrics",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.ansIndexMetrics",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityMetrics",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.ansIndexMetrics": "1842bd116a8c89f3",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityMetrics": "8f80cb124ae34a7a",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.frequencyDomainMetrics": "25b53879f150b3ee",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.nonlinearMetrics": "328b723952199f6b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.timeDomainMetrics": "67834296d623e9a9",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.timeDomainMetrics",
+   "hash": "f1255ba4437c9e58",
+   "does": "Section header 'Time Domain' (clock icon) above the time-domain grid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.timeDomainGrid"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "10cec03d37df520b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.timeDomainGrid": "d93e85ae4b5a0c6b"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.timeDomainGrid",
+   "hash": "f6f0083465ae777c",
+   "does": "Two-column grid of time-domain cells: Mean RR, SDNN, RMSSD, SDSD (ms), pNN50 (%), HR Range (min-max rounded %.0f), Mean HR and SD HR (bpm), and HRV triangular index when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "result.timeDomain.triangularIndex is non-nil",
+     "effect": "true: adds 'HRV TI' cell formatted %.1f; false: cell omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)": "ae392726e68ba5b6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit": "6595c34d5af5cd9b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit": "72e78014b19a0321"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.frequencyDomainMetrics",
+   "hash": "9d101b7b27cf3272",
+   "does": "Shows the frequency-domain card followed by a divider only when the result has frequency-domain metrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.frequencyDomainCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.frequencyDomain is non-nil",
+     "effect": "true: frequencyDomainCard(fd) + Divider; false: renders nothing (no divider)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.frequencyDomainCard(_:)": "b89b3f1a037bb03a"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.frequencyDomainCard(_:)",
+   "hash": "c9db1856df27e7e9",
+   "does": "Header 'Frequency Domain' (waveform icon) above the frequency grid for fd.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.frequencyDomainGrid(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.frequencyDomainGrid(_:)": "d7311f0193de5be8",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "10cec03d37df520b"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.frequencyDomainGrid(_:)",
+   "hash": "b749730ad1ca750c",
+   "does": "Two-column grid: VLF (optional), LF, HF, Total Power in ms² (%.0f), LF n.u./HF n.u. in % (optional), LF/HF ratio %.2f (optional).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msSquaredUnit"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fd.vlf non-nil",
+     "effect": "true: VLF cell; false: omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "fd.lfNu non-nil",
+     "effect": "true: 'LF n.u.' %.1f%% cell; false: omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "fd.hfNu non-nil",
+     "effect": "true: 'HF n.u.' cell; false: omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "fd.lfHfRatio non-nil",
+     "effect": "true: 'LF/HF' %.2f cell; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)": "ae392726e68ba5b6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msSquaredUnit": "fabb8495181854df"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.nonlinearMetrics",
+   "hash": "069a4b4659574071",
+   "does": "Header 'Nonlinear Analysis' above the nonlinear grid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.nonlinearGrid"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "10cec03d37df520b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.nonlinearGrid": "3ab33cc9ecaa1663"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.nonlinearGrid",
+   "hash": "68e4296d3bc5c641",
+   "does": "Two-column grid: SD1, SD2 (ms %.1f), SD1/SD2 %.3f always; DFA α1, DFA α2 (%.2f), α1 R², SampEn, ApEn (%.3f) each when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "nonlinear.dfaAlpha1 non-nil",
+     "effect": "true: 'DFA α1' cell; false: omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "nonlinear.dfaAlpha2 non-nil",
+     "effect": "true: 'DFA α2' cell; false: omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "nonlinear.dfaAlpha1R2 non-nil",
+     "effect": "true: 'α1 R²' cell; false: omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "nonlinear.sampleEntropy non-nil",
+     "effect": "true: 'SampEn' cell; false: omitted"
+    },
+    {
+     "at": "+17",
+     "cond": "nonlinear.approxEntropy non-nil",
+     "effect": "true: 'ApEn' cell; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)": "ae392726e68ba5b6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit": "72e78014b19a0321"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.ansIndexMetrics",
+   "hash": "0c2d66b86004c866",
+   "does": "Shows a divider and the ANS indexes card only when result.ansMetrics exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.ansIndexCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.ansMetrics != nil",
+     "effect": "true: Divider + ansIndexCard; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.ansIndexCard": "bebca59964728aa3"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.ansIndexCard",
+   "hash": "c2d2290d57365534",
+   "does": "Header 'ANS Indexes' (brain icon) above the ANS grid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.ansIndexGrid"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "10cec03d37df520b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.ansIndexGrid": "8674d57e6cde075c"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.ansIndexGrid",
+   "hash": "1fdc5d213205ac7c",
+   "does": "Two-column grid of ANS indexes, each only when its value exists: Stress Index %.0f, PNS/SNS Index %+.2f, Resp Rate '%.1f br/min', Readiness '%.1f /10'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ansMetrics?.stressIndex non-nil",
+     "effect": "true: Stress Index cell; false: omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "ansMetrics?.pnsIndex non-nil",
+     "effect": "true: PNS Index cell; false: omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "ansMetrics?.snsIndex non-nil",
+     "effect": "true: SNS Index cell; false: omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "ansMetrics?.respirationRate non-nil",
+     "effect": "true: Resp Rate cell; false: omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "ansMetrics?.readinessScore non-nil",
+     "effect": "true: Readiness cell; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.dataQualityMetrics",
+   "hash": "7d6a080f508c543d",
+   "does": "Header 'Data Quality' (checkmark.seal) above the data-quality grid and the optional analysis-window note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityGrid",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityNote"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "10cec03d37df520b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityGrid": "592c01e068ff0bc6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityNote": "0ef95118ebebdf2a"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.dataQualityGrid",
+   "hash": "74e7e29138b922c4",
+   "does": "Two cells: 'Window Beats' = result.cleanBeatCount and 'Artifacts' = result.artifactPercentage %.1f%%.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.dataQualityNote",
+   "hash": "2cf1106e8c66bfb9",
+   "does": "Caption explaining metrics come from an N-minute analysis window rather than the whole recording of K beats; shown whenever the window (end exclusive) spans fewer points than the series and its length is known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.analysisWindowMinutes(in:)",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "series exists, window shorter than the series and its minutes known",
+     "effect": "caption; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.analysisWindowMinutes(in:)": "812f704cce0450a4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.analysisWindowMinutes(in:)",
+   "hash": "c7ffc2e0ce8a3e8c",
+   "does": "Window length in whole minutes (min 1): from windowStartMs/windowEndMs when present and ordered, else from the series beat timestamps at the window ends (last beat t_ms + rr_ms minus first t_ms); nil when neither is usable.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recorded window timestamps usable",
+     "effect": "minutes from them"
+    },
+    {
+     "at": "+4",
+     "cond": "window indices outside the series",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "span positive",
+     "effect": "minutes; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionHRVDetailView.trendSection",
+   "hash": "aed323601b588463",
+   "does": "Trend Analysis card: header plus body, wrapped in zenCard. Rendered only for overnight sessions with non-empty recentSessions (SessionHRVDetailView.swift:50).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendHeader",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendBody",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendBody": "fa3f6c0129e330ee",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendHeader": "97b615dc681a097d",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.trendHeader",
+   "hash": "81581581a277a7d6",
+   "does": "Header row: uptrend chart icon + 'Trend Analysis' title.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.trendBody",
+   "hash": "6cbef1e972d2244a",
+   "does": "Computes TrendStats and renders the four trend rows when there is data, else the 'More sessions needed' empty state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRows(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendEmptyState"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stats.hasData (at least one prior reliable overnight with RMSSD)",
+     "effect": "true: trendRows(stats); false: trendEmptyState"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()": "cd89dfeb94ddecf7",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRows(_:)": "acd30eded0464904",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendEmptyState": "5f4cd4a2aa9e90c7",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.trendRows(_:)",
+   "hash": "5ea5db146bb63b41",
+   "does": "Stacks HRV, mean-HR, stress and readiness trend rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.hrvTrendRow(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.restingHRTrendRow(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.stressTrendRow(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.readinessTrendRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.hrvTrendRow(_:)": "a6af1ba66bd46428",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.readinessTrendRow(_:)": "c3e025cbb87c6cfd",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.restingHRTrendRow(_:)": "e9f70259a5d45ba0",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.stressTrendRow(_:)": "8bc8ab81225670a5"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.hrvTrendRow(_:)",
+   "hash": "3010aca478d45ae9",
+   "does": "Trend row comparing result.timeDomain.rmssd with stats.avgRMSSD (ms, higher is better).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)": "f3176360f6f16ce8"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.restingHRTrendRow(_:)",
+   "hash": "5a76b2f4b8dc99de",
+   "does": "Trend row labelled 'Mean HR' comparing result.timeDomain.meanHR with stats.avgHR (the mean-HR baseline, else prior nights' mean), lower is better.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)": "f3176360f6f16ce8"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.stressTrendRow(_:)",
+   "hash": "e68ee2c77ebb0a28",
+   "does": "Stress-index trend row (no unit, lower is better) when both current stress and prior-night average exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.ansMetrics?.stressIndex and stats.avgStress both non-nil",
+     "effect": "true: trend row; false: row omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)": "f3176360f6f16ce8"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.readinessTrendRow(_:)",
+   "hash": "5f6e65e6638edab8",
+   "does": "Readiness trend row ('/10', higher is better) when both current readiness and prior-night average exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.ansMetrics?.readinessScore and stats.avgReadiness both non-nil",
+     "effect": "true: trend row; false: row omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)": "f3176360f6f16ce8"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.trendEmptyState",
+   "hash": "d6f7cb25a29c6d9f",
+   "does": "Centered tertiary text 'More sessions needed for trend analysis'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)",
+   "hash": "bf174b009fc0b354",
+   "does": "One trend row: header with % change badge, current/average values, divider.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRowHeader(metric:current:average:higherIsBetter:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendValuesRow(current:average:unit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRowHeader(metric:current:average:higherIsBetter:)": "9bad15ae2ec14ed8",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendValuesRow(current:average:unit:)": "6dca1ea6d5e4db90"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.trendValuesRow(current:average:unit:)",
+   "hash": "6df779f88b17f7cd",
+   "does": "HStack of emphasised 'Current' and secondary 'Average' values with unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendValue(_:_:unit:emphasised:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendValue(_:_:unit:emphasised:)": "3830176c2de7b8b5"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.trendRowHeader(metric:current:average:higherIsBetter:)",
+   "hash": "cdabab475425bc98",
+   "does": "Computes percent change of current vs average and whether it is good given direction; renders metric name and change badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendChangeBadge(pctChange:isGood:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "average > 0",
+     "effect": "true: pctChange = (current-average)/average*100; false: pctChange = 0 (badge shows +0.0% as better)"
+    },
+    {
+     "at": "+2",
+     "cond": "higherIsBetter",
+     "effect": "true: isGood = pctChange >= 0; false: isGood = pctChange <= 0 (zero change counts as good either way)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendChangeBadge(pctChange:isGood:)": "876587fcbe978815",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.trendChangeBadge(pctChange:isGood:)",
+   "hash": "1db65a0dd2866ec9",
+   "does": "Badge with check/exclamation icon and signed %+.1f%% text, sage when good else terracotta, with accessibility value 'Better/Worse than average'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isGood",
+     "effect": "true: checkmark.circle.fill icon; false: exclamationmark.circle.fill"
+    },
+    {
+     "at": "+7",
+     "cond": "isGood",
+     "effect": "true: AppTheme.sage colour; false: AppTheme.terracotta"
+    },
+    {
+     "at": "+9",
+     "cond": "isGood",
+     "effect": "true: a11y value 'Better than average'; false: 'Worse than average'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.trendValue(_:_:unit:emphasised:)",
+   "hash": "6f3671509331a9c0",
+   "does": "Caption over a value formatted %.1f followed by space and unit; emphasised uses bold and default colour, else textSecondary.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "emphasised",
+     "effect": "true: .subheadline bold; false: .subheadline"
+    },
+    {
+     "at": "+7",
+     "cond": "emphasised",
+     "effect": "true: foregroundColor nil (inherited); false: AppTheme.textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.computeTrendStats()",
+   "hash": "7c8ee05d557f4041",
+   "does": "Filters recentSessions to prior reliable overnights; returns TrendStats whose RMSSD reference is hrvBaseline (geometric scoring baseline) and HR reference baselineStats.meanHRBaseline when baselineStats was passed, else the arithmetic means of those nights; stress and readiness are the nights' arithmetic means.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.isPriorReliableOvernight(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.mean(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no prior reliable overnight",
+     "effect": "hasData=false with zeros/nils"
+    },
+    {
+     "at": "+8",
+     "cond": "baseline known",
+     "effect": "baseline; else mean, else 0"
+    },
+    {
+     "at": "+9",
+     "cond": "HR baseline known",
+     "effect": "meanHRBaseline; else mean, else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.isPriorReliableOvernight(_:)": "1de86cadd5c4f1dd",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.mean(_:)": "2ecaf8ac9e533da2",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline": "8abb9f4ca10fe916"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.isPriorReliableOvernight(_:)",
+   "hash": "49c5d78cb4d8fd3c",
+   "does": "True when the other session is a complete overnight with an analysis result, reliable for HRV aggregates, not this session, and started before this session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.mean(_:)",
+   "hash": "d55f6b8ab254ff90",
+   "does": "Arithmetic mean of values, nil when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values.isEmpty",
+     "effect": "true: nil; false: sum/count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionHRVDetailView.msUnit",
+   "hash": "1944788eb2a7cb76",
+   "does": "Localized 'ms' unit string.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.bpmUnit",
+   "hash": "213388b7779cd929",
+   "does": "Localized 'bpm' unit string.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.msSquaredUnit",
+   "hash": "65d721bca98f8203",
+   "does": "Localized 'ms²' unit string.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.measured(_:_:unit:)",
+   "hash": "87aafb8381d834ed",
+   "does": "Formats value with the given printf format in the app locale and appends ' ' + unit.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.metricSectionHeader(title:icon:)",
+   "hash": "d415e75df1481d9c",
+   "does": "Header row: sage SF Symbol icon + bold subheadline title.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.metricCell(label:value:)",
+   "hash": "ad8a78294060a643",
+   "does": "Wraps HRVMetricCell(label:value:).",
+   "entry": null,
+   "calls": [
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCards.swift:10"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

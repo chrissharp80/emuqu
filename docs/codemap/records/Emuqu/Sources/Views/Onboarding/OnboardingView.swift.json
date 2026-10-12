@@ -1,0 +1,318 @@
+{
+ "file": "Emuqu/Sources/Views/Onboarding/OnboardingView.swift",
+ "hash": "7e0af7a4cdbfe752",
+ "role": "Root onboarding container: a 7-page paged TabView (Welcome, ValueProp, Profile, Sensor, Apple Health, Backup, Done) shown by EmuquApp's launch modal (.onboarding) before onboarding is complete; the Done page writes the onboarding-complete settings flags and kicks a CloudKit full sync. Also declares OnboardingFillingScroll, a fill-or-scroll page wrapper used by the Welcome, ValueProp, Backup and Done pages and by TrialReminderView and PreScorePromptView.",
+ "types": [
+  "OnboardingView: struct — paged onboarding container; owns currentPage and completion",
+  "OnboardingFillingScroll<Content>: struct — GeometryReader+ScrollView wrapper that fills the screen height and scrolls when content is taller"
+ ],
+ "state": [
+  "@State currentPage (Int, 0) — selected page tag",
+  "@State healthPageAnswered (Bool, false) — set when the Health page itself advanced (Skip or Continue), so that move is not read as a swipe-past",
+  "pageCount = 7 (private let)",
+  "onTakeReading closure (set by EmuquApp.swift:348 to `requestedTab = .record`)"
+ ],
+ "toplevel": "pageCount literal 7 must match the seven tags 0-6 in `pages` (OnboardingView.swift:30, 52-65). #Preview builds OnboardingView with AppDependencies.current settingsManager and a fresh RRCollector (lines 239-243).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init OnboardingView(onTakeReading:)",
+   "hash": "56fc793e6de35cae",
+   "does": "Stores the onTakeReading closure (default no-op).",
+   "entry": "Called by EmuquApp.swift:348 `OnboardingView(onTakeReading: { requestedTab = .record })`, by #Preview and by EmuquTests/PageSnapshotTests.swift:47.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OnboardingView.body",
+   "hash": "2a6477e1905cb6be",
+   "does": "Draws AppTheme.background under a page-style TabView bound to currentPage with always-visible index dots, animating page changes; on every page change calls noteHealthPageSwipedPast(from:to:).",
+   "entry": "SwiftUI body; .onChange(of: currentPage) fires on swipe or programmatic page change.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)"
+   ],
+   "reads": [
+    "mem:OnboardingView.currentPage"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "073d103d0d0d74a2",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages": "3451ed6421973672",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var OnboardingView.pages",
+   "hash": "3ae466f29eb49f54",
+   "does": "Builds the seven tagged pages: Welcome(0), ValueProp(1), Profile(2), Sensor(3) each advancing via advanceToNext; Health(4) advancing via advanceFromHealthPage; Backup(5) via advanceToNext; donePage(6).",
+   "entry": "SwiftUI ViewBuilder content of the TabView in body.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceFromHealthPage()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceFromHealthPage()": "1625397bf055d44c",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "31fe52370fc21417",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePage": "db9af5b399a13afe"
+   }
+  },
+  {
+   "key": "func OnboardingView.noteHealthPageSwipedPast(from:to:)",
+   "hash": "ed8e271613fc9c86",
+   "does": "When the page changes from the Apple Health page (4) to a later page by a swipe — the page's own Skip/Continue did not answer it (healthPageAnswered false) — and HealthKitManager.authorizationRequested is false in this process, asks HealthKit in a Task whether the permission sheet was already answered in any launch (authorizationWasEverRequested); only when it was not, sets UserDefaults healthAccessSkippedInOnboarding = true (treats a swipe-past as \"Skip for now\").",
+   "entry": ".onChange(of: currentPage) in body (line 44).",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.authorizationWasEverRequested()"
+   ],
+   "reads": [
+    "mem:HealthKitManager.authorizationRequested",
+    "mem:OnboardingView.healthPageAnswered",
+    "hk:authorization request status"
+   ],
+   "writes": [
+    "ud:healthAccessSkippedInOnboarding (UserDefaultsKeys.healthAccessSkipped, standard suite)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "old == 4 && new > 4 && !healthPageAnswered && !authorizationRequested",
+     "effect": "continues to the HealthKit check; else returns without writing"
+    },
+    {
+     "at": "+8",
+     "cond": "authorizationWasEverRequested true (answered in an earlier launch)",
+     "effect": "returns without writing; else writes healthAccessSkipped=true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.authorizationWasEverRequested()": "798c3000f1ee389d",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func OnboardingView.advanceFromHealthPage()",
+   "hash": "e8d7f31356f1ff54",
+   "does": "Advance handler for the Health page (Skip, or Continue after Connect): marks healthPageAnswered, then advanceToNext, so the page-change observer does not record this advance as a swipe-past skip.",
+   "entry": "closure passed to OnboardingHealthPage(advance:) at line 60; invoked by that page's Continue / Skip for now buttons.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:OnboardingView.healthPageAnswered"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "31fe52370fc21417"
+   }
+  },
+  {
+   "key": "func OnboardingView.advanceToNext()",
+   "hash": "0df491cb4bcdb2c0",
+   "does": "Animates currentPage to currentPage+1, clamped to pageCount-1 (6).",
+   "entry": "Passed as the advance closure to the Welcome/ValueProp/Profile/Sensor/Backup pages (lines 52-62).",
+   "calls": [],
+   "reads": [
+    "mem:OnboardingView.currentPage"
+   ],
+   "writes": [
+    "mem:OnboardingView.currentPage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OnboardingView.completeOnboarding()",
+   "hash": "ebd30705c2579702",
+   "does": "Marks onboarding finished: sets settings.hasCompletedOnboarding, hasAcknowledgedScoreArchitectureChange and hasRunScoreHistoryRecompute to true (three separate SettingsManager.settings writes, each saved and posting flowRecoverySettingsChanged from the didSet unless the settings load was blocked by data protection), then, if iCloud sync is enabled, launches a Task running CloudKitSyncManager.performFullSyncIfNeeded(minInterval: 0). The hasCompletedOnboarding change fires EmuquApp.handleOnboardingCompletion (EmuquApp.swift:397-398, 421-428), which shows the paywall when StoreKitManager.paywallEnabled and the user has no active access, otherwise dismisses the onboarding modal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.hasCompletedOnboarding (persisted via SettingsManager didSet save)",
+    "mem:SettingsManager.settings.hasAcknowledgedScoreArchitectureChange",
+    "mem:SettingsManager.settings.hasRunScoreHistoryRecompute",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, x3)"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "settingsManager.settings.iCloudSyncEnabled",
+     "effect": "true: fires an unstructured Task awaiting cloudSyncManager.performFullSyncIfNeeded(minInterval: 0), so the full sync runs regardless of last sync time. false: no sync."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "516be81406e72151"
+   }
+  },
+  {
+   "key": "var OnboardingView.donePage",
+   "hash": "19c6e8f6c6f7ce08",
+   "does": "Wraps donePageStack in OnboardingFillingScroll.",
+   "entry": "Tag 6 page of the TabView (via pages).",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body": "955c78adee36528d",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageStack": "297d331cf7b5ebed"
+   }
+  },
+  {
+   "key": "var OnboardingView.donePageStack",
+   "hash": "25f3e7e7941ac23a",
+   "does": "VStack: spacer, large green checkmark glyph (hidden from VoiceOver), donePageCopy, spacer, donePageButtons.",
+   "entry": "SwiftUI view composition (donePage).",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.doneGlyph",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageCopy",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.doneGlyph": "a256b562248a441e",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageButtons": "21136d90f8de1ad0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageCopy": "dcb5982cb14d9d2f"
+   }
+  },
+  {
+   "key": "var OnboardingView.donePageCopy",
+   "hash": "ff8ffeb66e4381be",
+   "does": "Localized \"You're in.\" header and a paragraph saying the first score appears from the first night, measured against baseline from the third, with the Dashboard showing it after 14 nights.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingView.donePageButtons",
+   "hash": "22ffe242d26baddf",
+   "does": "Stacks the Take-a-reading and Skip-show-me-around buttons with accessibility labels/hints; only the Skip button carries identifier \"onboarding.skip\".",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.takeReadingButton",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.skipShowMeAroundButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.skipShowMeAroundButton": "74c48b22d87dd6a3",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.takeReadingButton": "437c3df8bf48a3a8"
+   }
+  },
+  {
+   "key": "var OnboardingView.doneGlyph",
+   "hash": "027a5de1a05cfcd3",
+   "does": "checkmark.circle.fill SF Symbol image.",
+   "entry": "SwiftUI view composition.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OnboardingView.skipShowMeAroundButton",
+   "hash": "dec0e2df7d58902e",
+   "does": "Button \"Skip — show me around\" that calls completeOnboarding (lands on the dashboard).",
+   "entry": "SwiftUI Button action (user tap; UI tests tap identifier onboarding.skip).",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "c6e30a3e9493dd24",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingView.takeReadingButton",
+   "hash": "8dcbb33f334f078a",
+   "does": "Primary button \"Take a reading\": calls onTakeReading (EmuquApp switches requestedTab to .record) then completeOnboarding.",
+   "entry": "SwiftUI Button action (user tap).",
+   "calls": [
+    "closure:onTakeReading — set by EmuquApp.swift:348 to `requestedTab = .record`",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "c6e30a3e9493dd24",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OnboardingFillingScroll.body",
+   "hash": "c281a4002863ca50",
+   "does": "GeometryReader reads available height; ScrollView whose content is framed to maxWidth .infinity and minHeight = proxy height, with bounce only when content overflows.",
+   "entry": "SwiftUI body; OnboardingFillingScroll is used by OnboardingView.donePage, OnboardingWelcomePage.body, OnboardingValuePropPage.cardView, OnboardingBackupPage.swift:19, TrialReminderView.swift:13 and PreScorePromptView.swift:107.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

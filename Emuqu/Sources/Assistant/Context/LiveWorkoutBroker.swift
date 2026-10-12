@@ -43,40 +43,53 @@ final class LiveWorkoutBroker: Sendable {
         var snapshot: AssistantContext.LiveWorkoutSnapshot?
         var lastUpdate: Date?
         var samplesProvider: SamplesProvider?
+        /// The provider's answer at the last publish.
+        var samples: [WorkoutSample] = []
     }
-    /// Pull provider for the recorder's recent-sample buffer. Lets the
-    /// AI's `workout.live.timeline` tool ask for the last N seconds of
-    /// correlated HR / elevation / pace / power / α1 / METs samples on
-    /// demand without forcing every tick to ship the whole buffer
-    /// through the broker.
+    /// Provider for the recorder's recent-sample buffer, which lives on the
+    /// main actor. The broker asks it once per `publish` (the recorder's
+    /// main-actor tick) and keeps the answer, so `currentSamples()` hands the
+    /// AI's `workout.live.timeline` tool and the context renderer the last N
+    /// seconds of correlated HR / elevation / pace / power / α1 / METs
+    /// samples from any thread without touching main-actor state. The
+    /// buffer is a copy-on-write array, so keeping it costs a reference.
     typealias SamplesProvider = @Sendable () -> [WorkoutSample]
 
     private init() {}
 
-    /// Called by WorkoutRecorder each tick while recording.
+    /// Called by WorkoutRecorder each tick while recording, on the main
+    /// actor, where the samples provider can read the recorder's buffer.
     func publish(_ snapshot: AssistantContext.LiveWorkoutSnapshot) {
+        let provider = lock.withLock { state in state.samplesProvider }
+        let samples = provider?() ?? []
         lock.withLock { state in
             state.snapshot = snapshot
             state.lastUpdate = Date()
+            state.samples = samples
         }
     }
 
     /// Called by WorkoutRecorder at start. The broker holds the
     /// closure for the life of the recording; `clear()` releases it
-    /// so a stopped workout's samples can't leak through to a later
-    /// AI question.
+    /// and the kept samples so a stopped workout's samples can't leak
+    /// through to a later AI question.
     func registerSamplesProvider(_ provider: @escaping SamplesProvider) {
         lock.withLock { state in
             state.samplesProvider = provider
         }
     }
 
-    /// Called by WorkoutRecorder at stop / on error.
+    /// Called by WorkoutRecorder at stop (`tearDownLiveWorkoutServices`).
+    /// No error path calls it. A start that fails after installing the
+    /// provider leaves it registered until the next start replaces it;
+    /// nothing publishes meanwhile, so no samples are kept and
+    /// `currentSnapshot()` stays nil.
     func clear() {
         lock.withLock { state in
             state.snapshot = nil
             state.lastUpdate = nil
             state.samplesProvider = nil
+            state.samples = []
         }
     }
 
@@ -91,13 +104,13 @@ final class LiveWorkoutBroker: Sendable {
     }
 
     /// Called by `WorkoutLiveNamespace` when the AI invokes
-    /// `workout.live.timeline`. Returns the recorder's full per-tick
-    /// sample buffer so the namespace can window / decimate it
-    /// according to the AI's request. Returns empty when no workout
-    /// is active.
+    /// `workout.live.timeline`, and by the context renderer. Returns the
+    /// recorder's per-tick sample buffer as of the last publish (at most one
+    /// tick old) so the namespace can window / decimate it according to the
+    /// AI's request. Safe from any thread: it reads only the lock. Returns
+    /// empty when no workout is active.
     func currentSamples() -> [WorkoutSample] {
-        let provider = lock.withLock { state in state.samplesProvider }
-        return provider?() ?? []
+        lock.withLock { state in state.samples }
     }
 }
 
@@ -119,7 +132,8 @@ final class LiveHRVBroker: Sendable {
     static let shared = LiveHRVBroker()
 
     /// Closure the collector installs at app init. Must be safe to call
-    /// from any actor; the implementation hops to `@MainActor` as needed.
+    /// from any thread without an actor hop: the installed one reads a
+    /// lock-protected mirror that the collector refreshes on the main actor.
     typealias Provider = @Sendable () -> AssistantContext.LiveHRVSnapshot?
 
     private let provider = OSAllocatedUnfairLock<Provider?>(initialState: nil)

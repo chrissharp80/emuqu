@@ -1,0 +1,639 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthDataTypes.swift",
+ "hash": "9c3463bb87147166",
+ "role": "Data types for HealthKit reads/writes lifted out of HealthKitManager: workout summary with training-load math (TRIMP, intensity, hard-workout test), biometric profile, and the HealthKit error enum (aliased as HealthKitManager.HealthKitError).",
+ "types": [
+  "HealthWorkoutSummary: struct (Codable) — one workout with load computations",
+  "HealthBiometricProfile: struct — weight/sex/DOB from Apple Health",
+  "HealthStoreError: enum (Error, LocalizedError) — HealthKit errors; typealias HealthKitManager.HealthKitError"
+ ],
+ "state": [
+  "mem:HealthWorkoutSummary.typeToStringMap (static let, HKWorkoutActivityType→English name)",
+  "mem:HealthWorkoutSummary.minimumWorkoutDurationSec (60 s)",
+  "mem:HealthWorkoutSummary.hardReserveFraction (0.60)",
+  "mem:HealthWorkoutSummary.hardMinimumMinutes (20)"
+ ],
+ "toplevel": "Static constants above; HealthWorkoutSummary Codable via explicit CodingKeys (persisted inside TrainingMetrics by TrainingMetricsCache).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+   "hash": "2d0f91454d865fbb",
+   "does": "Memberwise initializer converting HKWorkoutActivityType to the stored English name and defaulting precomputed load/source to nil and wasRecovered false. Called from TrainingHealthQueries+Queries.swift:213 (HealthKit workouts) and summary(from:archive:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.typeToString(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.typeToString(_:)": "094e1e7be32b8508"
+   }
+  },
+  {
+   "key": "init HealthWorkoutSummary(from:)",
+   "hash": "2b371566514374aa",
+   "does": "Decodes a summary; wasRecovered defaults to false when absent (older payloads).",
+   "entry": "Decodable synthesis use: JSONDecoder decoding TrainingMetrics.todayWorkouts/recentWorkouts (TrainingMetricsCache persisted snapshot).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "wasRecovered present",
+     "effect": "false: false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutSummary.encode(to:)",
+   "hash": "31566a6f51069321",
+   "does": "Encodes all fields, optional ones only when present.",
+   "entry": "Encodable use when TrainingMetrics is persisted.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutSummary.typeToString(_:)",
+   "hash": "c64600dac8341c6b",
+   "does": "Looks up the English name for an HKWorkoutActivityType; unknown types become 'Workout'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type in typeToStringMap",
+     "effect": "false: 'Workout'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthWorkoutSummary.typeDescription",
+   "hash": "0d0cc924882f386e",
+   "does": "Returns the stored English workoutType (used by RRModels.swift:560 for snapshots).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthWorkoutSummary.localizedTypeDescription",
+   "hash": "651687bc6544c153",
+   "does": "Localized display name of workoutType (TrainingDetailView.swift:358).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.localizedTypeName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.localizedTypeName(_:)": "cf6803855f16c286"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.localizedTypeName(_:)",
+   "hash": "00a29ff759e65e6d",
+   "does": "Maps a stored English workout type name to a localized string; unknown names pass through.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Running",
+     "effect": "localized"
+    },
+    {
+     "at": "+4",
+     "cond": "Cycling",
+     "effect": "localized"
+    },
+    {
+     "at": "+5",
+     "cond": "Swimming",
+     "effect": "localized"
+    },
+    {
+     "at": "+6",
+     "cond": "Strength",
+     "effect": "localized"
+    },
+    {
+     "at": "+7",
+     "cond": "HIIT",
+     "effect": "localized"
+    },
+    {
+     "at": "+8",
+     "cond": "Yoga",
+     "effect": "localized"
+    },
+    {
+     "at": "+9",
+     "cond": "Walking",
+     "effect": "localized"
+    },
+    {
+     "at": "+10",
+     "cond": "Hiking",
+     "effect": "localized"
+    },
+    {
+     "at": "+11",
+     "cond": "Rowing",
+     "effect": "localized"
+    },
+    {
+     "at": "+12",
+     "cond": "Cross Training",
+     "effect": "localized"
+    },
+    {
+     "at": "+13",
+     "cond": "Elliptical",
+     "effect": "localized"
+    },
+    {
+     "at": "+14",
+     "cond": "Stairs",
+     "effect": "localized"
+    },
+    {
+     "at": "+15",
+     "cond": "Workout",
+     "effect": "localized"
+    },
+    {
+     "at": "+16",
+     "cond": "default",
+     "effect": "returns the input unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)",
+   "hash": "9f5b8c53b4484332",
+   "does": "Lists the archive's workout-type entries from start of day (referenceDate - days) to referenceDate and converts each to a summary. Called off-main by TrainingMetricsCache.swift:514 and TrainingHealthQueries+Queries.swift:555/570.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.summary(from:archive:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries(from:to:)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "calendar.date(byAdding:) succeeds",
+     "effect": "false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.summary(from:archive:)": "72ea88a1209e1f26",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.summary(from:archive:)",
+   "hash": "58e3246aa07de537",
+   "does": "Lightweight-decodes the session (retrieveLightweightOrLog — a read failure is logged with the session id and counted by the archive), requires workoutMetadata, clamps duration, drops <60 s, and builds a summary with avg HR = session.meanHR ?? mean of sample HRs, max HR from samples, precomputed load from TrainingLoadPrecedence.stored, wasRecovered = partialDataReason != nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.clampedDuration(samples:entry:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.activityTypeFromSport(_:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.mean(_:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session readable and workoutMetadata non-nil",
+     "effect": "false: nil — a read failure is logged by the archive; the workout is left out of training load"
+    },
+    {
+     "at": "+7",
+     "cond": "meta.samples ?? []",
+     "effect": "no samples: empty"
+    },
+    {
+     "at": "+9",
+     "cond": "duration >= 60 s",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+17",
+     "cond": "session.meanHR ?? mean(sampleHRs)",
+     "effect": "no meanHR: sample mean (nil when no sample HR)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.activityTypeFromSport(_:)": "c4f5f96d0e2a9d71",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.clampedDuration(samples:entry:)": "dea5ef8c86a1bc7a",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.mean(_:)": "2b400a00e6229c7b",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.clampedDuration(samples:entry:)",
+   "hash": "5c1b14a671d4cebd",
+   "does": "Duration = min(last sample offset, recording span) when both exist, else whichever exists, else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "both present",
+     "effect": "min"
+    },
+    {
+     "at": "+5",
+     "cond": "sample only",
+     "effect": "sample"
+    },
+    {
+     "at": "+6",
+     "cond": "span only",
+     "effect": "span"
+    },
+    {
+     "at": "+7",
+     "cond": "neither",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutSummary.mean(_:)",
+   "hash": "054b4fb1a2df51ae",
+   "does": "Arithmetic mean of Int values as Double; nil when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutSummary.activityTypeFromSport(_:)",
+   "hash": "6a6128534651d9b2",
+   "does": "Maps Sport to HKWorkoutActivityType.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".run/.trailRun",
+     "effect": ".running"
+    },
+    {
+     "at": "+3",
+     "cond": ".walk",
+     "effect": ".walking"
+    },
+    {
+     "at": "+4",
+     "cond": ".hike",
+     "effect": ".hiking"
+    },
+    {
+     "at": "+5",
+     "cond": ".bike",
+     "effect": ".cycling"
+    },
+    {
+     "at": "+6",
+     "cond": ".indoorBike",
+     "effect": ".cycling"
+    },
+    {
+     "at": "+7",
+     "cond": ".treadmill",
+     "effect": ".running"
+    },
+    {
+     "at": "+8",
+     "cond": ".row",
+     "effect": ".rowing"
+    },
+    {
+     "at": "+9",
+     "cond": ".airBike",
+     "effect": ".cycling"
+    },
+    {
+     "at": "+10",
+     "cond": ".crossFit",
+     "effect": ".crossTraining"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+   "hash": "341cb5d553364d81",
+   "does": "Workout load: precomputedLoad when > 0, else Banister TRIMP from the given anchors; capped at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000). Called by TrainingLoadSeries.swift:75, WorkoutSummary+UserLoad.swift:17 (userScaledLoad) and TrainingLoadConsistencyTests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "(precomputedLoad ?? 0) > 0",
+     "effect": "true: precomputed load; false: calculateTrimp"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "6da7c607ba44d751",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)": "0e6ca7af113872c5"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.cappedLoad(_:)",
+   "hash": "51a339880d318dbc",
+   "does": "Caps a load at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000) with a warning log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "base > 1000",
+     "effect": "false: base"
+    },
+    {
+     "at": "+2",
+     "cond": "precomputedLoadSource ?? 'hr'",
+     "effect": "log label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)",
+   "hash": "33f8164d37b4d052",
+   "does": "Banister TRIMP = duration_min × HRR × A·e^(k·HRR), HRR = clamp((avgHR-rest)/(max-rest),0,1); 0 without average HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "averageHR present",
+     "effect": "false: 0"
+    },
+    {
+     "at": "+3",
+     "cond": "maxHR - restingHR > 0",
+     "effect": "false: HRR 0 → load 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)": "98732597083cf83f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)",
+   "hash": "eef714084d9ae84e",
+   "does": "A·e^(k·HRR) with female (0.86, 1.67) or male/default (0.64, 1.92) coefficients chosen from the global settings snapshot's biologicalSex.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot.biologicalSex"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "biologicalSex == .female",
+     "effect": "k 1.67 else 1.92"
+    },
+    {
+     "at": "+4",
+     "cond": "isFemale",
+     "effect": "A 0.86 else 0.64"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "A value-type load formula reaches into the global AppDependencies.current settings, so TRIMP depends on hidden global state; tests must mutate the shared settings (LiveReadinessTests notes calculateTrimp reading settings).",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthDataTypes.swift:385",
+      "EmuquTests/LiveReadinessTests.swift:234"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.intensityScore(anchors:)",
+   "hash": "4f974fdfa3a566f4",
+   "does": "Intensity 0-100: min(duration/60*30, 50) plus HR-reserve*50, or calories/500*25 (max 50) when no HR; capped 100. Called by TrainingHealthQueries+Queries.swift:671.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.averageHRReserve(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "HR reserve available",
+     "effect": "adds reserve*50"
+    },
+    {
+     "at": "+4",
+     "cond": "caloriesBurned present (no HR)",
+     "effect": "adds min(cal/500*25,50); neither: duration only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.averageHRReserve(anchors:)": "a9b860b9a8cee4fd"
+   }
+  },
+  {
+   "key": "func HealthWorkoutSummary.averageHRReserve(anchors:)",
+   "hash": "71d3e388e6817acf",
+   "does": "Average HR as fraction of HR reserve against anchors, clamped 0-1; nil without avg HR or when max <= resting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "averageHR present and anchors.maxHR > restingHR",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutSummary.isHardWorkout(anchors:)",
+   "hash": "aeb81431920655d8",
+   "does": "Hard workout: avg HR >= 60% HRR and >= 20 min; without HR, duration > 60 min. Called by TrainingLoad.swift:51.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.averageHRReserve(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HR reserve available",
+     "effect": "false: durationMinutes > 60; true: reserve >= 0.6 && duration >= 20"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.averageHRReserve(anchors:)": "a9b860b9a8cee4fd"
+   }
+  },
+  {
+   "key": "var HealthBiometricProfile.appBiologicalSex",
+   "hash": "6ed791b3d4781eb0",
+   "does": "Maps HKBiologicalSex to UserSettings.BiologicalSex (female/male/other), nil for notSet/unknown/nil. Used by BiometricsSettingsPage.swift:173 and AppFactResolver.swift:328.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".female",
+     "effect": ".female"
+    },
+    {
+     "at": "+3",
+     "cond": ".male",
+     "effect": ".male"
+    },
+    {
+     "at": "+4",
+     "cond": ".other",
+     "effect": ".other"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthStoreError.errorDescription",
+   "hash": "fb34ab8752839b47",
+   "does": "Localized message for each HealthStoreError case.",
+   "entry": "LocalizedError witness read by Error.localizedDescription wherever these errors are shown/logged.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".notAvailable",
+     "effect": "'Apple Health is not available on this device'"
+    },
+    {
+     "at": "+4",
+     "cond": ".typeUnavailable(name)",
+     "effect": "type name message"
+    },
+    {
+     "at": "+6",
+     "cond": ".queryTimedOut(name)",
+     "effect": "timed-out message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

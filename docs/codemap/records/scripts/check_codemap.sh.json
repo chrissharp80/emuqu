@@ -1,0 +1,15 @@
+{
+ "file": "scripts/check_codemap.sh",
+ "hash": "144de1e100db9c7d",
+ "role": "CI gate: the code map is current (make codemap-guard; ci.yml and gates.yml step \"Code map is current\"; planted by verify_gates_fail.sh).",
+ "types": [],
+ "state": [
+  "env:CODEMAP_PYTHON (interpreter with tree-sitter; default python3)"
+ ],
+ "toplevel": "set -euo pipefail; cd to the repo root. If the chosen interpreter cannot import tree_sitter and tree_sitter_swift, prints how to install them and exits 2, so a missing toolchain fails rather than reading as clean. Otherwise execs `codemap.py check`, whose exit code (0 clean, 1 problems) is the gate result.",
+ "flags": [],
+ "units": [],
+ "deps": {
+  "scripts/codemap/codemap.py::": "5d018c610440e0c2"
+ }
+}

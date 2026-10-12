@@ -70,6 +70,14 @@ struct MorningResultsView: View {
     @State var pendingUnlinkSegmentId: UUID?
     @State var removedSegmentIds: Set<UUID> = []
 
+    /// Why the last PDF or RR export produced no file; drives the
+    /// "Export failed" alert. Nil when there is nothing to report.
+    @State var exportErrorMessage: String?
+
+    /// The tags and notes last handed to `onUpdateTags`, nil until the first
+    /// hand-off (the session's own tags and notes are the baseline then).
+    @State var savedTagsAndNotes: SavedTagsAndNotes?
+
     /// Visible feedback for manual-window picks. Without
     /// this, a tap that the algorithm rejects (high artifact rate at
     /// that position, or out-of-range timestamp) silently does nothing
@@ -170,7 +178,7 @@ struct MorningResultsView: View {
     /// insufficient) is intentionally NOT treated as unreadable — that
     /// flow has its own card.
     private var sessionIsUnreadable: Bool {
-        let quality = session.hrvDataQuality
+        let quality = vm.displaySession.hrvDataQuality
         if quality == .preSleep || quality == .insufficient { return false }
         let hasScore = vm.displaySession.recoveryScore != nil
         let hasHRV = vm.displayResult.timeDomain.rmssd > 0
@@ -180,7 +188,7 @@ struct MorningResultsView: View {
     var body: some View {
         // Compute breakdown once per render; the score card and breakdown section both read it.
         let breakdown = vm.recoveryBreakdown()
-        return withLifecycle(withDialogs(withSheets(resultsStack(breakdown))))
+        return withLifecycle(withExportHandling(withDialogs(withSheets(resultsStack(breakdown)))))
     }
 
     private func resultsStack(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> some View {
@@ -269,9 +277,12 @@ struct MorningResultsView: View {
         }
     }
 
+    /// Reads `displaySession`, so a re-analysis on this screen that sets or
+    /// clears `.insufficient` re-routes the card without reopening the sheet.
     @ViewBuilder
     private var subjectiveReadinessSection: some View {
-        if session.hrvDataQuality == .preSleep || session.hrvDataQuality == .insufficient {
+        let quality = vm.displaySession.hrvDataQuality
+        if quality == .preSleep || quality == .insufficient {
             SubjectiveReadinessCard(
                 perceivedReadiness: Binding(
                     get: { vm.displaySession.perceivedReadiness },
@@ -279,7 +290,7 @@ struct MorningResultsView: View {
                         vm.updatePerceivedReadiness(newValue)
                     }
                 ),
-                quality: session.hrvDataQuality ?? .insufficient
+                quality: quality ?? .insufficient
             )
         }
     }
@@ -302,7 +313,8 @@ struct MorningResultsView: View {
             SessionHRVDetailView(
                 session: vm.displaySession,
                 result: vm.displayResult,
-                recentSessions: recentSessions
+                recentSessions: recentSessions,
+                baselineStats: vm.baselineStats
             )
         } label: {
             hrvMetricCard
@@ -370,7 +382,8 @@ struct MorningResultsView: View {
         NavigationLink {
             TrainingDetailView(
                 trainingMetrics: nil,
-                trainingContext: context
+                trainingContext: context,
+                followsLiveLoad: !vm.isHistoricalSession
             )
         } label: {
             trainingLoadCard(context)
@@ -585,6 +598,30 @@ struct MorningResultsView: View {
             .onChange(of: archiveSignal.version) { _, _ in
                 vm.applyExternalArchiveUpdate()
             }
+            // A swipe-dismiss or a parent's own Done closes the sheet without
+            // the in-card Done button; tag and note edits are handed over here.
+            .onDisappear { saveTagsAndNotesIfChanged() }
+    }
+
+    /// Deletes each exported PDF / RR CSV from tmp once its preview or mail
+    /// sheet closes (it is plaintext health data), and reports an export that
+    /// produced no file.
+    private func withExportHandling(_ content: some View) -> some View {
+        content
+            .onChange(of: exportURL) { old, new in removeExportFile(old, replacedBy: new) }
+            .onChange(of: emailURL) { old, new in removeExportFile(old, replacedBy: new) }
+            .alert(
+                String(localized: "Export failed", bundle: LanguageManager.appBundle),
+                isPresented: Binding(get: { exportErrorMessage != nil }, set: { if !$0 { exportErrorMessage = nil } }),
+                presenting: exportErrorMessage
+            ) { _ in
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: { Text($0) }
+    }
+
+    private func removeExportFile(_ old: IdentifiableURL?, replacedBy new: IdentifiableURL?) {
+        guard let old, old.id != new?.id else { return }
+        attempt("MorningResultsView.removeExportFile") { try FileManager.default.removeItem(at: old.url) }
     }
 
     private func refetchSleepIfNotAdjusted() {
@@ -681,14 +718,21 @@ struct MorningResultsView: View {
                 get: { vm.displaySession.perceivedReadiness },
                 set: { vm.updatePerceivedReadiness($0) }
             ),
-            quality: session.hrvDataQuality ?? .insufficient
+            quality: vm.displaySession.hrvDataQuality ?? .insufficient
         )
     }
 }
 
 // MARK: - Identifiable URL Wrapper
 
-struct IdentifiableURL: Identifiable {
+struct IdentifiableURL: Identifiable, Equatable {
     let id = UUID()
     let url: URL
+}
+
+/// The tags and notes of a morning report as last stored, so a hand-off to
+/// `onUpdateTags` only happens when the user changed one of them.
+struct SavedTagsAndNotes: Equatable {
+    let tags: Set<ReadingTag>
+    let notes: String
 }

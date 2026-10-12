@@ -76,6 +76,13 @@ enum TurnMarkerEngine {
     /// user has just COMPLETED a turn since the previous tick.
     /// Otherwise nil + same state (modulo HR-sum accumulation
     /// inside the leg).
+    ///
+    /// When several steps were passed since the last tick (a GPS gap, or
+    /// steps shorter than one tick's travel), one payload covers them all:
+    /// the leg runs from the last announcement, and the instruction is the
+    /// latest turn made. The earlier turns are not announced after the fact,
+    /// since the user has already made them and a run of stale
+    /// confirmations would bury the current one.
     static func evaluate(
         step: ActiveRouteSession.StepResult,
         context: WorkoutAIContext,
@@ -157,7 +164,7 @@ enum TurnMarkerFormatter {
         let done = payload.completedInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
         let lead = done.isEmpty
             ? String(localized: "Turn completed", bundle: bundle)
-            : String(localized: "Done: \(lowercaseFirst(done))", bundle: bundle)
+            : String(localized: "Done: \(TurnAlertFormatter.lowercaseFirst(done))", bundle: bundle)
         let leg = String(format: "%d:%02d", payload.legDurationSec / 60, payload.legDurationSec % 60)
         var parts = [lead, String(localized: "last leg \(leg)", bundle: bundle)]
         if let pace = payload.legPaceSecPerKm {
@@ -183,13 +190,5 @@ enum TurnMarkerFormatter {
         unitsImperial
             ? String(localized: "\(Int((meters * UnitConstants.feetPerMeter).rounded())) ft up", bundle: LanguageManager.appBundle)
             : String(localized: "\(Int(meters.rounded())) m up", bundle: LanguageManager.appBundle)
-    }
-
-    /// English only, as in `TurnAlertFormatter`: other languages keep the
-    /// instruction's own capitalisation.
-    private static func lowercaseFirst(_ s: String) -> String {
-        guard LanguageManager.appLocale.language.languageCode == .english,
-              let first = s.first else { return s }
-        return first.lowercased() + s.dropFirst()
     }
 }

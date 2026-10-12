@@ -1,0 +1,1123 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/AssistantChatView.swift",
+ "hash": "6365f9253250f993",
+ "role": "The Flo chat screen (AssistantChatView) embedded by CoachHomeV2View: NavigationStack with top bar, transcript, voice status pill, notices, error banner and input bar; toolbar menu (export/refresh/report/clear) and voice toggle; sheets for citations, disclaimer, provider consent, per-message email/share, export and Settings → Flo; link-scheme filtering. Also declares View.disableWritingToolsIfAvailable.",
+ "types": [
+  "AssistantChatView: struct View — chat tab",
+  "AssistantChatView.ShareableText: struct Identifiable — per-message share payload",
+  "View: extension — disableWritingToolsIfAvailable"
+ ],
+ "state": [
+  "var scrollToBottomSignal: UUID (line 17), var title (default 'Assistant', line 20)",
+  "@State floSettingsPresented, showClearConfirm, disclaimerPresented, reportMailUnavailable, citationSession (lines 26-33)",
+  "@State isPinnedToBottom, chatViewportHeight, lastStreamingScrollAt (lines 46-53)",
+  "@State perMessageEmailItem (ShareableText?), perMessageShareItem, exportShareURL"
+ ],
+ "toplevel": "No global code. ShareableText gets a fresh UUID id per instance. View extension applies writingToolsBehavior(.disabled) on iOS 18+.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AssistantChatView.viewModel",
+   "hash": "f96e58f185edf88e",
+   "does": "Returns dependencies.assistant.assistantViewModel (shared AssistantViewModel).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69"
+   }
+  },
+  {
+   "key": "var AssistantChatView.registry",
+   "hash": "bf14465fd0892c1e",
+   "does": "Returns dependencies.providers.providerRegistry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry": "011c65c2dc3b4ab7"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voice",
+   "hash": "3358bc9966a6773d",
+   "does": "Returns dependencies.assistant.voiceConversationController.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController"
+   ],
+   "reads": [
+    "mem:VoiceConversationController"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController": "7a711ab6e2d41627"
+   }
+  },
+  {
+   "key": "var AssistantChatView.body",
+   "hash": "17cc0c37a7e449c3",
+   "does": "Signposts 'AssistantChatView.body' and renders NavigationStack { chatStack with chrome and sheets }, running onChatAppear on appear.",
+   "entry": "SwiftUI view body evaluation (embedded by CoachHomeV2View.swift:61); .onAppear",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatSheets(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatChrome(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatStack",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.onChatAppear()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.onChatAppear()": "fdf6e504a778a098",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatChrome(_:)": "5a73644f49ace372",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatSheets(_:)": "00bc21178aa7f0ae",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatStack": "a06c298ceb670ca5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
+   }
+  },
+  {
+   "key": "var AssistantChatView.chatStack",
+   "hash": "b0655a088302ac0a",
+   "does": "Vertical stack: top bar, divider, messages, voice status pill, voice notice, disclaimer-pending banner, error banner, divider, input bar.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.topBar",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.messages",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceStatusPill",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceNoticeBanner",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerPendingBanner",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.errorBanner",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.chatInputBar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.chatInputBar": "5f0860a9c05e349e",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.errorBanner": "2f59e100457ccdb8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.messages": "386409170722e795",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.topBar": "a246431192569bd2",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerPendingBanner": "6d1e305892d97ae3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceNoticeBanner": "2be014a3b8bad809",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceStatusPill": "91247e95318885b1"
+   }
+  },
+  {
+   "key": "func AssistantChatView.withChatChrome(_:)",
+   "hash": "e50fc89ab308bdbd",
+   "does": "Adds nav title, toolbar, 'Clear conversation?' alert (Clear → viewModel.clearConversation), the shared no-mail report alert (reportMailUnavailableAlert), and overrides openURL with handleAssistantURL.",
+   "entry": "SwiftUI view body evaluation; alert button taps; openURL from tapped links in bubbles",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatToolbar",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.handleAssistantURL(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.turns (cleared)",
+    "file:conversation store (ConversationStore via clearConversation)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "710d4ecd5b2ff279",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.handleAssistantURL(_:)": "149b78e1b8bc5bb3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatToolbar": "96a4741eb8c36e5d",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)": "8ded708bdcfe557a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantChatView.chatToolbar",
+   "hash": "65db579e271365a7",
+   "does": "Toolbar: options menu trailing, voice toggle leading.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatOptionsMenu",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceToggleButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatOptionsMenu": "efc95f7a672f0b32",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceToggleButton": "9873209b8890af38"
+   }
+  },
+  {
+   "key": "var AssistantChatView.chatOptionsMenu",
+   "hash": "599b7269d62f8967",
+   "does": "Ellipsis menu with Export chat, Refresh data context, Report last spoken coaching, divider, Clear conversation.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportChatButton",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.refreshDataContextButton",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.reportSpokenCoachingButton",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.clearConversationButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.clearConversationButton": "f56e7630db580261",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportChatButton": "1762f29958e45215",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.refreshDataContextButton": "199ff0789d8e4034",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.reportSpokenCoachingButton": "87f0195bd208ba02",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantChatView.reportSpokenCoachingButton",
+   "hash": "f02a52d3b3b86d38",
+   "does": "Menu item 'Report last spoken coaching' shown when the voice controller has a last interjection line and a mailto report URL can be built; tap opens it.",
+   "entry": "SwiftUI view body evaluation; menu tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.openReport(_:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.lastInterjectionText"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastInterjectionText non-nil AND reportURL builds",
+     "effect": "button shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.openReport(_:)": "e3c22416f31f3e6f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "041452b1d4549fed",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AssistantChatView.openReport(_:)",
+   "hash": "afee759b7fbe2eea",
+   "does": "Opens the report mailto URL through the system openURL; if nothing opened it, shows the no-mail alert.",
+   "entry": "menu tap",
+   "calls": [
+    "ext:OpenURLAction (system)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "URL failed to open",
+     "effect": "reportMailUnavailable = true; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantChatView.disclaimerPendingBanner",
+   "hash": "9a301bc5008b9a9a",
+   "does": "Shows the 'read the notice' row when the disclaimer has not been accepted and its sheet is not currently presented.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerPendingRow"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.hasAcceptedDisclaimer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!hasAcceptedDisclaimer AND !disclaimerPresented",
+     "effect": "row shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerPendingRow": "730d803864f3d66a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+   }
+  },
+  {
+   "key": "var AssistantChatView.disclaimerPendingRow",
+   "hash": "45bc04c103318908",
+   "does": "Row 'Flo answers once you've read its notice.' with a 'Read the notice' button setting disclaimerPresented = true.",
+   "entry": "SwiftUI view body evaluation; button tap",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceToggleButton",
+   "hash": "df4988b00fb10ce8",
+   "does": "Toolbar voice button (icon/colour/pulse by state) calling VoiceConversationController.toggle (start, finalize, interrupt depending on state).",
+   "entry": "SwiftUI view body evaluation; button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIcon",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceColor",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIsActive"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceColor": "a800b1e1f538c98c",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIcon": "7a20e9f3face9384",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIsActive": "ae1b8da64a6f7e53",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "37942af49c1d3170",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AssistantChatView.handleAssistantURL(_:)",
+   "hash": "0a50a2bfe6dfec4d",
+   "does": "Link policy for model-written links: flowrecovery session URLs open a CitationQuickView sheet (when the archive has that session) and are handled; http/https go to the system; everything else is discarded.",
+   "entry": "OpenURLAction handler installed by withChatChrome",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.parseSessionURL(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveOrLog(session)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "URL parses as a session citation",
+     "effect": "looks up the session and returns .handled"
+    },
+    {
+     "at": "+2",
+     "cond": "session found in archive",
+     "effect": "citationSession = session (sheet opens); not found → nothing visible happens, still .handled (retrieveOrLog logs)"
+    },
+    {
+     "at": "+7",
+     "cond": "scheme is http or https",
+     "effect": ".systemAction; otherwise .discarded"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A citation link to a session that cannot be loaded (deleted / decrypt failure) returns .handled with no UI feedback; the tap appears to do nothing.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:220-223"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.parseSessionURL(_:)": "d978b18884d0815c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+   }
+  },
+  {
+   "key": "func AssistantChatView.withChatSheets(_:)",
+   "hash": "975799cd0bacbf97",
+   "does": "Attaches sheets: citation quick view, disclaimer, provider consent, per-message email (.sheet(item: perMessageEmailItem)), per-message share, export share, and Settings → Flo (onDismiss → registry.keysChanged).",
+   "entry": "sheet presentation driven by @State / bindings; onDismiss",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.citationSheet(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerSheet",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.pendingConsentBinding",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.consentSheet(_:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.perMessageEmailSheet(body:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportShareBinding",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.floSettingsSheet",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "54aa3690150b5924",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.citationSheet(_:)": "1f98ed0fdc2a30b3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.consentSheet(_:)": "960911ddd149c198",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.perMessageEmailSheet(body:)": "7a5c2ff8f02ae27b",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerSheet": "ee831911a044914d",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportShareBinding": "bf091dd6613147fe",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.floSettingsSheet": "b198fa120756b00f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.pendingConsentBinding": "16c057a6605b5b15",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "12ca201943e746b3"
+   }
+  },
+  {
+   "key": "var AssistantChatView.floSettingsSheet",
+   "hash": "45b3c87ace6fad64",
+   "does": "NavigationStack containing AIAssistantSettingsPage with a Done toolbar button.",
+   "entry": "sheet content",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.floSettingsDoneButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.floSettingsDoneButton": "c484a5e369f05cde"
+   }
+  },
+  {
+   "key": "var AssistantChatView.floSettingsDoneButton",
+   "hash": "a2a2a74dd937787c",
+   "does": "Toolbar 'Done' button setting floSettingsPresented = false.",
+   "entry": "button tap",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AssistantChatView.citationSheet(_:)",
+   "hash": "4ba261e3efbe1a4c",
+   "does": "NavigationStack with CitationQuickView(session:) and a Done button.",
+   "entry": "sheet content",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.citationDoneButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.citationDoneButton": "9e0a6b7bc6985b8b"
+   }
+  },
+  {
+   "key": "var AssistantChatView.citationDoneButton",
+   "hash": "8ef0bd7ed9c54428",
+   "does": "Toolbar 'Done' button clearing citationSession.",
+   "entry": "button tap",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantChatView.disclaimerSheet",
+   "hash": "c2e4221d299c5170",
+   "does": "DisclaimerSheet bound to disclaimerPresented whose accept sets viewModel.hasAcceptedDisclaimer = true (persisted in UserDefaults); interactive dismiss disabled.",
+   "entry": "sheet content; accept tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.disclaimerAccepted"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+   }
+  },
+  {
+   "key": "var AssistantChatView.pendingConsentBinding",
+   "hash": "d0e28cc53d8c1f07",
+   "does": "Binding<ConsentSheetItem?> derived from viewModel.pendingConsentRequest; setting nil calls viewModel.cancelPendingConsent (decline/swipe).",
+   "entry": ".sheet(item:) binding",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.pendingConsentRequest"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.pendingConsentRequest",
+    "mem:ComposerState.returnedDraft",
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "new value is nil",
+     "effect": "cancelPendingConsent() (no-op after accept since pending already cleared); non-nil writes ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "173cc89e4c60aee3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+   }
+  },
+  {
+   "key": "func AssistantChatView.consentSheet(_:)",
+   "hash": "bc23fc7f0ba5d296",
+   "does": "ProviderConsentSheet for the provider; accept → acknowledgeConsentAndContinue (records consent, re-sends pending text); decline → cancelPendingConsent.",
+   "entry": "sheet content; button taps",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.acknowledgeConsentAndContinue()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.consent.v8.<provider>",
+    "ud:assistant.consent.v8.<provider>.grantedAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.acknowledgeConsentAndContinue()": "d3dc6cf96faa22b0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "173cc89e4c60aee3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+   }
+  },
+  {
+   "key": "func AssistantChatView.perMessageEmailSheet(body:)",
+   "hash": "cc342816bfc77b48",
+   "does": "Mail composer for one message's forwarding body, pre-filled with the user's default To/Cc recipients; its dismissal nils perMessageEmailItem. Presented with .sheet(item:), so it never opens without its text.",
+   "entry": ".sheet(item: $perMessageEmailItem) content",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC",
+    "ext:MailComposerView (memberwise init)"
+   ],
+   "reads": [
+    "file:user_settings.json (default email recipient/CC settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.body": "bd1e892aa0f11050",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "9fa516b2dcf25514",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "1a3b52db4e9c1356",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var AssistantChatView.exportShareBinding",
+   "hash": "5ed096e8f969555c",
+   "does": "Binding<ExportShareURL?> over exportShareURL; when the share sheet sets it to nil (closed), clears the URL and deletes the chat export files from tmp (AssistantViewModel.removeChatExports).",
+   "entry": ".sheet(item:) binding",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/EmuquChat-*.md (deleted on close)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "set to nil",
+     "effect": "removeChatExports"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "ead02054f06d2c04"
+   }
+  },
+  {
+   "key": "func AssistantChatView.onChatAppear()",
+   "hash": "1d567a7c3835da59",
+   "does": "On chat appear: presents the disclaimer sheet if not yet accepted, starts the ambient location stream (only if already authorised) and pre-warms the assistant context in the background.",
+   "entry": ".onAppear of the chat NavigationStack",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.startAmbientLocation()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.prewarmAssistantContext()"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.hasAcceptedDisclaimer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!hasAcceptedDisclaimer",
+     "effect": "disclaimerPresented = true; else no sheet"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.prewarmAssistantContext()": "f2883cd273219bbc",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.startAmbientLocation()": "a13d5a3a0531bf25",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+   }
+  },
+  {
+   "key": "func AssistantChatView.startAmbientLocation()",
+   "hash": "c0ce1187264d4f98",
+   "does": "Calls AmbientLocationService.startIfAuthorized().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AmbientLocationService (location updates started when authorised)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "bf3a1dee046c7f81",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+   }
+  },
+  {
+   "key": "func AssistantChatView.prewarmAssistantContext()",
+   "hash": "48e46fee276b4c04",
+   "does": "Detached userInitiated task awaiting AssistantContextSource.currentContext() to warm session/trend/summary caches; result discarded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantContextSource",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()"
+   ],
+   "reads": [
+    "archive:session files read by context builder"
+   ],
+   "writes": [
+    "mem:AnalysisSummaryCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81b3769a876d3fed",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantContextSource": "10ec37a00ab7ceb1"
+   }
+  },
+  {
+   "key": "var AssistantChatView.refreshDataContextButton",
+   "hash": "35e63d4e6885aaeb",
+   "does": "Menu button 'Refresh data context' calling viewModel.invalidateContext (clears summary cache + fact registry, rebuilds in background).",
+   "entry": "menu tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.invalidateContext()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AnalysisSummaryCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.invalidateContext()": "937e9d497b1a4a88",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantChatView.clearConversationButton",
+   "hash": "1ecc423e9a913a56",
+   "does": "Destructive 'Clear conversation' menu button that shows the confirmation alert.",
+   "entry": "menu tap",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantChatView.exportChatButton",
+   "hash": "c32f43e28417e1f6",
+   "does": "Menu 'Export chat' button, disabled for an empty chat; a tap runs exportChat (builds the transcript file on tap rather than on every Menu body evaluation, which slowed the keyboard).",
+   "entry": "menu tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.exportChat()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "viewModel.turns.isEmpty",
+     "effect": "button disabled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.exportChat()": "d7f065b310d4c579",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AssistantChatView.exportChat()",
+   "hash": "94fa18b4a51b807c",
+   "does": "Calls viewModel.exportConversation() (replaces any earlier export in tmp) and stores the URL in exportShareURL, presenting the share sheet; a nil URL (write failed) sets viewModel.errorMessage 'Export failed'.",
+   "entry": "Export chat button tap (exportChatButton)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "file:tmp/EmuquChat-<timestamp>.md",
+    "mem:AssistantChatView.exportShareURL",
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "exportConversation returned nil",
+     "effect": "errorMessage = 'Export failed'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "ec5fda2982825a79",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceStatusPill",
+   "hash": "da0401c92341745d",
+   "does": "Inline voice status pill (icon, status text, partial transcript, push-to-talk, end button) while voice state is not idle.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIcon",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceColor",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIsActive",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceStatusText",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.partialTranscriptText",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.pushToTalkButton",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.endVoiceChatButton"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "voice.state != .idle",
+     "effect": "pill shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.endVoiceChatButton": "57d28ac003bf3c3b",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.partialTranscriptText": "759a783f70747af8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.pushToTalkButton": "24be3d57fc3ef10a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceColor": "a800b1e1f538c98c",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIcon": "7a20e9f3face9384",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIsActive": "ae1b8da64a6f7e53",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceStatusText": "fd5ab358ff94a235",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AssistantChatView.partialTranscriptText",
+   "hash": "c5588b6c86287e25",
+   "does": "Italic quoted partial transcript while listening and non-empty.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.partialTranscript"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "partialTranscript non-empty AND state == .listening",
+     "effect": "shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var AssistantChatView.pushToTalkButton",
+   "hash": "621ba4fe46becdb0",
+   "does": "'Send now' push-to-talk button while listening; calls voice.forceFinalizeTurn.",
+   "entry": "SwiftUI view body evaluation; button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.forceFinalizeTurn()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "voice.state == .listening",
+     "effect": "button shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.forceFinalizeTurn()": "58a69b2f331f5c98",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var AssistantChatView.endVoiceChatButton",
+   "hash": "bbd1b939556106f7",
+   "does": "'End voice chat' button calling voice.stop() (cancels LLM, view-model stream, TTS, audio pipeline; state → idle).",
+   "entry": "button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.state",
+    "mem:AssistantViewModel.isStreaming"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "b1ec5dbd5132a84f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceNoticeBanner",
+   "hash": "90896a60f455cca8",
+   "does": "Banner with the voice permission error, or else the inbox transient notice, plus a dismiss button.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.dismissVoiceNoticeButton"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.permissionError",
+    "mem:AssistantInbox.transientNotice"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "voice.permissionError ?? inbox.transientNotice",
+     "effect": "permissionError used when set; falls back to transientNotice"
+    },
+    {
+     "at": "+2",
+     "cond": "a notice string exists",
+     "effect": "banner shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.dismissVoiceNoticeButton": "c088948b2ba686d2",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var AssistantChatView.dismissVoiceNoticeButton",
+   "hash": "b0d8445eea6d2aaa",
+   "does": "Dismiss button clearing voice.permissionError and inbox.transientNotice.",
+   "entry": "button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.permissionError",
+    "mem:AssistantInbox.transientNotice"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceIcon",
+   "hash": "b094cdf7cfe593a3",
+   "does": "SF symbol for the voice state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".idle",
+     "effect": "mic.circle.fill"
+    },
+    {
+     "at": "+3",
+     "cond": ".starting",
+     "effect": "ellipsis.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": ".listening",
+     "effect": "waveform.circle.fill"
+    },
+    {
+     "at": "+5",
+     "cond": ".thinking",
+     "effect": "ellipsis.circle.fill"
+    },
+    {
+     "at": "+6",
+     "cond": ".speaking",
+     "effect": "speaker.wave.3.fill"
+    },
+    {
+     "at": "+7",
+     "cond": ".triggerSpeaking",
+     "effect": "exclamationmark.triangle.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceColor",
+   "hash": "332d5efe55280c28",
+   "does": "Theme colour for the voice state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".idle",
+     "effect": "AppTheme.primary"
+    },
+    {
+     "at": "+3",
+     "cond": ".starting",
+     "effect": "mist"
+    },
+    {
+     "at": "+4",
+     "cond": ".listening",
+     "effect": "sage"
+    },
+    {
+     "at": "+5",
+     "cond": ".thinking",
+     "effect": "mist"
+    },
+    {
+     "at": "+6",
+     "cond": ".speaking",
+     "effect": "dustyRose"
+    },
+    {
+     "at": "+7",
+     "cond": ".triggerSpeaking",
+     "effect": "terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceIsActive",
+   "hash": "d48ce929557ebf63",
+   "does": "True (pulse animation) while starting/listening/thinking/speaking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "state in starting/listening/thinking/speaking",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "default (idle, triggerSpeaking)",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576"
+   }
+  },
+  {
+   "key": "var AssistantChatView.voiceStatusText",
+   "hash": "25939740d34cbd98",
+   "does": "Status text for the voice pill.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".idle",
+     "effect": "''"
+    },
+    {
+     "at": "+3",
+     "cond": ".starting",
+     "effect": "'Connecting…'"
+    },
+    {
+     "at": "+4",
+     "cond": ".listening",
+     "effect": "uses the ?: on partialTranscript"
+    },
+    {
+     "at": "+4",
+     "cond": "partialTranscript is empty",
+     "effect": "'Listening'; else 'Hearing you'"
+    },
+    {
+     "at": "+5",
+     "cond": ".thinking",
+     "effect": "'Thinking…'"
+    },
+    {
+     "at": "+6",
+     "cond": ".speaking",
+     "effect": "'Speaking — tap the speaker button to interrupt' (toolbar button calls toggle → interrupt)"
+    },
+    {
+     "at": "+7",
+     "cond": ".triggerSpeaking",
+     "effect": "'Alert'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func View.disableWritingToolsIfAvailable()",
+   "hash": "7f2ec5c2e8f5aa9b",
+   "does": "Applies writingToolsBehavior(.disabled) on iOS 18+, otherwise returns the view unchanged.",
+   "entry": "view modifier used by ChatInputBar.withComposerFieldStyle",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "#available(iOS 18.0)",
+     "effect": "writing tools disabled; else unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

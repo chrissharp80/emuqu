@@ -1,0 +1,230 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift",
+ "hash": "992d93ef55efaf39",
+ "role": "MorningSessionPipeline extension for the pause/recovery 'gather' path: stop the stream and back up its beats through the morning stop's own helpers, pull the strap file through fetchNightFromStrap, gate on sufficiency and choose a source (backing up downloaded strap beats a failed night cannot use); also the shared publishGatherSavingState.",
+ "types": [
+  "MorningSessionPipeline: extension — gather path",
+  "selectOvernightSource: file-private func — DataSourceSelector wrapper with resumed-child fallback"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningSessionPipeline.gatherOvernightData()",
+   "hash": "90ec5aff636fd53e",
+   "does": "Pause-path gather: stops the stream exactly as the morning stop does (OvernightStreamingCoordinator.stopStreamingInfrastructure: base session, reconnect count, saving state published), backs the beats up (backupStreamingData), downloads the strap file via fetchNightFromStrap, gates/selects the source and returns an OvernightDataResult (nil when the session was failed).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.isVeritySenseDevice(_:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)"
+   ],
+   "reads": [
+    "mem:RRCollector.currentSession",
+    "mem:PolarManager.streamingReconnectCount",
+    "mem:RRCollector.streamingElapsedSeconds"
+   ],
+   "writes": [
+    "mem:RRCollector.isStreamingMode",
+    "ble:PolarManager streaming",
+    "mem:RRCollector.morningStatus",
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.isCollecting",
+    "file:RawRRBackup"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "resolveOvernightSource returns nil",
+     "effect": "return nil (session already failed)"
+    },
+    {
+     "at": "+14",
+     "cond": "internalPoints non-empty",
+     "effect": "deviceBeats = count; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)": "e86a93e530c8dc34",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "b5f412729bf4241c",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "097b6e035533da83",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "80eaad4f2265b36e",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.isVeritySenseDevice(_:)": "c3eeaec7c026b0d5",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)",
+   "hash": "8d56ed862dae2a26",
+   "does": "Gates on hasSufficientOvernightData (lower bar for resumed children); on failure, or when selection returns nil, backs up any downloaded strap beats under their own id and fails the session (failSession keeps a 'strap still holds the night' error the gate reported) and returns nil; otherwise returns the selected source.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasSufficientOvernightData(streamingCount:internalCount:isResumedChild:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.failRescuingDownload(_:baseSession:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func selectOvernightSource(streamingPoints:internalPoints:baseSession:isResumedChild:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.lastError",
+    "file:RawRRBackup (rescue)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "insufficient data from both sources",
+     "effect": "log, failRescuingDownload, return nil"
+    },
+    {
+     "at": "+8",
+     "cond": "internalPoints nil",
+     "effect": "internalCount 0"
+    },
+    {
+     "at": "+20",
+     "cond": "selection nil",
+     "effect": "failRescuingDownload; return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.failRescuingDownload(_:baseSession:)": "dd137c9d1b1140b4",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func selectOvernightSource(streamingPoints:internalPoints:baseSession:isResumedChild:)": "0bbef047c89016c2",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasSufficientOvernightData(streamingCount:internalCount:isResumedChild:)": "204fe0b14657c5ec",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.failRescuingDownload(_:baseSession:)",
+   "hash": "bd1eaec7e666e6bb",
+   "does": "Backs up the downloaded strap beats no session will hold (rescueDownloadedBeats), then fails the session through failSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:RawRRBackup",
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.lastError"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "63153052a6b17518",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)": "e00468009c5d4a58"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)",
+   "hash": "bf6bf9232e99cca6",
+   "does": "Writes downloaded strap beats to RawRRBackup under a fresh id, dated by the night's start, so Lost Sessions can recover them (the download stopped the strap's recording and the stream's backup does not hold them); nothing for nil or empty points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [
+    "file:RawRRBackup"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points nil or empty",
+     "effect": "returns"
+    },
+    {
+     "at": "+8",
+     "cond": "backup throws",
+     "effect": "logs error only"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A failed rescue backup is only logged; the session then fails with the gate's error, which does not say the downloaded beats were lost.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:86"
+     ],
+     "found": "fix batch b11"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "4e78d5bd620c47fb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.publishGatherSavingState(streamingPoints:elapsedHours:)",
+   "hash": "61b5c66ae4f3ee39",
+   "does": "On the main actor sets morningStatus=.saving, clears overnight/streaming/collecting flags and overnightDeviceBackupActive, sets recordingPhase .analyzing, stores the beats in collectedPoints, zeroes elapsed seconds, and charges the strap battery-usage counter with the hours.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.morningStatus",
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:RRCollector.overnightDeviceBackupActive",
+    "mem:DeviceStatus.isStreaming",
+    "mem:RRCollector.recordingPhase",
+    "mem:RRCollector.isCollecting",
+    "mem:RRCollector.collectedPoints",
+    "mem:RRCollector.streamingElapsedSeconds",
+    "ud:strap battery usage (StrapBatteryUsageTracker)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "be768fe7a9087c12",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2"
+   }
+  },
+  {
+   "key": "func selectOvernightSource(streamingPoints:internalPoints:baseSession:isResumedChild:)",
+   "hash": "2c04790049ada35d",
+   "does": "Picks the best source with DataSourceSelector; when it returns nil, a resumed child with any streamed beats uses streaming alone, otherwise nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "selector returned a selection",
+     "effect": "return its points and normalizedSource"
+    },
+    {
+     "at": "+17",
+     "cond": "not resumed child or no streaming beats",
+     "effect": "return nil; else (streamingPoints,'streaming')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "31c50995ae40ae2b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

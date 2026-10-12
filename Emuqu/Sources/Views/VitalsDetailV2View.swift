@@ -1,8 +1,8 @@
 import Charts
 import SwiftUI
 
-/// Vitals detail: the 15% Vitals component of the Recovery Score, surfaced
-/// as a first-class concept.
+/// Vitals detail: the Vitals component of the Recovery Score (15% in the
+/// full tier, none in Comeback mode), surfaced as a first-class concept.
 ///
 /// Layout (top to bottom):
 ///   1. Title "Vitals"
@@ -44,16 +44,23 @@ struct VitalsDetailV2View: View {
     /// never judges two nights together; the passed-in `vitals` stand in
     /// only when there is no overnight reading at all.
     private var effectiveVitals: RecoveryVitals? {
-        let stored = latestOvernight.map(\.vitalsSnapshot) ?? vitals
-        let fresh = refreshedVitals
         // Strap-derived nocturnal mean from the latest session's analysis
         // window. Wins over both stored and fresh (Apple) RHR samples.
-        let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
+        Self.mergedVitals(
+            stored: latestOvernight.map(\.vitalsSnapshot) ?? vitals,
+            fresh: refreshedVitals,
+            strapHR: latestOvernight?.analysisResult?.timeDomain.meanHR
+        )
+    }
+
+    /// The one merge rule for a night's vitals on the detail screens: the
+    /// strap's nocturnal mean HR wins, then the stored snapshot's, then the
+    /// fresh HealthKit one; every other field takes fresh before stored. Nil
+    /// when there is nothing at all, so the empty-state copy fires.
+    static func mergedVitals(stored: RecoveryVitals?, fresh: RecoveryVitals?, strapHR: Double?) -> RecoveryVitals? {
         let mergedRHR = strapHR ?? stored?.restingHeartRate ?? fresh?.restingHeartRate
-        // If we have neither fresh nor stored, return nil so the
-        // empty-state copy fires.
         if fresh == nil && stored == nil {
-            return mergedRHR.map(Self.heartRateOnlyVitals)
+            return mergedRHR.map(heartRateOnlyVitals)
         }
         return RecoveryVitals(
             respiratoryRate: fresh?.respiratoryRate ?? stored?.respiratoryRate,
@@ -85,21 +92,33 @@ struct VitalsDetailV2View: View {
 
     private var status: VitalsBannerStatus {
         guard let v = effectiveVitals, !v.isEmpty else { return .noData }
-        switch v.status {
-        case .normal: return .normal
-        case .elevated: return .watch
-        case .warning: return .elevated
+        return Self.bannerStatus(v)
+    }
+
+    /// Counts what was actually judged against a range: respiratory rate and
+    /// wrist temperature against their baselines, SpO₂ against 95%. One flag
+    /// is Watch, two or more Elevated. Resting heart rate has no range on this
+    /// screen, so a night where none of the three could be judged is
+    /// `.notCompared`, not Normal.
+    static func bannerStatus(_ v: RecoveryVitals) -> VitalsBannerStatus {
+        let flagged = [v.isRespiratoryElevated, v.isTemperatureElevated, v.isSpO2Concerning].filter { $0 }.count
+        let judged = [v.respiratoryDeviation, v.wristTemperatureDeviation, v.oxygenSaturation].compactMap { $0 }.count
+        switch flagged {
+        case 0: return judged == 0 ? .notCompared : .normal
+        case 1: return .watch
+        default: return .elevated
         }
     }
 
     enum VitalsBannerStatus {
-        case normal, watch, elevated, noData
+        case normal, watch, elevated, notCompared, noData
 
         var word: String {
             switch self {
             case .normal: String(localized: "Normal", bundle: LanguageManager.appBundle)
             case .watch: String(localized: "Watch", bundle: LanguageManager.appBundle)
             case .elevated: String(localized: "Elevated", bundle: LanguageManager.appBundle)
+            case .notCompared: String(localized: "No baseline yet", bundle: LanguageManager.appBundle)
             case .noData: String(localized: "No data", bundle: LanguageManager.appBundle)
             }
         }
@@ -109,7 +128,7 @@ struct VitalsDetailV2View: View {
             case .normal: "checkmark.seal.fill"
             case .watch: "exclamationmark.circle.fill"
             case .elevated: "exclamationmark.triangle.fill"
-            case .noData: "circle.dashed"
+            case .notCompared, .noData: "circle.dashed"
             }
         }
 
@@ -118,7 +137,7 @@ struct VitalsDetailV2View: View {
             case .normal: AppTheme.wongOptimal
             case .watch: AppTheme.wongCaution
             case .elevated: AppTheme.wongAttention
-            case .noData: AppTheme.textTertiary
+            case .notCompared, .noData: AppTheme.textTertiary
             }
         }
 
@@ -129,6 +148,7 @@ struct VitalsDetailV2View: View {
             // "Outside", not "above": a low SpO₂ alone also lands here.
             case .watch: String(localized: "One vital is outside your usual range. Worth noting.", bundle: LanguageManager.appBundle)
             case .elevated: String(localized: "Multiple vitals are above your baseline. Common causes are a hard week, short sleep, alcohol or a warm room, and sometimes the start of an illness.", bundle: LanguageManager.appBundle)
+            case .notCompared: String(localized: "None of these vitals can be compared with your usual range yet.", bundle: LanguageManager.appBundle)
             case .noData: String(localized: "No vitals data yet. Apple Watch overnight gives the most signal.", bundle: LanguageManager.appBundle)
             }
         }
@@ -151,9 +171,11 @@ struct VitalsDetailV2View: View {
         .task(id: latestOvernight?.id) {
             await refreshVitals()
         }
+        .onChange(of: collector.morningCoordination.vitalsDataVersion) { _, _ in Task { await refreshVitals() } }
     }
 
-    /// Re-pull vitals from HealthKit on appear. Apple writes overnight
+    /// Re-pull vitals from HealthKit on appear, and again when HealthKit
+    /// delivers new vitals (`MorningCoordination.vitalsDataVersion`). Apple writes overnight
     /// vitals (resp rate / SpO₂ / wrist temp) minutes-to-hours AFTER
     /// sleep ends, so the snapshot frozen at acceptance frequently
     /// misses them. Doing the fetch here lets older sessions display
@@ -276,11 +298,24 @@ struct VitalsDetailV2View: View {
         // baseline; the HK fallback is daytime-rest physiology, which
         // is a different signal and should be labeled honestly so the
         // user doesn't trust a stale comparison.
-        let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
-        if let strapHR, strapHR > 0 {
+        if rhrIsStrapDerived {
             return String(localized: "Strap-derived nocturnal mean (analysis window)", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Apple Watch resting HR (daytime sample — not nocturnal)", bundle: LanguageManager.appBundle)
+    }
+
+    /// Whether the heart rate shown is a strap's nocturnal mean. With an
+    /// overnight reading it is when that reading has one, since it wins the
+    /// merge. Without one the figure is the passed-in snapshot's, which
+    /// session acceptance sets to the strap mean when the session had one:
+    /// it counts as strap when it equals the mean HR of a session carrying
+    /// that same snapshot.
+    private var rhrIsStrapDerived: Bool {
+        if let latest = latestOvernight {
+            return (latest.analysisResult?.timeDomain.meanHR ?? 0) > 0
+        }
+        guard let snapshot = vitals, let rhr = snapshot.restingHeartRate else { return false }
+        return recentSessions.contains { $0.vitalsSnapshot == snapshot && $0.analysisResult?.timeDomain.meanHR == rhr }
     }
 
     private var respRateValue: String {
@@ -331,8 +366,19 @@ struct VitalsDetailV2View: View {
             // it competing for the row's attention.
             return String(localized: "Not measured · tap to learn why", bundle: LanguageManager.appBundle)
         }
-        if v < RecoveryVitals.concerningSpO2Below { return String(localized: "Below 95% — flat -10 score penalty applied", bundle: LanguageManager.appBundle) }
+        if spo2PenaltyInScore { return String(localized: "Below 95% — flat -10 score penalty applied", bundle: LanguageManager.appBundle) }
+        if v < RecoveryVitals.concerningSpO2Below { return String(localized: "Below 95% — not in the current score, so no penalty applied", bundle: LanguageManager.appBundle) }
         return String(localized: "95% or above — no penalty", bundle: LanguageManager.appBundle)
+    }
+
+    /// Whether the latest overnight score carries the SpO₂ deduction, read
+    /// from what the score stored rather than from the SpO₂ on this screen: a
+    /// reading HealthKit writes after scoring never reached the score. Scores
+    /// without a stored breakdown fall back to the snapshot they were
+    /// computed from.
+    private var spo2PenaltyInScore: Bool {
+        guard let latest = latestOvernight else { return false }
+        return latest.scoreBreakdown?.spo2PenaltyApplied ?? (latest.vitalsSnapshot?.isSpO2Concerning ?? false)
     }
 
     private func explanation(for key: Row) -> String {
@@ -352,8 +398,7 @@ struct VitalsDetailV2View: View {
     /// Reflects which source produced the value — see `rhrDeviation` for the
     /// source detection.
     private func rhrExplanation() -> String {
-        let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
-        if let strapHR, strapHR > 0 {
+        if rhrIsStrapDerived {
             return String(localized: "Sleep HR is the strap's mean HR within the overnight analysis window selected for HRV — the same nocturnal physiology your baseline of up to 60 nights is built from. Apple's 'sleeping HR' (median across the whole sleep period) may read differently because it covers all sleep stages, including REM where HR rises briefly.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Without a strap recording, this falls back to Apple Watch's resting HR sample — which is taken during quiet daytime windows, not overnight. It's a different signal from your strap-derived baseline, so day-to-day comparisons may run high. Wear the strap at night to get the apples-to-apples nocturnal number.", bundle: LanguageManager.appBundle)
@@ -390,34 +435,31 @@ struct VitalsDetailV2View: View {
         }
     }
 
+    /// Sleep HR (~45-70 bpm) and respiratory rate (~12-20 br/min) each get
+    /// their own chart and Y scale; on one shared axis the breathing line was
+    /// pressed flat.
     private func trendPlot(_ series: [TrendPoint]) -> some View {
-        Chart {
-            trendMarks(series)
+        VStack(alignment: .leading, spacing: 8) {
+            seriesChart(series.filter { $0.metric == Self.rhrSeries }, name: Self.rhrSeries, color: AppTheme.wongAttention)
+                .accessibilityChartDescriptor(trendAudioDescriptor(series))
+            seriesChart(series.filter { $0.metric == Self.respSeries }, name: Self.respSeries, color: AppTheme.wongGood)
         }
-        .chartForegroundStyleScale([
-            Self.rhrSeries: AppTheme.wongAttention,
-            Self.respSeries: AppTheme.wongGood
-        ])
-        .chartYAxis { AxisMarks(position: .leading) }
-        .chartLegend(position: .bottom)
-        .accessibilityChartDescriptor(trendAudioDescriptor(series))
     }
 
-    @ChartContentBuilder
-    private func trendMarks(_ series: [TrendPoint]) -> some ChartContent {
-        ForEach(series.filter { $0.metric == Self.rhrSeries }) { p in
-            LineMark(
-                x: .value("Date", p.date),
-                y: .value(Self.rhrSeries, p.value)
-            )
-            .foregroundStyle(by: .value("Metric", p.metric))
-        }
-        ForEach(series.filter { $0.metric == Self.respSeries }) { p in
-            LineMark(
-                x: .value("Date", p.date),
-                y: .value(Self.respSeries, p.value)
-            )
-            .foregroundStyle(by: .value("Metric", p.metric))
+    /// One metric's line, captioned with its name, on a Y scale fitted to its
+    /// own values. Nothing when the metric has no points.
+    @ViewBuilder
+    private func seriesChart(_ points: [TrendPoint], name: String, color: Color) -> some View {
+        if let low = points.map(\.value).min(), let high = points.map(\.value).max() {
+            Text(verbatim: name)
+                .scaledFont(size: 12, weight: .medium)
+                .foregroundStyle(color)
+            Chart(points) { p in
+                LineMark(x: .value("Date", p.date), y: .value(name, p.value))
+                    .foregroundStyle(color)
+            }
+            .chartYScale(domain: (low - 1)...(high + 1))
+            .chartYAxis { AxisMarks(position: .leading) }
         }
     }
 
@@ -436,20 +478,23 @@ struct VitalsDetailV2View: View {
     private static var rhrSeries: String { String(localized: "RHR", bundle: LanguageManager.appBundle) }
     private static var respSeries: String { String(localized: "Resp", bundle: LanguageManager.appBundle) }
 
+    /// Identified by metric and night, so a rebuilt series keeps its
+    /// identities and the chart diffs rather than re-inserting every point.
     private struct TrendPoint: Identifiable {
-        let id = UUID()
         let date: Date
         let metric: String
         let value: Double
+        var id: String { "\(metric)-\(date.timeIntervalSince1970)" }
     }
 
-    /// Overnight readings only. Each night's heart rate is the strap's
-    /// nocturnal mean when there is one — the same number the Sleep heart
-    /// rate row shows — and the stored snapshot's otherwise.
+    /// One overnight reading per night for the last 30 days, picked by
+    /// `DashboardSessionPolicy.sessionForDay` (reliable for HRV aggregates,
+    /// the longest when a night has several). Each night's heart rate is the
+    /// strap's nocturnal mean when there is one — the same number the Sleep
+    /// heart rate row shows — and the stored snapshot's otherwise.
     private func buildTrend() -> [TrendPoint] {
         var out: [TrendPoint] = []
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        for s in recentSessions where s.startDate >= cutoff && s.sessionType == .overnight {
+        for s in trendNights() {
             let v = s.vitalsSnapshot
             if let rhr = s.analysisResult?.timeDomain.meanHR ?? v?.restingHeartRate {
                 out.append(TrendPoint(date: s.startDate, metric: Self.rhrSeries, value: rhr))
@@ -461,6 +506,17 @@ struct VitalsDetailV2View: View {
         return out.sorted { $0.date < $1.date }
     }
 
+    /// The overnight reading the policy picks for each of the last 30 days.
+    private func trendNights() -> [HRVSession] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0 ..< 30).compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: today)
+                .flatMap { DashboardSessionPolicy.sessionForDay($0, in: recentSessions, calendar: calendar) }
+                .flatMap { $0.sessionType == .overnight ? $0 : nil }
+        }
+    }
+
     // MARK: - Why vitals matter
 
     private var whyCard: some View {
@@ -468,7 +524,7 @@ struct VitalsDetailV2View: View {
             Text(verbatim: String(localized: "Why vitals matter", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 15, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(verbatim: String(localized: "Breathing rate, temperature and overnight heart rate can shift on nights when HRV does not, which is why they make up 15% of your Recovery Score.", bundle: LanguageManager.appBundle))
+            Text(verbatim: String(localized: "HRV is your core recovery signal. Sleep is the lever you can move tonight. Vitals add overnight heart rate, breathing rate and temperature, which can shift on nights when HRV does not.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 13)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

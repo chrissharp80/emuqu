@@ -1,0 +1,255 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift",
+ "hash": "03c5ab95f1bca993",
+ "role": "Forwarders from FitnessPostSummaryView to FitnessSummaryCards; `summary` rebuilds the cards struct with bindings to the view's @State on every access.",
+ "types": [
+  "FitnessPostSummaryView: extension — FitnessSummaryCards forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessPostSummaryView.summary",
+   "hash": "03c05ae81ffb88fa",
+   "does": "Builds FitnessSummaryCards with session, track, units, collector, savedRouteStore, settings and bindings to 25 @State properties (including reportShare).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.savedRouteStore"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.savedRouteStore": "01b871a55eac27a9",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.physiologyCard",
+   "hash": "37f4cb3b152cd808",
+   "does": "Forwards to FitnessSummaryCards.physiologyCard.",
+   "entry": "Rendered from summaryDetailCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.physiologyCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.physiologyCard": "3e6ae05939dc3c60",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.environmentCard",
+   "hash": "db391cbece82b378",
+   "does": "Forwards to FitnessSummaryCards.environmentCard.",
+   "entry": "Rendered from summaryDetailCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.environmentCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.environmentCard": "d7ad11fa8b111be4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "6b6f27b1497ed4a5"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.routeHistoryBaselineCard",
+   "hash": "8bafe9f697b0340f",
+   "does": "Forwards to FitnessSummaryCards.routeHistoryBaselineCard.",
+   "entry": "Rendered from summarySplitsAndActions.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.routeHistoryBaselineCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.routeHistoryBaselineCard": "c44c8c5d5cce4458",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.coachReportCard",
+   "hash": "c7c385e3a5f5945b",
+   "does": "Forwards to FitnessSummaryCards.coachReportCard.",
+   "entry": "Rendered from summaryActionCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.coachReportCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.coachReportCard": "f8f858c64c211d55",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.saveRouteCard",
+   "hash": "aefd0bae586f420e",
+   "does": "Forwards to FitnessSummaryCards.saveRouteCard.",
+   "entry": "Rendered from summaryActionCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteCard": "925221ec5dca4b95",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.exportCard",
+   "hash": "094b2fe5f570579a",
+   "does": "Forwards to FitnessSummaryCards.exportCard.",
+   "entry": "Rendered from summaryActionCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportCard": "516ef67ab7da0f32",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.resmoothElevationCard",
+   "hash": "acae59c8d544f34e",
+   "does": "Forwards to FitnessSummaryCards.resmoothElevationCard.",
+   "entry": "Rendered from summaryActionCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationCard": "5182c4224551b8f0",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.reanalyzeAlpha1Card",
+   "hash": "13e84d09236144e1",
+   "does": "Forwards to FitnessSummaryCards.reanalyzeAlpha1Card.",
+   "entry": "Rendered from summaryActionCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Card"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Card": "78decbc1f33d3ee8",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.splitsCard(_:)",
+   "hash": "abf37f6fbdf2eae6",
+   "does": "Forwards splitsCard(resolved).",
+   "entry": "Rendered from summarySplitsAndActions.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.splitsCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.splitsCard(_:)": "252fcb1b4e6ed3e5",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.loadRouteHistorySummary()",
+   "hash": "f4575a811e23ae84",
+   "does": "Bumps routeHistoryGeneration; with no recognised route name sets routeHistory = nil; otherwise runs FitnessSummaryCards.routeHistorySummary off-main on a detached task and stores the result only if no newer load started meanwhile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (prior runs of the route, via FitnessSummaryCards.routeHistorySummary)"
+   ],
+   "writes": [
+    "mem:FitnessPostSummaryView.routeHistory",
+    "mem:FitnessPostSummaryView.routeHistoryGeneration"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no recognised route name",
+     "effect": "routeHistory = nil"
+    },
+    {
+     "at": "+12",
+     "cond": "a newer load started",
+     "effect": "result dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)": "b2b5fb9c3eab9a32",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.regionForTrack(_:)",
+   "hash": "13dbe2c0de82948d",
+   "does": "Forwards regionForTrack to FitnessSummaryCards (MapBoundsHelper).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.regionForTrack(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.regionForTrack(_:)": "4c9a67ea6be0894f",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::var FitnessPostSummaryView.summary": "f4edbcb96e0dfac4"
+   }
+  }
+ ],
+ "deps": {}
+}

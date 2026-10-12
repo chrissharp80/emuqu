@@ -1,0 +1,133 @@
+{
+ "file": "Emuqu/Sources/Utilities/Constants.swift",
+ "hash": "cb0fcb554aeac98d",
+ "role": "Central constants: app/group/iCloud/keychain identifiers and container lookup, the UserDefaults key registry, unit conversions, HRV/sleep/training thresholds, composite recovery-score weights (ScoringWeights), score bounds and Kubios-style stress normative references.",
+ "types": [
+  "AppConfig: enum — identifiers, developer contact address + contactMailURL(subject:body:), sharedContainerURL()",
+  "UserDefaultsKeys: enum — UD key strings",
+  "UnitConstants / SessionConstants: enum — unit conversions and session age limit",
+  "HRVConstants (RRInterval, MinimumDuration, MinimumBeats, FrequencyBands, DFA, Artifacts, RRValidity): enum — HRV analysis thresholds",
+  "SleepConstants: enum — sleep duration/efficiency/nap/boundary thresholds",
+  "TrainingConstants (ACR, TRIMP, EWMA): enum — load model constants",
+  "ScoringBounds: enum — 0/100/50 clamp values",
+  "ScoringWeights (Tier3, Tier2, Comeback, Sleep, PerceivedReadiness, Vitals): enum — composite recovery-score weights and vitals sub-score rules",
+  "WindowConstants: enum — triangular-index bin width",
+  "StressNormativeConstants: enum — PNS/SNS references and 1-10 readiness deltas"
+ ],
+ "state": [
+  "App Group: group.com.chrissharp.flowrecovery (Constants.swift:9)",
+  "ck:iCloud.com.chrissharp.flowrecovery container (Constants.swift:12)",
+  "kc:service com.chrissharp.flowrecovery.encryption (Constants.swift:15)",
+  "file:HRVArchive directory name (Constants.swift:18)",
+  "file:RRBackup directory name (Constants.swift:21)",
+  "mem:AppConfig.contactEmail = chrissharp80@gmail.com (static let; support, privacy, AI-report mail and the contact in third-party User-Agent strings)",
+  "ud:RRCollector.persistedRecordingState",
+  "ud:RRCollector.activeRecordingStartTime",
+  "ud:RRCollector.activeRecordingSessionId",
+  "ud:RRCollector.activeRecordingSessionType",
+  "ud:RRCollector.pausedSessionId",
+  "ud:RRCollector.mergeDataLossRepaired.v6",
+  "ud:PolarManager.knownDevices",
+  "ud:PolarManager.lastConnectedTime",
+  "ud:PolarManager.lastDeviceId (legacy)",
+  "ud:CloudKitZoneCreated",
+  "ud:CloudKitChangeToken",
+  "ud:CloudKitLastSyncDate",
+  "ud:PersistentLoggingEnabled",
+  "ud:hasAcceptedHealthDisclaimer",
+  "ud:lastTrialReminderDate",
+  "ud:healthAccessSkippedInOnboarding",
+  "mem:AppConfig.resolvedSharedContainerURL (static let, resolved once per process)"
+ ],
+ "toplevel": "Only static let constants outside the units (AppConfig.resolvedSharedContainerURL is initialised lazily from resolveSharedContainerURL() on first use); no conformances or #if blocks.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AppConfig.contactMailURL(subject:body:)",
+   "hash": "ae7e5822e475b476",
+   "does": "Builds a mailto: URL to AppConfig.contactEmail via URLComponents with a 'subject' query item and, when body is non-nil, a 'body' query item (percent-encoded by URLComponents); returns components.url (nil only if URLComponents cannot form a URL).",
+   "entry": null,
+   "calls": [
+    "ext:Foundation URLComponents"
+   ],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "body != nil",
+     "effect": "adds a body query item; otherwise subject only"
+    },
+    {
+     "at": "+6",
+     "cond": "components.url nil",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppConfig.sharedContainerURL()",
+   "hash": "29899a41e0dc38aa",
+   "does": "Returns the per-process cached container URL (resolvedSharedContainerURL, set once from resolveSharedContainerURL()): the App Group container, else Documents, else NSTemporaryDirectory(). Used for settings, saved routes, baselines, diagnostics, crash logs, the debug log, workout track backups and the fresh-install wipe.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.resolveSharedContainerURL()"
+   ],
+   "reads": [
+    "mem:AppConfig.resolvedSharedContainerURL"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.resolveSharedContainerURL()": "5db1efbe2a403911"
+   }
+  },
+  {
+   "key": "func AppConfig.resolveSharedContainerURL()",
+   "hash": "2fc6aff83465a423",
+   "does": "Resolves the App Group container URL for group.com.chrissharp.flowrecovery; if unavailable NSLogs and falls back to Documents, and if that cannot be resolved NSLogs and returns NSTemporaryDirectory(). NSLog, not debugLog, because DebugLogger's initialiser reaches this through sharedContainerURL().",
+   "entry": "Lazy initialiser of AppConfig.resolvedSharedContainerURL (first sharedContainerURL() call)",
+   "calls": [
+    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier:)",
+    "ext:FileManager.urls(for:in:)",
+    "ext:NSLog"
+   ],
+   "reads": [
+    "file:App Group container group.com.chrissharp.flowrecovery"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "App Group container URL resolves (entitlement present)",
+     "effect": "true: return it; false: fall through — files written to the fallback are not visible to extensions sharing the group"
+    },
+    {
+     "at": "+12",
+     "cond": "Documents URL resolves",
+     "effect": "true: NSLog 'App Group container … unavailable; using Documents' and return Documents; false: NSLog and return the temporary directory"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVConstants.RRInterval.isValid(_:)",
+   "hash": "b6771ad933d1fe01",
+   "does": "Returns true when the RR interval in ms is within 300...2000 (physiological range ~30-200 bpm).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

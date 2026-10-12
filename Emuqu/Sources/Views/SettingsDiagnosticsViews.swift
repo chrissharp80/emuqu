@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Developer-facing diagnostics screens: MetricKit history, the sampled memory
-// trace, the per-session RR storage audit detail, and the export URL wrapper.
+// trace and the per-session RR storage audit detail.
 // Internal (not `private`) because their call sites live in other files.
 
 // MARK: - MetricKit History (per-payload)
@@ -130,35 +130,32 @@ struct MemoryTraceView: View {
         }
     }
 
-    /// Megabytes of resident memory per sample, tolerating both the UInt64 and
-    /// Int encodings the trace has used.
-    private var memoryMB: [Double] {
-        trace.compactMap { sample -> Double? in
-            if let v = sample["memory_bytes"] as? UInt64 { return Double(v) / 1_048_576 }
-            if let v = sample["memory_bytes"] as? Int { return Double(v) / 1_048_576 }
-            return nil
-        }
-    }
-
-    private var maxThermal: String {
-        let order = ["nominal": 0, "fair": 1, "serious": 2, "critical": 3]
-        var top = "nominal"
-        for sample in trace {
-            if let t = sample["thermal"] as? String,
-               (order[t] ?? 0) > (order[top] ?? 0) { top = t }
-        }
-        return top
-    }
-
+    /// Memory warnings across the whole trace. `memory_warnings_total` counts
+    /// from 0 in each process, and the trace spans several launches, so the
+    /// window's total is each process's highest count added up; a process
+    /// begins at its `launch` sample. (The crash report reads one process's
+    /// samples only, where the highest count is the total.)
     private var memoryWarnings: Int {
-        trace.compactMap { $0["memory_warnings_total"] as? Int }.max() ?? 0
+        var total = 0
+        var current = 0
+        for sample in trace {
+            if sample["reason"] as? String == "launch" {
+                total += current
+                current = 0
+            }
+            current = max(current, sample["memory_warnings_total"] as? Int ?? 0)
+        }
+        return total + current
     }
 
+    /// Peak / average memory and peak thermal come from the same
+    /// `MemoryTraceSummary` the crash report uses, so the two read the trace
+    /// schema one way.
     private var summary: some View {
-        let memMB = memoryMB
-        let peak = memMB.max() ?? 0
-        let avg = memMB.isEmpty ? 0 : memMB.reduce(0, +) / Double(memMB.count)
-        let thermal = maxThermal
+        let traceSummary = MemoryTraceSummary(trace: trace)
+        let peak = traceSummary.peakMB
+        let avg = traceSummary.averageMB
+        let thermal = traceSummary.peakThermal
         let warnings = memoryWarnings
         return VStack(alignment: .leading, spacing: 4) {
             HStack { Text("Peak memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: LanguageManager.appLocale, peak)) MB").bold() }
@@ -170,11 +167,12 @@ struct MemoryTraceView: View {
     }
 
     @ViewBuilder
-    private func sampleRow(_ sample: [String: Any]) -> some View {
-        let ts = (sample["ts"] as? String) ?? "—"
-        let mb = (sample["memory_mb"] as? String) ?? "?"
-        let thermal = (sample["thermal"] as? String) ?? "?"
-        let reason = (sample["reason"] as? String) ?? "?"
+    private func sampleRow(_ raw: [String: Any]) -> some View {
+        let sample = MemoryTraceSample(raw)
+        let ts = sample.timestamp ?? "—"
+        let mb = sample.memoryMB ?? "?"
+        let thermal = sample.thermal ?? "?"
+        let reason = sample.reason ?? "?"
         HStack(spacing: 8) {
             Text(ts.suffix(8).description).font(.caption2.monospaced())
             Spacer()
@@ -199,7 +197,7 @@ struct MemoryTraceView: View {
 
 /// Per-session detail view for the RR Storage Audit. Lists every
 /// archived session with its rrSeries status (archive / backup /
-/// neither). Tap a row to see file paths + beat counts for that session.
+/// neither), its archive and backup beat counts and its archive file size.
 struct RRStorageAuditDetailView: View {
     let report: SessionStorageDiagnostic.Report
 
@@ -287,7 +285,7 @@ struct RRStorageAuditDetailView: View {
             Text("archive: \(s.archiveBeatCount) beats", bundle: LanguageManager.appBundle)
             Text("backup: \(s.backupBeatCount) beats", bundle: LanguageManager.appBundle)
             Spacer()
-            Text(byteString(s.archiveFileSize))
+            Text(ByteCountFormatter.string(fromByteCount: s.archiveFileSize, countStyle: .file))
         }
         .font(.caption2)
         .foregroundStyle(AppTheme.textSecondary)
@@ -309,9 +307,5 @@ struct RRStorageAuditDetailView: View {
         case .backupOnly: .orange
         case .neither, .unreadable: .red
         }
-    }
-
-    private func byteString(_ bytes: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 }

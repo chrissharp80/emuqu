@@ -10,10 +10,16 @@ extension SessionArchive {
 
     /// Resolve the on-disk file URL for an archive entry.
     /// Supports both legacy absolute paths and modern relative filenames.
+    ///
+    /// A legacy absolute path names the app container of the install that
+    /// wrote it, which changes with a reinstall or a restore; when nothing is
+    /// there, the file is looked for under the same name in this archive
+    /// directory, where it now lives.
     func resolveFileURL(for entry: SessionArchiveEntry) -> URL {
-        entry.filePath.hasPrefix("/")
-            ? URL(fileURLWithPath: entry.filePath)
-            : archiveDirectory.appendingPathComponent(entry.filePath)
+        guard entry.filePath.hasPrefix("/") else { return archiveDirectory.appendingPathComponent(entry.filePath) }
+        let legacy = URL(fileURLWithPath: entry.filePath)
+        guard !fileManager.fileExists(atPath: legacy.path) else { return legacy }
+        return archiveDirectory.appendingPathComponent(legacy.lastPathComponent)
     }
 
     /// Protection class is `.completeUntilFirstUserAuthentication`,
@@ -111,10 +117,20 @@ extension SessionArchive {
         }
     }
 
+    /// Whether the in-memory index lists every session `index.json` held:
+    /// false while that file could not be read (`indexReadFailed`) or read
+    /// but did not decode this launch (`indexDecodeFailed`). An empty index
+    /// is then "unknown", not "no history". Takes `archiveLock`.
+    var hasCompleteIndex: Bool {
+        archiveLock.withLock { !indexReadFailed && !indexDecodeFailed }
+    }
+
     /// A read error (the file is locked by data protection, EPERM) is not
     /// corruption: the file is left where it is, `indexReadFailed` is set and
     /// the read is retried at `boot()` and before any save. Only bytes that
-    /// read but do not decode are moved aside as unreadable.
+    /// read but do not decode are moved aside as unreadable. One entry that
+    /// does not decode on this build is skipped (`decodeIndex`), not the
+    /// whole index.
     func loadIndex() {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
         let data: Data
@@ -126,12 +142,13 @@ extension SessionArchive {
             return
         }
         do {
-            index = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
+            index = try Self.decodeIndex(data)
             sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
             debugLog("Failed to decode archive index: \(error)", level: .error)
             index = []
+            indexDecodeFailed = true
             preserveUnreadableIndex()
         }
     }
@@ -146,7 +163,7 @@ extension SessionArchive {
         let data = try Data(contentsOf: indexFile)
         indexReadFailed = false
         do {
-            let onDisk = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
+            let onDisk = try Self.decodeIndex(data)
             let known = Set(index.map(\.sessionId))
             index += onDisk.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
             sortedEntriesCache = nil
@@ -154,8 +171,19 @@ extension SessionArchive {
             debugLog("[Archive] index re-read after a failed launch read: \(index.count) sessions")
         } catch {
             debugLog("Failed to decode archive index on retry: \(error)", level: .error)
+            indexDecodeFailed = true
             preserveUnreadableIndex()
         }
+    }
+
+    /// The index entries in `data`, each decoded on its own: an entry this
+    /// build cannot read (a session type or quality case a newer build added,
+    /// arriving through a shared container or a restore) is skipped and
+    /// logged, and the rest of the index still loads. Its session file stays
+    /// on disk for a build that can read it. Throws only when `data` is not
+    /// an index at all.
+    static func decodeIndex(_ data: Data) throws -> [SessionArchiveEntry] {
+        try sessionDecoder.decode([LenientIndexEntry].self, from: data).compactMap(\.entry)
     }
 
     /// The first save after a failed load writes a near-empty index over the
@@ -171,27 +199,62 @@ extension SessionArchive {
         }
     }
 
+    /// A read error (the file locked by data protection) is not corruption,
+    /// as for the index: the file stays where it is, the deletion times kept
+    /// beside it stand in, and `deletedIndexReadFailed` makes the next save
+    /// (or `boot()`) read it again and merge it first. Only bytes that read
+    /// but do not decode are set aside.
     func loadDeletedIndex() {
         guard fileManager.fileExists(atPath: deletedIndexFile.path) else { return }
-
+        let data: Data
         do {
-            let data = try Data(contentsOf: deletedIndexFile)
-            let uuidStrings = try Self.sessionDecoder.decode([String].self, from: data)
-            deletedSessionIds = Set(uuidStrings.compactMap { UUID(uuidString: $0) })
+            data = try Data(contentsOf: deletedIndexFile)
         } catch {
-            // Not emptied and then saved over: the next deletion would write a
-            // one-entry list over every tombstone the pull relies on, and
-            // sessions the user deleted would download again. The file is set
-            // aside and the list rebuilt from the deletion times kept beside it.
-            debugLog("Failed to load deleted index: \(error) — rebuilding from recorded deletion times", level: .error)
-            let aside = deletedIndexFile.deletingLastPathComponent()
-                .appendingPathComponent("\(deletedIndexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
-            _ = attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) }
+            debugLog("Failed to read deleted index: \(error) — keeping it and retrying before the next save", level: .error)
+            deletedIndexReadFailed = true
+            deletedSessionIds = ArchiveStore.idsWithRecordedDeletionTime()
+            return
+        }
+        do {
+            deletedSessionIds = try Self.decodeDeletedIds(data)
+        } catch {
+            setAsideUnreadableDeletedIndex(error)
             deletedSessionIds = ArchiveStore.idsWithRecordedDeletionTime()
         }
     }
 
+    /// Read the deleted list that failed to load and merge it into the
+    /// in-memory one. Throws while the file still cannot be read, so a save
+    /// never writes the partial list over the full one. Caller holds
+    /// `archiveLock`.
+    func mergeDeletedIndexThatFailedToLoad() throws {
+        guard deletedIndexReadFailed else { return }
+        let data = try Data(contentsOf: deletedIndexFile)
+        deletedIndexReadFailed = false
+        do {
+            deletedSessionIds.formUnion(try Self.decodeDeletedIds(data))
+        } catch {
+            setAsideUnreadableDeletedIndex(error)
+        }
+    }
+
+    private static func decodeDeletedIds(_ data: Data) throws -> Set<UUID> {
+        Set(try sessionDecoder.decode([String].self, from: data).compactMap { UUID(uuidString: $0) })
+    }
+
+    /// Not emptied and then saved over: the next deletion would write a
+    /// one-entry list over every tombstone the pull relies on, and sessions
+    /// the user deleted would download again. The file is set aside; the
+    /// caller rebuilds the list from the deletion times kept beside it.
+    private func setAsideUnreadableDeletedIndex(_ error: Error) {
+        debugLog("Failed to decode deleted index: \(error) — rebuilding from recorded deletion times", level: .error)
+        let aside = deletedIndexFile.deletingLastPathComponent()
+            .appendingPathComponent("\(deletedIndexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
+        _ = attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) }
+    }
+
     func saveDeletedIndex() throws {
+        try mergeDeletedIndexThatFailedToLoad()
         let uuidStrings = deletedSessionIds.map(\.uuidString)
         let data = try Self.indexEncoder.encode(uuidStrings)
         try data.write(to: deletedIndexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
@@ -320,12 +383,20 @@ extension SessionArchiveEntry {
         }
 
         /// Core sleep isn't a top-level SleepData field — sum across segments
-        /// when present, otherwise derive from total − deep − REM (only when
-        /// we have both stage values, otherwise we can't tell what's "core").
+        /// when present, else the night's `.core` stage intervals (nil when it
+        /// has stages but none is core: plain "asleep" minutes are not core).
+        /// Only a snapshot with no stage intervals at all falls back to
+        /// total − deep − REM (when we have both stage values, otherwise we
+        /// can't tell what's "core").
         private static func coreMinutes(in snapshot: SleepData?) -> Int? {
             guard let snapshot else { return nil }
             let fromSegments = snapshot.effectiveSegments.compactMap(\.coreSleepMinutes).reduce(0, +)
             if fromSegments > 0 { return fromSegments }
+            let stages = snapshot.stageIntervals
+            if !stages.isEmpty {
+                let core = stages.filter { $0.stage == .core }
+                return core.isEmpty ? nil : core.map(\.durationMinutes).reduce(0, +)
+            }
             guard let deep = snapshot.deepSleepMinutes,
                   let rem = snapshot.remSleepMinutes else { return nil }
             return max(0, snapshot.nightSleepMinutes - deep - rem)
@@ -360,6 +431,21 @@ extension SessionArchiveEntry {
             nocturnalDipPercent: mirror.dip, hrvDataQuality: session.hrvDataQuality,
             modifiedAt: session.modifiedAt
         )
+    }
+}
+
+/// One index entry, or nil when it does not decode on this build: the
+/// array decode goes on to the next entry instead of failing as a whole.
+private struct LenientIndexEntry: Decodable {
+    let entry: SessionArchiveEntry?
+
+    init(from decoder: Decoder) {
+        do {
+            entry = try SessionArchiveEntry(from: decoder)
+        } catch {
+            debugLog("[Archive] index entry skipped — it does not decode on this build: \(error)", level: .warning)
+            entry = nil
+        }
     }
 }
 

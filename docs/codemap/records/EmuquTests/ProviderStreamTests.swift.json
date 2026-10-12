@@ -1,0 +1,395 @@
+{
+ "file": "EmuquTests/ProviderStreamTests.swift",
+ "hash": "da2154ef7a61e468",
+ "role": "Two XCTest suites: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither).",
+ "types": [
+  "ProviderStreamTests: class — XCTestCase over ProviderStream",
+  "ProviderStreamTests.Unrelated: private enum Error — a non-provider error",
+  "OpenAICompatibleReasoningTests: class — XCTestCase over OpenAICompatibleStreamer.requestFor body JSON"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ProviderStreamTests.finishingError(of:)",
+   "hash": "7685b2a617fa10e5",
+   "does": "Helper: drains a stream and returns the error it finished with, or nil on normal finish.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each event until the stream ends",
+     "effect": "discards events; normal end returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "iteration throws",
+     "effect": "returns the thrown error"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderStreamTests.failure(thrown:)",
+   "hash": "ba778acbded3da21",
+   "does": "Helper: builds a ProviderStream whose operation throws `thrown` and returns the finishing error.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.finishingError(of:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.finishingError(of:)": "02c8654d261556c5"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testOfflineBecomesAFallbackableNetworkError()",
+   "hash": "8182458d2d07dbee",
+   "does": "Asserts URLError.notConnectedToInternet finishes as AIProviderError.network and isFallbackable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error is not .network",
+     "effect": "XCTFail and return; else asserts isFallbackable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "70f5deff0c698e49",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ef2f43653302626a"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testTimeoutAndDroppedConnectionBecomeNetworkErrors()",
+   "hash": "76c63190db486da5",
+   "does": "Asserts timedOut, networkConnectionLost and cannotConnectToHost URLErrors each finish as .network.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 3 URLError codes",
+     "effect": "maps it and checks the case"
+    },
+    {
+     "at": "+3",
+     "cond": "mapped error is not .network",
+     "effect": "XCTFail and continue with the next code"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ef2f43653302626a"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testCancelledURLLoadBecomesCancelled()",
+   "hash": "ba2c96f8a60f7ed4",
+   "does": "Asserts URLError.cancelled finishes as AIProviderError.cancelled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is not .cancelled",
+     "effect": "XCTFail and return; else passes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ef2f43653302626a"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testTaskCancellationBecomesCancelled()",
+   "hash": "6f3d63550cfaaf95",
+   "does": "Asserts CancellationError finishes as AIProviderError.cancelled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is not .cancelled",
+     "effect": "XCTFail and return; else passes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ef2f43653302626a"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testProviderErrorsPassThrough()",
+   "hash": "d7211e276f0499bb",
+   "does": "Asserts AIProviderError.rateLimited passes through unchanged and an unrelated error type also passes through.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is not .rateLimited",
+     "effect": "XCTFail and return; else checks the unrelated error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ef2f43653302626a"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testEventsThenNormalFinish()",
+   "hash": "8150b857dfc69f1c",
+   "does": "Yields .textDelta('hi') and .done and asserts the consumer collects ['hi'] and the stream finishes normally.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each event",
+     "effect": "iterates the stream"
+    },
+    {
+     "at": "+7",
+     "cond": "event is .textDelta",
+     "effect": "appends its text; other events ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testConsumerLeavingCancelsTheRequest()",
+   "hash": "425084931919585f",
+   "does": "Starts a consumer task iterating a stream whose operation sleeps 30 s, cancels the consumer, and waits up to 5 s for the operation's sleep to be cancelled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "Task.sleep throws (cancellation)",
+     "effect": "fulfils the expectation and rethrows; otherwise the sleep would run 30 s and the 5 s wait fails"
+    },
+    {
+     "at": "+11",
+     "cond": "for each event",
+     "effect": "consumer iterates until cancelled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleReasoningTests.body(for:)",
+   "hash": "b67cb0645c0f69b0",
+   "does": "Helper: builds a DeepSeek StreamCall with the given reasoning (one user turn, system prompt 'rules', no tools) and returns requestFor's JSON body as a dictionary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)",
+    "ext:DeepSeekProvider.models static table"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "dc64e42a1118fc64",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)": "3c01554921ec651e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)": "6431171a76912236",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)": "c121243da786049b",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "cbd7ab6c544b3f78",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)": "1768b90b96fa741f"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleReasoningTests.testDeepSeekTurnsThinkingOff()",
+   "hash": "f406579a48c7c407",
+   "does": "Asserts DeepSeekProvider.reasoning is .thinkingDisabled and the body has thinking.type 'disabled' and no reasoning_effort.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "dc64e42a1118fc64",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)": "3c01554921ec651e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)": "6431171a76912236",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)": "c121243da786049b",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "cbd7ab6c544b3f78",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)": "1768b90b96fa741f",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "3fb454a0dd36d985"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleReasoningTests.testOpenAISendsReasoningEffortNone()",
+   "hash": "f3a192840b6f14ef",
+   "does": "Asserts OpenAIProvider.reasoning is .effortNone and the body has reasoning_effort 'none' and no thinking.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The body is always built for providerID .deepseek with DeepSeek's first model, so the OpenAI and Grok cases only check the Reasoning→field mapping; they do not exercise OpenAIProvider/GrokProvider building their own StreamCall (OpenAIProvider.swift:77, GrokProvider.swift:71).",
+     "evidence": [
+      "EmuquTests/ProviderStreamTests.swift:106",
+      "EmuquTests/ProviderStreamTests.swift:108",
+      "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift:77"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "dc64e42a1118fc64",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)": "3c01554921ec651e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)": "6431171a76912236",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)": "c121243da786049b",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "cbd7ab6c544b3f78",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)": "1768b90b96fa741f",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "3fb454a0dd36d985"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleReasoningTests.testGrokSendsNoReasoningField()",
+   "hash": "8a9f309a80379ad5",
+   "does": "Asserts GrokProvider.reasoning is .modelDefault and the body has neither thinking nor reasoning_effort.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "dc64e42a1118fc64",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.MessageShape.encode(to:)": "3c01554921ec651e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)": "6431171a76912236",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)": "c121243da786049b",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "cbd7ab6c544b3f78",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)": "1768b90b96fa741f",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "3fb454a0dd36d985"
+   }
+  }
+ ],
+ "deps": {}
+}

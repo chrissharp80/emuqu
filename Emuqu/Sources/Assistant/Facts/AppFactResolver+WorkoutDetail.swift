@@ -191,7 +191,21 @@ extension WorkoutNamespace {
         if let routeName = snap.recognizedRouteName {
             return .record(matchedRouteRecord(snap, routeName: routeName))
         }
+        if let unsupported = Self.unsupportedSportRecord(snap) { return unsupported }
         return unmatchedRouteRecord(snap)
+    }
+
+    /// Recognition only runs for `RouteLibrary.supportedSports`; for any
+    /// other sport "no match" would claim an attempt that never happened.
+    /// `snap.sport` is the sport's display name.
+    private static func unsupportedSportRecord(_ snap: AssistantContext.LiveWorkoutSnapshot) -> FactValue? {
+        let supported = MainActor.assumeIsolated { RouteLibrary.supportedSports.map(\.displayName).sorted() }
+        guard !supported.contains(snap.sport) else { return nil }
+        return .record([
+            "status": .string("sport_not_supported"),
+            "sport": .string(snap.sport),
+            "detail": .string("route recognition runs only for \(supported.joined(separator: ", ")) workouts — this one is never matched against saved routes")
+        ])
     }
 
     private func matchedRouteRecord(_ snap: AssistantContext.LiveWorkoutSnapshot, routeName: String) -> [String: FactValue] {
@@ -263,7 +277,8 @@ extension WorkoutNamespace {
 
     private static let workoutLiveRecognizedRouteDescription = """
     Live route-recognition status. When the GPS track has matched a route in the user's saved library, returns: status='matched', name (e.g. 'Daily 1'), auto_detected (bool), direction ('forward'/'reverse')?, total_distance_meters?, \
-    climbs_ahead_total?. When NOT matched yet, still returns a diagnostic record so the model can communicate WHY: status='no_saved_routes' (the library has no routes at all), 'awaiting_distance' (the recognizer needs \
+    climbs_ahead_total?. When NOT matched yet, still returns a diagnostic record so the model can communicate WHY: status='sport_not_supported' (recognition never runs for this sport — only run, trail run, walk, hike, bike), \
+    'no_saved_routes' (the library has no routes at all), 'awaiting_distance' (the recognizer needs \
     trigger_meters of movement before it tries; covered_meters shows progress), or 'no_match' (enough distance covered, attempted, no saved route fits). The diagnostic record also carries saved_route_count (all saved routes, \
     every sport) and a plain-language detail, so the model can say 'you have 3 saved routes but none match your current path' vs 'you haven't saved any routes yet' instead of a bare 'no route'.
     """
@@ -279,7 +294,7 @@ extension WorkoutNamespace {
         .fixed(
             key: "hrv.peak.total_power_ms2",
             description: """
-            Peak total HRV power (VLF + LF + HF, ms²) observed in last night's most-organized window. A sharp drop vs the user's recent typical peak power is context for accumulated load, short sleep, alcohol or stress; \
+            Peak total HRV power (VLF + LF + HF, ms²) observed in the latest reading's most-organized window — last night's, or on a day with no reliable overnight the nap or quick reading hrv.latest reports. A sharp drop vs the user's recent typical peak power is context for accumulated load, short sleep, alcohol or stress; \
             it is not a forecast, so never present it as predicting illness. Use this when the user asks 'why do I feel off' or how last night compared. Returns nil for sessions where peak-capacity analysis didn't complete (short recordings).
             """,
             valueType: "Double",
@@ -296,7 +311,7 @@ extension WorkoutNamespace {
     private var hrvPeakRmssdMsEntry: FactEntry {
         .fixed(
             key: "hrv.peak.rmssd_ms",
-            description: "Peak RMSSD (ms) at the night's most-organized window. Use alongside hrv.peak.total_power_ms2 when assessing whether the user's autonomic ceiling is dropping.",
+            description: "Peak RMSSD (ms) at the latest reading's most-organized window (last night's, or the nap or quick reading hrv.latest reports on a day with no reliable overnight). Use alongside hrv.peak.total_power_ms2 when assessing whether the user's autonomic ceiling is dropping.",
             valueType: "Double",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: {
@@ -394,9 +409,7 @@ extension WorkoutNamespace {
             description: "Subjective workout feeling rating (1-5: terrible to great) for a workout on a given date.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return .from(session.workoutMetadata?.workoutFeeling, detail: "user has not rated this workout")
             }
         )
@@ -409,9 +422,7 @@ extension WorkoutNamespace {
             description: "Free-text note attached to the subjective workout-feeling rating for a workout on a given date.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return .from(session.workoutMetadata?.workoutFeelingNote, detail: "user has not attached a note")
             }
         )
@@ -456,13 +467,7 @@ extension WorkoutNamespace {
     }
 
     private func segmentMatches(near target: CLLocation, radius: Double) -> [FactValue] {
-        let archive = self.archive
-        let candidates = archive.entries
-            .filter { $0.sessionType == .workout }
-            .sorted { $0.date > $1.date }
-            .prefix(30)
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
-        return candidates.compactMap { SegmentPointSampler.match(in: $0, near: target, radius: radius) }
+        SegmentPointSampler.matches(in: archive, near: target, radius: radius)
     }
 
     private static let workoutSegmentCompareParamsDescription = """
@@ -486,10 +491,11 @@ extension WorkoutNamespace {
             valueType: "Record",
             availability: { self.workoutAvailability() },
             resolve: {
-                guard let entry = self.workoutEntries().first,
-                      let session = self.archive.retrieveLightweightOrLog(entry.sessionId)
-                else {
+                guard let entry = self.workoutEntries().first else {
                     return .missing(reason: .notRecorded, detail: "no workouts recorded")
+                }
+                guard let session = self.archive.retrieveLightweightOrLog(entry.sessionId) else {
+                    return .missing(reason: .internalError, detail: "the most recent workout is in the archive index but couldn't be read")
                 }
                 return Self.deepDiveRecord(for: session)
             }
@@ -512,9 +518,7 @@ extension WorkoutNamespace {
             """,
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout recorded for \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return Self.deepDiveRecord(for: session)
             }
         )
@@ -584,11 +588,11 @@ extension WorkoutNamespace {
     // the array, correlate fields, and answer arbitrary
     // analytical questions WITHOUT pre-computed special cases.
     //
-    // Why a fixed 200-bucket cap: a 1-hour run with 30s buckets
-    // is 120 records ≈ 12 KB of JSON — well within any provider's
+    // Why a fixed 200-bucket cap: a 1-hour run gets 18 s buckets,
+    // 200 records ≈ 20 KB of JSON — well within any provider's
     // tool-result budget and small enough that the LLM can
-    // reason over the whole thing. A 6-hour ultra would be too
-    // big at 30s buckets, so we scale: the bucket_sec field in
+    // reason over the whole thing. Longer workouts get longer
+    // buckets rather than more of them: the bucket_sec field in
     // the response tells the LLM the actual time per bucket.
     private var workoutTimelineByDateDateEntry: FactEntry {
         .parameterized(
@@ -597,9 +601,7 @@ extension WorkoutNamespace {
             description: Self.workoutTimelineByDateDateDescription,
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 guard let samples = session.workoutMetadata?.samples, !samples.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no per-second sample stream on this workout (older session, or sport that didn't capture samples)")
                 }
@@ -629,12 +631,7 @@ extension WorkoutNamespace {
         let sortedSamples = samples.sorted { $0.offsetSec < $1.offsetSec }
         let durationSec = max(sortedSamples.last?.offsetSec ?? 1, 1)
         let bucketSec = max(1, Int(ceil(Double(durationSec) / Double(maxBuckets))))
-        var grouped: [Int: [WorkoutSample]] = [:]
-        for s in sortedSamples { grouped[s.offsetSec / bucketSec, default: []].append(s) }
-        let bucketRecords: [FactValue] = grouped.keys.sorted().compactMap { idx in
-            guard let bucket = grouped[idx], !bucket.isEmpty else { return nil }
-            return .record(bucketRecord(bucket, startingAt: idx * bucketSec))
-        }
+        let bucketRecords = timelineBuckets(sortedSamples, bucketSec: bucketSec, maxBuckets: maxBuckets)
         var envelope: [String: FactValue] = [
             "date": .date(session.startDate), "duration_sec": .integer(durationSec),
             "bucket_sec": .integer(bucketSec), "bucket_count": .integer(bucketRecords.count),
@@ -644,6 +641,19 @@ extension WorkoutNamespace {
             envelope["sport"] = .string(sport)
         }
         return .record(envelope)
+    }
+
+    /// Groups samples into `bucketSec`-wide buckets (at most `maxBuckets`) and
+    /// returns one median record per non-empty bucket, in time order.
+    private static func timelineBuckets(_ samples: [WorkoutSample], bucketSec: Int, maxBuckets: Int) -> [FactValue] {
+        var grouped: [Int: [WorkoutSample]] = [:]
+        // The final offset can equal maxBuckets × bucketSec; it belongs to
+        // the last bucket, not a 201st.
+        for s in samples { grouped[min(s.offsetSec / bucketSec, maxBuckets - 1), default: []].append(s) }
+        return grouped.keys.sorted().compactMap { idx in
+            guard let bucket = grouped[idx], !bucket.isEmpty else { return nil }
+            return .record(bucketRecord(bucket, startingAt: idx * bucketSec))
+        }
     }
 
     /// One bucket's median metrics, keyed by its start offset.
@@ -656,8 +666,7 @@ extension WorkoutNamespace {
         if let cadence = median(bucket.compactMap(\.cadenceStepsPerMin)) { rec["cadence_spm"] = .double(cadence) }
         if let alt = median(bucket.compactMap(\.altitudeMeters)) { rec["altitude_m"] = .double(alt) }
         if let alpha = median(bucket.compactMap(\.alpha1)) { rec["alpha1"] = .double(alpha) }
-        if let powerVals = bucket.compactMap(\.powerWatts).nilIfEmpty,
-           let pw = median(powerVals.map(Double.init)) {
+        if let pw = median(bucket.compactMap(\.powerWatts).map(Double.init)) {
             rec["power_w"] = .integer(Int(pw.rounded()))
         }
         if let gradePct = bucketGrade(bucket) { rec["grade_pct"] = .double(gradePct) }
@@ -691,15 +700,6 @@ extension WorkoutNamespace {
     }
 }
 
-// `Array.nilIfEmpty` is also defined `fileprivate` in
-// Emuqu/Sources/Models/WorkoutThreshold.swift. Keeping this one
-// fileprivate too avoids a redeclaration collision.
-fileprivate extension Array {
-    /// Returns nil when empty, the array otherwise. Saves an explicit
-    /// `isEmpty` guard at every callsite.
-    var nilIfEmpty: [Element]? { isEmpty ? nil : self }
-}
-
 /// Shared by `workout.segment_compare` and the live segment lookback:
 /// finds where a past workout passed a coordinate and reads pace plus the
 /// per-second physiology at that moment.
@@ -707,6 +707,31 @@ enum SegmentPointSampler {
     /// A sample further than this from the GPS-fix offset would mix
     /// different physiology, so no sample fields are emitted.
     static let maxSampleDeltaSec = 10
+
+    /// GPS-bearing past workouts a lookup reads, and how many of the newest
+    /// workouts it looks through to find them.
+    static let lookbackGPSWorkouts = 30
+    static let lookbackScanLimit = 120
+
+    /// Past workouts that passed within `radius` of `target`: the 30 newest
+    /// workouts with a GPS track among the 120 newest workouts `include`
+    /// accepts (the live lookup leaves out the in-flight session). The index
+    /// has no GPS flag, so sessions load newest first until 30 tracks are read.
+    static func matches(
+        in archive: SessionArchive, near target: CLLocation, radius: Double,
+        include: (SessionArchiveEntry) -> Bool = { _ in true }
+    ) -> [FactValue] {
+        let entries = archive.entries.filter { $0.sessionType == .workout && include($0) }.sorted { $0.date > $1.date }
+        var tracksRead = 0
+        var out: [FactValue] = []
+        for entry in entries.prefix(lookbackScanLimit) where tracksRead < lookbackGPSWorkouts {
+            guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
+                  session.workoutMetadata?.gpsPolyline != nil else { continue }
+            tracksRead += 1
+            if let found = match(in: session, near: target, radius: radius) { out.append(found) }
+        }
+        return out
+    }
 
     static func match(in session: HRVSession, near target: CLLocation, radius: Double) -> FactValue? {
         guard let polyline = session.workoutMetadata?.gpsPolyline else { return nil }

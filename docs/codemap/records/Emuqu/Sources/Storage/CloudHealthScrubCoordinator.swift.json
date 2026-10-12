@@ -1,0 +1,391 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift",
+ "hash": "af6ebbffab285479",
+ "role": "CloudHealthScrubCoordinator: drains a persisted list of uploaded session ids, 10 per sync, to remove Apple Health readings from earlier iCloud uploads — by re-marking for upload (sync on) or rewriting/deleting the CKRecord in place (sync off).",
+ "types": [
+  "CloudHealthScrubCoordinator: struct (@MainActor) — Guideline 5.1.3 scrub of old session records",
+  "CloudHealthScrubCoordinator.Outcome: enum — finished | retryLater"
+ ],
+ "state": [
+  "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+  "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
+  "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v2/v3.remaining/initialized (legacyKeys, removed)",
+  "mem:CloudHealthScrubCoordinator.batchSize=10"
+ ],
+ "toplevel": "Static key constants and batchSize; struct holds `let manager: CloudKitSyncManager`, rebuilt per access by CloudKitSyncManager.healthScrub.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CloudHealthScrubCoordinator.defaults",
+   "hash": "a9d016f0e37ba167",
+   "does": "Returns UserDefaults.standard.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.remainingIds()",
+   "hash": "9bfd80d23e27e478",
+   "does": "Initializes the list on first use, then returns the persisted remaining id strings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()"
+   ],
+   "reads": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "initialized flag not set",
+     "effect": "runs initialize() (snapshot of uploaded ids); else skips"
+    },
+    {
+     "at": "+4",
+     "cond": "stringArray ?? []",
+     "effect": "empty list when the key is missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()": "458f22e712f92aa6",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.clear()",
+   "hash": "3339dd8cd02332e6",
+   "does": "Removes the v4 remaining/initialized keys and every legacy v2/v3 key. Called after a remote wipe.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
+    "ud:legacy v2/v3 scrub keys"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.initialize()",
+   "hash": "d46abf7e69ce76a6",
+   "does": "Snapshots uploadedSessionIds into the v4 remaining list, sets initialized, removes legacy keys and logs the count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadedSessionIds"
+   ],
+   "writes": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
+    "ud:legacy v2/v3 scrub keys"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.dripReupload()",
+   "hash": "4cc04adee78be9eb",
+   "does": "Sync-on path: pops ids from the list until 10 have been re-marked; each id still in uploadedSessionIds is markRemoved (pending) so the push re-uploads it stripped; persists the shortened list and, if anything was marked, sync state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+    "mem:CloudKitSyncState.uploadedSessionIds"
+   ],
+   "writes": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "file:<archiveDir>/sync_state.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "list empty",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "marked < 10 and list non-empty",
+     "effect": "loop continues popping"
+    },
+    {
+     "at": "+6",
+     "cond": "id invalid or no longer uploaded",
+     "effect": "skipped (consumed from list, not counted)"
+    },
+    {
+     "at": "+11",
+     "cond": "marked > 0",
+     "effect": "saves sync state + logs; else no save"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.scrubInPlace()",
+   "hash": "776f0cd0948ecc89",
+   "does": "Sync-off path: scrubs up to 10 ids from the head of the list, removing each finished one; at the first retryLater moves that id to the end of the list and stops, so a record that keeps failing does not block the rest; persists the remaining list and logs the handled count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrub(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
+   ],
+   "writes": [
+    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "handled < 10 and list has a first id",
+     "effect": "take it off the head and scrub it"
+    },
+    {
+     "at": "+5",
+     "cond": "scrub returned retryLater",
+     "effect": "append the id at the end, break"
+    },
+    {
+     "at": "+14",
+     "cond": "handled > 0",
+     "effect": "logs; else silent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrub(_:)": "38531cbd048c35cc",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.scrub(_:)",
+   "hash": "4d75eb330f191592",
+   "does": "For one id still believed uploaded: fetches the CKRecord from the HRVSessions zone and rewrites it; missing record/zone → finished; any other error → logged warning, retryLater.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:CKDatabase.record(for:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "ck:HRVSession/HRVSessions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id not a UUID or not in uploadedSessionIds",
+     "effect": "returns .finished without network"
+    },
+    {
+     "at": "+6",
+     "cond": "CKError unknownItem/zoneNotFound/userDeletedZone",
+     "effect": "returns .finished"
+    },
+    {
+     "at": "+8",
+     "cond": "any other error",
+     "effect": "logs warning, returns .retryLater"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "9292d3dda1d4faf7",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "79179e8c3d2e913b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.rewrite(_:sessionId:)",
+   "hash": "04e631f78513f0e1",
+   "does": "A tombstone (isDeleted == 1) has any payload removed (clearTombstonePayload). Otherwise — live or restored from Trash (-1) — when its payload decodes here: deletes the record when the session is HealthKit-sourced (and marks it local-only, persisting local-only + sync state); else rewrites it as this build's builder would (saveStripped: stripped payload, legacy plaintext fields removed, isDeleted and modifiedAt kept).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)",
+    "ext:CKDatabase.deleteRecord"
+   ],
+   "reads": [
+    "ck:HRVSession/HRVSessions"
+   ],
+   "writes": [
+    "ck:HRVSession/HRVSessions",
+    "mem:CloudKitSyncState.localOnlySessionIds",
+    "file:<archiveDir>/local_only_sessions.json",
+    "file:<archiveDir>/sync_state.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isDeleted == 1 (tombstone)",
+     "effect": "clearTombstonePayload"
+    },
+    {
+     "at": "+2",
+     "cond": "storedSession nil (no asset or unreadable here)",
+     "effect": ".finished, id leaves the list"
+    },
+    {
+     "at": "+3",
+     "cond": "session is HealthKit-sourced",
+     "effect": "deletes the record and marks local-only; else saveStripped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)": "61bd68e1e3042d60",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)": "72a30e1ce7cef711",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)": "8e74bdf40fb35777",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "059454eaf3747ade",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "79852356d3ddbfe8",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.saveStripped(_:over:)",
+   "hash": "6bb9753d5f86a592",
+   "does": "Builds the record this build would upload (CloudKitSyncManager.buildSessionRecord off-main: stripped, encrypted payload asset), then on the fetched record clears every field the rebuilt one lacks and copies the rebuilt fields, except isDeleted and modifiedAt which keep their values; saves it (a serverRecordChanged throws and the id stays listed). Removes the temp asset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)",
+    "ext:CKDatabase.save"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:HRVSession/HRVSessions",
+    "file:<tmp>/ck_<sessionId>_<8hex>.gz"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "field on the record that the rebuilt record lacks (legacy plaintext)",
+     "effect": "cleared"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "3e719c97348423df",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.clearTombstonePayload(_:)",
+   "hash": "19bc296c8bbe17f3",
+   "does": "When a tombstone record still holds sessionData, removes it and saves the record; .finished either way (a save error throws to scrub, which retries later).",
+   "entry": null,
+   "calls": [
+    "ext:CKDatabase.save"
+   ],
+   "reads": [
+    "ck:HRVSession/HRVSessions"
+   ],
+   "writes": [
+    "ck:HRVSession.sessionData"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sessionData",
+     "effect": ".finished without a write"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.storedSession(in:)",
+   "hash": "0d67e5d255f21f12",
+   "does": "Reads the record's sessionData asset and decodes it off-main via CloudPullCoordinator.decodeSessionAsset; nil when no asset, or (logged warning) when it cannot be unsealed/decoded on this device.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)"
+   ],
+   "reads": [
+    "ck:HRVSession.sessionData asset"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no CKAsset fileURL",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "decode throws (other device's key, damage)",
+     "effect": "logs warning, returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "8706cc7b863388cb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.meansNoRecord(_:)",
+   "hash": "e59150215e8ddc49",
+   "does": "True when the CKError code is unknownItem, zoneNotFound or userDeletedZone.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+   }
+  }
+ ],
+ "deps": {}
+}

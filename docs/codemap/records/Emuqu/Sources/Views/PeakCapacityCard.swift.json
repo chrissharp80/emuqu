@@ -1,0 +1,372 @@
+{
+ "file": "Emuqu/Sources/Views/PeakCapacityCard.swift",
+ "hash": "95440a29ab0b9464",
+ "role": "Card showing a session's Autonomic Capacity (PeakCapacity: highest sustained RMSSD/SDNN window, optional window mean HR) plus an info popover explaining capacity vs readiness.",
+ "types": [
+  "PeakCapacityCard: struct — View rendering PeakCapacity",
+  "CapacityExplanationPopover: struct — View, explanatory popover"
+ ],
+ "state": [
+  "mem:PeakCapacityCard.showingInfo (@State)"
+ ],
+ "toplevel": "Only production use: SessionHRVDetailView.swift:41 (showInfoButton: true; describesSleep left at its default true) when result.peakCapacity is non-nil.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "docs/USERS_MANUAL.md:146 says the Autonomic capacity card shows peak total power, but the card renders only Max RMSSD, Max SDNN and Window HR; PeakCapacity.peakTotalPower (RRModels.swift:470) is never displayed.",
+   "evidence": [
+    "docs/USERS_MANUAL.md:146",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift:43",
+    "Emuqu/Sources/Models/RRModels.swift:470"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Beyond the card not rendering it, PeakCapacity.peakTotalPower is always nil: the only constructor passes peakTotalPower: nil, so the USERS_MANUAL 'peak total power' claim cannot be met by any view.",
+   "evidence": [
+    "docs/USERS_MANUAL.md:146",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:530"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var PeakCapacityCard.body",
+   "hash": "a0df226802b185f1",
+   "does": "Header, metrics row and the sleep explanation (sleepExplanation) inside a zenCard.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.header",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.metricsRowSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.sleepExplanation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Card copy says 'Highest sustained HRV during sleep', but peak capacity is computed for any recording, and SessionHRVDetailView shows the card for every session type. The card now hides that line when describesSleep is false, but the only caller does not pass it yet (handoff b23: pass session.sessionType == .overnight || .nap), so a daytime quick reading is still described as a sleep ceiling.",
+     "evidence": [
+      "Emuqu/Sources/Views/PeakCapacityCard.swift:18",
+      "Emuqu/Sources/Views/SessionHRVDetailView.swift:40",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:503",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:33",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:186"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.header": "9fc3d8b0a09dcd93",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.metricsRowSection": "3dc543194d764d1d",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.sleepExplanation": "c3a9382c377928c9",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.sleepExplanation",
+   "hash": "e602f3b90a7cf194",
+   "does": "'Highest sustained HRV during sleep — your physiological ceiling, separate from readiness.' caption when describesSleep; nothing otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "describesSleep",
+     "effect": "caption; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.header",
+   "hash": "9e23756b8d316e2c",
+   "does": "Tappable header opening the explanation popover when showInfoButton, otherwise a plain header.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.headerContent"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PeakCapacityCard.showingInfo"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showInfoButton",
+     "effect": "true: Button sets showingInfo=true and presents CapacityExplanationPopover; false: plain headerContent"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The only production caller passes showInfoButton: true, so the plain-header else branch never runs in the app.",
+     "evidence": [
+      "Emuqu/Sources/Views/PeakCapacityCard.swift:38",
+      "Emuqu/Sources/Views/SessionHRVDetailView.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.headerContent": "ab232a21536e7109"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.metricsRowSection",
+   "hash": "abf8b56126fdac0a",
+   "does": "HStack: Max RMSSD column, divider, Max SDNN column, optional Window HR column, each with an accessibility label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakRmssdSection",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakSdnnSection",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.windowHrIfAvailableSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakRmssdSection": "9bde6e3a88857a95",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakSdnnSection": "9ff2a07cf5cee69c",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.windowHrIfAvailableSection": "52745eec4b48c53d"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.peakRmssdSection",
+   "hash": "8204fff05a06bc77",
+   "does": "'Max RMSSD' column with peakRMSSD (%.0f) ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.peakSdnnSection",
+   "hash": "8eac8942c5b53929",
+   "does": "'Max SDNN' column with peakSDNN (%.0f) ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.windowHrIfAvailableSection",
+   "hash": "b6202a182c8839c7",
+   "does": "Divider + Window HR column when windowMeanHR exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrColumn(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "capacity.windowMeanHR non-nil",
+     "effect": "true: show HR column; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrColumn(_:)": "33c69d41561c235e"
+   }
+  },
+  {
+   "key": "func PeakCapacityCard.windowHrColumn(_:)",
+   "hash": "1077fdc7fa60054a",
+   "does": "'Window HR' column with an accessibility label in bpm.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrValue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrValue(_:)": "77aeaca5ff8e5e07",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func PeakCapacityCard.windowHrValue(_:)",
+   "hash": "1ae78d104de255b3",
+   "does": "Mean HR (%.0f) + 'bpm'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.headerContent",
+   "hash": "295fcb218f79704c",
+   "does": "Header row plus '<N> min window' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.capacityHeaderRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.capacityHeaderRow": "00ff87456abd7fd0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.capacityHeaderRow",
+   "hash": "34facf4a4d52fd21",
+   "does": "Icon + 'Autonomic Capacity' title + info glyph when showInfoButton.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "showInfoButton",
+     "effect": "true: info.circle glyph shown; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var CapacityExplanationPopover.body",
+   "hash": "9bc2f64c27be6620",
+   "does": "Popover content: title row with close button, definition, 'What it measures' list, and capacity≠readiness caveat.",
+   "entry": "SwiftUI body (popover)",
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.autonomicCapacitySection",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.whatItMeasuresSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.autonomicCapacitySection": "f0e734830b11e4ad",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.whatItMeasuresSection": "7341c8638f7d08b4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var CapacityExplanationPopover.autonomicCapacitySection",
+   "hash": "336529a05298a512",
+   "does": "Title and close button that dismisses the popover.",
+   "entry": null,
+   "calls": [
+    "ext:SwiftUI DismissAction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var CapacityExplanationPopover.whatItMeasuresSection",
+   "hash": "1ec4a5c695b421e4",
+   "does": "'What it measures:' with two rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func CapacityExplanationPopover.measuresRow(glyph:tint:text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func CapacityExplanationPopover.measuresRow(glyph:tint:text:)": "a116ac8cd68c0fdb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func CapacityExplanationPopover.measuresRow(glyph:tint:text:)",
+   "hash": "f9fd8b7a5999e5a3",
+   "does": "Icon + caption row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

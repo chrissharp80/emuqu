@@ -1,0 +1,147 @@
+{
+ "file": "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift",
+ "hash": "d07a74eb1a6bcef6",
+ "role": "Value type for a candidate overnight HRV window scored by WindowSelector: stability/artifact-weighted RMSSD score and a single organized-recovery classification by DFA α1 / HR CV / LF-HF, from which isOrganizedRecovery is read.",
+ "types": [
+  "ScoredRecoveryBlock: struct — scored candidate recovery window"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)",
+   "hash": "43f03af9db301193",
+   "does": "Window score = rmssd * 1/(1+stabilityWeight*hrCV) * max(0.5, 1-2.5*artifactRate).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoredRecoveryBlock.lfHfIsOrganized",
+   "hash": "c066238a852c4fe5",
+   "does": "LF/HF <= 1.5, true when LF/HF nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lfHfRatio ?? true",
+     "effect": "nil → true (vacuous)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoredRecoveryBlock.hrIsStable",
+   "hash": "5fb609c1894d5000",
+   "does": "hrCV < unstableCVThreshold (0.08).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoredRecoveryBlock.isOrganizedRecovery",
+   "hash": "511da4195e0d8ad4",
+   "does": "classification == .organizedRecovery, so the flag and the stored classification always agree (false for a block under 60 clean beats, which classifies .insufficient).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "128e54bb60d3ac67"
+   }
+  },
+  {
+   "key": "var ScoredRecoveryBlock.optimalAlpha1IsRegulated",
+   "hash": "75c3bbf417e69be9",
+   "does": "Whether an optimal-α1 window has the regulation that makes it organized: hrIsStable when lfHfRatio is nil (always, from the production selector); lfHfIsOrganized || hrIsStable when an LF/HF is present (tests only).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.lfHfIsOrganized",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lfHfRatio == nil",
+     "effect": "true (always in production): hrIsStable; false (tests only): lfHfIsOrganized || hrIsStable"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The LF/HF-present path is unreachable in production; WindowSelector.scoredBlock always passes lfHfRatio nil (stated in the property doc and in Tools/science_register 'lfhf-window-filter' as dormant by design).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift:35",
+      "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift:72",
+      "Tools/science_register/register.json:99"
+     ],
+     "found": "first read, upheld on second; kept by design in fix pass b03"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable": "8854bb725922e685",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.lfHfIsOrganized": "b62aa2bde28562a7"
+   }
+  },
+  {
+   "key": "var ScoredRecoveryBlock.classification",
+   "hash": "7028dee1ac1e3d38",
+   "does": "Classification: insufficient if <60 clean beats; without α1 organizedRecovery when HR is stable else highVariability; α1 in 0.75-1.0 organizedRecovery only when optimalAlpha1IsRegulated (else highVariability), 0.60-0.75 flexibleUnconsolidated, else highVariability.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.optimalAlpha1IsRegulated"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cleanBeatCount < 60",
+     "effect": "returns .insufficient"
+    },
+    {
+     "at": "+3",
+     "cond": "dfaAlpha1 nil",
+     "effect": "hrIsStable → organizedRecovery else highVariability"
+    },
+    {
+     "at": "+9",
+     "cond": "α1 in optimal range",
+     "effect": "optimalAlpha1IsRegulated → organizedRecovery, else highVariability"
+    },
+    {
+     "at": "+13",
+     "cond": "α1 in flexible range",
+     "effect": "flexibleUnconsolidated; else highVariability"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable": "8854bb725922e685",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.optimalAlpha1IsRegulated": "6e42fb746c197523"
+   }
+  }
+ ],
+ "deps": {}
+}

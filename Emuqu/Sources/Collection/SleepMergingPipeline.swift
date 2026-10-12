@@ -119,7 +119,9 @@ enum SleepMergingPipeline {
 
     /// Split items into groups separated by time gaps >= threshold.
     /// Sorts internally by `startOf` — callers need not pre-sort.
-    /// Generic over any type with start/end dates.
+    /// Generic over any type with start/end dates. The gap is measured from
+    /// the latest end seen in the group, so a short item nested inside a
+    /// long overlapping one does not open a gap that is not there.
     static func splitByGaps<T>(
         _ items: [T],
         gap: TimeInterval,
@@ -130,17 +132,16 @@ enum SleepMergingPipeline {
         guard let first = sorted.first else { return [] }
         var groups: [[T]] = []
         var current: [T] = [first]
+        var latestEnd = endOf(first)
 
         for item in sorted.dropFirst() {
-            guard let previous = current.last else {
-                current = [item]
-                continue
-            }
-            if startOf(item).timeIntervalSince(endOf(previous)) >= gap {
+            if startOf(item).timeIntervalSince(latestEnd) >= gap {
                 groups.append(current)
                 current = [item]
+                latestEnd = endOf(item)
             } else {
                 current.append(item)
+                latestEnd = max(latestEnd, endOf(item))
             }
         }
         groups.append(current)
@@ -157,16 +158,17 @@ enum SleepMergingPipeline {
     }
 
     /// Build a SleepSegment from stage intervals.
-    /// Uses first/last interval for boundaries. A staged segment reports a
+    /// Boundaries are the earliest start and the latest end, whatever the
+    /// order or overlap of the intervals. A staged segment reports a
     /// stage it never entered as 0; only an unstaged one leaves stages nil.
     static func buildSegmentFromIntervals(
         _ intervals: [HealthKitManager.SleepStageInterval]
     ) -> HealthKitManager.SleepSegment? {
-        guard let first = intervals.first, let last = intervals.last else { return nil }
+        guard let sleepStart = intervals.map(\.start).min(), let sleepEnd = intervals.map(\.end).max() else { return nil }
         let stages = accumulateStageMinutes(intervals)
         return HealthKitManager.SleepSegment(
-            sleepStart: first.start,
-            sleepEnd: last.end,
+            sleepStart: sleepStart,
+            sleepEnd: sleepEnd,
             totalSleepMinutes: stages.totalSleep,
             deepSleepMinutes: stages.hasDetailed ? stages.deep : nil,
             remSleepMinutes: stages.hasDetailed ? stages.rem : nil,

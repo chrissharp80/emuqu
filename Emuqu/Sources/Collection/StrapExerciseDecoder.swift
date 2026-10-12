@@ -26,8 +26,16 @@ enum StrapExerciseDecoder {
     /// locale-sensitive by default — a user on a non-Gregorian calendar would
     /// otherwise get an id the strap cannot round-trip — so the locale is
     /// pinned to POSIX.
-    static func exerciseId(at date: Date = Date(), timeZone: TimeZone = .current) -> String {
-        exerciseIdFormatter(timeZone: timeZone).string(from: date)
+    ///
+    /// The id carries no offset, so the zone it was written in is remembered
+    /// with it (`rememberZone`) when none is given: a phone that changes time
+    /// zone or DST offset between arming and download still reads back the
+    /// real start.
+    static func exerciseId(at date: Date = Date(), timeZone: TimeZone? = nil) -> String {
+        let zone = timeZone ?? .current
+        let id = exerciseIdFormatter(timeZone: zone).string(from: date)
+        if timeZone == nil { rememberZone(zone, forId: id) }
+        return id
     }
 
     /// When a recording started, read back from the id it is filed under.
@@ -35,10 +43,29 @@ enum StrapExerciseDecoder {
     /// The SDK gives an H10 exercise no recording time of its own: its entry
     /// `date` is the moment the list was read. The id is this app's start
     /// stamp, so it is the only record of when the recording began. Nil for an
-    /// id this app did not write.
-    static func recordingStart(fromExerciseId id: String, timeZone: TimeZone = .current) -> Date? {
+    /// id this app did not write. With no zone given, the id is read in the
+    /// zone it was written in when that was remembered, else the current one.
+    static func recordingStart(fromExerciseId id: String, timeZone: TimeZone? = nil) -> Date? {
         guard id.count == 14, id.allSatisfy({ ("0" ... "9").contains($0) }) else { return nil }
-        return exerciseIdFormatter(timeZone: timeZone).date(from: id)
+        return exerciseIdFormatter(timeZone: timeZone ?? writtenZone(forId: id) ?? .current).date(from: id)
+    }
+
+    private static let zonesKey = "StrapExerciseDecoder.zoneById.v1"
+    /// Ids remembered at most; the strap holds a handful of recordings.
+    private static let zonesKept = 32
+
+    private static func rememberZone(_ zone: TimeZone, forId id: String) {
+        var zones = UserDefaults.standard.dictionary(forKey: zonesKey) as? [String: String] ?? [:]
+        zones[id] = zone.identifier
+        for oldest in zones.keys.sorted().prefix(max(0, zones.count - zonesKept)) {
+            zones[oldest] = nil
+        }
+        UserDefaults.standard.set(zones, forKey: zonesKey)
+    }
+
+    private static func writtenZone(forId id: String) -> TimeZone? {
+        let zones = UserDefaults.standard.dictionary(forKey: zonesKey) as? [String: String]
+        return zones?[id].flatMap(TimeZone.init(identifier:))
     }
 
     /// The most recent recording that started no earlier than `notBefore`,
@@ -52,7 +79,7 @@ enum StrapExerciseDecoder {
         _ entries: [Entry],
         exerciseId: (Entry) -> String,
         notBefore: Date?,
-        timeZone: TimeZone = .current
+        timeZone: TimeZone? = nil
     ) -> Entry? {
         let dated = entries.compactMap { entry in
             recordingStart(fromExerciseId: exerciseId(entry), timeZone: timeZone).map { (entry, $0) }

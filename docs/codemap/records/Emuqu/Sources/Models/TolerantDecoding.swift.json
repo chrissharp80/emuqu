@@ -1,0 +1,58 @@
+{
+ "file": "Emuqu/Sources/Models/TolerantDecoding.swift",
+ "hash": "cae691078ae8c21d",
+ "role": "KeyedDecodingContainer helpers that decode a key tolerantly (absent → default/nil) but log a warning when a present value fails to decode.",
+ "types": [
+  "KeyedDecodingContainer: extension — value(_:_:or:) and optionalValue(_:_:)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func KeyedDecodingContainer.value(_:_:or:)",
+   "hash": "b70f5cdb77a8cbff",
+   "does": "Returns optionalValue(type,key) or the fallback when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "optionalValue ?? fallback",
+     "effect": "key absent, null, or wrong type → fallback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801"
+   }
+  },
+  {
+   "key": "func KeyedDecodingContainer.optionalValue(_:_:)",
+   "hash": "c533ef1d349c43a3",
+   "does": "decodeIfPresent; on a decode error logs '[Decoding] <key> present but unreadable' at warning level and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch decode error",
+     "effect": "logs warning via debugLog and returns nil (error swallowed; caller uses default)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

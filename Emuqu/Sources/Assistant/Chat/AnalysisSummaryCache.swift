@@ -1,19 +1,32 @@
 import Foundation
 import os
 
-/// Bounded cache of generated analysis summaries keyed by session, evicting
-/// the least recently stored entry first, with an optional fingerprint so a
-/// stale summary is never handed back after the session's data changed. The
-/// state lives behind a lock, which is what makes the cache `Sendable`.
+/// Bounded cache of generated analysis summaries, least recently used entry
+/// evicted first. An entry is keyed by its session and by the fingerprint of
+/// what it was generated from, so a stale summary is never handed back after
+/// the session's data changed, and summaries of one session generated for
+/// different readers (the screen in the display language, the assistant in
+/// English) sit side by side instead of replacing each other. The state lives
+/// behind a lock, which is what makes the cache `Sendable`.
 final class AnalysisSummaryCache: Sendable {
     static let shared = AnalysisSummaryCache()
 
     private static let maxEntries = 32
 
+    private struct Key: Hashable {
+        let sessionId: UUID
+        let fingerprint: Int
+    }
+
     private struct State {
-        var entries: [UUID: AnalysisSummaryGenerator.AnalysisSummary] = [:]
-        var fingerprints: [UUID: Int] = [:]
-        var order: [UUID] = []
+        var entries: [Key: AnalysisSummaryGenerator.AnalysisSummary] = [:]
+        /// Least recently used first.
+        var order: [Key] = []
+
+        mutating func touch(_ key: Key) {
+            order.removeAll { $0 == key }
+            order.append(key)
+        }
     }
 
     private let state = OSAllocatedUnfairLock(initialState: State())
@@ -21,10 +34,13 @@ final class AnalysisSummaryCache: Sendable {
     private init() {}
 
     /// Changes whenever a rescore, a tag edit, or a sleep, window or vitals
-    /// change could change the summary generated for `session`. Readers that
-    /// must not quote an outdated title or causes (the assistant's context)
-    /// read with `get(forSessionId:matching:)` and this value. Hasher seeds per
-    /// process, which suits an in-memory cache.
+    /// change could change the summary generated for `session` from the
+    /// session alone. A generator that also reads inputs held outside the
+    /// session (the live training load, the baseline, other nights) must fold
+    /// them in with `fingerprint(for:inputs:)`. Readers that must not quote an
+    /// outdated title or causes read with `get(forSessionId:matching:)` and
+    /// the fingerprint they stored with. Hasher seeds per process, which suits
+    /// an in-memory cache.
     ///
     /// The summary's language is part of the value: the app language, and
     /// whether the caller runs inside `NarrativeLanguage.english` (the
@@ -48,43 +64,40 @@ final class AnalysisSummaryCache: Sendable {
         return hasher.finalize()
     }
 
+    /// `fingerprint(for:)` combined with a hash of the generator inputs that do
+    /// not live on the session, so the entry misses once any of them changes.
+    static func fingerprint(for session: HRVSession, inputs: Int) -> Int {
+        var hasher = Hasher()
+        hasher.combine(fingerprint(for: session))
+        hasher.combine(inputs)
+        return hasher.finalize()
+    }
+
     func set(_ summary: AnalysisSummaryGenerator.AnalysisSummary, forSessionId id: UUID, fingerprint: Int = 0) {
+        let key = Key(sessionId: id, fingerprint: fingerprint)
         state.withLock { state in
-            state.order.removeAll { $0 == id }
-            state.order.append(id)
-            state.entries[id] = summary
-            state.fingerprints[id] = fingerprint
+            state.touch(key)
+            state.entries[key] = summary
             while state.order.count > Self.maxEntries {
-                let dropped = state.order.removeFirst()
-                state.entries.removeValue(forKey: dropped)
-                state.fingerprints.removeValue(forKey: dropped)
+                state.entries.removeValue(forKey: state.order.removeFirst())
             }
         }
     }
 
-    func get(forSessionId id: UUID) -> AnalysisSummaryGenerator.AnalysisSummary? {
-        state.withLock { $0.entries[id] }
-    }
-
+    /// The summary stored for this session with exactly this fingerprint, or
+    /// nil. A hit makes the entry the most recently used.
     func get(forSessionId id: UUID, matching fingerprint: Int) -> AnalysisSummaryGenerator.AnalysisSummary? {
-        state.withLock { state in
-            guard let stored = state.fingerprints[id], stored == fingerprint else { return nil }
-            return state.entries[id]
-        }
-    }
-
-    func invalidate(sessionId: UUID) {
-        state.withLock { state in
-            state.entries.removeValue(forKey: sessionId)
-            state.fingerprints.removeValue(forKey: sessionId)
-            state.order.removeAll { $0 == sessionId }
+        let key = Key(sessionId: id, fingerprint: fingerprint)
+        return state.withLock { state in
+            guard let summary = state.entries[key] else { return nil }
+            state.touch(key)
+            return summary
         }
     }
 
     func clear() {
         state.withLock { state in
             state.entries.removeAll()
-            state.fingerprints.removeAll()
             state.order.removeAll()
         }
     }

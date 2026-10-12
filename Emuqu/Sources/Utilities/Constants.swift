@@ -36,6 +36,17 @@ enum AppConfig {
 
     /// Resolves the shared App Group container URL, falling back to Documents.
     static func sharedContainerURL() -> URL {
+        resolvedSharedContainerURL
+    }
+
+    /// Resolved once per process: the container does not move while the app
+    /// runs, and a fallback is logged once instead of on every call.
+    private static let resolvedSharedContainerURL: URL = resolveSharedContainerURL()
+
+    /// NSLog, not `debugLog`: `DebugLogger`'s initialiser resolves its log
+    /// file through `sharedContainerURL()`, so routing this through the
+    /// logger would re-enter that initialiser and hang the launch.
+    private static func resolveSharedContainerURL() -> URL {
         if let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupIdentifier
         ) {
@@ -48,8 +59,10 @@ enum AppConfig {
         // archive paths), so fall back to a tmp URL on the impossible
         // path rather than trap.
         if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            NSLog("[AppConfig] App Group container %@ unavailable; using Documents", appGroupIdentifier)
             return docs
         }
+        NSLog("[AppConfig] App Group container %@ and Documents unavailable; using the temporary directory", appGroupIdentifier)
         return URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
     }
 }
@@ -124,21 +137,6 @@ enum SessionConstants {
     static let maxResumableSessionAge: TimeInterval = 6 * 3600 // 6 hours
 }
 
-// MARK: - Time Conversions
-
-enum TimeConstants {
-    static let msPerSecond: Double = 1000.0
-    static let msPerMinute: Double = 60000.0
-    static let msPerHour: Double = 3_600_000.0
-    static let secondsPerMinute: Int = 60
-    static let minutesPerHour: Int = 60
-    static let hoursPerDay: Int = 24
-    static let secondsPerHour: TimeInterval = 3600
-    static let secondsPerDay: TimeInterval = 86400
-    /// Two-hour gap in seconds (used for overnight session detection)
-    static let twoHourGapSeconds: TimeInterval = 7200
-}
-
 // MARK: - HRV Analysis
 
 enum HRVConstants {
@@ -172,7 +170,6 @@ enum HRVConstants {
     /// Beat count thresholds for analysis
     enum MinimumBeats {
         static let forAnalysis: Int = 300 // Minimum for reliable HRV metrics
-        static let forStreaming: Int = 120 // Relaxed for short recordings
         static let forTriangularIndex: Int = 20
         static let forDFA: Int = 256 // Minimum for fractal analysis
     }
@@ -242,13 +239,6 @@ enum HRVConstants {
 // MARK: - Sleep Analysis
 
 enum SleepConstants {
-    /// Sleep duration thresholds (minutes)
-    /// Adult recommendation ≥7h; TST <6.5h = short — Watson et al., Sleep
-    /// 2015;38(6):843; Hirshkowitz et al., Sleep Health 2015;1(1):40
-    static let goodSleepMinutes: Int = 420 // 7 hours
-    static let minimumSleepMinutes: Int = 240 // 4 hours
-    static let optimalSleepMinutes: Int = 480 // 8 hours
-
     /// Default split gap (minutes). Now configurable via UserSettings.sleepSplitGapMinutes.
     /// Gaps >= this in sleep data are treated as separate sessions.
     /// ENGINEERING BOUND (no sleep-science basis): gap that splits a sleep
@@ -298,7 +288,6 @@ enum SleepConstants {
     /// Sleep efficiency <85% = standard abnormal/insomnia cutoff — AASM Clinical
     /// Practice Guideline (Sateia et al.), J Clin Sleep Med 2017;13(2):307
     static let goodEfficiency: Double = 85.0
-    static let poorEfficiency: Double = 75.0
 }
 
 // MARK: - Training Load
@@ -307,18 +296,8 @@ enum TrainingConstants {
     /// Acute:Chronic Workload Ratio thresholds
     enum ACR {
         static let detraining: Double = 0.8
-        static let optimalLow: Double = 0.8
-        static let optimalHigh: Double = 1.1
         static let building: Double = 1.3
         static let overreaching: Double = 1.5
-    }
-
-    /// Training-load balance (form, CTL − ATL) interpretation
-    enum TSB {
-        static let veryFresh: Double = 25
-        static let fresh: Double = 10
-        static let neutral: Double = -10
-        static let tired: Double = -25
     }
 
     /// TRIMP calculation constants (Bannister method)
@@ -532,9 +511,6 @@ enum ScoringWeights {
 // MARK: - Analysis Windows
 
 enum WindowConstants {
-    /// Minimum window duration (minutes)
-    static let minimumDurationMinutes: Double = 4.0
-
     /// Histogram bin width for triangular index (ms)
     static let triangularIndexBinWidth: Double = 7.8125 // 1/128 second
 }

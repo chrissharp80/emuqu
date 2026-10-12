@@ -1,0 +1,201 @@
+{
+ "file": "EmuquTests/BarometricAltitudeProcessorTests.swift",
+ "hash": "bbe104b29c23cba2",
+ "role": "XCTest suite pinning BarometricAltitudeProcessor.process gain/loss symmetry, slow sub-metre climbs/descents, noise-blip rejection below the 2 m threshold, a four-segment profile and a seeded noisy slow climb.",
+ "types": [
+  "BarometricAltitudeProcessorTests: class — XCTestCase over BarometricAltitudeProcessor"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)",
+   "hash": "c29a03015d0f4fa4",
+   "does": "Builds (Date, altitude) samples spaced hzInterval seconds (default 1 s) from now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.testSymmetricRampGainsAndLossesAreEqual()",
+   "hash": "40b4d636d128e171",
+   "does": "Feeds a 0→50→0 m ramp in 0.5 m steps and asserts gain and loss both exceed 40 m and differ by under 5%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.testSlowClimbCountsEvenWithSubMeterPerSampleDeltas()",
+   "hash": "ee911e82a6fff4bb",
+   "does": "Feeds a 30-minute 0→200 m ramp (~0.11 m/s) and asserts gain > 195 m and loss < 5 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for i in 0..<1800",
+     "effect": "appends the next ramp altitude"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.testSlowDescentCountsEvenWithSubMeterPerSampleDeltas()",
+   "hash": "c150778d67831978",
+   "does": "Feeds a 30-minute 200→0 m ramp and asserts loss > 195 m and gain < 5 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 0..<1800",
+     "effect": "appends the next descending altitude"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.testIsolatedNoiseBlipsDoNotAccumulate()",
+   "hash": "d2957a14e52b9543",
+   "does": "Feeds 10 min flat at 100 m with 1.5 m single-sample spikes every 60 s and asserts gain and loss both < 2 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for i in stride(60..<540, 60)",
+     "effect": "sets a 101.5 m spike then 100 m"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Each 1.5 m spike lasts one sample, so the 15-sample moving average flattens it to about 0.1 m before the hysteresis pass; the test passes for any threshold above ~0.1 m and does not pin the 2 m rejection its comment describes (the comment also still speaks of \"sustained runs\", which the hysteresis algorithm replaced).",
+     "evidence": [
+      "EmuquTests/BarometricAltitudeProcessorTests.swift:67",
+      "EmuquTests/BarometricAltitudeProcessorTests.swift:73",
+      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:119",
+      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:193"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.testClimbDescendClimbDescendMatchesExpectedTotals()",
+   "hash": "eeff692ba6504855",
+   "does": "Feeds +100/-50/+30/-80 m ramps in 0.5 m steps and asserts gain and loss are each between 120 and 140 m (expected 130).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.ramp(samples:step:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.ramp(samples:step:)": "688a86ed7b0ee283"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.ramp(samples:step:)",
+   "hash": "82abc46bb310038e",
+   "does": "Nested helper: appends `samples` altitudes each `step` metres from the running current altitude.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for _ in 1...samples",
+     "effect": "advances current and appends it (traps if samples < 1)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.testNoisySlowClimbIsNotSplitIntoDiscardedRuns()",
+   "hash": "011459afcccfefb4",
+   "does": "Feeds a 2,400-sample 0→100 m climb with deterministic ±0.5 m LCG noise and asserts gain > 95 m and loss < 2 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.noise()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.noise()": "daba61d22b160eb0"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessorTests.noise()",
+   "hash": "ff5bf4da9b510b89",
+   "does": "Nested helper: advances a 64-bit LCG seed and returns a uniform value in [-0.5, 0.5).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

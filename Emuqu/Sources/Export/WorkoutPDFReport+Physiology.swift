@@ -18,10 +18,23 @@ extension WorkoutPDFPhysiologyPages {
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawPageTitle(String(localized: "AUTONOMIC / HRV ANALYSIS", bundle: LanguageManager.appBundle), at: &y)
         drawAlpha1Explainer(at: &y, contentW: contentW)
+        // Each block continues on a new page rather than run into the footer.
+        ensureRoom(130, y: &y, ctx: ctx)
         drawAlpha1StatsTable(at: &y, contentW: contentW)
+        ensureRoom(90, y: &y, ctx: ctx)
         drawAlpha1LT1Estimate(at: &y, contentW: contentW)
+        ensureRoom(170, y: &y, ctx: ctx)
         drawHRRBlock(at: &y, contentW: contentW)
         renderer.drawFooter()
+    }
+
+    /// Starts a new page — this one closed with its footer — when `needed`
+    /// points would run into the footer at pageHeight − margin + 6.
+    func ensureRoom(_ needed: CGFloat, y: inout CGFloat, ctx: UIGraphicsPDFRendererContext) {
+        guard y + needed > report.config.pageSize.height - report.config.margin else { return }
+        renderer.drawFooter()
+        PDFReadingDirection.beginPage(ctx)
+        y = report.config.margin
     }
 
     /// What DFA α1 is, plus the chart itself.
@@ -113,12 +126,16 @@ extension WorkoutPDFPhysiologyPages {
         )
     }
 
+    /// No heading at all for a session with no HRR record, or with readings
+    /// none of which fell in the 1- or 2-minute windows.
     func drawHRRBlock(at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
-        renderer.drawSectionHeading(String(localized: "HEART-RATE RECOVERY (HRR)", bundle: bundle), at: &y)
         guard let hrr = report.session.workoutMetadata?.hrrSamples else { return }
+        let rows = hrrRows(hrr, bundle: bundle)
+        guard hrr.isEmpty || !rows.isEmpty else { return }
+        renderer.drawSectionHeading(String(localized: "HEART-RATE RECOVERY (HRR)", bundle: bundle), at: &y)
         guard !hrr.isEmpty else { return drawHRRUnavailable(at: &y, contentW: contentW) }
-        renderer.drawTwoColumnRows(hrrRows(hrr, bundle: bundle), startY: &y, contentW: contentW)
+        renderer.drawTwoColumnRows(rows, startY: &y, contentW: contentW)
         y += 4
         drawHRRClassification(hrr, at: &y, contentW: contentW)
     }
@@ -149,10 +166,12 @@ extension WorkoutPDFPhysiologyPages {
         return hrrRows
     }
 
-    /// The 1-minute drop read against the conventional benchmarks.
+    /// The 1-minute drop read against the conventional benchmarks. A zero or
+    /// negative drop is a failed capture, not a slow recovery, and is not
+    /// classified (as on the "What this means" page).
     func drawHRRClassification(_ hrr: [HRRSample], at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
-        guard let one = hrr.bestAtOneMinute else { return }
+        guard let one = hrr.bestAtOneMinute, one.drop > 0 else { return }
         let clinical = one.drop >= 18 ? String(localized: "18 bpm or more: above the figure often quoted for trained endurance athletes.", bundle: bundle)
             : one.drop >= 12 ? String(localized: "12–17 bpm: at or above the 12 bpm convention from clinical exercise testing (Cole 1999).", bundle: bundle)
             : one.drop >= 8 ? String(localized: "8–11 bpm: below the 12 bpm convention. One session says little; compare across sessions.", bundle: bundle)
@@ -259,15 +278,14 @@ extension WorkoutPDFPhysiologyPages {
     }
 
     /// Zone edges in bpm, derived from the reader's own configured HRmax.
+    /// Z5 is open-ended ("162+ bpm"), as `hrZoneSeconds` counts it.
     func zoneRanges() -> [String] {
-        let zoneRanges: [String] = (0 ..< 5).map { idx in
-            let lows = [0.50, 0.60, 0.70, 0.80, 0.90]
-            let highs = [0.60, 0.70, 0.80, 0.90, 1.05]
-            let lo = Int((lows[idx] * Double(report.userMaxHR)).rounded())
-            let hi = Int((highs[idx] * Double(report.userMaxHR)).rounded())
-            return "\(lo)–\(hi) bpm"
+        let edges = [0.50, 0.60, 0.70, 0.80, 0.90]
+        let bpm = { (fraction: Double) in Int((fraction * Double(self.report.userMaxHR)).rounded()) }
+        return edges.indices.map { idx in
+            guard idx + 1 < edges.count else { return "\(bpm(edges[idx]))+ bpm" }
+            return "\(bpm(edges[idx]))–\(bpm(edges[idx + 1])) bpm"
         }
-        return zoneRanges
     }
 
     func drawZoneRow(
@@ -308,7 +326,7 @@ extension WorkoutPDFPhysiologyPages {
     func physiologyRows(bundle: Bundle) -> [(String, String)] {
         var physioRows: [(String, String)] = []
         if let d = report.session.workoutMetadata?.decouplingPercent {
-            let desc = d < 5 ? String(localized: "strong aerobic efficiency", bundle: bundle) : d < 7 ? String(localized: "mild drift", bundle: bundle) : String(localized: "significant drift — hydration / fuel / heat review", bundle: bundle)
+            let desc = d <= WorkoutPDFReport.decouplingDriftPercent ? String(localized: "strong aerobic efficiency", bundle: bundle) : d < 7 ? String(localized: "mild drift", bundle: bundle) : String(localized: "significant drift — hydration / fuel / heat review", bundle: bundle)
             physioRows.append((String(localized: "Pa:Hr decoupling", bundle: bundle), String(localized: "\(String(format: "%+.1f", locale: LanguageManager.appLocale, d)) % (\(desc))", bundle: bundle)))
         }
         if let ef = report.session.workoutMetadata?.efficiencyFactor {
@@ -324,7 +342,7 @@ extension WorkoutPDFPhysiologyPages {
     func drawDriftTakeaway(at y: inout CGFloat) {
         let bundle = LanguageManager.appBundle
         if let d = report.session.workoutMetadata?.decouplingPercent {
-            if d < 5 {
+            if d <= WorkoutPDFReport.decouplingDriftPercent {
                 renderer.drawStatusArrow(String(localized: "Cardiac drift well-controlled — aerobic system handled the workload cleanly", bundle: bundle), kind: .good, at: &y)
             } else if d < 7 {
                 renderer.drawStatusArrow(String(localized: "Mild cardiac drift — body worked harder in the second half; hydration / fuel worth a look on similar efforts", bundle: bundle), kind: .neutral, at: &y)
@@ -391,13 +409,15 @@ extension WorkoutPDFPhysiologyPages {
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawPageTitle(String(localized: "METHODOLOGY", bundle: LanguageManager.appBundle), at: &y)
+        let bodyFont = UIFont.systemFont(ofSize: 9, weight: .regular)
         for (title, body) in methodologySections(bundle: LanguageManager.appBundle) {
+            ensureRoom(14 + PDFPagePrimitives.wrappedTextHeight(body, width: contentW, font: bodyFont, lineHeight: 12) + 12, y: &y, ctx: ctx)
             renderer.drawSectionHeading(title.uppercased(), at: &y)
             y = renderer.drawWrappedText(
                 body,
                 at: CGPoint(x: report.config.margin, y: y),
                 width: contentW,
-                font: UIFont.systemFont(ofSize: 9, weight: .regular),
+                font: bodyFont,
                 color: report.config.textPrimary,
                 lineHeight: 12
             )

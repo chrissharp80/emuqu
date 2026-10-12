@@ -26,33 +26,49 @@
 # The out-of-range case is decidable and is what this checks. An in-range
 # citation that points at the wrong code is not mechanically decidable, which is
 # why the guidance in the failure message is to cite the SYMBOL instead — a
-# symbol survives a split, a line number does not.
+# symbol survives a split, a line number does not. A bare basename is checked
+# against the longest file of that name; a citation that carries a directory
+# (`Views/Foo.swift:12`) is checked against the file(s) at that path only.
 #
-# Exit 0 clean, 1 on a broken citation.
+# Scope: Swift comments in the app, watch app and both test targets, and every
+# tracked Markdown file in the repository.
+#
+# Exit 0 clean, 1 on a broken citation, 2 when the Markdown list cannot be read.
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
 SOURCE_ROOTS=("$@")
 if (( ${#SOURCE_ROOTS[@]} == 0 )); then
-    SOURCE_ROOTS=("Emuqu" "EmuquTests" "EmuquUITests")
+    SOURCE_ROOTS=("Emuqu" "EmuquWatch Watch App" "EmuquTests" "EmuquUITests")
 fi
 
 python3 - "${SOURCE_ROOTS[@]}" <<'PY'
 import pathlib
 import re
+import subprocess
 import sys
 
-roots = sys.argv[1:] or ["Emuqu", "EmuquTests", "EmuquUITests"]
+roots = sys.argv[1:]
 
-# Longest line count for each basename anywhere in the tree — a citation is
-# only broken if it exceeds EVERY file that could plausibly be the target.
+# Line count of every Swift file in the tree, by path. A bare basename is only
+# broken if it exceeds EVERY file of that name that could be the target.
+file_lengths: dict[str, int] = {}
 lengths: dict[str, int] = {}
 for root in roots:
     for path in pathlib.Path(root).rglob("*.swift"):
-        name = path.name
         count = len(path.read_text(encoding="utf-8", errors="ignore").splitlines())
-        lengths[name] = max(lengths.get(name, 0), count)
+        file_lengths[path.as_posix()] = count
+        lengths[path.name] = max(lengths.get(path.name, 0), count)
+
+
+def known_length(prefix, name):
+    """Longest file the citation can mean, or None when nothing matches."""
+    if not prefix:
+        return lengths.get(name)
+    suffix = "/" + prefix + name
+    matches = [n for p, n in file_lengths.items() if ("/" + p).endswith(suffix)]
+    return max(matches) if matches else None
 
 # `Foo.swift:123`, `Foo.swift: 123`, `Foo.swift ~1291`, `Foo.swift line 42`,
 # `Foo.swift, line 42`, and the GitHub permalink form `Foo.swift#L42`.
@@ -64,8 +80,11 @@ for root in roots:
 # that these citations rot. A guard that covers one comment syntax out of two
 # reports a clean tree it has not read.
 CITATION = re.compile(
-    r"([A-Za-z][\w+]*\.swift)\s*(?::\s*|:?\s+~\s*|\s*,?\s+line\s+|#L)(\d{1,5})(?!\d)"
+    r"((?:[\w.+-]+/)*)([A-Za-z][\w+]*\.swift)\s*(?::\s*|:?\s+~\s*|\s*,?\s+line\s+|#L)(\d{1,5})(?!\d)"
 )
+# A number followed by `-MM` is the start of a date ("Foo.swift: 2026-08-23"),
+# not a line. Only that is skipped: a real citation to line 1900-2099 is checked.
+DATE_TAIL = re.compile(r"-\d\d")
 LINE_COMMENT = re.compile(r"^\s*//")
 BLOCK_OPEN = re.compile(r"/\*")
 BLOCK_CLOSE = re.compile(r"\*/")
@@ -96,11 +115,11 @@ def check_citations(path, numbered_lines, out):
     found = 0
     for lineno, line in numbered_lines:
         for match in CITATION.finditer(line):
-            name, number = match.group(1), int(match.group(2))
-            if re.match(r"^(19|20)\d\d$", match.group(2)):
+            prefix, name, number = match.group(1), match.group(2), int(match.group(3))
+            if DATE_TAIL.match(line, match.end()):
                 continue
             found += 1
-            known = lengths.get(name)
+            known = known_length(prefix, name)
             if known is None:
                 out.append((str(path), lineno, match.group(0), "no such file in the tree"))
             elif number > known:
@@ -121,12 +140,22 @@ for root in roots:
 # a line in `HealthKitManager+Sleep.swift` that has moved to another file
 # entirely. A guard that covers one half of the tree reports a clean tree it has
 # not read.
-DOC_ROOTS = [pathlib.Path("docs"), pathlib.Path("README.md")]
-for root in DOC_ROOTS:
-    docs = [root] if root.is_file() else (sorted(root.rglob("*.md")) if root.is_dir() else [])
-    for path in docs:
-        lines = path.read_text(encoding="utf-8", errors="ignore").split("\n")
-        total += check_citations(path, enumerate(lines, 1), broken)
+#
+# Every Markdown file git knows about (tracked or new and not ignored), not just
+# docs/ and README.md — scripts/README.md and .github/ carry citations too.
+listed = subprocess.run(
+    ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "*.md"],
+    capture_output=True, text=True,
+)
+if listed.returncode != 0:
+    print("check_comment_citations: cannot list Markdown files (git ls-files failed).", file=sys.stderr)
+    sys.exit(2)
+for name in sorted(set(filter(None, listed.stdout.split("\0")))):
+    path = pathlib.Path(name)
+    if not path.is_file():
+        continue
+    lines = path.read_text(encoding="utf-8", errors="ignore").split("\n")
+    total += check_citations(path, enumerate(lines, 1), broken)
 
 print(f"check_comment_citations: {total} file:line citation(s) in comments and docs.")
 

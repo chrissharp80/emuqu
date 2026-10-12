@@ -287,7 +287,7 @@ final class HRVAnalysisPipeline: Sendable {
         guard var result = fullSeriesResult(
             series: series, flags: flags,
             start: effectiveStart, end: effectiveEnd,
-            reportedWindow: windowStart ..< windowEndIdx,
+            reportedWindow: effectiveStart ..< effectiveEnd,
             ansConfig: ansConfig,
             daytimeRestingHR: daytimeRestingHR
         ) else { return nil }
@@ -319,7 +319,7 @@ final class HRVAnalysisPipeline: Sendable {
         let ansMetrics = computeANSMetrics(
             series: series, flags: flags, windowStart: effectiveStart, windowEnd: effectiveEnd,
             timeDomain: td, nonlinear: nl, daytimeRestingHR: daytimeRestingHR,
-            config: ansConfig ?? ANSConfiguration(baselineRMSSD: 40.0, vo2Max: nil, trainingLoadAdjustment: 0)
+            config: ansConfig
         )
         return streamingResult(
             series: series, flags: flags,
@@ -402,8 +402,9 @@ final class HRVAnalysisPipeline: Sendable {
     }
 
     /// Where the peak-capacity window sits, as both beat indices and wall-clock
-    /// offsets. Falls back to the whole series when the capacity carries no
-    /// relative position.
+    /// offsets. Falls back to the whole series, with no window offsets (so no
+    /// "Peak Capacity" window is reported), when the capacity carries no
+    /// relative position or its window starts after the last beat.
     private func peakCapacityBounds(
         series: RRSeries,
         peakCapacity: PeakCapacity
@@ -421,29 +422,20 @@ final class HRVAnalysisPipeline: Sendable {
 
             let startMs = windowCenterMs - (windowDurationMs / 2)
             let endMs = windowCenterMs + (windowDurationMs / 2)
-            windowStartMs = startMs
-            windowEndMs = endMs
-
-            (windowStartIdx, windowEndIdx) = indexRange(in: series.points, fromMs: startMs, toMs: endMs)
+            if let range = indexRange(in: series.points, fromMs: startMs, toMs: endMs) {
+                (windowStartIdx, windowEndIdx) = range
+                windowStartMs = startMs
+                windowEndMs = endMs
+            }
         }
         return PeakWindowBounds(startIdx: windowStartIdx, endIdx: windowEndIdx, startMs: windowStartMs, endMs: windowEndMs)
     }
 
-    /// First beat at or after `fromMs`, and the first at or after `toMs`.
-    private func indexRange(in points: [RRPoint], fromMs startMs: Int64, toMs endMs: Int64) -> (Int, Int) {
-        var startIdx = 0
-        var endIdx = points.count
-        var foundStart = false
-        for (idx, point) in points.enumerated() {
-            if point.t_ms >= startMs, !foundStart {
-                startIdx = idx
-                foundStart = true
-            }
-            if point.t_ms >= endMs {
-                endIdx = idx
-                break
-            }
-        }
+    /// First beat at or after `fromMs`, and the first at or after `toMs`
+    /// (the count when none is). Nil when no beat is at or after `fromMs`.
+    private func indexRange(in points: [RRPoint], fromMs startMs: Int64, toMs endMs: Int64) -> (Int, Int)? {
+        guard let startIdx = points.firstIndex(where: { $0.t_ms >= startMs }) else { return nil }
+        let endIdx = points[startIdx...].firstIndex(where: { $0.t_ms >= endMs }) ?? points.count
         return (startIdx, endIdx)
     }
 

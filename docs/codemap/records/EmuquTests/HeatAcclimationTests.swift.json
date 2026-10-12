@@ -1,0 +1,716 @@
+{
+ "file": "EmuquTests/HeatAcclimationTests.swift",
+ "hash": "1eb65823c16c5f02",
+ "role": "Three XCTest suites: HeatAcclimationTests pins the pure HeatAcclimation model (WBGT proxy, session/daily stimulus, induction/decay replay, bands, days-to-target, adapted WBGT); HeatTrackingConsentTests checks heatTrackingEnabled defaults/persistence and that the assistant path does not compute while off; HeatExposureAttributionTests checks HeatAcclimationCache.exposuresByDay and WorkoutWeatherSnapshot(healthKitMetadata:).",
+ "types": [
+  "HeatAcclimationTests: class — XCTestCase over HeatAcclimation",
+  "HeatTrackingConsentTests: class — @MainActor XCTestCase over UserSettings.heatTrackingEnabled and HeatAcclimationCache.currentAwaitingRefresh",
+  "HeatExposureAttributionTests: class — @MainActor XCTestCase over HeatAcclimationCache.exposuresByDay and WorkoutWeatherSnapshot HealthKit init"
+ ],
+ "state": [
+  "mem:HeatAcclimationTests.day (86_400 s)",
+  "mem:HeatAcclimationTests.anchor (Date 1_700_000_000)",
+  "mem:HeatExposureAttributionTests.calendar (gregorian)",
+  "mem:HeatExposureAttributionTests.start (Date 1_790_000_000)"
+ ],
+ "toplevel": "Stored fixture properties only.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The suite doc says the model reaches '~94% by day 14', but testInductionReachesAboutNinetyPercentByDayFourteen only asserts 90 < level < 100, so the cited figure is not pinned.",
+   "evidence": [
+    "EmuquTests/HeatAcclimationTests.swift:7",
+    "EmuquTests/HeatAcclimationTests.swift:103"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HeatAcclimationTests.date(_:)",
+   "hash": "bc6bec360eff63dc",
+   "does": "Fixture: anchor date plus offsetDays whole days.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimationTests.testWBGTRisesWithHumidityAtFixedTemperature()",
+   "hash": "f30409774409ab65",
+   "does": "Asserts wbgtEstimate at 30 °C rises from 30% to 80% RH.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testWBGTReferenceValueInRange()",
+   "hash": "f1e9bd0adf4c9d74",
+   "does": "Asserts wbgtEstimate(35 °C, 50% RH) ≈ 34.8 (±0.5), pinning the BoM simplified WBGT formula.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testWBGTGradientAcrossTrainingConditions()",
+   "hash": "f846d2e5abba5b86",
+   "does": "Asserts a 60-min 30 °C/55% session scores in (0.4, 0.95), a 35 °C/50% session ≥ 0.95, and extreme > warm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testCoolDryDayIsNotAStimulus()",
+   "hash": "70a0d6287c64918d",
+   "does": "Asserts a 16 °C/40% 60-min session scores 0 (WBGT below the 19 °C threshold).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testHotLongSessionIsFullStimulus()",
+   "hash": "2d6dfcf469eea80d",
+   "does": "Asserts a 60-min 34 °C/65% session scores 1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testTooBriefSessionDoesNotCount()",
+   "hash": "038e18cee350d95a",
+   "does": "Asserts a 5-min 34 °C/65% session scores 0 (below minStimulusMinutes).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testDailyStimulusSaturatesAtOne()",
+   "hash": "bc05b3f0693d9878",
+   "does": "Asserts three maximal sessions in a day cap dailyStimulus at 1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)": "f6dd4f2856515bad",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.levelAfterSustainedDays(_:stimulus:)",
+   "hash": "80567bcd0d65b98a",
+   "does": "Fixture: replays n consecutive days at the given stimulus and returns the final level, or 0 when the replay is empty.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "replay(days).last?.level ?? 0",
+     "effect": "fallback 0 only when n == 0 (empty replay)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testColdStartIsZero()",
+   "hash": "18806d369998b591",
+   "does": "Asserts replay([]) is empty and a single no-heat day stays at level 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "restOnly.first?.level ?? -1",
+     "effect": "fallback -1 when replay returned nothing, which makes the equality to 0 fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testInductionReachesAboutSeventyFivePercentByDaySeven()",
+   "hash": "71efc8d56fb5eecf",
+   "does": "Asserts 7 maximal-stimulus days reach level 75 ±4.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.levelAfterSustainedDays(_:stimulus:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.levelAfterSustainedDays(_:stimulus:)": "705c3ce40bc432d8"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testInductionReachesAboutNinetyPercentByDayFourteen()",
+   "hash": "f068a8d5a5b2c35a",
+   "does": "Asserts 14 maximal-stimulus days reach a level between 90 and 100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.levelAfterSustainedDays(_:stimulus:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.levelAfterSustainedDays(_:stimulus:)": "705c3ce40bc432d8"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testInductionIsMonotonicUnderSustainedHeat()",
+   "hash": "fda7a84a4d4b5c9f",
+   "does": "Asserts the level strictly rises every day over 14 maximal-stimulus days.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each consecutive pair of samples",
+     "effect": "asserts b.level > a.level"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testDecayLosesAboutThirtyPercentInTwoWeeks()",
+   "hash": "fc8fb9b7347a4ce4",
+   "does": "Acclimates 14 days then rests 14; asserts fraction of level lost is 0.30 ±0.05.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testReplayWindowMakesTheZeroSeedNegligible()",
+   "hash": "63385fd6402581b3",
+   "does": "Acclimates 14 days then rests HeatConstants.replayLookbackDays (180) days; asserts the carried level is under 2% of the acclimated level.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testDecayIsMonotonicWithoutHeat()",
+   "hash": "94f457a05f04d5b0",
+   "does": "Asserts the level strictly falls each day over the 14 no-heat days following 14 hot days.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each consecutive pair in the decay phase",
+     "effect": "asserts b.level < a.level"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testMildHotDayNeverLowersLevelBelowARestDay()",
+   "hash": "e2b6ef3bdb3d5707",
+   "does": "After 10 hot days, asserts a day with stimulus 0.08 leaves the level ≥ a rest day (replay takes max(induced, decayed)).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testBands()",
+   "hash": "d14f38535c57f6b8",
+   "does": "Asserts band(for:) 10→notAcclimated, 40→partial, 70→wellAcclimated, 90→fullyAcclimated.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.band(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only mid-band values are checked; the band floors (HeatConstants.partialBandFloor/wellBandFloor/fullBandFloor) are never tested at their edges.",
+     "evidence": [
+      "EmuquTests/HeatAcclimationTests.swift:160",
+      "Emuqu/Sources/Analysis/HeatAcclimation.swift:210"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.band(for:)": "69a605c9d88fcba3"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testDaysToTargetFromZeroIsAboutTenDays()",
+   "hash": "39029b603b5ccd4e",
+   "does": "Asserts daysToTarget(current 0, target 85, stimulus 1.0) == 10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "9175bdf2ed0ba7c2"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testDaysToTargetZeroWhenAlreadyThere()",
+   "hash": "c451930e868b6a11",
+   "does": "Asserts daysToTarget(current 90, target 85) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "9175bdf2ed0ba7c2"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testDaysToTargetUnreachableAtWeakStimulus()",
+   "hash": "40045973a227d6f1",
+   "does": "Asserts daysToTarget returns nil when the 0.5 daily stimulus ceiling (50) is below target 85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "9175bdf2ed0ba7c2"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testAdaptedWBGTNilBelowFloor()",
+   "hash": "524cbcc95d26d145",
+   "does": "Asserts adaptedWBGT(for: 10) is nil (below the partial band floor).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)": "628e3425290cf48d"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testAdaptedWBGTRisesWithLevel()",
+   "hash": "6eed9d959781a518",
+   "does": "Asserts adaptedWBGT rises from level 50 to 100 and equals stimulusWBGTThreshold + adaptedWBGTSpanC (19 + 11) at level 100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)": "628e3425290cf48d"
+   }
+  },
+  {
+   "key": "func HeatAcclimationTests.testReplayIsOrderIndependentOfInputArray()",
+   "hash": "cf230e9b76c08f2f",
+   "does": "Asserts replay of 10 hot days gives the same final level whether input is in date order or reversed (replay sorts by date).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatAcclimationTests.date(_:)": "c2d60a6022180d7b"
+   }
+  },
+  {
+   "key": "func HeatTrackingConsentTests.testHeatTrackingIsOffForNewAndExistingUsers()",
+   "hash": "efa9d023b5882afc",
+   "does": "Asserts heatTrackingEnabled is false on UserSettings() and on settings decoded from '{}'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func HeatTrackingConsentTests.testTurningItOnSurvivesASave()",
+   "hash": "283e1fd3f43e962d",
+   "does": "Asserts heatTrackingEnabled=true survives a JSONEncoder/JSONDecoder round-trip of UserSettings.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func HeatTrackingConsentTests.testTheAssistantPathDoesNotComputeWhileTrackingIsOff()",
+   "hash": "05db331e83f2eb0a",
+   "does": "Sets SettingsManager.shared.settings.heatTrackingEnabled=false (restored in defer), builds HeatAcclimationCache over a SessionArchive in a fresh HeatConsent-<uuid> temporary directory (removed in defer), awaits currentAwaitingRefresh and asserts it returns nil and lastUpdated stays nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.currentAwaitingRefresh()",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatTrackingConsentTests.removeDirectory(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settings",
+    "ud:FlowRecovery.heat.lastReadout",
+    "file:<tmp>/HeatConsent-<uuid> (hermetic SessionArchive)"
+   ],
+   "writes": [
+    "mem:SettingsManager.shared.settings",
+    "file:settings JSON (SettingsManager.save via enqueueDiskWrite)",
+    "ud:UserSettings.PerformanceFlagKey mirror keys",
+    "notif:flowRecoverySettingsChanged",
+    "file:<tmp>/HeatConsent-<uuid> (removed in defer)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Mutates the app host's SettingsManager.shared.settings twice (set false, then restore in defer); each assignment runs didSet → save() which writes the real settings file and UserDefaults mirror keys and posts flowRecoverySettingsChanged. HeatAcclimationCache reads the switch from AppDependencies.current.app.settingsManager and SettingsManager has only a private init, so the test cannot give the cache its own settings; state is shared with the app host and other suites. (The archive is now a temporary one.)",
+     "evidence": [
+      "EmuquTests/HeatAcclimationTests.swift:240",
+      "EmuquTests/HeatAcclimationTests.swift:242",
+      "EmuquTests/HeatAcclimationTests.swift:243",
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:55",
+      "Emuqu/Sources/Models/SettingsManager.swift:88"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.currentAwaitingRefresh()": "29cfcfb21ccff2c3",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "48f6b2e298daae55",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "515f98457d5daf23",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "d7c63d5183bc8a4f",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "2b2393e8376b4c26",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatTrackingConsentTests.removeDirectory(_:)": "9920d958c36d6f4e"
+   }
+  },
+  {
+   "key": "func HeatTrackingConsentTests.removeDirectory(_:)",
+   "hash": "90f011907f2e8e77",
+   "does": "Deletes the given directory; a missing directory (an archive that never wrote) is ignored.",
+   "entry": "Called from testTheAssistantPathDoesNotComputeWhileTrackingIsOff's defer",
+   "calls": [
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/HeatConsent-<uuid> (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "removeItem throws",
+     "effect": "swallowed (directory absent)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatExposureAttributionTests.weather(tempC:rh:)",
+   "hash": "7ced4469e4e77346",
+   "does": "Fixture: WorkoutWeatherSnapshot with the given temperature °C and RH %, observed at start, not backfilled.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatExposureAttributionTests.testWorkoutsWithoutRecordedWeatherAreLeftOut()",
+   "hash": "d68e292b5e94fcfa",
+   "does": "Asserts exposuresByDay keeps only the workout with recorded weather (1 exposure, 31 °C, 60%, 60 min on start's day) and drops the one with nil weather.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+   }
+  },
+  {
+   "key": "func HeatExposureAttributionTests.testNoRecordedWeatherMeansNoExposure()",
+   "hash": "6a2ee649efdbc4ba",
+   "does": "Asserts a single workout without weather yields no exposures.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4"
+   }
+  },
+  {
+   "key": "func HeatExposureAttributionTests.testTwoWorkoutsOnOneDayShareTheDay()",
+   "hash": "bd9491d768d5a833",
+   "does": "Asserts two workouts an hour apart on the same day are grouped under one day key with 2 exposures.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+   }
+  },
+  {
+   "key": "func HeatExposureAttributionTests.testHealthKitWeatherMetadataConverts()",
+   "hash": "515a7c3ae4bab5b7",
+   "does": "Asserts WorkoutWeatherSnapshot(healthKitMetadata:) converts 86 °F/0.65 to 30 °C/65% (not backfilled) and returns nil when only temperature is present.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc comment says 'either alone is not enough', but only the temperature-only case is asserted; humidity-only metadata is never tested.",
+     "evidence": [
+      "EmuquTests/HeatAcclimationTests.swift:290",
+      "EmuquTests/HeatAcclimationTests.swift:301"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)": "9e97f23c0995ddd9"
+   }
+  }
+ ],
+ "deps": {}
+}

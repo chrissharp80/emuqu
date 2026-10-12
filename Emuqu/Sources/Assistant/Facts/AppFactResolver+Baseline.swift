@@ -33,36 +33,85 @@ struct BaselineNamespace: FactNamespaceResolver {
         let hr: Double
     }
 
-    /// The latest overnight session, only if it is last night's. Returning
-    /// whatever was newest labelled a recording from days ago as "today".
-    private func lastNightSample(now: Date = Date()) -> Sample? {
-        guard let latest = samples().last, now.timeIntervalSince(latest.date) <= 36 * 3600 else { return nil }
+    /// The latest overnight session in `all`, only if it is last night's.
+    /// Returning whatever was newest labelled a recording from days ago as
+    /// "today".
+    private static func lastNight(in all: [Sample], now: Date = Date()) -> Sample? {
+        guard let latest = all.last, now.timeIntervalSince(latest.date) <= 36 * 3600 else { return nil }
         return latest
     }
 
     /// All overnight sessions with analysis results, sorted oldest → newest.
     /// Excludes untrustworthy-HRV readings so the AI's rolling
     /// RMSSD baseline matches the app's `BaselineTracker` (which does too).
+    /// Each resolver reads this once and derives everything else from it.
     private func samples() -> [Sample] {
-        let entries = archive.entries
+        archive.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
             .sorted { $0.date < $1.date }
-        return entries.compactMap { entry -> Sample? in
-            guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
-                  let td = session.analysisResult?.timeDomain,
-                  td.rmssd > 0
-            else { return nil }
-            return Sample(date: session.startDate, rmssd: td.rmssd, hr: td.meanHR)
-        }
+            .compactMap { sample(for: $0) }
     }
 
-    /// Samples within the trailing `days` days (the 7-day default matches
+    /// From the index's mirror of the session's RMSSD and mean HR (written
+    /// from the same analysis result) when it carries both, so no session
+    /// file is read; else from the session file.
+    private func sample(for entry: SessionArchiveEntry) -> Sample? {
+        if let rmssd = entry.meanRMSSD, let hr = entry.meanHR {
+            return rmssd > 0 ? Sample(date: entry.date, rmssd: rmssd, hr: hr) : nil
+        }
+        guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
+              let td = session.analysisResult?.timeDomain,
+              td.rmssd > 0
+        else { return nil }
+        return Sample(date: session.startDate, rmssd: td.rmssd, hr: td.meanHR)
+    }
+
+    /// The samples within the trailing `days` days (7 matches
     /// BaselineTracker's `baselineWindowDays`, its short display window).
-    private func recentSamples(days: Int = 7) -> [Sample] {
+    private static func window(_ all: [Sample], days: Int) -> [Sample] {
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
             return []
         }
-        return samples().filter { $0.date >= cutoff }
+        return all.filter { $0.date >= cutoff }
+    }
+
+    /// Last night's RMSSD as a % deviation from the geometric mean of the
+    /// earlier sessions within `days`.
+    private func rmssdDeviationPct(days: Int) -> FactValue {
+        let all = samples()
+        guard let today = Self.lastNight(in: all) else {
+            return .missing(reason: .notRecorded, detail: "no overnight session from last night")
+        }
+        let prior = Self.window(all, days: days).filter { $0.date < today.date }.map(\.rmssd)
+        guard let baseline = Self.geometricMean(prior), baseline > 0 else {
+            return .missing(reason: .notYetComputed, detail: "no prior \(days)-day data to compare against")
+        }
+        return .double(((today.rmssd - baseline) / baseline) * 100.0)
+    }
+
+    /// Geometric mean of RMSSD over the trailing `days`.
+    private func rmssdMean(days: Int) -> FactValue {
+        guard let gm = Self.geometricMean(Self.window(samples(), days: days).map(\.rmssd)) else {
+            return .missing(reason: .notYetComputed, detail: "fewer than 1 valid overnight session in the last \(days) days")
+        }
+        return .double(gm)
+    }
+
+    /// Arithmetic mean of overnight mean HR over the trailing `days`.
+    private func hrMean(days: Int) -> FactValue {
+        let recent = Self.window(samples(), days: days).map(\.hr)
+        guard !recent.isEmpty else {
+            return .missing(reason: .notYetComputed, detail: "fewer than 1 valid overnight session in the last \(days) days")
+        }
+        return .double(recent.reduce(0, +) / Double(recent.count))
+    }
+
+    /// Distinct nights among the usable sessions, keyed the way
+    /// `BaselineTracker` keys its one point per night
+    /// (`SleepSchedule.nightKey`), so two recordings of one night count once.
+    private func usableNightCount() -> Int {
+        let schedule = AppDependencies.current.app.settingsManager.settingsSnapshot.sleepSchedule
+        return Set(samples().map { schedule.nightKey(for: $0.date) }).count
     }
 
     /// Geometric mean of a positive series = exp(mean(ln(x))). Falls back
@@ -108,13 +157,7 @@ struct BaselineNamespace: FactNamespaceResolver {
             description: "Geometric mean of RMSSD across the trailing 7 days of overnight sessions. ms.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
-            resolve: {
-                let recent = self.recentSamples(days: 7).map(\.rmssd)
-                guard let gm = Self.geometricMean(recent) else {
-                    return .missing(reason: .notYetComputed, detail: "fewer than 1 valid overnight session in the last 7 days")
-                }
-                return .double(gm)
-            }
+            resolve: { self.rmssdMean(days: 7) }
         )
     }
 
@@ -124,17 +167,7 @@ struct BaselineNamespace: FactNamespaceResolver {
             description: "Today's latest session RMSSD as a percentage deviation from the 7-day geometric mean baseline. Positive = above baseline. %.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
-            resolve: {
-                guard let today = self.lastNightSample() else {
-                    return .missing(reason: .notRecorded, detail: "no overnight session from last night")
-                }
-                let prior = self.recentSamples(days: 7).filter { $0.date < today.date }.map(\.rmssd)
-                guard let baseline = Self.geometricMean(prior), baseline > 0 else {
-                    return .missing(reason: .notYetComputed, detail: "no prior 7-day data to compare against")
-                }
-                let pct = ((today.rmssd - baseline) / baseline) * 100.0
-                return .double(pct)
-            }
+            resolve: { self.rmssdDeviationPct(days: 7) }
         )
     }
 
@@ -144,14 +177,7 @@ struct BaselineNamespace: FactNamespaceResolver {
             description: "Mean overnight heart rate (each session's analysis-window mean) across the trailing 7 days. bpm. Not Apple's resting HR — don't compare the two.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
-            resolve: {
-                let recent = self.recentSamples(days: 7).map(\.hr)
-                guard !recent.isEmpty else {
-                    return .missing(reason: .notYetComputed, detail: "fewer than 1 valid overnight session in the last 7 days")
-                }
-                let mean = recent.reduce(0, +) / Double(recent.count)
-                return .double(mean)
-            }
+            resolve: { self.hrMean(days: 7) }
         )
     }
 
@@ -161,13 +187,7 @@ struct BaselineNamespace: FactNamespaceResolver {
             description: "Geometric mean of RMSSD across the trailing 30 days of overnight sessions. ms.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
-            resolve: {
-                let recent = self.recentSamples(days: 30).map(\.rmssd)
-                guard let gm = Self.geometricMean(recent) else {
-                    return .missing(reason: .notYetComputed, detail: "fewer than 1 valid overnight session in the last 30 days")
-                }
-                return .double(gm)
-            }
+            resolve: { self.rmssdMean(days: 30) }
         )
     }
 
@@ -177,17 +197,7 @@ struct BaselineNamespace: FactNamespaceResolver {
             description: "Today's latest session RMSSD as a percentage deviation from the 30-day geometric mean baseline. Positive = above the long-term baseline. %.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
-            resolve: {
-                guard let today = self.lastNightSample() else {
-                    return .missing(reason: .notRecorded, detail: "no overnight session from last night")
-                }
-                let prior = self.recentSamples(days: 30).filter { $0.date < today.date }.map(\.rmssd)
-                guard let baseline = Self.geometricMean(prior), baseline > 0 else {
-                    return .missing(reason: .notYetComputed, detail: "no prior 30-day data to compare against")
-                }
-                let pct = ((today.rmssd - baseline) / baseline) * 100.0
-                return .double(pct)
-            }
+            resolve: { self.rmssdDeviationPct(days: 30) }
         )
     }
 
@@ -197,14 +207,7 @@ struct BaselineNamespace: FactNamespaceResolver {
             description: "Mean overnight heart rate (each session's analysis-window mean) across the trailing 30 days. bpm. Use to answer 'has my overnight HR drifted up?'. Not Apple's resting HR — don't compare the two.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
-            resolve: {
-                let recent = self.recentSamples(days: 30).map(\.hr)
-                guard !recent.isEmpty else {
-                    return .missing(reason: .notYetComputed, detail: "fewer than 1 valid overnight session in the last 30 days")
-                }
-                let mean = recent.reduce(0, +) / Double(recent.count)
-                return .double(mean)
-            }
+            resolve: { self.hrMean(days: 30) }
         )
     }
 
@@ -215,10 +218,11 @@ struct BaselineNamespace: FactNamespaceResolver {
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
-                guard let today = self.lastNightSample() else {
+                let all = self.samples()
+                guard let today = Self.lastNight(in: all) else {
                     return .missing(reason: .notRecorded, detail: "no overnight session from last night")
                 }
-                let prior = self.recentSamples(days: 30).filter { $0.date < today.date }.map(\.hr)
+                let prior = Self.window(all, days: 30).filter { $0.date < today.date }.map(\.hr)
                 guard !prior.isEmpty else {
                     return .missing(reason: .notYetComputed, detail: "no prior 30-day data to compare against")
                 }
@@ -233,11 +237,14 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineDaysOfHistoryEntry: FactEntry {
         .fixed(
             key: "baseline.days_of_history",
-            description: "Number of usable overnight sessions the recovery score's baseline draws on: the most recent ones, up to 60, whatever their age (sessions with untrustworthy HRV excluded).",
+            description: """
+            Number of nights with a usable overnight reading, up to the 60 most recent the recovery score's baseline reads, whatever their age (one per night however many recordings it has; readings with untrustworthy HRV \
+            excluded). Counted from the session archive the way the score's baseline keys nights, so it can differ from the score's own count when a night was recorded but never added to the baseline.
+            """,
             valueType: "Int",
             availability: { self.baselineAvailability() },
             resolve: {
-                .integer(min(self.samples().count, 60))
+                .integer(min(self.usableNightCount(), 60))
             }
         )
     }
@@ -245,11 +252,14 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineIsEstablishedEntry: FactEntry {
         .fixed(
             key: "baseline.is_established",
-            description: "Whether the personal baseline is established, by the app's rule: at least 3 usable overnight sessions recorded. Before that the recovery score has no baseline to compare against. Confidence keeps growing until about 7 nights.",
+            description: """
+            Whether the personal baseline is established, by the app's rule: usable overnight readings on at least 3 different nights. Before that the recovery score has no baseline to compare against. Confidence keeps \
+            growing until about 7 nights. Counted from the session archive like baseline.days_of_history, so in rare cases it can say true a night before the score's own baseline does.
+            """,
             valueType: "Bool",
             availability: { self.baselineAvailability() },
             resolve: {
-                .boolean(self.samples().count >= BaselineTracker.RecoveryBaselineStats.minimumDays)
+                .boolean(self.usableNightCount() >= BaselineTracker.RecoveryBaselineStats.minimumDays)
             }
         )
     }

@@ -15,14 +15,14 @@ enum StressAnalyzer {
     /// - Parameter rr: RR intervals in ms
     /// - Returns: Stress Index value, or nil if insufficient data
     static func computeStressIndex(_ rr: [Double]) -> Double? {
-        guard rr.count >= StressNormativeConstants.stressIndexMinRRCount else { return nil }
-        let minRR = rr.min() ?? 0
-        let maxRR = rr.max() ?? 0
+        guard rr.count >= StressNormativeConstants.stressIndexMinRRCount,
+              let minRR = rr.min(), let maxRR = rr.max() else { return nil }
         let mxdmn = (maxRR - minRR) / 1_000.0 // seconds
-        guard mxdmn > 0, let histogram = stressIndexHistogram(rr, minRR: minRR, maxRR: maxRR) else { return nil }
+        guard mxdmn > 0 else { return nil }
+        let histogram = stressIndexHistogram(rr, minRR: minRR, maxRR: maxRR)
+        guard let maxBinCount = histogram.max(),
+              let modalBinIndex = histogram.firstIndex(of: maxBinCount) else { return nil }
         let binWidth = StressNormativeConstants.stressIndexBinWidthMs
-        let maxBinCount = histogram.max() ?? 0
-        let modalBinIndex = histogram.firstIndex(of: maxBinCount) ?? 0
         // Mode in seconds, amplitude of mode as a percentage.
         let mo = (minRR + Double(modalBinIndex) * binWidth + binWidth / 2) / 1_000.0
         let amo = Double(maxBinCount) / Double(rr.count) * 100.0
@@ -30,11 +30,11 @@ enum StressAnalyzer {
         return amo / (2.0 * mo * mxdmn)
     }
 
-    /// RR histogram at the standard SI bin width.
-    private static func stressIndexHistogram(_ rr: [Double], minRR: Double, maxRR: Double) -> [Int]? {
+    /// RR histogram at the standard SI bin width. `maxRR >= minRR`, so there
+    /// is always at least one bin.
+    private static func stressIndexHistogram(_ rr: [Double], minRR: Double, maxRR: Double) -> [Int] {
         let binWidth = StressNormativeConstants.stressIndexBinWidthMs
         let binCount = Int(ceil((maxRR - minRR) / binWidth)) + 1
-        guard binCount > 0 else { return nil }
         var histogram = [Int](repeating: 0, count: binCount)
         for interval in rr {
             let binIndex = Int((interval - minRR) / binWidth)
@@ -125,10 +125,13 @@ enum StressAnalyzer {
     ///   - alpha1: DFA α1 value
     ///   - pnsIndex: Parasympathetic index (optional)
     ///   - snsIndex: Sympathetic index (optional)
-    ///   - trainingLoadAdjustment: Adjustment based on recent workout intensity (-2 to +1)
+    ///   - trainingLoadAdjustment: Adjustment based on recent workout intensity (-2 to 0)
     ///     - Negative values indicate recent hard training (expect lower HRV, adjust score up)
-    ///     - Zero means no adjustment needed
-    ///   - vo2Max: User's VO2max for fitness-adjusted baseline (optional)
+    ///     - Zero means no adjustment needed; a positive value is ignored, since
+    ///       the adjustment only excuses low HRV after hard training
+    ///   - vo2Max: User's VO2max (optional). Raises the absolute RMSSD bands used
+    ///     when there is no baseline; a personal baseline already reflects the
+    ///     user's fitness, so it is compared as it is
     /// - Returns: Readiness score 1-10
     static func computeReadinessScore(
         rmssd: Double,
@@ -140,29 +143,13 @@ enum StressAnalyzer {
         vo2Max: Double? = nil
     ) -> Double {
         var score = StressNormativeConstants.readinessNeutralBaseline
-        score += rmssdAdjustment(
-            rmssd: rmssd,
-            baseline: fitnessAdjustedBaseline(baselineRMSSD: baselineRMSSD, vo2Max: vo2Max),
-            vo2Max: vo2Max
-        )
+        score += rmssdAdjustment(rmssd: rmssd, baseline: baselineRMSSD, vo2Max: vo2Max)
         score += dfaAdjustment(alpha1)
         score += ansBalanceAdjustment(snsIndex: snsIndex, pnsIndex: pnsIndex)
         // Recent hard training: low HRV is expected, so don't penalize it.
         // Subtracting a negative adjustment raises the score.
         if trainingLoadAdjustment < 0 { score -= trainingLoadAdjustment }
         return max(1.0, min(10.0, score))
-    }
-
-    /// Higher VO2max implies a higher expected HRV baseline — elite athletes
-    /// (VO2max 60+) can run 20-30% higher RMSSD.
-    private static func fitnessAdjustedBaseline(baselineRMSSD: Double?, vo2Max: Double?) -> Double? {
-        guard let baseline = baselineRMSSD, let vo2 = vo2Max else { return baselineRMSSD }
-        let raw = 1.0 + ((vo2 - StressNormativeConstants.fitnessMultiplierCenterVO2) / StressNormativeConstants.fitnessMultiplierDivisor)
-        let fitnessMultiplier = max(
-            StressNormativeConstants.fitnessMultiplierMin,
-            min(StressNormativeConstants.fitnessMultiplierMax, raw)
-        )
-        return baseline * fitnessMultiplier
     }
 
     /// Against a baseline: optimal is a ratio near 1.0, with large deviations

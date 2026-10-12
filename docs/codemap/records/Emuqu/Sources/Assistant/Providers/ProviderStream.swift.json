@@ -1,0 +1,88 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/ProviderStream.swift",
+ "hash": "03c693c0e7451e9d",
+ "role": "Shared stream runner for cloud providers: wraps a provider operation in an AsyncThrowingStream, cancels it on consumer termination and normalises thrown errors to AIProviderError (.cancelled/.network).",
+ "types": [
+  "ProviderStream: enum — namespace"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ProviderStream.make(_:)",
+   "hash": "3df60f054ef0cb18",
+   "does": "Creates an AsyncThrowingStream that runs operation in a Task and cancels that Task when the stream terminates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "9ee75be477cc8f0d"
+   }
+  },
+  {
+   "key": "func ProviderStream.run(_:continuation:)",
+   "hash": "dd2623053c94bee4",
+   "does": "Awaits operation(continuation); finishes the stream normally on return or with failure(from:) of the thrown error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)",
+    "closure:provider stream operation passed by Anthropic/Gemini/OpenAICompatibleStreamer.send"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "operation threw (catch)",
+     "effect": "finishes the continuation throwing the mapped error; otherwise finish()."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "c6848a1b4c853d85"
+   }
+  },
+  {
+   "key": "func ProviderStream.failure(from:)",
+   "hash": "36e826826ca5928d",
+   "does": "Maps errors: CancellationError or URLError.cancelled → AIProviderError.cancelled; other URLError → .network(localizedDescription); anything else unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "CancellationError",
+     "effect": ".cancelled."
+    },
+    {
+     "at": "+4",
+     "cond": "URLError with code .cancelled",
+     "effect": ".cancelled."
+    },
+    {
+     "at": "+6",
+     "cond": "any other URLError",
+     "effect": ".network(description), which the chat treats as fallbackable."
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "error returned unchanged."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+   }
+  }
+ ],
+ "deps": {}
+}

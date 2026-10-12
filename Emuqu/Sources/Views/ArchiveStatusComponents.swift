@@ -11,9 +11,9 @@ import SwiftUI
 // current session lives — local archive, iCloud, both, or still saving —
 // so users stop wondering whether their data is safe. Tappable for details.
 //
-// Observes `collector.archiveVersion` (bumps on every archive write) and
-// `syncManager.pullVersion` + `syncManager.syncState` so the line updates
-// live when state changes.
+// Reads `archiveSignal.version` (bumps on every archive write) alongside the
+// archive lookup, and `syncManager`'s observable upload / retry / sync state,
+// so the line updates live when state changes.
 
 struct ArchiveStatusLine: View {
     let session: HRVSession
@@ -23,8 +23,11 @@ struct ArchiveStatusLine: View {
 
     @State private var showingDetails = false
 
+    /// `exists` is a lock-guarded lookup SwiftUI cannot observe; reading the
+    /// signal's version first makes every archive write re-evaluate it.
     private var isArchived: Bool {
-        collector.archive.exists(session.id)
+        _ = archiveSignal.version
+        return collector.archive.exists(session.id)
     }
 
     private var isUploaded: Bool {
@@ -132,8 +135,11 @@ struct ArchiveStatusDetailSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    /// Reads the signal's version first so an archive write while the sheet
+    /// is open re-evaluates the (non-observable) index lookup.
     private var archiveEntry: SessionArchiveEntry? {
-        collector.archive.entries.first { $0.sessionId == session.id }
+        _ = archiveSignal.version
+        return collector.archive.entries.first { $0.sessionId == session.id }
     }
 
     var body: some View {
@@ -200,7 +206,7 @@ struct ArchiveStatusDetailSheet: View {
     @ViewBuilder
     private var icloudStatusRows: some View {
         if !syncManager.isCloudKitAvailable {
-            LabeledRow("Status", value: String(localized: "iCloud unavailable", bundle: LanguageManager.appBundle))
+            LabeledRow("Status", value: String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle))
         } else if syncManager.isUploaded(session.id) {
             LabeledRow("Status", value: String(localized: "✓ Uploaded", bundle: LanguageManager.appBundle))
             if let last = syncManager.lastSyncDate {

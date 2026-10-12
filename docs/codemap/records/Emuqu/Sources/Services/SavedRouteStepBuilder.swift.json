@@ -1,0 +1,715 @@
+{
+ "file": "Emuqu/Sources/Services/SavedRouteStepBuilder.swift",
+ "hash": "9823d0482f124cf0",
+ "role": "Turns a SavedRoute polyline into ActiveRouteSession turn-by-turn steps: direction inference, bearing-based turn detection, OSM road-name lookup, localized instructions.",
+ "types": [
+  "SavedRouteStepBuilder: enum — namespace",
+  "Direction: enum",
+  "BuildResult: struct",
+  "ResolvedNames: struct",
+  "Turn: enum"
+ ],
+ "state": [
+  "constants: turnAngleThresholdDegrees 30, minTurnSeparationMeters 15, minSegmentMeters 30",
+  "static turnWindowMeters 15 (detection window), turnClassificationWindowMeters 30 (classification window)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SavedRouteStepBuilder.build(savedRoute:currentLocation:)",
+   "hash": "4c65c28be11cbe72",
+   "does": "Converts a SavedRoute to coordinates on the MainActor; nil when <2 trackpoints; picks direction by which end is nearer the user, reverses if needed, detects turns, logs, and builds the result (hasUnnamedTurns counts turns only; a missing start/end name just drops it from that instruction).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.inferDirection(from:currentLocation:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.result(coords:turnIndices:direction:routeName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "fewer than 2 trackpoints",
+     "effect": "log and return nil"
+    },
+    {
+     "at": "+13",
+     "cond": "direction == forward",
+     "effect": "original order; else reversed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "154a368586e48d26",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.inferDirection(from:currentLocation:)": "29d504e8c3eeaa5f",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.result(coords:turnIndices:direction:routeName:)": "ae094550383b4a59",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.result(coords:turnIndices:direction:routeName:)",
+   "hash": "72ff03cc73522fa1",
+   "does": "Resolves road names, builds steps from boundaries, totals distance, estimates duration at 1.4 m/s and returns the BuildResult (hasUnnamedTurns when any turn name missing, destination = last coord).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.resolveNames(coords:turnIndices:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.stepBoundaries(turnIndices:lastIndex:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.buildSteps(coords:boundaries:names:routeName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.buildSteps(coords:boundaries:names:routeName:)": "bea602341c96d749",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.resolveNames(coords:turnIndices:)": "ff1b8d7252b16381",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.stepBoundaries(turnIndices:lastIndex:)": "c241d920308d3014"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.inferDirection(from:currentLocation:)",
+   "hash": "326a916f456dd1a9",
+   "does": "Returns forward when the user is at least as close to the first trackpoint as to the last, else reverse.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "distance to start <= distance to end",
+     "effect": "forward; else reverse"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.resolveNames(coords:turnIndices:)",
+   "hash": "64bdfab9b6ec576e",
+   "does": "Sequentially looks up road names at the start, end and each turn index; counts turns with no name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.roadName(at:coords:index:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each turn index",
+     "effect": "lookup in order"
+    },
+    {
+     "at": "+9",
+     "cond": "roadName returned a name",
+     "effect": "store in byIndex; else unnamedCount += 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.roadName(at:coords:index:)": "0a4cc33f874baeee"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.stepBoundaries(turnIndices:lastIndex:)",
+   "hash": "291770c5d173b46a",
+   "does": "Returns [0] + turn indices + last index (turns are interior, so the end is never already a boundary).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.buildSteps(coords:boundaries:names:routeName:)",
+   "hash": "53c9c9a92ce32507",
+   "does": "For each consecutive boundary pair builds an InternalStep: first step a heading instruction, later steps the turn at their start; distance = path length; polyline of the segment; appends an arrival step when any step exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.headingInstruction(coords:startIdx:name:segDistance:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.turnInstruction(coords:turnIdx:names:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.arrivalStep(at:names:routeName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each boundary pair (0..<max(0,count-1))",
+     "effect": "loop; empty when <2 boundaries"
+    },
+    {
+     "at": "+12",
+     "cond": "endIdx <= startIdx",
+     "effect": "skip pair"
+    },
+    {
+     "at": "+16",
+     "cond": "i == 0",
+     "effect": "heading instruction; else turn instruction"
+    },
+    {
+     "at": "+23",
+     "cond": "no steps or no last coord",
+     "effect": "return steps without arrival; else append arrival"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.arrivalStep(at:names:routeName:)": "7a2e62aff1490a11",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.headingInstruction(coords:startIdx:name:segDistance:)": "784cc09478520724",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.turnInstruction(coords:turnIdx:names:)": "99822413101c4495"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.arrivalStep(at:names:routeName:)",
+   "hash": "1db30efbb3b1a648",
+   "does": "Builds a zero-length arrival step: 'Arrive at <route> — finish on <road>' when the end road is known, else 'Arrive at <route>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "names.end is nil",
+     "effect": "plain 'Arrive at' text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.headingInstruction(coords:startIdx:name:segDistance:)",
+   "hash": "fd52685de7d6a015",
+   "does": "First-step text: cardinal from bearing coords[0]→coords[min(count-1, 2)]; 'Head <dir> on <name>' or, without a name, 'Head <dir> for <distance>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.compassFromBearing(_:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.formatDistance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "start road name is nil",
+     "effect": "'Head X for <distance>'; else 'Head X on <name>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "4239275bab746f9b",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.compassFromBearing(_:)": "2afdabf3ac56ff4f",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.formatDistance(_:)": "069309e47cd09898"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.turnInstruction(coords:turnIdx:names:)",
+   "hash": "3e67aecd19d0a3ab",
+   "does": "Turn text from the bearing change across the turn trackpoint over 30 m of path either side (deflection), classified by turnDirection and phrased with the resolved name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.deflection(at:in:windowMeters:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.turnDirection(delta:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.turnPhrase(_:onto:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.deflection(at:in:windowMeters:)": "186a4e0592be1516",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.turnDirection(delta:)": "278262f5e8ecb9ef",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.turnPhrase(_:onto:)": "36e41bde6c6275fb"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.polyline(for:)",
+   "hash": "f03435cb0720d567",
+   "does": "Creates an MKPolyline from a coordinate array (empty MKPolyline if no buffer).",
+   "entry": null,
+   "calls": [
+    "ext:MKPolyline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "buffer has no base address (empty array)",
+     "effect": "return empty MKPolyline"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.detectTurns(in:)",
+   "hash": "2cf27215dd737c5b",
+   "does": "Detects turn indices where the bearing change across an interior trackpoint, measured over 15 m of path either side (deflection), is ≥30° — so a corner spread over several 1 Hz fixes is still found — then keeps the sharpest of turns within 15 m and drops those whose onward path is <30 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.deflection(at:in:windowMeters:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 3 coords",
+     "effect": "return []"
+    },
+    {
+     "at": "+4",
+     "cond": "|deflection| >= 30°",
+     "effect": "kept as a raw turn"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "7a830b4debdb0e58",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.deflection(at:in:windowMeters:)": "186a4e0592be1516",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.deflection(at:in:windowMeters:)",
+   "hash": "9bfd4041e066599b",
+   "does": "Signed bearing change at an index: bearing from the trackpoint windowMeters of path before it (pathIndex) to it, then from it to the one windowMeters after, as angleDelta (positive = right).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathIndex(from:step:meters:in:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "4239275bab746f9b",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathIndex(from:step:meters:in:)": "130e06747b3485df"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.pathIndex(from:step:meters:in:)",
+   "hash": "ad48c0b4ff8056ac",
+   "does": "Walks from start one index at a time in step direction, summing segment lengths, until at least meters are covered or the route ends; returns the index reached.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "under meters and a next index exists",
+     "effect": "keep walking"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.collapseNearby(_:in:)",
+   "hash": "8e66ad92f13676c1",
+   "does": "Collapses raw turns within 15 m of the last kept one into one, keeping the one with the larger bearing change; returns the kept indices.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each raw turn",
+     "effect": "check"
+    },
+    {
+     "at": "+5",
+     "cond": "no kept turn yet or ≥15 m from it",
+     "effect": "append"
+    },
+    {
+     "at": "+10",
+     "cond": "sharper than the kept one within 15 m",
+     "effect": "replace it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.dropShortSegments(_:in:)",
+   "hash": "17a2e674cd19ff9d",
+   "does": "Keeps turns whose path to the next turn (or the route end) is ≥30 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each turn",
+     "effect": "evaluate"
+    },
+    {
+     "at": "+3",
+     "cond": "is there a next turn",
+     "effect": "next turn index; else last index"
+    },
+    {
+     "at": "+4",
+     "cond": "onward path >= 30 m",
+     "effect": "keep; else drop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.distance(_:_:)",
+   "hash": "108fa79f98cae687",
+   "does": "Great-circle distance between two coordinates in metres.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.roadName(at:coords:index:)",
+   "hash": "ff01e1cb360c65f2",
+   "does": "Fetches the RoadGraph tile for the coordinate, snaps a synthetic location (course from neighbouring trackpoints) with RoadAwarenessEngine.snap and returns the snapped segment's name or ref.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.snapLocation(at:course:)"
+   ],
+   "reads": [
+    "mem:RoadGraphService.cache"
+   ],
+   "writes": [
+    "net:Overpass (via tile)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "tile is nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+11",
+     "cond": "snap returned nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+17",
+     "cond": "segmentName ?? segmentRef",
+     "effect": "ref used when unnamed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "fd87f5d717cc65f4",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "4239275bab746f9b",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.snapLocation(at:course:)": "ebfd0bdb085c72d1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService": "b5844c996cbb2b5d"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.snapLocation(at:course:)",
+   "hash": "81e39381adc95e39",
+   "does": "Builds a CLLocation at the coordinate with given course, 5 m accuracy, 1.5 m/s speed, timestamp now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.bearing(from:to:)",
+   "hash": "d12e2644d7d8413a",
+   "does": "Initial bearing from a→b in degrees clockwise from true north, [0, 360), via the global bearingDegrees(from:to:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "1880b57b7020c663"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.angleDelta(from:to:)",
+   "hash": "726d9be8188b7f42",
+   "does": "Signed difference b2−b1 normalised to [-180,180].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "d > 180",
+     "effect": "subtract 360 (loop)"
+    },
+    {
+     "at": "+3",
+     "cond": "d < -180",
+     "effect": "add 360 (loop)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.compassFromBearing(_:)",
+   "hash": "d34089c9143f07d6",
+   "does": "Maps a bearing to one of 8 localized compass words by 45° sectors centred on each point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "4239275bab746f9b"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.turnDirection(delta:)",
+   "hash": "16f2091a384b44df",
+   "does": "Classifies a signed bearing change: >90 sharp right, >30 right, >15 bear right, mirrored for left, else straight (a corner that washes out over the wider classification window).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "delta > 90",
+     "effect": "sharpRight"
+    },
+    {
+     "at": "+2",
+     "cond": "delta > 30",
+     "effect": "right"
+    },
+    {
+     "at": "+3",
+     "cond": "delta > 15",
+     "effect": "bearRight"
+    },
+    {
+     "at": "+4",
+     "cond": "delta < -90",
+     "effect": "sharpLeft"
+    },
+    {
+     "at": "+5",
+     "cond": "delta < -30",
+     "effect": "left"
+    },
+    {
+     "at": "+6",
+     "cond": "delta < -15",
+     "effect": "bearLeft"
+    },
+    {
+     "at": "+7",
+     "cond": "otherwise",
+     "effect": "straight"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.turnPhrase(_:onto:)",
+   "hash": "93a483e5ebd1a32a",
+   "does": "Returns the localized sentence for a turn type, with 'onto <name>' when a name exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sharpRight; name nil?",
+     "effect": "with/without name"
+    },
+    {
+     "at": "+4",
+     "cond": "right; name nil?",
+     "effect": "with/without name"
+    },
+    {
+     "at": "+5",
+     "cond": "bearRight; name nil?",
+     "effect": "with/without name"
+    },
+    {
+     "at": "+6",
+     "cond": "sharpLeft; name nil?",
+     "effect": "with/without name"
+    },
+    {
+     "at": "+7",
+     "cond": "left; name nil?",
+     "effect": "with/without name"
+    },
+    {
+     "at": "+8",
+     "cond": "bearLeft; name nil?",
+     "effect": "with/without name"
+    },
+    {
+     "at": "+9",
+     "cond": "straight; name nil?",
+     "effect": "'Continue onto X' / 'Continue' (unreachable, see turnDirection)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.pathLength(_:)",
+   "hash": "f0550260be565abe",
+   "does": "Sum of consecutive great-circle distances; 0 for <2 coords.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 coords",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "for each consecutive pair",
+     "effect": "accumulate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStepBuilder.formatDistance(_:)",
+   "hash": "436d5a8b2cc15740",
+   "does": "Formats metres with MeasurementFormatter in the app locale, provided unit, max 1 fraction digit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.displayMeasurement(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.displayMeasurement(_:)": "f567a66c544977cf"
+   }
+  },
+  {
+   "key": "func SavedRouteStepBuilder.displayMeasurement(_:)",
+   "hash": "8c3f188ef7e093db",
+   "does": "Chooses display unit: imperial → feet (rounded) under 161 m else miles; metric → metres (rounded) under 1 km else km.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group suite: one-time copy from the standard suite in UnitsPreferenceStore.current getter)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "resolved units are imperial",
+     "effect": "imperial branch"
+    },
+    {
+     "at": "+2",
+     "cond": "meters < 161",
+     "effect": "feet; else miles"
+    },
+    {
+     "at": "+5",
+     "cond": "meters < 1000",
+     "effect": "metres; else km"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  }
+ ],
+ "deps": {}
+}

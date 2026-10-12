@@ -29,9 +29,12 @@ final class FactResolverRegistry: Sendable {
     /// at the start of each user turn.
     private let callCountsThisTurn = OSAllocatedUnfairLock<[String: Int]>(initialState: [:])
 
-    /// After the 2nd consecutive missing-result for the same tuple, the
-    /// 3rd call short-circuits to `.rateLimited`. Stops the "model keeps
-    /// retrying the same failing call" loop pattern.
+    /// After 2 missing results for the same tuple in one turn (counted
+    /// whether or not other calls succeeded in between), the 3rd missing
+    /// result is replaced by `.rateLimited`. The limiter runs after the
+    /// resolver, so that call still does its work (and an action its side
+    /// effects); what stops the "model keeps retrying the same failing call"
+    /// loop is the envelope telling the model to stop.
     private static let rateLimitMissRetries = 2
 
     /// Conservative per-response byte cap. OpenAI / Anthropic tool output
@@ -82,8 +85,8 @@ final class FactResolverRegistry: Sendable {
         return postResolveGates(toolName: toolName, argsJSON: argsJSON, value: value)
     }
 
-    /// Track missing-result occurrences for one tool+args signature and
-    /// short-circuit the third with a rate-limited envelope.
+    /// Track missing-result occurrences for one tool+args signature this
+    /// turn and replace the third and later with a rate-limited envelope.
     private func rateLimited(signature sig: String) -> FactValue? {
         let count = callCountsThisTurn.withLock { counts in
             let next = (counts[sig] ?? 0) + 1
@@ -233,19 +236,11 @@ final class FactResolverRegistry: Sendable {
         return FactResolverRegistry.sha256Hex(data)
     }
 
-    /// SHA256 → lowercase hex. Used for catalog versioning + byte-identity
-    /// checks. Foundation's CommonCrypto is available everywhere; the
-    /// wrapper lives here so we don't drag the import into every caller.
+    /// SHA256 → lowercase hex, through CryptoKit. Used for catalog
+    /// versioning + byte-identity checks; the wrapper lives here so we don't
+    /// drag the import into every caller.
     static func sha256Hex(_ data: Data) -> String {
-        #if canImport(CryptoKit)
-            // CryptoKit path (iOS 13+, mac 10.15+). Fast, no ObjC shim.
-            return _sha256HexCrypto(data)
-        #else
-            // Foundation fallback — hash a copy through CC_SHA256 if
-            // CryptoKit isn't present (unusual at current deployment
-            // target but keeps the API total).
-            return "hash-unavailable"
-        #endif
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     /// Default per-resolver budget. Resolvers that routinely exceed
@@ -256,12 +251,11 @@ final class FactResolverRegistry: Sendable {
     /// field is a post-MVP addition).
     ///
     /// The timeout is wall-clock-only — we time the call and warn on
-    /// overshoot but don't cancel it. The resolve chain
-    /// IS async (resolveTool / resolveAsync), but this budget
-    /// keeps wall-clock semantics: read entries that overshoot have
-    /// their value discarded in favour of an `.internalError`
-    /// envelope. Per-wait cancellation budgets live
-    /// inside the `.awaitable` resolvers via
+    /// overshoot but don't cancel it, and a read that finishes late keeps
+    /// its value: HealthKit- and network-backed entries can legitimately
+    /// take that long, and discarding a finished answer would be worse than
+    /// a slow one (the same rule as `gatedReadResult`). Per-wait
+    /// cancellation budgets live inside the `.awaitable` resolvers via
     /// `FactResolveTimeout.withTimeout(seconds:)`.
     private static let defaultResolveBudgetSec: Double = 2.0
     /// Anything over this on a single resolution is a
@@ -357,13 +351,13 @@ final class FactResolverRegistry: Sendable {
         case .success(let k): key = k
         case .failure(let value): return value
         }
-        let startedAt = Date() // wall-clock budget; see `budgetOverrun`
+        let startedAt = Date() // wall-clock budget; see `logResolveDuration`
         let value = await resolveAsync(key)
         let elapsed = Date().timeIntervalSince(startedAt)
         // Rate limiter + output-size cap run here so every tool-call path
         // (atomics AND composites) is gated uniformly.
-        let gated = budgetOverrun(name: name, elapsed: elapsed) ?? value
-        return postResolveGates(toolName: name, argsJSON: argsJSON, value: gated)
+        logResolveDuration(name: name, elapsed: elapsed)
+        return postResolveGates(toolName: name, argsJSON: argsJSON, value: value)
     }
 
     /// Either the fact key to resolve, or the `.missing` envelope explaining
@@ -401,27 +395,20 @@ final class FactResolverRegistry: Sendable {
         return .success(pattern.replacingOccurrences(of: "$\(paramName)", with: value))
     }
 
-    /// Wall-clock timer around the resolver. Warns on >500ms, returns
-    /// `.internalError` on >2s (default budget). A cheap resolver that
-    /// suddenly takes 500ms+ is a regression — either the archive
-    /// got large enough that scans are hurting, or a resolver started
-    /// doing I/O it shouldn't. Either way, surfaced in warnings.
+    /// Wall-clock timer around the resolver. Warns on >500ms and, louder,
+    /// on >2s (default budget); the value is kept either way. A cheap
+    /// resolver that suddenly takes 500ms+ is a regression — either the
+    /// archive got large enough that scans are hurting, or a resolver
+    /// started doing I/O it shouldn't. Either way, surfaced in warnings.
     ///
     /// (For `.awaitable` entries `elapsed` is await-duration — main
-    /// is free while they suspend — but the budget semantics are
-    /// unchanged: overshoot discards the value, same envelope.)
-    private func budgetOverrun(name: String, elapsed: TimeInterval) -> FactValue? {
+    /// is free while they suspend.)
+    private func logResolveDuration(name: String, elapsed: TimeInterval) {
         if elapsed > Self.defaultResolveBudgetSec {
-            debugLog("[FactRegistry] resolver \(name) exceeded \(Self.defaultResolveBudgetSec)s budget — took \(String(format: "%.2f", elapsed))s — returning .internalError", level: .warning)
-            return .missing(
-                reason: .internalError,
-                detail: "resolver timed out after \(String(format: "%.2f", elapsed))s (budget \(Self.defaultResolveBudgetSec)s)"
-            )
-        }
-        if elapsed > Self.resolveWarnBudgetSec {
+            debugLog("[FactRegistry] resolver \(name) exceeded \(Self.defaultResolveBudgetSec)s budget — took \(String(format: "%.2f", elapsed))s", level: .warning)
+        } else if elapsed > Self.resolveWarnBudgetSec {
             debugLog("[FactRegistry] resolver \(name) slow: \(String(format: "%.2f", elapsed))s (warn >\(Self.resolveWarnBudgetSec)s)", level: .warning)
         }
-        return nil
     }
 
     private func findEntry(forToolName name: String) -> FactEntry? {
@@ -511,27 +498,33 @@ final class FactResolverRegistry: Sendable {
     }
 
     /// Parse an action's `argsJSON` into a `[String: String]` keyed by the
-    /// declared parameter names. Coerces numerics and bools to their
-    /// string representation so resolvers can do their own typed parsing
-    /// without us guessing types here. Unknown keys are ignored — only
-    /// declared parameters survive.
+    /// declared parameter names (`stringArgs(fromJSON:)`'s coercion).
+    /// Unknown keys are ignored — only declared parameters survive.
     fileprivate static func parseActionArgs(_ json: String, expecting params: [ActionParam]) -> [String: String] {
+        let declared = Set(params.map(\.name))
+        return stringArgs(fromJSON: json).filter { declared.contains($0.key) }
+    }
+
+    /// A JSON args object as `[String: String]`, the shape actions and the
+    /// compact tools parse. Strings pass through; booleans become
+    /// "true"/"false"; numbers their string form; other values are dropped.
+    /// Not JSON, or not an object: empty.
+    static func stringArgs(fromJSON json: String) -> [String: String] {
         guard let data = json.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return [:] }
-        var out: [String: String] = [:]
-        for p in params {
-            if let s = obj[p.name] as? String {
-                out[p.name] = s
-            } else if let n = obj[p.name] as? Int {
-                out[p.name] = String(n)
-            } else if let d = obj[p.name] as? Double {
-                out[p.name] = String(d)
-            } else if let b = obj[p.name] as? Bool {
-                out[p.name] = b ? "true" : "false"
-            }
-        }
-        return out
+        return obj.compactMapValues(argumentString)
+    }
+
+    /// One JSON value as an argument string. The boolean check comes first:
+    /// `JSONSerialization` hands `true` back as an NSNumber, which `as? Int`
+    /// also accepts, so it would otherwise arrive as "1".
+    private static func argumentString(_ value: Any) -> String? {
+        if let s = value as? String { return s }
+        if let n = value as? NSNumber, CFGetTypeID(n) == CFBooleanGetTypeID() { return n.boolValue ? "true" : "false" }
+        if let n = value as? Int { return String(n) }
+        if let d = value as? Double { return String(d) }
+        return nil
     }
 
     /// Shared spec-builder for both parameterised atomics and
@@ -605,13 +598,6 @@ final class FactResolverRegistry: Sendable {
         return nil
     }
 }
-
-#if canImport(CryptoKit)
-private func _sha256HexCrypto(_ data: Data) -> String {
-    let digest = SHA256.hash(data: data)
-    return digest.map { String(format: "%02x", $0) }.joined()
-}
-#endif
 
 // MARK: - Suspending timeout race
 

@@ -2,14 +2,14 @@ import SwiftUI
 
 // MARK: - Reduce Motion–aware Animation helpers
 //
-// Interactive transitions must not go through
-// `withAnimation(.easeOut(...))` or `.animation(.easeInOut, value:)` without
-// consulting `UIAccessibility.isReduceMotionEnabled`. Apple HIG: short
-// "essential" feedback transitions (cross-fades, scrolls) are still allowed
-// when the user has Reduce Motion on; longer or parallax-style transitions
-// must collapse to instant. The helpers below give callers one knob to set
-// that policy uniformly without copy-pasting `@Environment` access into
-// every view.
+// Transitions that move content (slides, moves, scaling, parallax) should
+// consult Reduce Motion rather than go through `withAnimation(.easeOut(...))`
+// or `.animation(.easeInOut, value:)` unconditionally. Apple HIG: short
+// "essential" feedback transitions (cross-fades, scrolls, a brief press
+// response) are still allowed when the user has Reduce Motion on; longer or
+// parallax-style transitions must collapse to instant. The helper below is
+// the one knob for that policy; a view adopts it by reading
+// `accessibilityReduceMotion` and passing it in.
 //
 // Usage:
 //

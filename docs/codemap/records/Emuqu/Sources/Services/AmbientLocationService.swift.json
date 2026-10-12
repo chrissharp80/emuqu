@@ -1,0 +1,424 @@
+{
+ "file": "Emuqu/Sources/Services/AmbientLocationService.swift",
+ "hash": "d62b3a4c30e8908e",
+ "role": "Singleton low-power (100 m / 50 m filter) foreground CLLocationManager that keeps a lock-guarded cache of the latest fix (own or forwarded from workout/breadcrumb recorders) and the latest resolved road context for the assistant's location tools.",
+ "types": [
+  "AmbientLocationService: final class NSObject @unchecked Sendable — location cache keeper",
+  "extension AmbientLocationService: CLLocationManagerDelegate"
+ ],
+ "state": [
+  "AmbientLocationService.shared singleton",
+  "mem:AmbientLocationService._latestLocation",
+  "mem:AmbientLocationService._latestRoadContext",
+  "AmbientLocationService._isRunning/_startRequested"
+ ],
+ "toplevel": "Manager configured in init: kCLLocationAccuracyHundredMeters, distanceFilter 50, activityType .other, pausesLocationUpdatesAutomatically true.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init AmbientLocationService()",
+   "hash": "c1905a8bf07429cf",
+   "does": "Sets itself as delegate and configures 100 m accuracy, 50 m distance filter, activity .other, auto-pause on.",
+   "entry": "Lazy static AmbientLocationService.shared via AppDependencies.location.ambientLocationService.",
+   "calls": [
+    "ext:CLLocationManager"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AmbientLocationService.start()",
+   "hash": "7b5c4cf603bb9010",
+   "does": "Marks a start as requested, prompts for When-In-Use if not determined, and begins updates when already authorized.",
+   "entry": "Called from GetMeBackView.swift:318 on appear.",
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.authorizedOrPrompting()",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "already authorized",
+     "effect": "begin updates; otherwise return (prompt raised for .notDetermined, nothing for denied)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.authorizedOrPrompting()": "90bebe76db6a8376",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.startIfAuthorized()",
+   "hash": "4881bc664b618571",
+   "does": "Begins updates only when already authorized (never prompts), marking a start as requested.",
+   "entry": "Called from EmuquApp.swift:504 on foreground and AssistantChatView.swift:374.",
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()",
+    "ext:CLLocationManager.authorizationStatus"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "status authorizedWhenInUse/Always",
+     "effect": "set requested and begin updates"
+    },
+    {
+     "at": "+7",
+     "cond": "default (denied/restricted/notDetermined)",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.beginUpdates()",
+   "hash": "2102ae72d6b54f07",
+   "does": "Sets _isRunning and starts location updates on main if it was not already running.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)",
+    "ext:CLLocationManager.startUpdatingLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "was not running",
+     "effect": "start updates; otherwise return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)": "3b96e1fb2f1ebf06"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.authorizedOrPrompting()",
+   "hash": "a7f1ce15de5402a5",
+   "does": "True when authorized; for .notDetermined requests When-In-Use and returns false; false otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)",
+    "ext:CLLocationManager.requestWhenInUseAuthorization"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "authorizedWhenInUse/Always",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": ".notDetermined",
+     "effect": "request authorization and false"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)": "3b96e1fb2f1ebf06"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.onMainThread(_:)",
+   "hash": "9bba179259123f74",
+   "does": "Runs a closure with the manager inline on main, or dispatches it async to main.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "on main thread",
+     "effect": "run inline; otherwise DispatchQueue.main.async"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.stop()",
+   "hash": "e9020452425bd69f",
+   "does": "Clears running/requested flags and stops updates on main if they were running.",
+   "entry": "Called from EmuquApp.swift:444 on background, and from the authorization delegate on any non-authorized status.",
+   "calls": [
+    "ext:CLLocationManager.stopUpdatingLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "was running",
+     "effect": "stop; otherwise return"
+    },
+    {
+     "at": "+7",
+     "cond": "on main thread",
+     "effect": "stop inline; otherwise async to main"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.record(_:)",
+   "hash": "ccf957bbc8090caf",
+   "does": "Caches a fix forwarded from WorkoutLocationManager or BreadcrumbRecorder (no geocode).",
+   "entry": "Called from WorkoutLocationManager.swift:456 and BreadcrumbRecorder.swift:284.",
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AmbientLocationService._latestLocation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "496561a72d96140e"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.store(_:)",
+   "hash": "85edf645087dd401",
+   "does": "Under the lock stores the fix if accuracy >0 and it is strictly newer than the cached one; returns whether stored.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AmbientLocationService._latestLocation"
+   ],
+   "writes": [
+    "mem:AmbientLocationService._latestLocation"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "horizontalAccuracy > 0",
+     "effect": "continue; otherwise false"
+    },
+    {
+     "at": "+4",
+     "cond": "cached fix exists and new one is not newer",
+     "effect": "false; otherwise store and true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AmbientLocationService.forgetAfterPurge()",
+   "hash": "5ae1f45e279bcf4d",
+   "does": "Delete All My Data: clears cached fix and road context.",
+   "entry": "Called from DataPurgeService.swift:593.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AmbientLocationService._latestLocation",
+    "mem:AmbientLocationService._latestRoadContext"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AmbientLocationService.refreshRoadContext(for:)",
+   "hash": "2cc60a95d89be562",
+   "does": "Schedules a MainActor task asking RoadGeocodingService to refresh road context for the fix without cross-street enrichment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "net:Apple CLGeocoder (via RoadGeocodingService)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ee10887ea28ab419"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)",
+   "hash": "9e9a70ab92709e89",
+   "does": "Returns the mirrored road context if it is no older than maxAgeSec (default 30 s); nil otherwise.",
+   "entry": "Called from AppFactResolver+LiveCoaching/LiveNavigation and ContextBuilder.swift:125 on assistant queries.",
+   "calls": [],
+   "reads": [
+    "mem:AmbientLocationService._latestRoadContext"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "a context is cached",
+     "effect": "check age; otherwise nil"
+    },
+    {
+     "at": "+15",
+     "cond": "age <= maxAgeSec",
+     "effect": "return it; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AmbientLocationService.recordResolvedAddress(_:)",
+   "hash": "ae9d69559a995de3",
+   "does": "Stores the latest resolved road context under the lock.",
+   "entry": "Called by RoadGeocodingService.swift:573 and RoadGeocodingService+Lookup.swift:254 on each publish.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AmbientLocationService._latestRoadContext"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AmbientLocationService.cachedLocation(maxAgeSec:)",
+   "hash": "36bc292063d7b5a0",
+   "does": "Returns the cached fix if no older than maxAgeSec (default 60 s); nil otherwise.",
+   "entry": "Called from many AppFactResolver location tools and ContextBuilder.swift:124.",
+   "calls": [],
+   "reads": [
+    "mem:AmbientLocationService._latestLocation"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a fix is cached",
+     "effect": "check age; otherwise nil"
+    },
+    {
+     "at": "+6",
+     "cond": "age <= maxAgeSec",
+     "effect": "return it; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AmbientLocationService.locationManagerDidChangeAuthorization(_:)",
+   "hash": "b05d2e09d7547e45",
+   "does": "On authorization change: if authorized and a start was requested, begins updates; on .notDetermined (reported at manager creation, possibly while start() waits on the prompt) does nothing, keeping the request; on denied/restricted/unknown calls stop(), which clears the request.",
+   "entry": "CLLocationManagerDelegate callback (at manager creation and on each authorization change).",
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "authorizedWhenInUse/Always",
+     "effect": "read the pending request"
+    },
+    {
+     "at": "+13",
+     "cond": "a start was requested",
+     "effect": "begin updates; otherwise nothing"
+    },
+    {
+     "at": "+14",
+     "cond": ".notDetermined",
+     "effect": "return, request kept"
+    },
+    {
+     "at": "+16",
+     "cond": "any other status",
+     "effect": "stop() (clears _startRequested)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "c484c284ad06ca32"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.locationManager(_:didUpdateLocations:)",
+   "hash": "b474509a32858c20",
+   "does": "On new fixes: takes the last, drops it if accuracy <=0 or >=500 m, caches it, and triggers a road-name refresh when it was newer.",
+   "entry": "CLLocationManagerDelegate didUpdateLocations.",
+   "calls": [
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.refreshRoadContext(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AmbientLocationService._latestLocation"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "batch non-empty",
+     "effect": "use last fix; otherwise return"
+    },
+    {
+     "at": "+3",
+     "cond": "0 < accuracy < 500",
+     "effect": "continue; otherwise drop"
+    },
+    {
+     "at": "+7",
+     "cond": "fix was newer than cache",
+     "effect": "refresh road context; otherwise skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.refreshRoadContext(for:)": "d306e313a123f5dd",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "496561a72d96140e"
+   }
+  },
+  {
+   "key": "func AmbientLocationService.locationManager(_:didFailWithError:)",
+   "hash": "82eda86bb3eccefd",
+   "does": "Ignores location errors (common during a poor-fix interlude); the stream keeps running and readers fall back on the cache.",
+   "entry": "CLLocationManagerDelegate didFailWithError.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

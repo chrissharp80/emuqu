@@ -1,0 +1,483 @@
+{
+ "file": "EmuquTests/TurnRouterTests.swift",
+ "hash": "c9542c50b0c67bde",
+ "role": "XCTest parity suite for TurnRouter, the pure routing core behind AssistantViewModel.resolveProviderForThisTurn(): early user-pick/manual returns, Apple voice bypass consent filter, Tier-3 cap downgrade, action-intent override, and the failure-fallback policy plus PickedModelFailure message.",
+ "types": [
+  "TurnRouterTests: class (@MainActor XCTestCase) — routing scenario tests with fixture builders",
+  "extension TurnRouterTests — failure-fallback tests"
+ ],
+ "state": [
+  "mem:TurnRouterTests.registryOrder — hard-coded [.apple,.anthropic,.openai,.gemini,.grok,.deepseek] mirroring ProviderRegistry.allProviders (ProviderRegistry.swift:26-28)"
+ ],
+ "toplevel": "registryOrder is a stored fixture constant copied by hand from ProviderRegistry.allProviders; the router itself never reads the registry in these tests.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Provider order fixture is a hand copy of ProviderRegistry.allProviders; the order-sensitive 'first consented cloud' tests keep passing if the registry order changes because the shell's real providerOrder is never exercised.",
+   "evidence": [
+    "EmuquTests/TurnRouterTests.swift:23",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift:26"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TurnRouterTests.model(_:_:)",
+   "hash": "c7f8677151a5611b",
+   "does": "Fixture: builds a ModelOption for provider+apiID with displayName=apiID, empty blurb, 128k context, nil prices, isDefault=true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TurnRouterTests.appleModel",
+   "hash": "74830305a39731e0",
+   "does": "Fixture: the Apple on-device ModelOption (apiID 'apple-on-device').",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.defaultAPIID(_:)",
+   "hash": "4d841e2841734b56",
+   "does": "Fixture: returns '<rawValue>-default-model' as the provider default apiID.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TurnRouterTests.appleState(available:)",
+   "hash": "c7958bb66d936f49",
+   "does": "Fixture: TurnRouter.ProviderState for Apple: available (default true), consented true, supportsTools false, default model appleModel.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.cloudState(_:available:consented:)",
+   "hash": "878bde21396c4978",
+   "does": "Fixture: TurnRouter.ProviderState for a cloud provider with given availability/consent, supportsTools true, default model '<id>-default-model'.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "2a85621b0af11657",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)",
+   "hash": "2a26cb59a974bd6d",
+   "does": "Fixture: builds TurnRouter.Inputs from mode/selection/voice flag/providers/tierStage, using the hand-copied registryOrder.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TurnRouterTests.testUserPickedNonAppleCloud_SmartRoutingOn_TheirPickWins()",
+   "hash": "fbe01042faf3a83a",
+   "does": "Asserts that with Auto mode and a non-Apple pick (Grok), needsTierProposal is false and route returns Grok with the user's selected model, nil tier and no log lines.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "3c910f18e7cd80e0",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testVoiceTurn_UserOnGrok_RoutesToGrokNotFirstInRegistry()",
+   "hash": "150420239391636f",
+   "does": "Asserts a voice turn with Grok selected routes to Grok (not Anthropic which is first in registry and consented), tier nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testVoiceTurn_OnApple_UnconsentedCloudKey_StaysOnApple()",
+   "hash": "90332c013698f31c",
+   "does": "Asserts a voice turn on Apple with only unconsented clouds stays on Apple with appleModel, nil tier, and exactly the 'no consented cloud available — staying on Apple' log line.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testVoiceTurn_OnApple_ConsentedCloud_RoutesToThatCloud()",
+   "hash": "a34f7f7911e19df8",
+   "does": "Asserts a voice turn on Apple with consented Anthropic and Grok routes to Anthropic (first in registry order) using its default model, nil tier, one log line containing the Apple→cloud handoff text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "2a85621b0af11657",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testManualMode_OnApple_UsersPickPeriod()",
+   "hash": "653223e0f9debc12",
+   "does": "Asserts Manual mode on Apple with a consented cloud configured: needsTierProposal false, route returns Apple/appleModel, nil tier, no logs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "3c910f18e7cd80e0",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testTier3DailyCapReached_DowngradesDeepToAuto()",
+   "hash": "65ad16d1d3be0a4c",
+   "does": "Asserts Deep mode on Apple reaches the tier stage (needsTierProposal on inputs without stage) and, with tier3CapReached, the Deep proposal downgrades to Auto, resolves via the Auto mapping (Grok grok-fast), and the first log line is the cap-reached message.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.Inputs.with(tierStage:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.Inputs.with(tierStage:)": "11bf072b0ba67810",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "3c910f18e7cd80e0",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testActionIntent_AppleRouted_OverridesToConsentedCloud()",
+   "hash": "3c21ffbd292e201c",
+   "does": "Asserts a Quick-tier turn mapped to Apple with messageRequiresTools=true overrides to consented Anthropic's default model, keeps tier .quick, and the last log line contains the action-intent override text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+32",
+     "cond": "logLines.last is nil (?? false)",
+     "effect": "nil last line makes the assertion fail (false); otherwise the contains() result is asserted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "2a85621b0af11657",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testActionIntent_OnlyUnconsentedClouds_NoOverride()",
+   "hash": "565556a046583569",
+   "does": "Asserts that with tools required but only unconsented clouds, the Quick Apple mapping stands (Apple, appleModel, tier .quick) and no 'action intent' log line is emitted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testManualModeNeverFallsBack()",
+   "hash": "aff801c68c63f707",
+   "does": "Asserts failureFallback(mode: .manual) is .none for every ProviderID.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each ProviderID.allCases",
+     "effect": "one assertion per provider"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testCloudPickNeverFallsBackWhateverTheMode()",
+   "hash": "ce3f01fa34254d75",
+   "does": "Asserts failureFallback with Anthropic selected is .none for every RoutingMode.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each RoutingMode.allCases",
+     "effect": "one assertion per mode"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testRoutingModesOnAppleKeepTheirFallback()",
+   "hash": "3878b5c8089b5d9c",
+   "does": "Asserts on Apple: Quick→.onDeviceOnly, Auto→.anyAccepted, Deep→.anyAccepted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testAllowedFallbacksFollowThePolicy()",
+   "hash": "57622f15d83af266",
+   "does": "Asserts allowedFallbacks over [DeepSeek, Apple] chain: .none→empty, .onDeviceOnly→[.apple], .anyAccepted→[.deepseek,.apple]. Constructs real DeepSeekProvider and AppleFoundationProvider instances.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "abaefd31f56e61c4",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+   }
+  },
+  {
+   "key": "func TurnRouterTests.testPickedModelFailureExplainsItself()",
+   "hash": "55b673f4af922698",
+   "does": "Asserts PickedModelFailure(anthropic, rateLimited).errorDescription contains the provider display name and the rateLimited reason and is longer than both combined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::var PickedModelFailure.errorDescription",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "errorDescription is nil",
+     "effect": "falls back to '' so the contains assertions fail"
+    },
+    {
+     "at": "+2",
+     "cond": "AIProviderError.rateLimited.errorDescription nil",
+     "effect": "falls back to '?'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::var PickedModelFailure.errorDescription": "633d254b05f808c5"
+   }
+  }
+ ],
+ "deps": {}
+}

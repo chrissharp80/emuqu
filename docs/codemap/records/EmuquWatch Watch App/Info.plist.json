@@ -1,0 +1,16 @@
+{
+ "file": "EmuquWatch Watch App/Info.plist",
+ "hash": "0137295a60b6533b",
+ "role": "Canonical watch Info.plist source: watch app identity, companion link, workout background mode and purpose strings.",
+ "types": [],
+ "state": [
+  "plist:WKCompanionAppBundleIdentifier=com.chrissharp.flowrecovery",
+  "plist:WKBackgroundModes=[workout-processing]",
+  "plist:WKWatchOnly=false",
+  "plist:CFBundleDisplayName=Emuqu"
+ ],
+ "toplevel": "Header comment (10-26): canonical source, created 2026-04-26 (audit PERM-1) to replace INFOPLIST_KEY overrides; NSHealthUpdate copy rewritten to drop contradictory 'does not write' text (PERM-6). Keys: CFBundleDisplayName Emuqu; WKApplication true; UISupportedInterfaceOrientations portrait/upside-down (ignored on watchOS); WKWatchOnly false; WKCompanionAppBundleIdentifier com.chrissharp.flowrecovery (matches iOS PRODUCT_BUNDLE_IDENTIFIER); WKBackgroundModes workout-processing (keeps the app alive under an HKWorkoutSession). Purpose strings: HealthShare (reads wrist heart rate during a workout, streams to iPhone, fills in for strap dropouts) - matches WatchWorkoutManager.swift:57-62 (share workoutType, read heartRate); HealthUpdate says the watch session is discarded and the iPhone saves the workout - matches WatchWorkoutManager.swift:180-186 (endCollection then session.end(), never finishWorkout); BluetoothAlways for direct strap connection (WatchStrapConnector CBCentralManager). Excluded from the synchronized group's membership (pbxproj 2117-2124) and used via INFOPLIST_FILE.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

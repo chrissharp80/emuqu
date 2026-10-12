@@ -51,11 +51,12 @@ final class AppleFoundationProvider: AIProvider {
     }
 
     /// Best-effort warmup: build a throwaway session and call its
-    /// `prewarm()` so the KV-cache and tokenizer are resident by the
-    /// time the user sends their first question. Cuts the perceived
-    /// "first answer" latency on Quick / Auto routing modes from ~1.5s
-    /// to ~300ms on A17/M-series. Idempotent — safe to call multiple
-    /// times. Never blocks the caller; runs detached.
+    /// `prewarm()` so the model's shared assets (weights, tokenizer) are
+    /// resident by the time the user sends their first question. It is not
+    /// the session `send` later uses: that one is built with the real
+    /// instructions and tools, whose prefix is still processed on the first
+    /// send. Idempotent — safe to call multiple times. Never blocks the
+    /// caller; runs detached.
     static func prewarm() {
         #if canImport(FoundationModels)
             if #available(iOS 26, *) {
@@ -85,6 +86,12 @@ final class AppleFoundationProvider: AIProvider {
     // session is sent the current time with the user's message (see
     // `prompt(from:isFresh:)`). Otherwise the cache starts a fresh session,
     // which is sent the compacted transcript. A failed send drops the session.
+    //
+    // Only chat turns use the cache. A send whose prompt was not composed by
+    // `AssistantSystemPrompt` (the summarizer, fact extraction, a voice
+    // interjection: their own one-line prompts, no cache marker, no tools)
+    // runs on a one-off session, so it neither replaces the chat's cached
+    // session nor touches the tool dispatcher a chat turn may be using.
     #if canImport(FoundationModels)
         /// What a send asks of the session cache.
         @available(iOS 26, *)
@@ -225,63 +232,41 @@ final class AppleFoundationProvider: AIProvider {
         tools: [ToolSpec],
         toolRounds _: [[ToolExchange]]
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        AsyncThrowingStream { continuation in
-            #if canImport(FoundationModels)
-                if #available(iOS 26, *) {
-                    Self.startAppleStream(
-                        messages: messages,
-                        systemPrompt: systemPrompt, tools: tools, continuation: continuation
+        #if canImport(FoundationModels)
+            if #available(iOS 26, *) {
+                return ProviderStream.make { continuation in
+                    try await Self.runTranslatingFailures(
+                        messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
                     )
-                    return
                 }
-            #endif
+            }
+        #endif
+        return AsyncThrowingStream { continuation in
             continuation.finish(throwing: AIProviderError.unsupportedOS(required: "iOS 26 with Apple Intelligence"))
         }
     }
 
     #if canImport(FoundationModels)
+        /// Run the turn for `ProviderStream`, which closes the stream: a
+        /// cancellation stays a cancellation (`.cancelled` there) and any
+        /// Foundation Models failure goes through `translate`. Either drops
+        /// the cached session, which may hold part of a reply its ledger
+        /// never saw.
         @available(iOS 26, *)
-        private static func startAppleStream(
+        private static func runTranslatingFailures(
             messages: [ChatTurn],
             systemPrompt: String,
             tools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-        ) {
-            let task = Task {
-                await streamAndFinish(
-                    messages: messages,
-                    systemPrompt: systemPrompt, tools: tools, continuation: continuation
-                )
-            }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
-        }
-    #endif
-
-    #if canImport(FoundationModels)
-        /// Run the stream and close the continuation, mapping a cancellation
-        /// to `.cancelled` and any Foundation Models failure through
-        /// `translate`. Either drops the cached session.
-        @available(iOS 26, *)
-        private static func streamAndFinish(
-            messages: [ChatTurn],
-            systemPrompt: String,
-            tools: [ToolSpec],
-            continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-        ) async {
+        ) async throws {
             do {
-                try await runAttempts(
-                    messages: messages,
-                    systemPrompt: systemPrompt, tools: tools, continuation: continuation
-                )
-                continuation.finish()
+                try await runAttempts(messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation)
             } catch is CancellationError {
-                // The session may hold part of the cancelled reply, which its
-                // ledger never saw.
                 await sharedCache.invalidate()
-                continuation.finish(throwing: AIProviderError.cancelled)
+                throw CancellationError()
             } catch {
                 await sharedCache.invalidate()
-                continuation.finish(throwing: translate(error))
+                throw translate(error)
             }
         }
     #endif
@@ -341,6 +326,10 @@ final class AppleFoundationProvider: AIProvider {
             /// Estimated tokens of the instructions and the tool descriptions.
             let prefixTokens: Int
             let allToolCount: Int
+            /// A chat turn (its prompt was composed by `AssistantSystemPrompt`):
+            /// it uses the session cache and the tool dispatcher. Anything else
+            /// runs on a one-off session with no tools.
+            let isChatTurn: Bool
         }
 
         /// The instructions are Apple's own short prompt rebuilt from the
@@ -369,7 +358,8 @@ final class AppleFoundationProvider: AIProvider {
         ) async -> TurnPlan {
             let composed = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
             let instructions = withLengthRule(composed, cap: attempt.instructionTokenCap)
-            let (tools, toolTokens) = fittingTools(allTools, for: messages, budget: attempt.toolTokenBudget)
+            let isChatTurn = systemPrompt.contains(AssistantSystemPrompt.Composed.cacheSplitMarker)
+            let (tools, toolTokens) = fittingTools(isChatTurn ? allTools : [], for: messages, budget: attempt.toolTokenBudget)
             let fixedTokens = AppleContextCompactor.estimateTokens(instructions) + toolTokens
             let transcript = attempt.keepsHistory
                 ? AppleContextCompactor.compactedPromptInput(messages: messages, systemPromptTokens: fixedTokens)
@@ -380,7 +370,8 @@ final class AppleFoundationProvider: AIProvider {
             let allowance = AppleContextCompactor.ToolOutputAllowance(remaining: budget, perCallCap: attempt.toolOutputCap)
             return TurnPlan(
                 instructions: instructions, tools: tools, transcript: transcript,
-                allowance: allowance, toolTokens: toolTokens, prefixTokens: fixedTokens, allToolCount: allTools.count
+                allowance: allowance, toolTokens: toolTokens, prefixTokens: fixedTokens, allToolCount: allTools.count,
+                isChatTurn: isChatTurn
             )
         }
 
@@ -394,32 +385,55 @@ final class AppleFoundationProvider: AIProvider {
         }
 
         /// Leases a session, hands the tool-result allowance to the
-        /// dispatcher, streams the reply, and charges the turn to the
-        /// session's ledger. A fresh session gets the plan's transcript and
-        /// allowance; a reused one gets the latest question and what its
-        /// ledger has left.
+        /// dispatcher (chat turns only), streams the reply, and charges the
+        /// turn to the session's ledger. A fresh session gets the plan's
+        /// transcript and allowance; a reused one gets the latest question and
+        /// what its ledger has left.
         @available(iOS 26, *)
         private static func runStream(
             _ plan: TurnPlan,
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
             let followUp = prompt(from: plan.transcript, isFresh: false)
-            let lease = await sharedCache.lease(for: request(for: plan, followUp: followUp))
+            let lease = await lease(for: plan, followUp: followUp)
             let promptText = lease.isFresh ? prompt(from: plan.transcript, isFresh: true) : followUp
             let allowance = lease.followUpToolBudget.map {
                 AppleContextCompactor.ToolOutputAllowance(remaining: $0, perCallCap: plan.allowance.perCallCap)
             } ?? plan.allowance
-            let dispatcher = await MainActor.run { AppDependencies.current.providers.appleToolDispatcher }
-            await dispatcher.setToolOutputAllowance(allowance)
+            let dispatcher = await toolDispatcher(for: plan, allowance: allowance)
             debugLog("[AppleFoundation] session: \(plan.tools.count)/\(plan.allToolCount) tools ~\(plan.toolTokens) tokens, prefix ~\(plan.prefixTokens), tool results ≤\(allowance.remaining), isFresh=\(lease.isFresh)")
             let stream = lease.session.streamResponse(to: promptText, options: replyOptions)
             let reply = try await relay(stream, to: continuation)
-            let toolTokens = await dispatcher.toolTokensSpent
+            let toolTokens = await dispatcher?.toolTokensSpent ?? 0
             await sharedCache.record(
                 lease.session, promptTokens: AppleContextCompactor.estimateTokens(promptText),
                 toolTokens: toolTokens, replyTokens: AppleContextCompactor.estimateTokens(reply)
             )
             continuation.yield(.done)
+        }
+
+        /// The session for the plan: the cached one for a chat turn, else a
+        /// one-off session the cache never sees.
+        @available(iOS 26, *)
+        private static func lease(for plan: TurnPlan, followUp: String) async -> SessionLease {
+            guard plan.isChatTurn else {
+                return SessionLease(session: LanguageModelSession(instructions: plan.instructions), isFresh: true, followUpToolBudget: nil)
+            }
+            return await sharedCache.lease(for: request(for: plan, followUp: followUp))
+        }
+
+        /// The tool dispatcher, given this attempt's allowance, for a chat
+        /// turn; nil for any other send, which has no tools and must not
+        /// reset the call count or allowance of a chat turn in flight.
+        @available(iOS 26, *)
+        private static func toolDispatcher(
+            for plan: TurnPlan,
+            allowance: AppleContextCompactor.ToolOutputAllowance
+        ) async -> AppleToolDispatcher? {
+            guard plan.isChatTurn else { return nil }
+            let dispatcher = await MainActor.run { AppDependencies.current.providers.appleToolDispatcher }
+            await dispatcher.setToolOutputAllowance(allowance)
+            return dispatcher
         }
 
         /// What the plan asks of the session cache. `followUp` is the prompt
@@ -527,7 +541,7 @@ final class AppleFoundationProvider: AIProvider {
             do {
                 for try await snapshot in stream {
                     try Task.checkCancellation()
-                    reply.receive(Self.extractText(from: snapshot))
+                    try reply.receive(Self.extractText(from: snapshot))
                 }
                 reply.finish()
                 return reply.generated
@@ -544,9 +558,11 @@ final class AppleFoundationProvider: AIProvider {
 
         /// Pulls the cumulative text out of a Foundation Models stream snapshot.
         /// Snapshot types vary across SDK revisions; reflect on `.content` so we
-        /// don't have to bind to a specific concrete type.
+        /// don't have to bind to a specific concrete type. A snapshot that is
+        /// neither throws rather than returning its debug description, which
+        /// would otherwise stream to the user as the reply.
         @available(iOS 26, *)
-        private static func extractText(from snapshot: Any) -> String {
+        private static func extractText(from snapshot: Any) throws -> String {
             let mirror = Mirror(reflecting: snapshot)
             if let content = mirror.children.first(where: { $0.label == "content" })?.value as? String {
                 return content
@@ -555,8 +571,14 @@ final class AppleFoundationProvider: AIProvider {
             if let str = snapshot as? String {
                 return str
             }
-            // Last resort — better to show *something* than nothing.
-            return String(describing: snapshot)
+            throw UnreadableSnapshot(typeName: String(describing: type(of: snapshot)))
+        }
+
+        /// A stream snapshot whose text could not be found. Reaches the chat
+        /// through `translate` as the generic "couldn't answer" failure, with
+        /// the type logged.
+        private struct UnreadableSnapshot: Error {
+            let typeName: String
         }
 
         private static func buildPrompt(from messages: [ChatTurn]) -> String {
@@ -735,16 +757,15 @@ struct AppleReplyRelay {
         show(AppleReplyTrimmer.finalText(latest))
     }
 
-    /// Yields what `text` adds to what was shown. A snapshot that neither
-    /// extends nor repeats what was shown replaced it, and is yielded whole.
+    /// Yields what `text` adds past the length already shown. Snapshots
+    /// normally extend the shown text, and then that is exactly the new part.
+    /// The chat appends deltas and cannot retract one, so a snapshot that
+    /// rewrote text already shown cannot be shown as written: only what lies
+    /// past the shown length is added, and nothing is repeated.
     private mutating func show(_ text: String) {
-        if text.hasPrefix(shown) {
-            let delta = String(text.dropFirst(shown.count))
-            if !delta.isEmpty { emit(delta) }
-            shown = text
-        } else if !shown.hasPrefix(text) {
-            emit(text)
-            shown = text
-        }
+        guard text.count > shown.count else { return }
+        let delta = String(text.dropFirst(shown.count))
+        emit(delta)
+        shown += delta
     }
 }

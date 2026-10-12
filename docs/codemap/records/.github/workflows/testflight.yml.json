@@ -1,0 +1,247 @@
+{
+ "file": ".github/workflows/testflight.yml",
+ "hash": "1a1bfcb99de38c87",
+ "role": "Manual release workflow (\"Deploy TestFlight\"): gates on the full ci.yml via workflow_call, then signs, archives, exports and uploads the iOS app (with embedded watch app) to TestFlight.",
+ "types": [],
+ "state": [
+  "secrets: APPSTORE_CONNECT_ISSUER_ID, APPSTORE_CONNECT_KEY_ID, APPSTORE_CONNECT_PRIVATE_KEY, IOS_DIST_P12_BASE64, IOS_DIST_P12_PASSWORD, APPLE_TEAM_ID",
+  "permissions contents: read"
+ ],
+ "toplevel": "Trigger: workflow_dispatch only. Both jobs require repository_owner chrissharp80. deploy requires quality-gate result success explicitly. Build number = run_number.run_attempt. No concurrency group of its own; the called ci.yml's group (ci-Deploy TestFlight-<ref>, cancel-in-progress) means a second dispatch on the same ref cancels the first's quality gate, which then skips the first deploy.",
+ "flags": [],
+ "units": [
+  {
+   "key": "job quality-gate",
+   "hash": "fa3953520b625974",
+   "does": "Reusable-workflow job: calls ./.github/workflows/ci.yml (workflow_call, scope defaults to full) so lint/budgets, strict concurrency, TSan, release build and the full test suite with coverage floors must pass before deploy.",
+   "entry": "GitHub Actions job in testflight.yml; workflow_dispatch only.",
+   "calls": [
+    ".github/workflows/ci.yml::job lint-and-budgets",
+    ".github/workflows/ci.yml::job strict-concurrency",
+    ".github/workflows/ci.yml::job thread-sanitizer",
+    ".github/workflows/ci.yml::job tests"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "github.repository_owner == 'chrissharp80'",
+     "effect": "runs on the owner's repo; on a fork it is skipped, and deploy then does not run"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
+    ".github/workflows/ci.yml::job strict-concurrency": "973e976fafe9cc2c",
+    ".github/workflows/ci.yml::job tests": "a02b46f65c3a153e",
+    ".github/workflows/ci.yml::job thread-sanitizer": "4c7ffda1b575ecff"
+   }
+  },
+  {
+   "key": "job deploy",
+   "hash": "bd30ce37e084318b",
+   "does": "macOS-26 job (timeout 60) that archives, exports and uploads the app to TestFlight; needs quality-gate.",
+   "entry": "GitHub Actions job in testflight.yml, after quality-gate.",
+   "calls": [
+    ".github/workflows/testflight.yml::step deploy/Checkout",
+    ".github/workflows/testflight.yml::step deploy/Select Xcode",
+    ".github/workflows/testflight.yml::step deploy/Record the build environment",
+    ".github/workflows/testflight.yml::step deploy/Validate required secrets",
+    ".github/workflows/testflight.yml::step deploy/Set up signing certificate",
+    ".github/workflows/testflight.yml::step deploy/Write App Store Connect API key",
+    ".github/workflows/testflight.yml::step deploy/Build archive",
+    ".github/workflows/testflight.yml::step deploy/Export IPA",
+    ".github/workflows/testflight.yml::step deploy/Upload to TestFlight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "needs.quality-gate.result == 'success' && repository owner is chrissharp80",
+     "effect": "deploy runs; any other quality-gate result (failure, cancelled, skipped) skips deploy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    ".github/workflows/testflight.yml::step deploy/Build archive": "8bedf20553a6138b",
+    ".github/workflows/testflight.yml::step deploy/Checkout": "712b720c9a28a3d9",
+    ".github/workflows/testflight.yml::step deploy/Export IPA": "30484b31b204748e",
+    ".github/workflows/testflight.yml::step deploy/Record the build environment": "0a9684ff5d52d431",
+    ".github/workflows/testflight.yml::step deploy/Select Xcode": "f12fb341dad1c785",
+    ".github/workflows/testflight.yml::step deploy/Set up signing certificate": "0bee8812ac630a71",
+    ".github/workflows/testflight.yml::step deploy/Upload to TestFlight": "2b084dedf0e22b12",
+    ".github/workflows/testflight.yml::step deploy/Validate required secrets": "ba868e5972b41a19",
+    ".github/workflows/testflight.yml::step deploy/Write App Store Connect API key": "8a443b1d954771ed"
+   }
+  },
+  {
+   "key": "step deploy/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6 (same as ci.yml).",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Record the build environment",
+   "hash": "cfcc1e22de774122",
+   "does": "Writes a \"Release evidence\" markdown table to $GITHUB_STEP_SUMMARY: commit sha, xcodebuild version, swift version, iphoneos SDK version, first 16 hex of SHA-256 of Package.resolved.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:xcodebuild -version",
+    "ext:shasum"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+   ],
+   "writes": [
+    "file:$GITHUB_STEP_SUMMARY"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Validate required secrets",
+   "hash": "0068f63baef1ca3b",
+   "does": "Checks six secrets (APPSTORE_CONNECT_ISSUER_ID, _KEY_ID, _PRIVATE_KEY, IOS_DIST_P12_BASE64, IOS_DIST_P12_PASSWORD, APPLE_TEAM_ID) are non-empty; lists missing ones and exits 1.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [],
+   "reads": [
+    "kc:GitHub Actions secrets (6)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "a secret env var is empty",
+     "effect": "append its name to missing[]"
+    },
+    {
+     "at": "+23",
+     "cond": "missing[] non-empty",
+     "effect": "print names to stderr and exit 1 (deploy fails); else continue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Set up signing certificate",
+   "hash": "5ee0167cde9a0b06",
+   "does": "Decodes the base64 .p12 into $RUNNER_TEMP/dist.p12, creates an empty-password temporary keychain (6 h lock timeout), unlocks it, imports the p12 with -A (all apps may use the key), sets the key partition list for apple-tool/apple/codesign, and puts the build keychain plus login.keychain-db in the user search list.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:security (macOS keychain CLI)",
+    "ext:base64"
+   ],
+   "reads": [
+    "kc:IOS_DIST_P12_BASE64",
+    "kc:IOS_DIST_P12_PASSWORD"
+   ],
+   "writes": [
+    "file:$RUNNER_TEMP/dist.p12",
+    "kc:$RUNNER_TEMP/build.keychain-db"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Write App Store Connect API key",
+   "hash": "634b72f05f42509b",
+   "does": "Writes the App Store Connect private key secret to ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [],
+   "reads": [
+    "kc:APPSTORE_CONNECT_PRIVATE_KEY",
+    "kc:APPSTORE_CONNECT_KEY_ID"
+   ],
+   "writes": [
+    "file:~/.appstoreconnect/private_keys/AuthKey_<id>.p8"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Build archive",
+   "hash": "f81e4d684c2e5a31",
+   "does": "xcodebuild archive of scheme Emuqu, Release, generic iOS, into $RUNNER_TEMP/Emuqu.xcarchive with DEVELOPMENT_TEAM from secret, CURRENT_PROJECT_VERSION=<run_number>.<run_attempt> (applies to app and watch app), -allowProvisioningUpdates authenticated by the ASC API key. MARKETING_VERSION unchanged.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:xcodebuild archive"
+   ],
+   "reads": [],
+   "writes": [
+    "file:$RUNNER_TEMP/Emuqu.xcarchive",
+    "net:Apple developer provisioning"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Export IPA",
+   "hash": "8e0aca5fc01a311e",
+   "does": "Writes ExportOptions.plist (method app-store-connect, automatic signing, strip Swift symbols, teamID, uploadSymbols) and runs xcodebuild -exportArchive into $RUNNER_TEMP/export with ASC-key provisioning.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:xcodebuild -exportArchive"
+   ],
+   "reads": [],
+   "writes": [
+    "file:$RUNNER_TEMP/ExportOptions.plist",
+    "file:$RUNNER_TEMP/export/*.ipa"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step deploy/Upload to TestFlight",
+   "hash": "e0c663fbfeecd10a",
+   "does": "Finds the first *.ipa in $RUNNER_TEMP/export; if none, prints an error and exits 1; otherwise uploads it with `xcrun altool --upload-app --type ios` using the ASC key id/issuer.",
+   "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
+   "calls": [
+    "ext:xcrun altool --upload-app"
+   ],
+   "reads": [],
+   "writes": [
+    "net:App Store Connect / TestFlight"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no .ipa found",
+     "effect": "print \"No IPA found\" and exit 1; else upload"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

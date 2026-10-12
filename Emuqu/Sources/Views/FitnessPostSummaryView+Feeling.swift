@@ -2,18 +2,21 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-// The subjective-feeling section, snapshot migration and session-analysis
-// narrative. The hero, HRR banner and key-stats grid live in
-// `FitnessPostSummaryView.swift`.
+// The subjective-feeling section, snapshot migration, the session-analysis
+// narrative, the hero card, the recover/fix controls, the partial-data
+// banner, the key-stats grid and the route map. The HRR banner is
+// `WorkoutStatsCards.hrrCaptureBanner`.
 
 extension FitnessPostSummaryView {
     // MARK: - "How did that feel?" subjective section
 
+    /// The badge for a rated workout (until tapped to edit), otherwise the
+    /// prompt; nothing once Skip was tapped on an unrated workout.
     @ViewBuilder
     var feelingSection: some View {
         if let rating = session.workoutMetadata?.workoutFeeling, !feelingEditing {
             feelingBadge(rating)
-        } else {
+        } else if !feelingSkipped || feelingEditing {
             feelingPrompt
         }
     }
@@ -29,9 +32,10 @@ extension FitnessPostSummaryView {
         )
     }
 
-    /// Skip without rating — stays unrated; "Cancel" when editing bails
-    /// without changing.
+    /// Skip without rating — stays unrated and the prompt goes away
+    /// (`feelingSkipped`); "Cancel" when editing bails without changing.
     private func skipFeeling() {
+        feelingSkipped = session.workoutMetadata?.workoutFeeling == nil
         feelingEditing = false
     }
 
@@ -45,21 +49,27 @@ extension FitnessPostSummaryView {
 
     /// Retrieve + mutate + archive all run on a detached
     /// task so the archiveLock (full decode + SHA256 + write + re-hash) never
-    /// blocks the main thread on save.
+    /// blocks the main thread on save. A save that didn't happen keeps the
+    /// prompt open and raises the "Couldn't save how you felt" alert.
     func saveWorkoutFeeling(rating: Int, note: String?) async {
         let archive = dependencies.storage.sessionArchive
         let id = session.id
         let updated: HRVSession? = await Task.detached(priority: .userInitiated) {
             Self.persistFeeling(rating: rating, note: note, id: id, archive: archive)
         }.value
-        guard let updated else { return }
+        guard let updated else {
+            feelingSaveFailed = true
+            return
+        }
         refreshedSession = updated
         feelingEditing = false
         collector.notifyArchiveChanged()
     }
 
     /// Nil on any failure — the rating simply isn't persisted and the UI stays
-    /// in edit mode rather than claiming a save that didn't happen.
+    /// in edit mode rather than claiming a save that didn't happen. That
+    /// includes an archived copy with no workout metadata, where there is
+    /// nowhere to store the rating.
     nonisolated private static func persistFeeling(
         rating: Int,
         note: String?,
@@ -67,10 +77,12 @@ extension FitnessPostSummaryView {
         archive: SessionArchive
     ) -> HRVSession? {
         do {
-            return try FitnessSummaryCards.updateArchived(id, in: archive) { stored in
+            let updated = try FitnessSummaryCards.updateArchived(id, in: archive) { stored in
                 stored.workoutMetadata?.workoutFeeling = rating
                 stored.workoutMetadata?.workoutFeelingNote = note
             }
+            guard let updated, updated.workoutMetadata != nil else { return nil }
+            return updated
         } catch {
             debugLog("[WorkoutFeeling] save failed: \(error)", level: .warning)
             return nil
@@ -91,22 +103,29 @@ extension FitnessPostSummaryView {
     /// stored snapshot is older than `currentVersion`, it silently
     /// rebuilds with current math and writes back — so history "heals"
     /// one visit at a time.
+    ///
+    /// The build and the archive read-modify-write both run detached, like
+    /// the feeling save, so the archiveLock never blocks the main thread.
     func backfillAnalysisSnapshotIfNeeded() async {
         let stored = session.workoutMetadata?.analysisSnapshot
         let needsRebuild = stored?.needsRebuild ?? true
-        guard needsRebuild, let inputs = snapshotInputs() else { return }
-        let snapshot = await Task.detached(priority: .userInitiated) {
-            WorkoutAnalysisSnapshotBuilder.build(inputs)
+        guard needsRebuild, let inputs = snapshotInputs(), !inputs.samples.isEmpty else { return }
+        let archive = dependencies.storage.sessionArchive
+        let id = session.id
+        let updated = await Task.detached(priority: .userInitiated) {
+            Self.persistAnalysisSnapshot(WorkoutAnalysisSnapshotBuilder.build(inputs), builtFrom: inputs, id: id, archive: archive)
         }.value
-        persistAnalysisSnapshot(snapshot)
+        guard let updated else { return }
+        refreshedSession = updated
+        collector.notifyArchiveChanged()
     }
 
+    /// Builder inputs from the rendered session, with max HR and weight from
+    /// the injected `settingsManager` the view renders with. Nil without
+    /// workout metadata or a duration; `samples` may be empty.
     private func snapshotInputs() -> WorkoutAnalysisSnapshotBuilder.Inputs? {
-        guard let meta = session.workoutMetadata,
-              let samples = meta.samples, !samples.isEmpty,
-              let duration = session.duration
-        else { return nil }
-        let settings = UserSettingsBridge.snapshot()
+        guard let meta = session.workoutMetadata, let duration = session.duration else { return nil }
+        let settings = settingsManager.settings
         return WorkoutAnalysisSnapshotBuilder.Inputs(
             sport: meta.sport,
             durationSec: duration,
@@ -114,35 +133,58 @@ extension FitnessPostSummaryView {
             elevationGainMeters: meta.elevationGainMeters,
             elevationLossMeters: meta.elevationLossMeters,
             meanHR: session.meanHR,
-            userMaxHR: settings.userMaxHR,
-            bodyWeightKg: settings.weightKg,
-            samples: samples,
+            userMaxHR: settings.effectiveMaxHR,
+            bodyWeightKg: settings.effectiveBodyWeightKg,
+            samples: meta.samples ?? [],
             splits: meta.splits ?? [],
             trimp: meta.luciaTRIMP,
             decouplingPercent: meta.decouplingPercent
         )
     }
 
-    private func persistAnalysisSnapshot(_ snapshot: WorkoutAnalysisSnapshot) {
+    /// Stores the snapshot only when the archived copy still has the samples
+    /// and duration it was built from. A retrim or re-analysis that landed
+    /// while it was building is left alone, so a snapshot of the old samples
+    /// is never stamped current (the next open rebuilds from the new ones).
+    /// Nil when nothing was written.
+    nonisolated private static func persistAnalysisSnapshot(
+        _ snapshot: WorkoutAnalysisSnapshot,
+        builtFrom inputs: WorkoutAnalysisSnapshotBuilder.Inputs,
+        id: UUID,
+        archive: SessionArchive
+    ) -> HRVSession? {
+        var written = false
         do {
-            let archive = dependencies.storage.sessionArchive
-            guard let updated = try FitnessSummaryCards.updateArchived(session.id, in: archive, { stored in
-                stored.workoutMetadata?.analysisSnapshot = snapshot
-            }) else { return }
-            refreshedSession = updated
-            collector.notifyArchiveChanged()
-            debugLog("[SnapshotBackfill] wrote snapshot for \(session.id)")
+            let updated = try FitnessSummaryCards.updateArchived(id, in: archive) { stored in
+                written = store(snapshot, in: &stored, ifBuiltFrom: inputs)
+            }
+            guard written, let updated else { return nil }
+            debugLog("[SnapshotBackfill] wrote snapshot for \(id)")
+            return updated
         } catch {
             debugLog("[SnapshotBackfill] failed: \(error)", level: .warning)
+            return nil
         }
+    }
+
+    /// Writes the snapshot into the archived copy when it still has the
+    /// samples and duration the snapshot was built from; false otherwise.
+    nonisolated private static func store(
+        _ snapshot: WorkoutAnalysisSnapshot,
+        in stored: inout HRVSession,
+        ifBuiltFrom inputs: WorkoutAnalysisSnapshotBuilder.Inputs
+    ) -> Bool {
+        guard stored.workoutMetadata?.samples == inputs.samples, stored.duration == inputs.durationSec else { return false }
+        stored.workoutMetadata?.analysisSnapshot = snapshot
+        return true
     }
 
     // MARK: - Session Analysis ("How you did")
 
     /// 2-3 sentence coach-style narrative synthesising the session's
-    /// key physiological signals — α1 dominant band, HR zone
-    /// distribution, TRIMP relative to the user's typical load,
-    /// decoupling, HRR quality, elevation context. Mirrors Morning
+    /// key physiological signals — time in each α1 band, decoupling,
+    /// training load against fixed bands (not the user's typical load),
+    /// elevation context. Mirrors Morning
     /// Results' `recoveryScoreCard` breakdown message: "everything is
     /// clicking", "this walk pushed you past aerobic threshold", etc.
     /// Only renders when there's enough data to say something useful.
@@ -180,102 +222,42 @@ extension FitnessPostSummaryView {
         }
     }
 
-    /// Assemble the "how you did" narrative. Prefers the pre-computed
-    /// snapshot stored on WorkoutMetadata (written once at session
-    /// finalize) and falls back to an on-demand computation only for
-    /// sessions without a snapshot. One field read, no sample iteration,
-    /// is what keeps summary reloads fast.
+    /// The "how you did" narrative: the stored snapshot's, one field read
+    /// with no sample iteration, which is what keeps summary reloads fast.
+    /// Sessions saved before snapshots existed show the same builder's text
+    /// until the backfill lands (`displayedAnalysis`).
     func generateSessionAnalysis() -> String {
-        if let cached = session.workoutMetadata?.analysisSnapshot?.howYouDidNarrative,
-           !cached.isEmpty {
-            return cached
-        }
-        return legacyGenerateSessionAnalysis()
+        displayedAnalysis?.howYouDidNarrative ?? ""
     }
 
-    func legacyGenerateSessionAnalysis() -> String {
-        let meta = session.workoutMetadata
-        let totalMin = Int((session.duration ?? 0) / 60)
-        guard totalMin > 0 else { return "" }
-        return [
-            alpha1RegimeSentence(samples: meta?.samples ?? [], totalMin: totalMin),
-            decouplingSentence(meta: meta),
-            hrrSentence(meta: meta),
-            trimpSentence(meta: meta),
-            elevationSentence(meta: meta)
-        ].compactMap { $0 }.joined(separator: " ")
-    }
-
-    /// Time in each α1 band, worded as the shape of the session.
-    private func alpha1RegimeSentence(samples: [WorkoutSample], totalMin: Int) -> String? {
-        guard samples.contains(where: { $0.alpha1 != nil }) else { return nil }
-        let bands = Self.alpha1BandTotals(samples: samples)
-        guard bands.belowAT1 + bands.between + bands.aboveAT2 > 0 else { return nil }
-        return regimeWording(easy: bands.belowAT1, thr: bands.between, hard: bands.aboveAT2, totalMin: totalMin)
-    }
-
-    private func regimeWording(easy: Int, thr: Int, hard: Int, totalMin: Int) -> String {
-        if thr == 0, hard == 0 {
-            return String(localized: "Solid aerobic-base effort — α1 stayed above threshold for the full \(totalMin) min.", bundle: LanguageManager.appBundle)
-        }
-        if easy == 0, thr == 0 {
-            return String(localized: "Hard session — you were above anaerobic threshold the whole time (\(hard / 60) min at α1 < 0.50).", bundle: LanguageManager.appBundle)
-        }
-        if hard > 0 {
-            return String(localized: "Mixed-intensity: \(easy / 60) min easy, \(thr / 60) min threshold, \(hard / 60) min above anaerobic threshold.", bundle: LanguageManager.appBundle)
-        }
-        return String(localized: "Threshold workout — you pushed into the LT1-LT2 band for \(thr / 60) min, easy the remaining \(easy / 60) min.", bundle: LanguageManager.appBundle)
-    }
-
-    /// Pa:Hr decoupling — aerobic efficiency across the session. Only
-    /// meaningful on efforts of 10 min or more.
-    private func decouplingSentence(meta: WorkoutMetadata?) -> String? {
-        guard let decoupling = meta?.decouplingPercent, (session.duration ?? 0) >= 600 else { return nil }
-        let pct = String(format: "%+.1f %%", locale: LanguageManager.appLocale, decoupling)
-        if decoupling < 5 {
-            return String(localized: "Pa:Hr decoupling stayed at \(pct) — strong aerobic efficiency, no signs of fatigue mid-session.", bundle: LanguageManager.appBundle)
-        }
-        if decoupling < 8 {
-            return String(localized: "Pa:Hr decoupling \(pct) — mild drift in the second half; worth watching for hydration / fueling.", bundle: LanguageManager.appBundle)
-        }
-        return String(localized: "Pa:Hr decoupling \(pct) — significant efficiency loss over the session. Heat, fatigue, or nutrition likely factors.", bundle: LanguageManager.appBundle)
-    }
-
-    /// Fixed Lucia TRIMP bands (150 / 80 / 30), not a comparison with the
-    /// user's usual load. Below 30 there is nothing worth saying, so this
-    /// stays silent.
-    private func trimpSentence(meta: WorkoutMetadata?) -> String? {
-        guard let trimp = meta?.luciaTRIMP else { return nil }
-        if trimp >= 150 {
-            return String(localized: "TRIMP \(Int(trimp)) — a heavy session.", bundle: LanguageManager.appBundle)
-        }
-        if trimp >= 80 {
-            return String(localized: "TRIMP \(Int(trimp)) — moderate aerobic stimulus.", bundle: LanguageManager.appBundle)
-        }
-        if trimp >= 30 {
-            return String(localized: "TRIMP \(Int(trimp)) — light maintenance effort.", bundle: LanguageManager.appBundle)
-        }
-        return nil
-    }
-
-    private func elevationSentence(meta: WorkoutMetadata?) -> String? {
-        guard let gain = meta?.elevationGainMeters, gain >= 30 else { return nil }
-        return String(localized: "You climbed \(units.formatElevation(meters: gain)).", bundle: LanguageManager.appBundle)
+    /// The analysis the summary shows: the stored snapshot, or — for a
+    /// session saved before snapshots existed, until the backfill lands — one
+    /// built on the fly by `WorkoutAnalysisSnapshotBuilder`, so the hero and
+    /// "how you did" text read the same before and after the backfill. Nil
+    /// without workout metadata or a duration.
+    var displayedAnalysis: WorkoutAnalysisSnapshot? {
+        if let stored = session.workoutMetadata?.analysisSnapshot { return stored }
+        return snapshotInputs().map { WorkoutAnalysisSnapshotBuilder.build($0) }
     }
 
     // MARK: - Hero (new, morning-parity)
 
     /// Builds the inputs for the WorkoutHeroCard from the session and
     /// delegates rendering to the dedicated card component. Keeps data
-    /// shaping in one place and the card pure.
+    /// shaping in one place and the card pure. The dominant α1 band and the
+    /// narrative are the analysis snapshot's fields, not re-derived from the
+    /// samples on each render. Duration and pace are the active (un-paused)
+    /// figures (`WorkoutStatsCards.activeDurationDisplay` / `avgPaceDisplay`),
+    /// so a paused workout's hero matches the recorder's clock.
     var heroCard: some View {
         let meta = session.workoutMetadata
         let sport = meta?.sport ?? .walk
         let distance = meta?.distanceMeters
         let distanceLabel = distance.map { units.formatDistance(meters: $0) } ?? "—"
-        let durationLabel = heroDurationLabel
-        let paceLabel = heroPaceLabel(distance: distance)
-        let dominantBand = heroDominantAlpha1Band(samples: meta?.samples ?? [])
+        let durationLabel = stats.activeDurationDisplay ?? "—"
+        let paceLabel = stats.avgPaceDisplay
+        let analysis = displayedAnalysis
+        let dominantBand = analysis?.dominantAlpha1BandRaw.flatMap { LiveDFAAnalyzer.Band(rawValue: $0) }
         let coords: [CLLocationCoordinate2D] = track.map(\.coordinate)
         return WorkoutHeroCard(
             sport: sport,
@@ -284,25 +266,9 @@ extension FitnessPostSummaryView {
             paceLabel: paceLabel,
             endDate: session.endDate,
             dominantAlpha1Band: dominantBand,
-            narrative: meta?.analysisSnapshot?.heroNarrative
-                ?? heroNarrative(samples: meta?.samples ?? [], durationSec: session.duration ?? 0),
+            narrative: analysis?.heroNarrative ?? "",
             routeCoordinates: coords
         )
-    }
-
-    private var heroDurationLabel: String {
-        guard let d = session.duration else { return "—" }
-        let s = Int(d)
-        let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, sec) }
-        return String(format: "%d:%02d", m, sec)
-    }
-
-    private func heroPaceLabel(distance: Double?) -> String? {
-        guard let dist = distance, dist > 100,
-              let dur = session.duration, dur > 10
-        else { return nil }
-        return units.formatPace(elapsedSec: Int(dur), distanceMeters: dist)
     }
 
     // MARK: - Recover / fix workout
@@ -466,20 +432,12 @@ extension FitnessPostSummaryView {
         }
     }
 
-    /// Route-history extrapolation wins the sub-line when it is meaningfully
-    /// higher than what was recorded — that is the strap-dropped case.
+    /// The sub-line names the load's source. The strap-dropped case needs no
+    /// comparison here: `preferredTrainingLoad` already makes the route
+    /// estimate the load (`.routeHistory`) when `routeEstimateReplacesHRLoad`,
+    /// and a route estimate (TRIMP scale) is never set against a power,
+    /// HRSS or METs load on another scale.
     private func loadTileSubtitle(_ load: (value: Double, source: WorkoutMetadata.TrainingLoadSource), meta: WorkoutMetadata?) -> String {
-        // Route-history extrapolation still wins the sub-line
-        // when it's meaningfully higher than the recorded value
-        // (the strap-dropped case).
-        if let est = meta?.extrapolatedTRIMP,
-           let conf = meta?.extrapolationConfidence,
-           est > load.value + 1 {
-            if let routeName = meta?.extrapolationRouteName, conf >= 0.55 {
-                return String(localized: "~\(Int(est)) est · \(routeName)", bundle: LanguageManager.appBundle)
-            }
-            return String(localized: "~\(Int(est)) est for full route", bundle: LanguageManager.appBundle)
-        }
         switch load.source {
         case .power: return meta?.partialDataReason != nil ? String(localized: "Coggan · power · partial HR", bundle: LanguageManager.appBundle) : String(localized: "Coggan · power", bundle: LanguageManager.appBundle)
         case .hr: return meta?.partialDataReason != nil ? String(localized: "HR · partial", bundle: LanguageManager.appBundle) : String(localized: "1-hour threshold = 100 pts", bundle: LanguageManager.appBundle)
@@ -499,10 +457,11 @@ extension FitnessPostSummaryView {
     private func appendSecondaryLoadTile(_ tiles: inout [WorkoutKeyStatsCard.Stat]) {
         let meta = session.workoutMetadata
         // HRSS (the HR-based load) — a secondary tile only when the
-        // power-based load is the primary, so power-equipped users still see
-        // the HR-side number for comparison without it competing as the
-        // headline.
-        if meta?.powerTSS != nil, let tss = meta?.hrTSS {
+        // power-based load is the primary (stored or derived at read time,
+        // as `preferredTrainingLoad` resolves it), so power-equipped users
+        // still see the HR-side number for comparison without it competing
+        // as the headline.
+        if meta?.preferredTrainingLoad?.source == .power, let tss = meta?.hrTSS {
             tiles.append(.init(
                 label: "HRSS",
                 value: "\(Int(tss))",
@@ -524,77 +483,6 @@ extension FitnessPostSummaryView {
                 tint: .purple
             ))
         }
-    }
-
-    /// Summarise α1 into the band the user spent the most time in. Null
-    /// when no samples or α1 never resolved.
-    func heroDominantAlpha1Band(samples: [WorkoutSample]) -> LiveDFAAnalyzer.Band? {
-        var secs: [LiveDFAAnalyzer.Band: Int] = [:]
-        for reading in Self.alpha1Readings(samples) {
-            secs[LiveDFAAnalyzer.Band.display(alpha1: reading.alpha1), default: 0] += reading.dt
-        }
-        guard let top = secs.max(by: { $0.value < $1.value }), top.value > 0 else { return nil }
-        return top.key
-    }
-
-    /// Each α1 reading with the seconds it stands for, timed as the α1 card
-    /// times them (`Alpha1ReportCards.sampleSeconds(at:previous:)`: the gap
-    /// since the previous reading, capped at 5 s; 1 s for the first). Readings
-    /// inside a beat-artifact dip (`Alpha1ReportCards.ectopicShadows(in:)`)
-    /// are left out.
-    static func alpha1Readings(_ samples: [WorkoutSample]) -> [(sample: WorkoutSample, alpha1: Double, dt: Int)] {
-        let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
-        var readings: [(sample: WorkoutSample, alpha1: Double, dt: Int)] = []
-        var prev: Int?
-        for s in samples {
-            guard let a = s.alpha1 else { continue }
-            let dt = Alpha1ReportCards.sampleSeconds(at: s.offsetSec, previous: prev)
-            prev = s.offsetSec
-            guard !shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) else { continue }
-            readings.append((s, a, dt))
-        }
-        return readings
-    }
-
-    /// Plain-English narrative for the hero, for a workout saved before the
-    /// analysis snapshot carried one. Generated from real data (no guesses):
-    /// first sustained AT1 crossing, dominant band, total minutes.
-    func heroNarrative(samples: [WorkoutSample], durationSec: TimeInterval) -> String {
-        let totalMin = Int(durationSec / 60)
-        guard totalMin > 0 else { return "" }
-        guard samples.contains(where: { $0.alpha1 != nil }) else {
-            return String(localized: "\(totalMin) minutes of movement. α1 not captured — strap data unavailable for this session.", bundle: LanguageManager.appBundle)
-        }
-        let bands = Self.alpha1BandTotals(samples: samples)
-        if bands.between == 0, bands.aboveAT2 == 0 {
-            return String(localized: "\(totalMin) min aerobic-base work — α1 stayed above threshold the whole time. Ideal Zone-2 session.", bundle: LanguageManager.appBundle)
-        }
-        if bands.belowAT1 == 0, bands.between == 0 {
-            return String(localized: "\(totalMin) min above anaerobic threshold — very high physiological cost. Short, intense efforts.", bundle: LanguageManager.appBundle)
-        }
-        if let c = bands.firstCrossing {
-            return crossingNarrative(cross: c, bands: bands)
-        }
-        return String(localized: "\(totalMin) min · Easy \(bands.belowAT1 / 60)m · Threshold \(bands.between / 60)m · Hard \(bands.aboveAT2 / 60)m.", bundle: LanguageManager.appBundle)
-    }
-
-    /// Seconds spent in each α1 band, plus the first AT1 crossing that holds
-    /// (after the 2-minute warm-up and sustained for 3 minutes), from
-    /// `Alpha1ReportCards.alpha1BandTotals`, the calculation the α1 card, the
-    /// stored snapshot and the PDF share: 5 s sample cap and beat-artifact dips
-    /// left out, so one ectopic dip can't name a threshold.
-    private static func alpha1BandTotals(samples: [WorkoutSample]) -> Alpha1ReportCards.Alpha1Bands {
-        Alpha1ReportCards.alpha1BandTotals(samples: samples, shadows: Alpha1ReportCards.ectopicShadows(in: samples))
-    }
-
-    private func crossingNarrative(cross c: (Int, Int?), bands: Alpha1ReportCards.Alpha1Bands) -> String {
-        let mm = c.0 / 60, ss = c.0 % 60
-        let hrPart = c.1.map { String(localized: " at \($0) bpm", bundle: LanguageManager.appBundle) } ?? ""
-        let hardMin = bands.aboveAT2 / 60
-        if hardMin > 0 {
-            return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(hardMin) min above anaerobic threshold. Mixed-intensity session.", bundle: LanguageManager.appBundle)
-        }
-        return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(bands.between / 60) min at threshold, \(bands.belowAT1 / 60) min easy.", bundle: LanguageManager.appBundle)
     }
 
     /// Session map. Non-interactive (`interactionModes: []`) because the
@@ -650,24 +538,4 @@ extension FitnessPostSummaryView {
     }
 
     var units: UnitsPreference { UnitsPreferenceStore.current }
-}
-
-// MARK: - File-scope helpers
-//
-// Each touches none of the view's members — including its private
-// statics — and calls nothing inside it. `private` at file scope is
-// fileprivate, so every call site in this file resolves.
-
-private func hrrSentence(meta: WorkoutMetadata?) -> String? {
-    guard let one = meta?.hrrSamples?.bestAtOneMinute else { return nil }
-    if one.drop >= 18 {
-        return String(localized: "1-min HR recovery \(one.drop) bpm — excellent vagal reactivation.", bundle: LanguageManager.appBundle)
-    }
-    if one.drop >= 12 {
-        return String(localized: "1-min HR recovery \(one.drop) bpm — at or above the 12 bpm convention.", bundle: LanguageManager.appBundle)
-    }
-    if one.drop >= 8 {
-        return String(localized: "1-min HR recovery \(one.drop) bpm — a touch sluggish; could reflect accumulated fatigue.", bundle: LanguageManager.appBundle)
-    }
-    return String(localized: "1-min HR recovery \(one.drop) bpm — low. Worth watching over the next few sessions; may indicate you need more rest.", bundle: LanguageManager.appBundle)
 }

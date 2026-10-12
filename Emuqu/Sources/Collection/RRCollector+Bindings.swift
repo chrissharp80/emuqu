@@ -45,13 +45,20 @@ extension CollectorSessionControl {
     }
 
     /// Track H10 internal recording state and sync recording phase.
+    ///
+    /// `isCollecting` means "a session of this app is recording", and the
+    /// recovery gates read it that way. A recording on the strap is not one by
+    /// itself (a crash leaves one running with no session), so the strap
+    /// starting never sets it; the device-recording start does. The strap
+    /// stopping ends only a device recording's collection, not a streaming
+    /// night's.
     private func bindRecordingStateTracking() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { collector, isRecording in
-            collector.isCollecting = isRecording
             collector.deviceStatus.isRecordingOnDevice = isRecording
             if isRecording, collector.recordingPhase == .idle {
                 collector.recordingPhase = .deviceRecording
             } else if !isRecording, collector.recordingPhase == .deviceRecording {
+                collector.isCollecting = false
                 collector.recordingPhase = .idle
             }
         })
@@ -239,26 +246,14 @@ extension CollectorSessionControl {
     }
 
     /// Rebuild baseline after CloudKit pulls new sessions (e.g. after reinstall).
+    /// The collector's own off-main rebuild: its commit re-checks the tracker,
+    /// so a night the live path seeded during the decode is kept, and a later
+    /// rebuild started by another pull leaves the first one's result alone.
     private func bindCloudSyncBaseline() {
         ObservationLoop.observe(collector, read: { $0.cloudSyncManager.pullVersion }, onChange: { collector, _ in
-            guard collector.baselineTracker.daysCollected == 0 else { return }
-            let archive = collector.archive
-            let tracker = collector.baselineTracker
-            let schedule = collector.settingsManager.settings.sleepSchedule
-            Task.detached(priority: .utility) {
-                Self.rebuildBaselineAfterSync(archive: archive, tracker: tracker, schedule: schedule)
-            }
+            guard collector.baselineTracker.daysCollected == 0, !collector.archive.entries.isEmpty else { return }
+            collector.rebuildBaselineOffMain()
         })
-    }
-
-    /// Off-main: decode every archived session and rebuild the baseline from it.
-    nonisolated private static func rebuildBaselineAfterSync(
-        archive: SessionArchive, tracker: BaselineTracker, schedule: SleepSchedule
-    ) {
-        let entries = archive.entries
-        guard !entries.isEmpty else { return }
-        let sessions = entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "baselineRebuildAfterSync") }
-        tracker.rebuildFromSessions(sessions, sleepSchedule: schedule)
     }
 
     /// Refresh the cached recentPausedSession on a background thread.
@@ -292,8 +287,10 @@ extension CollectorSessionControl {
         guard maxGap > 0 else { return nil }
         let now = Date()
         let cutoff = now.addingTimeInterval(-maxGap)
+        // By when the night stopped, not when it started: a night paused or
+        // finished minutes ago may have begun hours before the window.
         let loaded = archive.entries
-            .filter { $0.sessionType == .overnight && $0.date >= cutoff }
+            .filter { $0.sessionType == .overnight && ($0.endDate ?? $0.date) >= cutoff }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
         let paused = loaded.first {
             $0.state == .paused && now.timeIntervalSince($0.pausedDate ?? .distantPast) <= maxGap
@@ -384,13 +381,16 @@ extension CollectorSessionControl {
     /// main actor at launch.
     ///
     /// The task holds the collector strongly, so a one-time migration keeps
-    /// its owner alive until it finishes.
+    /// its owner alive until it finishes. A night whose repair could not be
+    /// written leaves the flag unset, so the next launch tries it again;
+    /// nights already repaired read as healthy and are skipped.
     func runMergeDataLossMigrationIfNeeded() {
         guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.mergeDataLossRepaired) else { return }
         let collector = self.collector
         Task.detached {
-            let count = await collector.recovery.repairMergeDataLoss()
-            debugLog("[RRCollector] Merge data loss migration complete: \(count) sessions repaired")
+            let outcome = await collector.recovery.repairMergeDataLoss()
+            debugLog("[RRCollector] Merge data loss migration: \(outcome.repaired) sessions repaired, \(outcome.failed) failed")
+            guard outcome.failed == 0 else { return }
             UserDefaults.standard.set(true, forKey: UserDefaultsKeys.mergeDataLossRepaired)
         }
     }

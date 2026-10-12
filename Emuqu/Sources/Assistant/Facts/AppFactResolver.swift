@@ -106,7 +106,7 @@ enum PeriodParser {
 
     /// Named period aliases → how many days back they reach.
     private static let namedDayWindows: [String: Int] = [
-        "last_week": 7, "last_7d": 7, "7d": 7, "last_7_days": 7, "7_days": 7,
+        "last_week": 7, "week": 7, "last_7d": 7, "7d": 7, "last_7_days": 7, "7_days": 7,
         "last_14d": 14, "14d": 14, "last_2_weeks": 14, "2_weeks": 14,
         "last_30d": 30, "30d": 30, "last_month": 30, "month": 30,
         "last_60d": 60, "60d": 60,
@@ -136,6 +136,21 @@ enum PeriodParser {
             guard let start = cutoff(for: raw, now: now), start <= now else { return nil }
             return DateInterval(start: start, end: now)
         }
+    }
+
+    /// The answer for a period string this parser does not know, or nil
+    /// when it parses: an invalid argument, not a period without data.
+    static func invalidPeriod(_ raw: String) -> FactValue? {
+        interval(for: raw) == nil ? unknownPeriod(raw) : nil
+    }
+
+    /// The invalid-argument answer for a period that did not parse, listing
+    /// the accepted vocabulary.
+    static func unknownPeriod(_ raw: String) -> FactValue {
+        .missing(
+            reason: .invalidParameter,
+            detail: "unknown period '\(raw)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time"
+        )
     }
 
     /// Extract N from any of these shapes — `Nd`, `last_Nd`, `N_days`,
@@ -222,6 +237,30 @@ enum AppFactResolverFactory {
     }
 }
 
+// MARK: - Apple Health biometrics, fetched once per question
+
+/// `user.profile.weight_kg`, `biological_sex` and `age` each fall back to the
+/// same Apple Health profile; `get_user(field: "profile")` resolves them one
+/// after another. One fetch (3 s cap) serves every read within 10 s, so the
+/// three fallbacks cost one HealthKit round trip, not three.
+@MainActor
+private enum RecentBiometricProfile {
+    private static var recent: (startedAt: Date, fetch: Task<HealthBiometricProfile?, Never>)?
+
+    static func fetch() async -> HealthBiometricProfile? {
+        if let recent, Date().timeIntervalSince(recent.startedAt) < 10 {
+            return await recent.fetch.value
+        }
+        let fetch = Task {
+            await FactResolveTimeout.withTimeout(seconds: 3) {
+                await AppDependencies.current.collection.healthKitManager.fetchBiometricProfile()
+            }
+        }
+        recent = (Date(), fetch)
+        return await fetch.value
+    }
+}
+
 // MARK: - user.* namespace
 
 struct UserProfileNamespace: FactNamespaceResolver {
@@ -287,7 +326,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
     }
 
     private var userProfileLthrEntry: FactEntry {
-        .fixed(key: "user.profile.lthr", description: "Lactate threshold HR (override, else 0.88 × max HR heuristic). bpm.", valueType: "Int") {
+        .fixed(key: "user.profile.lthr", description: "Lactate threshold HR (override, else 0.88 × max HR heuristic), never below 120. bpm.", valueType: "Int") {
             .integer(self.settings().effectiveLTHR)
         }
     }
@@ -312,7 +351,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
         """, valueType: "Double") {
             if let override = self.settings().bodyWeightKg { return .double(override) }
             if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
-               let profile = await FactResolveTimeout.withTimeout(seconds: 3, { await AppDependencies.current.collection.healthKitManager.fetchBiometricProfile() }),
+               let profile = await RecentBiometricProfile.fetch(),
                let kg = profile.bodyWeightKg {
                 return .double(kg)
             }
@@ -324,7 +363,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
         .fixedAsync(key: "user.profile.biological_sex", description: "Biological sex used for sex-dependent physiology (Banister TRIMP k-coefficient). From Settings if set, else Apple Health. Returns notRecorded when neither has it.", valueType: "String") {
             if let raw = self.settings().biologicalSex?.rawValue { return .string(raw) }
             if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
-               let profile = await FactResolveTimeout.withTimeout(seconds: 3, { await AppDependencies.current.collection.healthKitManager.fetchBiometricProfile() }),
+               let profile = await RecentBiometricProfile.fetch(),
                let sex = profile.appBiologicalSex {
                 return .string(sex.rawValue)
             }
@@ -338,7 +377,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
                 return .from(Calendar.current.dateComponents([.year], from: b, to: Date()).year)
             }
             if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
-               let profile = await FactResolveTimeout.withTimeout(seconds: 3, { await AppDependencies.current.collection.healthKitManager.fetchBiometricProfile() }),
+               let profile = await RecentBiometricProfile.fetch(),
                let dob = profile.dateOfBirth {
                 return .from(Calendar.current.dateComponents([.year], from: dob, to: Date()).year)
             }
@@ -390,7 +429,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
 
     private var scoreAlgorithmVersionEntry: FactEntry {
         .fixed(key: "score.algorithm.version", description: """
-        Recovery-score algorithm version. 'v3.1.oct2026' = HRV 60% + Sleep 25% + Vitals 15% (no training-load factor; ACWR removed from the score per Impellizzeri 2020/2021). Older sessions in this user's archive may have been computed under v1 \
+        Recovery-score algorithm version this build computes (the returned value). The current algorithm weighs HRV 60% + Sleep 25% + Vitals 15% (no training-load factor; ACWR removed from the score per Impellizzeri 2020/2021). Older sessions in \
+        this user's archive may have been computed under v1 \
         (HRV 50% + Sleep 20% + Training 30%) before they ran the migration recompute.
         """, valueType: "String") {
             .string(ScoringVersion.current)
@@ -399,8 +439,9 @@ struct UserProfileNamespace: FactNamespaceResolver {
 
     private var scoreHistoryRecomputedUnderV2Entry: FactEntry {
         .fixed(key: "score.history.recomputed_under_v2", description: """
-        Whether the user has run the one-shot history recompute since the v1 → v2 algorithm change. False means archived session scores still reflect the older \
-        algorithm; true means the whole archive was reanalyzed under HRV/Sleep/Vitals.
+        Whether the one-shot history recompute offered after the v1 → v2 algorithm change has been settled. True when the user ran it, declined it, or started using the app after \
+        the change (nothing to recompute) — so true does NOT prove archived scores were recomputed; never tell the user their history was reanalyzed on this alone. False means the offer is still pending and \
+        archived scores from before the change may still reflect the older algorithm.
         """, valueType: "Bool") {
             .boolean(self.settings().hasRunScoreHistoryRecompute)
         }
@@ -414,7 +455,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
             // ONLY leaves a user who relies on HealthKit's VO2max (no manual
             // entry) getting "I don't know your VO2 max" from the assistant
             // even though the app has the value cached.
-            if let override = self.settings().vo2MaxOverride {
+            // An override of 0 or less is no override (as vo2_max_is_override reads it).
+            if let override = self.settings().vo2MaxOverride, override > 0 {
                 return .from(override)
             }
             if self.settings().useHealthKitVO2Max,

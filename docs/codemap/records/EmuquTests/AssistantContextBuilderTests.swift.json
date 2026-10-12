@@ -1,0 +1,652 @@
+{
+ "file": "EmuquTests/AssistantContextBuilderTests.swift",
+ "hash": "99003a5071a7e11e",
+ "role": "XCTest suite for ContextBuilder.build (user profile, today/yesterday snapshots, optional sleep/training, 14-session recent window, custom tags), AssistantContext.renderLiveStateForCloud, the CompactToolRouter capability index, AssistantSystemPrompt tool-mode/Apple prompt composition, and ContextBuilder.trainingContext date rules.",
+ "types": [
+  "AssistantContextBuilderTests: class — XCTestCase for the assistant context payload and prompts"
+ ],
+ "state": [
+  "mem:AssistantContextBuilderTests.savedDefaultTimeZone (static lock)",
+  "mem:AssistantContextBuilderTests.referenceNow (static Date 1,700,000,000)"
+ ],
+ "toplevel": "Static referenceNow and instance contextNow fix dates at 1,700,000,000 s; class setUp pins NSTimeZone.default to UTC.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The header says the tests are hermetic and touch no shared app state, but ContextBuilder.build reads AppDependencies.current live workout/HRV brokers and the ambient-location cache, and compose/appleInstructions read AppDependencies.current settingsManager settings — all from the app host process.",
+   "evidence": [
+    "EmuquTests/AssistantContextBuilderTests.swift:8",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:51",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:171"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AssistantContextBuilderTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves the default zone and pins UTC.",
+   "entry": "XCTest: class setUp()",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:AssistantContextBuilderTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved zone.",
+   "entry": "XCTest: class tearDown()",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [
+    "mem:AssistantContextBuilderTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:AssistantContextBuilderTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a zone was saved",
+     "effect": "restores it; else no change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+   "hash": "03d364d873a2d0a7",
+   "does": "Builds an HRVSession at referenceNow+offset lasting 10 minutes with the given type, state, score, sleep/training snapshots, tags and morning feeling.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.makeUserSettings()",
+   "hash": "953dba4ce1b12b41",
+   "does": "Builds UserSettings with a birthday 30 years before the real now, male, moderately active, 7.5 h typical sleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.makeSleep()",
+   "hash": "0dcf9c59cfd34464",
+   "does": "Builds a SleepData snapshot at referenceNow: 420 min sleep, 90 deep, 80 REM, 20 awake, 91% efficiency.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.makeTraining()",
+   "hash": "bb251817ebac0729",
+   "does": "Builds a TrainingContext ATL 60 / CTL 50 / TSB -10, TRIMP 75, VO2 48, 2 days since hard workout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testBuildProducesExpectedTopLevelFields()",
+   "hash": "f0dd7e913e533f7a",
+   "does": "Asserts build fills profile (age, 'Male', 'Moderately Active', 7.5 h), today (id, score 7.5, 'overnight'), nil yesterday/yesterdayDiagnostic and a 1-item recent list.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.yesterdayDiagnostic(session:recentSessions:userSettings:baselineStats:)": "b75ac006e3a1f79e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testOptionalSleepAndTrainingAreOmittedWhenAbsent()",
+   "hash": "553303c1f82e98b5",
+   "does": "Asserts a session without sleep/training/vitals/analysis yields nil today.sleep/training/vitals, analysisSummary, baselines and trends.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.baselines()": "71db5fc5640aae47"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testOptionalFieldsArePopulatedWhenAvailable()",
+   "hash": "e432a85a20058a8a",
+   "does": "Asserts sleep (420/90/20) and training (60/50/-10/2) snapshots are copied into today.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSleep()",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeTraining()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSleep()": "9da9f555d2ceda26",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeTraining()": "4bc70d5007f54c4d",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testRecentSessionWindowIsCappedAt14()",
+   "hash": "48e6f0699297e3fb",
+   "does": "Feeds 20 daily sessions and asserts recent is capped at 14 and sorted newest first.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testRecentSessionWindowFiltersIncompleteSessions()",
+   "hash": "b8993ddf96e914d9",
+   "does": "Feeds complete/collecting/complete/paused sessions and asserts recent keeps the 3 complete or paused ones and none lacks both score and feeling.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testCustomTagNamesAreIncludedWhenPresent()",
+   "hash": "6ce9db0095ea22ad",
+   "does": "Passes two custom tag names and asserts userProfile.customTagNames contains both.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testCustomTagNamesAreEmptyByDefault()",
+   "hash": "7756b71a2b251895",
+   "does": "Asserts customTagNames is empty when none are passed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testNoSessionsProducesNilToday()",
+   "hash": "0c84aa922a7af0ea",
+   "does": "Asserts with no sessions today/yesterday are nil, recent empty, and profile age still set.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testYesterdaySnapshotIncludedWhenProvided()",
+   "hash": "9497a26f54354b6d",
+   "does": "Asserts a supplied yesterday session appears as context.yesterday with its id and score 6.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "0075b2b355de9459",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testCloudLiveStatePushesTodaysRecoveryHRVAndSleep()",
+   "hash": "8f075330e60fa99c",
+   "does": "Builds a session with RMSSD 48 analysis, score 8.1, sleep and training and asserts renderLiveStateForCloud at wake contains 'TODAY:', 'recovery 81/100', 'RMSSD 48.0' and 'sleep 7h0m'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSleep()",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeTraining()",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSleep()": "9da9f555d2ceda26",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeTraining()": "4bc70d5007f54c4d",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testCloudLiveStateLabelsAStaleNightByItsDate()",
+   "hash": "868fb59e2d85b1df",
+   "does": "Asserts renderLiveStateForCloud five days after wake omits 'TODAY:' and says '5 days ago'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.assistant.liveWorkoutBroker",
+    "mem:AppDependencies.current.assistant.liveHRVBroker",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "529ee96a1ebf124c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testCapabilityIndexListsCoreDataToolsAndInstructsToolUse()",
+   "hash": "6003295fc3cb36e3",
+   "does": "Asserts the capability index lists get_recovery/hrv/sleep/vitals/training_load/workout and carries the 'CALL the matching tool' and 'Never claim you don't have the data' instructions.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of 6 tool names",
+     "effect": "asserts the index contains it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "4d48953e333a6ba6"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testToolModePromptInjectsCapabilityIndex()",
+   "hash": "f532ad607f1689a2",
+   "does": "Asserts composeSplit(toolMode: true).stable contains the data-tools capability heading and get_hrv.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.settingsManager.settings",
+    "mem:TrainingLoadRegistry.live() dashboard load (host)",
+    "mem:AppDependencies.current.storage.sessionArchive (host archive index, via todayRecoveryLine)",
+    "mem:AssistantSystemPrompt.pendingRecentUserMessages",
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections (cleared by consumePendingCorrectionsBlock)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "composeSplit is not a pure read: its variable half calls MetricsVerifier.consumePendingCorrectionsBlock, which empties the host process's pending-corrections list, and reads the host's live training load and SessionArchive (todayRecoveryLine); the three prompt tests here therefore both depend on and mutate app-host state, contrary to the file's \"hermetic\" header.",
+     "evidence": [
+      "EmuquTests/AssistantContextBuilderTests.swift:8",
+      "EmuquTests/AssistantContextBuilderTests.swift:372",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:281",
+      "Emuqu/Sources/Assistant/MetricsVerifier.swift:609",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:634"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "4d48953e333a6ba6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "52a5af558f45018e"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testNonToolModePromptOmitsDataToolIndex()",
+   "hash": "b357954e4a6c7b3b",
+   "does": "Asserts composeSplit(toolMode: false).stable omits the data-tools heading.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.settingsManager.settings",
+    "mem:TrainingLoadRegistry.live() dashboard load (host)",
+    "mem:AppDependencies.current.storage.sessionArchive (host archive index, via todayRecoveryLine)",
+    "mem:AssistantSystemPrompt.pendingRecentUserMessages",
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections (cleared by consumePendingCorrectionsBlock)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "52a5af558f45018e"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testApplePromptFitsTheOnDeviceWindow()",
+   "hash": "3b4e3998532d0ecf",
+   "does": "Composes the voice+tool prompt, condenses it with appleInstructions and asserts it is under 1,400 estimated tokens, keeps findahelpline.com, and drops the cloud toolOverlay.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.settingsManager.settings",
+    "mem:TrainingLoadRegistry.live() dashboard load (host)",
+    "mem:AppDependencies.current.storage.sessionArchive (host archive index, via todayRecoveryLine)",
+    "mem:AssistantSystemPrompt.pendingRecentUserMessages",
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections (cleared by consumePendingCorrectionsBlock)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "ec3ef6cdbe2c72e5"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.load(ctl:)",
+   "hash": "45b50438e09bf3bc",
+   "does": "Builds a TrainingContext with ATL 10 and the given CTL (TSB = CTL-10).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.session(daysAgo:frozen:)",
+   "hash": "f012aa65b8615d0d",
+   "does": "Builds an 8-hour overnight session ending daysAgo before contextNow with an optional frozen training snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testAnOldSessionNeverBorrowsTodaysTrainingLoad()",
+   "hash": "3d832392f784d224",
+   "does": "Asserts trainingContext for a 5-day-old session without a snapshot is nil even with a live load.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.load(ctl:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)": "8a2456d82b8dd52c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.load(ctl:)": "20ad9b0987d66fad",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testTodaysSessionWithoutASnapshotUsesTheLiveLoad()",
+   "hash": "19d5aecbdf8943e2",
+   "does": "Asserts today's session without a snapshot uses the live load (CTL 70).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.load(ctl:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)": "8a2456d82b8dd52c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.load(ctl:)": "20ad9b0987d66fad",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testTheSessionsFrozenLoadOutranksTheLiveLoad()",
+   "hash": "ec764d27ad6db1ae",
+   "does": "Asserts today's frozen snapshot (CTL 40) wins over the live load (70).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.load(ctl:)",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)": "8a2456d82b8dd52c",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.load(ctl:)": "20ad9b0987d66fad",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "0e94dd80ef4261ba"
+   }
+  }
+ ],
+ "deps": {}
+}

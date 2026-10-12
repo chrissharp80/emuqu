@@ -7,7 +7,7 @@ import Foundation
 // MARK: - TurnRouter (pure routing core)
 
 /// Pure decision core extracted from
-/// `AssistantViewModel.resolveProviderForThisTurn()`.
+/// `AssistantTurnRouter.resolveProviderForThisTurn()`.
 ///
 /// `route(inputs:)` is a pure function over a value snapshot of
 /// everything the routing policy reads: no singleton access, no session
@@ -31,7 +31,7 @@ enum TurnRouter {
         /// provider may receive PHI/PII (consent recorded, or exempt
         /// like on-device Apple).
         let isConsented: Bool
-        /// Snapshot of `AssistantViewModel.providerSupportsTools(_:)`:
+        /// Snapshot of `AssistantTurnRouter.providerSupportsTools(_:)`:
         /// whether the provider can run the action tools.
         let supportsTools: Bool
         /// `availableModels.first(where: \.isDefault) ?? availableModels.first`
@@ -65,7 +65,7 @@ enum TurnRouter {
         /// land on (the proposal, plus `.auto` when a cap downgrade is
         /// possible).
         let mappings: [SmartProviderRouter.Tier: MappingSnapshot]
-        /// `AssistantViewModel.messageRequiresTools` over the latest
+        /// `AssistantTurnRouter.messageRequiresTools` over the latest
         /// user message; false when the conversation has none.
         let messageRequiresTools: Bool
     }
@@ -339,7 +339,9 @@ struct PickedModelFailure: LocalizedError {
     let underlying: AIProviderError
 
     var errorDescription: String? {
-        let reason = underlying.errorDescription ?? underlying.localizedDescription
+        // `localizedDescription` of a `LocalizedError` is its
+        // `errorDescription`, which `AIProviderError` gives for every case.
+        let reason = underlying.localizedDescription
         return String(
             localized: "\(providerID.displayName) couldn't answer: \(reason)\n\nFlo didn't hand this question to another model. Try again, or pick another model.",
             bundle: LanguageManager.appBundle

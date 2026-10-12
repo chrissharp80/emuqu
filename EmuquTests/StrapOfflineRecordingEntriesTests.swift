@@ -57,4 +57,24 @@ final class StrapOfflineRecordingEntriesTests: XCTestCase {
 
         XCTAssertEqual(Entries.onePerRecording(paths) { $0 }, paths)
     }
+
+    /// Clearing a split night asks the sensor to remove it once. The first
+    /// removal deletes the recording's directory, so a removal per sub-file
+    /// fails on the second one (`FakeStrapRadio` throws, as the sensor does)
+    /// and Discard reports an error after clearing the night.
+    func testASplitRecordingIsRemovedOnce() async throws {
+        let radio = FakeStrapRadio()
+        let start = Date().addingTimeInterval(-8 * 3600)
+        for index in 0 ..< 3 {
+            radio.addOfflineRecording(path: "/U/0/20260915/R/220000/PPI\(index).REC", date: start, ppiMs: [900, 900])
+        }
+
+        let removed = try await StrapRecordingCoordinator.removeOfflinePpiRecordings(api: radio, deviceId: "VERITY-1")
+
+        XCTAssertEqual(removed, 1)
+        let removals = radio.calls.filter { if case .removeOfflineRecord = $0 { return true } else { return false } }
+        XCTAssertEqual(removals.count, 1, "one removal per recording, not per sub-file")
+        let remaining = try await StrapRecordingCoordinator.listPpiEntries(api: radio, deviceId: "VERITY-1")
+        XCTAssertTrue(remaining.isEmpty, "every sub-file goes with the recording's directory")
+    }
 }

@@ -1,0 +1,14 @@
+{
+ "file": "scripts/check_locale_formatting.sh",
+ "hash": "ca648a0738eec639",
+ "role": "CI gate: `String(format:` calls with float specifiers (and no integer specifiers) in Views/, Export/ and named narrative generators must pass `locale:`.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources/Views",
+  "dir:Emuqu/Sources/Export"
+ ],
+ "toplevel": "cd to repo root. SCAN_DIRS Views and Export (missing -> 2); SCAN_FILES CitationQuickView.swift, SessionStorageDiagnostic.swift, AnalysisSummaryGenerator*.swift, CoachReportGenerator*.swift, ScoreDetailBuilder.swift, MorningResultsViewModel.swift, Assistant/WorkoutTriggerEngine*.swift (missing -> 2). Python over whole file text: every `String(format: \"...\",` (may span lines); skipped if its first line is a // comment or carries debugLog/NSLog/os_log, or if `locale:` appears inside that call's own parentheses (string-aware paren match); float and not int specifier -> violation. Python failure -> exit 2. Violations -> exit 1; else clean. Red until WorkoutTriggerEngine+Rules.swift passes locale: at its 9 sites (handoff). Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

@@ -175,8 +175,8 @@ extension CloudDeletionCoordinator {
             if TrashRestoreCoordinator.restoreIsNewer(existingRecord, thanDeletionAt: deletedAt) {
                 return false
             }
-            // A deletion already in iCloud needs no second write.
-            guard (existingRecord["isDeleted"] as? Int64) != 1 else { return true }
+            // A deletion already in iCloud needs no second write, unless an older build left its payload on it.
+            guard (existingRecord["isDeleted"] as? Int64) != 1 || existingRecord["sessionData"] != nil else { return true }
             existingRecord["isDeleted"] = 1 as CKRecordValue
             // A tombstone carries no recording. Keeping the encrypted payload
             // stored health data the user had deleted, and every device

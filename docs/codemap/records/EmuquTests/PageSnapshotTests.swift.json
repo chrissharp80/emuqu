@@ -1,0 +1,407 @@
+{
+ "file": "EmuquTests/PageSnapshotTests.swift",
+ "hash": "361975beee0a78d1",
+ "role": "Pixel snapshot suite for argument-free settings subpages and standalone screens (delete-all-data, trash, health disclaimer, advanced data, onboarding, notifications/training/modes/reports settings, saved routes, recovery methodology, lost sessions).",
+ "types": [
+  "PageSnapshotTests: class — @MainActor XCTestCase using assertSnapshot"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Non-hermetic: hosted() injects RRCollector() (shared App Group archive and RawRRBackup), SettingsManager.shared, StoreKitManager.shared, CloudKitSyncManager.shared and VoiceConversationController.shared, and never calls useDefaultSettings(). Screens that list stored data (TrashView via collector on appear, LostSessionsView via .task, SavedRoutesPage via SavedRouteStore.shared) and the settings pages render whatever the host holds, so the snapshots can differ between machines; the hermetic SnapshotFixtures.collector()/useDefaultSettings() helpers used by other snapshot suites are not used here.",
+   "evidence": [
+    "EmuquTests/PageSnapshotTests.swift:16",
+    "EmuquTests/PageSnapshotTests.swift:17",
+    "Emuqu/Sources/Views/TrashView.swift:24",
+    "Emuqu/Sources/Views/LostSessionsView.swift:32",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift:15",
+    "EmuquTests/SnapshotFixtures.swift:184"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func PageSnapshotTests.hosted(_:)",
+   "hash": "9ed36350865cf9ac",
+   "does": "Helper: wraps a view in NavigationStack with RRCollector(), SettingsManager/StoreKitManager/LanguageManager/CloudKitSyncManager/VoiceConversationController shared instances, a new ArchiveSignal and MorningCoordination in the environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:StoreKitManager.shared",
+    "mem:LanguageManager.shared",
+    "mem:CloudKitSyncManager.shared",
+    "mem:VoiceConversationController.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testDeleteAllDataRenders()",
+   "hash": "a1b9ca844b2debcb",
+   "does": "Snapshots DeleteAllDataPage hosted in the shared environment and compares it with reference 'page-delete-all-data'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "2d6308bb50fa86bd",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testTrashRenders()",
+   "hash": "fe3610e146ca4bb3",
+   "does": "Snapshots TrashView hosted in the shared environment and compares it with reference 'page-trash'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/TrashView.swift::var TrashView.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrashView.swift::var TrashView.body": "54375cf79eb1ed2d",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testHealthDisclaimerRenders()",
+   "hash": "f78b950804e6f18b",
+   "does": "Snapshots HealthDisclaimerView hosted in the shared environment and compares it with reference 'page-health-disclaimer'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.body": "a69b71e03dc2a3cf",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testAdvancedDataControlsRenders()",
+   "hash": "95b5ce658bfb54f3",
+   "does": "Snapshots AdvancedDataControlsPage hosted in the shared environment and compares it with reference 'page-advanced-data'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.body": "2b0eff3da41e8b50",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testOnboardingRenders()",
+   "hash": "da6890c4f4eb1f8e",
+   "does": "Snapshots OnboardingView hosted in the shared environment and compares it with reference 'page-onboarding'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "010b76d536d1a790",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.body": "fc92d62427d2ddef",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testNotificationsSettingsRenders()",
+   "hash": "83e6155439b109ab",
+   "does": "Snapshots NotificationsSettingsPage hosted in the shared environment and compares it with reference 'page-notifications-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body": "1b69909cb8084fd8",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testTrainingSettingsRenders()",
+   "hash": "836e90ab04ccc0ce",
+   "does": "Snapshots TrainingSettingsPage hosted in the shared environment and compares it with reference 'page-training-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "d682cf1396e78539",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testModesSettingsRenders()",
+   "hash": "489dd4cc6930d6a7",
+   "does": "Snapshots ModesSettingsPage(settingsManager: .shared) hosted in the shared environment and compares it with reference 'page-modes-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body": "895513f4d8cefb3d",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testReportsSettingsRenders()",
+   "hash": "57d2836ced13a34d",
+   "does": "Snapshots ReportsSettingsPage(settingsManager: .shared) hosted in the shared environment and compares it with reference 'page-reports-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.body": "8932046a50d77690",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testSavedRoutesRenders()",
+   "hash": "1fcf943715b991cb",
+   "does": "Snapshots SavedRoutesPage hosted in the shared environment and compares it with reference 'page-saved-routes'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body": "58a2293418b9354e",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testRecoveryMethodologyRenders()",
+   "hash": "0fab31ab482b736a",
+   "does": "Snapshots RecoveryMethodologyView hosted in the shared environment and compares it with reference 'page-recovery-methodology'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body": "9d902bfc2800dd9d",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func PageSnapshotTests.testLostSessionsRenders()",
+   "hash": "f2f4f78cb0c4247e",
+   "does": "Snapshots LostSessionsView hosted in the shared environment and compares it with reference 'page-lost-sessions'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "mem:SettingsManager.shared (host UserDefaults settings)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "509f781a24b3cf76",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

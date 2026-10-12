@@ -1,0 +1,470 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResultsCards.swift",
+ "hash": "73e34ffd69612484",
+ "role": "Small shared result components: HRVMetricCell (value tile with explanation popover), TrendComparisonRow (current vs recent average with % change and colour, plus the difference from the personal baseline when given), DiagnosticCard (primary assessment) and ProbableCauseRow (ranked cause with confidence badge).",
+ "types": [
+  "HRVMetricCell: struct (View) — used by SessionHRVDetailView+Metrics.swift:403",
+  "TrendComparisonRow: struct (View) — used by TrendComparisonCard",
+  "DiagnosticCard: struct (View) — used by MorningResultsView+Actions.swift:47",
+  "ProbableCauseRow: struct (View) — used by MorningResultsView+Actions.swift:75"
+ ],
+ "state": [
+  "mem:HRVMetricCell.showingInfo (@State Bool)"
+ ],
+ "toplevel": "ProbableCauseRow.confidenceLevel is an optional var defaulting to nil.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HRVMetricCell.body",
+   "hash": "7045a120b2186fca",
+   "does": "Plain button that sets showingInfo and presents MetricExplanationPopover(metric: label) as a popover.",
+   "entry": "SwiftUI View.body evaluation; button tap",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var HRVMetricCell.bodyLabel"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HRVMetricCell.showingInfo"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var HRVMetricCell.bodyLabel": "72bcd8aaec1b21ea"
+   }
+  },
+  {
+   "key": "var HRVMetricCell.bodyLabel",
+   "hash": "81898d8dc9efdd0f",
+   "does": "Value with info icon above the label, on a section-tint rounded background.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.diff",
+   "hash": "e04043becb3231c0",
+   "does": "current − average.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.pctDiff",
+   "hash": "a903d4c06e855f0e",
+   "does": "Percent difference vs average; 0 when average is not positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.diff"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "average > 0",
+     "effect": "(diff/average)*100; else 0 (row reads stable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.diff": "f9937c4466fce5fb"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.trendColor",
+   "hash": "085e49c1a9b2d6ce",
+   "does": "Colour: |pct|<5 grey; good direction sage; bad direction terracotta when |pct|>15 else softGold.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.diff",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "higherIsBetter (isGood)",
+     "effect": "good = diff>0; else good = diff<0"
+    },
+    {
+     "at": "+2",
+     "cond": "higherIsBetter (isBad)",
+     "effect": "bad = diff<0; else bad = diff>0"
+    },
+    {
+     "at": "+4",
+     "cond": "abs(pctDiff) < 5",
+     "effect": "textSecondary"
+    },
+    {
+     "at": "+5",
+     "cond": "isGood",
+     "effect": "sage"
+    },
+    {
+     "at": "+6",
+     "cond": "isBad AND abs(pctDiff) > 15",
+     "effect": "terracotta"
+    },
+    {
+     "at": "+7",
+     "cond": "isBad",
+     "effect": "softGold; neither (diff==0 with |pct|≥5 impossible) → textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.diff": "f9937c4466fce5fb",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff": "dbeb03d1757b0e28",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.trendIcon",
+   "hash": "383e5bc7b2f5f12a",
+   "does": "Icon: 'equal' within 5%, else up-right/down-right arrow by sign.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.diff"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "abs(pctDiff) < 5",
+     "effect": "'equal'"
+    },
+    {
+     "at": "+3",
+     "cond": "diff > 0",
+     "effect": "arrow.up.right; else arrow.down.right"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.diff": "f9937c4466fce5fb",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff": "dbeb03d1757b0e28"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.body",
+   "hash": "eee7c217506ea90f",
+   "does": "HStack of value and trend columns with a combined accessibility label (metric, value, stable/up/down, percent, average).",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.valueColumn",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColumn",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "abs(pctDiff) < 5 / pctDiff > 0",
+     "effect": "'stable'; else 'up' when positive, 'down' otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff": "dbeb03d1757b0e28",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColumn": "34b79b805a2e2bc6",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.valueColumn": "3ffd6f28795728fa",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.valueColumn",
+   "hash": "6891245681a63cb5",
+   "does": "Metric title over the formatted current value (trend colour) and unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColor"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColor": "f39f254356a70055",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.trendColumn",
+   "hash": "d84310ee3fcedb69",
+   "does": "Trend icon and signed % in trend colour, over 'vs avg <average>', then the baseline line (baselineLine).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendIcon",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColor",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.baselineLine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.baselineLine": "98e0af46edaac295",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff": "dbeb03d1757b0e28",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColor": "f39f254356a70055",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendIcon": "055dae943c2fee5e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.baselineLine",
+   "hash": "8a50c3c32e05e3ee",
+   "does": "When a baseline was passed: '<sign><current − baseline> vs baseline' in tertiary caption2 (sign '+' when ≥ 0; value through formatValue). Nothing when baseline is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline != nil",
+     "effect": "show the delta line; else nothing"
+    },
+    {
+     "at": "+3",
+     "cond": "delta >= 0",
+     "effect": "\"+\" prefix; negative values carry their own minus"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A delta between -0.5 and 0 formats as \"-0 vs baseline\" (formatValue rounds after the sign was chosen).",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCards.swift:133"
+     ],
+     "found": "fix batch b23"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func TrendComparisonRow.formatValue(_:)",
+   "hash": "d8c22a792d8a632d",
+   "does": "Formats %.1f for '/10' or unitless metrics, else %.0f, with app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unit == '/10' OR unit == ''",
+     "effect": "one decimal; else integer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var DiagnosticCard.body",
+   "hash": "4e543cd9276f851b",
+   "does": "Tinted card with assessment section and explanation text.",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var DiagnosticCard.primaryAssessmentSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var DiagnosticCard.primaryAssessmentSection": "8fb041627f94ea92",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DiagnosticCard.primaryAssessmentSection",
+   "hash": "3c9ace14c655d11d",
+   "does": "HStack of glyph and title.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var DiagnosticCard.assessmentGlyph",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var DiagnosticCard.assessmentTitle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var DiagnosticCard.assessmentGlyph": "974ac8e813e0eb2a",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var DiagnosticCard.assessmentTitle": "8adbf12d42d3946e"
+   }
+  },
+  {
+   "key": "var DiagnosticCard.assessmentGlyph",
+   "hash": "71549af550973d7b",
+   "does": "44pt tinted circle with the scaled SF Symbol icon.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var DiagnosticCard.assessmentTitle",
+   "hash": "e7b69e3a766b1a38",
+   "does": "Title in the card colour over a 'Primary Assessment' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ProbableCauseRow.confidenceColor",
+   "hash": "cb970ff2be60da51",
+   "does": "Badge colour from CauseConfidence(rawValue: confidenceLevel ?? confidence): critical/veryHigh dustyRose, high terracotta, moderateHigh softGold, moderate mist, positive kinds sage, low kinds or unparsable textTertiary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "confidenceLevel ?? confidence",
+     "effect": "untranslated raw level when given; else the display text (fails to parse when translated → none)"
+    },
+    {
+     "at": "+2",
+     "cond": "case .critical, .veryHigh",
+     "effect": "dustyRose"
+    },
+    {
+     "at": "+3",
+     "cond": "case .high",
+     "effect": "terracotta"
+    },
+    {
+     "at": "+4",
+     "cond": "case .moderateHigh",
+     "effect": "softGold"
+    },
+    {
+     "at": "+5",
+     "cond": "case .moderate",
+     "effect": "mist"
+    },
+    {
+     "at": "+6",
+     "cond": "case .pattern/.contributingFactor/.goodSign/.excellent",
+     "effect": "sage"
+    },
+    {
+     "at": "+7",
+     "cond": "case .lowModerate/.low/nil",
+     "effect": "textTertiary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ProbableCauseRow.body",
+   "hash": "2d1d2b7bf06b37ed",
+   "does": "Section-tint card of the ranked row and explanation.",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var ProbableCauseRow.rankedCauseRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var ProbableCauseRow.rankedCauseRow": "2a2db7258a78ff46",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ProbableCauseRow.rankedCauseRow",
+   "hash": "4405b14e08f09883",
+   "does": "'rank.' + cause + confidence badge coloured by confidenceColor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var ProbableCauseRow.confidenceColor"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var ProbableCauseRow.confidenceColor": "d17dc2762b7b20d1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

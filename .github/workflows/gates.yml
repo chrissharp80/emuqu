@@ -15,12 +15,11 @@ name: Gates
 #                             and would make the warning budget lie.
 # (debt-budget, spec-conformance and budget-monotonicity used to be listed
 # here too. They are python and git, not SwiftLint, so they run below.)
-#   infoplist-guard's privacy-manifest vocabulary check — needs `plutil`.
 #   test-coverage, thread-sanitizer — need Xcode and a simulator.
 # All of those still run in `ci.yml` and in `make ci` locally.
 #
-# `check_gates_wired.sh` audits `ci.yml`, not this file: this is a fast
-# subset, and the manual workflow remains the complete list.
+# `check_gates_wired.sh` audits both files: every gate must run in `ci.yml`, and in
+# this file too unless its NOT_ON_PUSH map says why it cannot (SwiftLint, Xcode).
 
 on:
   push:
@@ -57,13 +56,26 @@ jobs:
         run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 
       - name: Source hygiene guards
-        run: make sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
+        run: make sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
 
-      - name: Info.plist and CloudKit guards (the plutil-free two)
-        run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_infoplist_key_drift.sh
+      - name: Info.plist, privacy manifest and CloudKit guards
+        run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_privacy_manifest_vocabulary.sh && ./scripts/check_infoplist_key_drift.sh
 
       - name: Documentation, SBOM, no phone-home
         run: make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home
+
+      # Every function, script target, workflow step and doc section has a record
+      # in docs/codemap written after its last change. See docs/codemap/README.md.
+      - name: Code map is current
+        run: make codemap-setup && CODEMAP_PYTHON=.venv-codemap/bin/python ./scripts/check_codemap.sh
+
+      # Not a gate: writes what this pull request's changes can affect (callers up to
+      # their triggers, tests, docs, shared state, open findings) to the job summary,
+      # so the review can check each one.
+      - name: Code map impact of this pull request
+        # Runs even when the code map check above failed: that is when the list matters most.
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: .venv-codemap/bin/python scripts/codemap/codemap.py impact --base "origin/${GITHUB_BASE_REF}"
 
       - name: The gates themselves are wired and fail closed
         run: make gates-wired-guard gate-preflight
@@ -71,14 +83,30 @@ jobs:
       - name: Tech-debt budgets and refactor-spec conformance
         run: make debt-budget spec-conformance
 
-      # Same baseline rule as ci.yml: the parent commit, or the pull request's
-      # target. A root commit has nothing to compare against and says so.
+      # The baseline is everything this run did not see before. On a pull
+      # request that is the target branch. On a push it is the tip before the
+      # push (`github.event.before`), so every commit in a multi-commit push is
+      # inside the compared range and inside the `budget-raise-ok` trailer
+      # scan; comparing with HEAD~1 alone let a raise in any commit but the
+      # last go unseen. A push that creates the branch or is forced reports a
+      # before-commit this checkout may not hold, so it falls back to the
+      # parent commit and says so. A root commit has nothing to compare
+      # against and says so. Every comparison requires its baseline: a
+      # ratchet that could not compare fails instead of passing.
       - name: Debt budgets ratchet down only
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
-            ./scripts/check_budget_monotonicity.sh "origin/${GITHUB_BASE_REF}"
+            BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "origin/${GITHUB_BASE_REF}"
+          elif [[ -n "${PUSH_BEFORE:-}" && ! "$PUSH_BEFORE" =~ ^0{40}$ ]] \
+              && git rev-parse --verify --quiet "${PUSH_BEFORE}^{commit}" >/dev/null; then
+            BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "$PUSH_BEFORE"
           elif git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+            if [[ -n "${PUSH_BEFORE:-}" ]]; then
+              echo "The tip before this push ('${PUSH_BEFORE}') is a null SHA or not in this checkout; comparing with the parent commit only."
+            fi
             BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "$(git rev-parse HEAD~1)"
           else
             echo "HEAD is a root commit: nothing to ratchet against."

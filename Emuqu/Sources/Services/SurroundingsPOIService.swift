@@ -15,15 +15,16 @@ import os
 // Categories chosen for the fitness / endurance use case:
 //   • water  — fountains, springs, water-only stops (essential mid-run)
 //   • restroom — public restrooms (break-need lookups)
-//   • food — cafes, restaurants, convenience stores (refuel + carbs)
+//   • food — restaurants, cafes, bakeries, food markets (refuel + carbs)
 //   • parking — for "lead me back to my car"
-//   • medical — hospitals, urgent care, pharmacies (safety net)
+//   • medical — hospitals, pharmacies (safety net)
 //
 // Privacy: all search happens against MapKit's tile data; no third-
 // party network calls. Results are ephemeral — a complete result is
 // cached for 60 s on the service so a fast follow-up call ("what's the
-// closest food?" after "what's around me?") doesn't burn another
-// round-trip. A search where any category failed is not cached.
+// closest food?" after "what's around me?") with the same radius and
+// per-category count doesn't burn another round-trip. A search where any
+// category failed is not cached.
 
 // Not @MainActor: the only mutable state is the cache, kept in an
 // `OSAllocatedUnfairLock`, and the work itself (MKLocalSearch +
@@ -98,6 +99,9 @@ final class SurroundingsPOIService: Sendable {
         let pois: [POI]
         let observedAt: Date
         let coord: CLLocationCoordinate2D
+        /// The search parameters the entry answers; a call with others misses.
+        let radiusMeters: CLLocationDistance
+        let topPerCategory: Int
     }
 
     /// Cache + its lock as one async-safe primitive. `OSAllocatedUnfairLock`'s
@@ -116,22 +120,17 @@ final class SurroundingsPOIService: Sendable {
 
     // MARK: - Public API
 
-    /// The places found, nearest first. Use `searchWithStatus` to tell a
-    /// category with nothing nearby from one whose lookup failed.
-    func search(
-        near coord: CLLocationCoordinate2D,
-        radiusMeters: CLLocationDistance = 500,
-        topPerCategory: Int = 3
-    ) async -> [POI] {
-        await searchWithStatus(near: coord, radiusMeters: radiusMeters, topPerCategory: topPerCategory).pois
-    }
-
+    /// The places found, nearest first, and the categories whose lookup
+    /// failed, so a category with nothing nearby is told apart from one that
+    /// could not be searched.
     func searchWithStatus(
         near coord: CLLocationCoordinate2D,
         radiusMeters: CLLocationDistance = 500,
         topPerCategory: Int = 3
     ) async -> SearchResult {
-        if let cached = cachedPOIs(near: coord) { return SearchResult(pois: cached, failedCategories: []) }
+        if let cached = cachedPOIs(near: coord, radiusMeters: radiusMeters, topPerCategory: topPerCategory) {
+            return SearchResult(pois: cached, failedCategories: [])
+        }
         let region = MKCoordinateRegion(
             center: coord,
             latitudinalMeters: radiusMeters * 2,
@@ -144,18 +143,30 @@ final class SurroundingsPOIService: Sendable {
             topPerCategory: topPerCategory
         )
         guard result.failedCategories.isEmpty else { return result }
-        cacheStorage.withLock { state in
-            state = CacheEntry(pois: result.pois, observedAt: Date(), coord: coord)
-        }
+        remember(result.pois, at: coord, radiusMeters: radiusMeters, topPerCategory: topPerCategory)
         return result
+    }
+
+    /// Cache a complete result with the parameters it answers.
+    private func remember(
+        _ pois: [POI], at coord: CLLocationCoordinate2D, radiusMeters: CLLocationDistance, topPerCategory: Int
+    ) {
+        let entry = CacheEntry(
+            pois: pois, observedAt: Date(), coord: coord, radiusMeters: radiusMeters, topPerCategory: topPerCategory
+        )
+        cacheStorage.withLock { $0 = entry }
     }
 
     /// `OSAllocatedUnfairLock`'s `withLock` is the Swift-6 async-safe scoped
     /// lock. It returns the snapshot — a value type, so post-unlock mutation
     /// by another task can't corrupt what we read. Nil when the cache is
-    /// stale or the user has drifted too far from where it was captured.
-    private func cachedPOIs(near coord: CLLocationCoordinate2D) -> [POI]? {
+    /// stale, was searched with another radius or count, or the user has
+    /// drifted too far from where it was captured.
+    private func cachedPOIs(
+        near coord: CLLocationCoordinate2D, radiusMeters: CLLocationDistance, topPerCategory: Int
+    ) -> [POI]? {
         guard let snapshot = cacheStorage.withLock({ $0 }),
+              snapshot.radiusMeters == radiusMeters, snapshot.topPerCategory == topPerCategory,
               Date().timeIntervalSince(snapshot.observedAt) < cacheMaxAgeSec else { return nil }
         let drift = CLLocation(latitude: snapshot.coord.latitude, longitude: snapshot.coord.longitude)
             .distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))

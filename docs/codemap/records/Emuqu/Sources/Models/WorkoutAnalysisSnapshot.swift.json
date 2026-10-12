@@ -1,0 +1,64 @@
+{
+ "file": "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift",
+ "hash": "ab77aee1cd3e88c6",
+ "role": "Persisted, once-computed derivatives of a workout's sample stream (α1 bands, HR-zone seconds, split extremes, moving time, energy/economy, narratives) stored on WorkoutMetadata.analysisSnapshot and rebuilt per-view when stale.",
+ "types": [
+  "WorkoutAnalysisSnapshot: struct (Codable, Equatable) — cached analysis fields + schema/narrative-language staleness check"
+ ],
+ "state": [
+  "mem:WorkoutAnalysisSnapshot.currentVersion = 2 (static)",
+  "archive: persisted inside WorkoutMetadata.analysisSnapshot (key analysisSnapshot)"
+ ],
+ "toplevel": "Codable is synthesized from the stored lets (all optional except schemaVersion), so an older snapshot missing a new optional field decodes it as nil; a snapshot missing schemaVersion fails to decode and WorkoutMetadata.init(from:) propagates the throw. narrativeLanguage default parameter evaluates LanguageManager.appLocale.identifier at each call.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutAnalysisSnapshot.needsRebuild",
+   "hash": "8b00e4a65f78c18b",
+   "does": "True when the stored schemaVersion < currentVersion (2) or narrativeLanguage differs from the app's current locale identifier (nil counts as different). FitnessPostSummaryView+Feeling.swift:96 rebuilds and writes back the snapshot when true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "init WorkoutAnalysisSnapshot(schemaVersion:alpha1Mean:alpha1Max:alpha1Min:secondsBelowAT1:secondsBetweenAT1AT2:secondsAboveAT2:firstAT1CrossingOffsetSec:firstAT1CrossingHR:dominantAlpha1BandRaw:hrZoneSeconds:dominantHRZone:dominantHRZonePercent:fastestSplitIndex:fastestSplitPaceSecPerKm:slowestSplitIndex:slowestSplitPaceSecPerKm:movingTimeSec:movingTimePercent:vamMetersPerHour:calorieRatePerHour:estimatedTotalCalories:strideLengthMeters:powerHRRatio:gradeAdjustedPaceSecPerKm:relativeEffortLabel:howYouDidNarrative:heroNarrative:narrativeLanguage:)",
+   "hash": "a17f56628fe245d6",
+   "does": "Memberwise initializer with every field defaulted to nil (schemaVersion to currentVersion, narrativeLanguage to the current app locale identifier); empty narrative strings are normalized to nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+57",
+     "cond": "howYouDidNarrative is an empty string",
+     "effect": "stored as nil; otherwise stored as given (nil stays nil)"
+    },
+    {
+     "at": "+58",
+     "cond": "heroNarrative is an empty string",
+     "effect": "stored as nil; otherwise stored as given"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

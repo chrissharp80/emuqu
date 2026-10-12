@@ -54,28 +54,31 @@ extension SleepTimelineEditorView {
 
     /// Snaps to a 5-minute grid during the drag so the handle doesn't feel
     /// jumpy — small finger movements don't cause visible time changes, and the
-    /// preview label shows clean times.
+    /// preview label shows clean times. The preview is gesture state, so
+    /// SwiftUI clears it when the drag ends or is cancelled; only a drag that
+    /// ends applies the move. The state does not change mid-drag, so the
+    /// anchor is the boundary as the gesture was built.
     func boundaryDragGesture(
         seg: SleepTimelineState.Segment,
         side: SleepTimelineEdit.Side,
         vp: (start: Date, end: Date),
         width: CGFloat
     ) -> some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.timelineSpace))
-            .onChanged { value in
-                let total = vp.end.timeIntervalSince(vp.start)
-                let currentSeg = segment(for: seg.id) ?? seg
-                let anchor = side == .start ? currentSeg.start : currentSeg.end
-                let anchorX = CGFloat(anchor.timeIntervalSince(vp.start) / total) * width
-                let newX = max(0, min(width, anchorX + value.translation.width))
-                let rawTime = vp.start.addingTimeInterval(Double(newX / width) * total)
-                dragPreview = BoundaryDrag(segmentId: seg.id, side: side, newTime: snapTo5Min(rawTime))
+        let anchor = side == .start ? seg.start : seg.end
+        let segmentId = seg.id
+        return DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.timelineSpace))
+            .updating($dragPreview) { value, preview, _ in
+                preview = BoundaryDrag(
+                    segmentId: segmentId, side: side, anchor: anchor,
+                    translation: value.translation.width, vp: vp, width: width
+                )
             }
-            .onEnded { _ in
-                if let preview = dragPreview {
-                    apply(.adjustBoundary(segmentId: preview.segmentId, side: preview.side, newTime: preview.newTime))
-                }
-                dragPreview = nil
+            .onEnded { value in
+                let drop = BoundaryDrag(
+                    segmentId: segmentId, side: side, anchor: anchor,
+                    translation: value.translation.width, vp: vp, width: width
+                )
+                apply(.adjustBoundary(segmentId: drop.segmentId, side: drop.side, newTime: drop.newTime))
             }
     }
 
@@ -100,7 +103,10 @@ extension SleepTimelineEditorView {
 
     // MARK: - Segment inspector (toolbar below timeline)
 
-    func segmentInspector(_ seg: SleepTimelineState.Segment) -> some View {
+    /// While a boundary of this segment is being dragged, the header, pills
+    /// and source describe the segment as the drop would leave it.
+    func segmentInspector(_ committed: SleepTimelineState.Segment) -> some View {
+        let seg = previewedSegment(committed)
         let stages = SleepMergingPipeline.accumulateStageMinutes(seg.intervals)
         return VStack(alignment: .leading, spacing: 12) {
             inspectorHeader(seg)
@@ -115,6 +121,14 @@ extension SleepTimelineEditorView {
         .padding()
         .background(AppTheme.cardBackground)
         .cornerRadius(12)
+    }
+
+    /// `seg` as the in-progress drag would leave it, through the same
+    /// transform the drop applies; `seg` itself when no drag of it is live.
+    func previewedSegment(_ seg: SleepTimelineState.Segment) -> SleepTimelineState.Segment {
+        guard let preview = dragPreview, preview.segmentId == seg.id else { return seg }
+        let moved = state.applying(.adjustBoundary(segmentId: seg.id, side: preview.side, newTime: preview.newTime))
+        return moved.segments.first { $0.id == seg.id } ?? seg
     }
 
     func inspectorHeader(_ seg: SleepTimelineState.Segment) -> some View {
@@ -133,8 +147,11 @@ extension SleepTimelineEditorView {
     func inspectorStagePills(_ stages: StageMinutes) -> some View {
         HStack(spacing: 10) {
             if stages.deep > 0 { stagePill(String(localized: "Deep", bundle: LanguageManager.appBundle), minutes: stages.deep, stage: .deep) }
-            if stages.core > 0 { stagePill(String(localized: "Core", bundle: LanguageManager.appBundle), minutes: stages.core, stage: .core) }
+            if stages.core > 0 { stagePill(String(localized: "Light", bundle: LanguageManager.appBundle), minutes: stages.core, stage: .core) }
             if stages.rem > 0 { stagePill(String(localized: "REM", bundle: LanguageManager.appBundle), minutes: stages.rem, stage: .rem) }
+            if stages.unspecified > 0 {
+                stagePill(String(localized: "Asleep", bundle: LanguageManager.appBundle), minutes: stages.unspecified, stage: .unspecified)
+            }
             if stages.awake > 0 { stagePill(String(localized: "Awake", bundle: LanguageManager.appBundle), minutes: stages.awake, stage: .awake) }
             Spacer()
         }
@@ -178,9 +195,12 @@ extension SleepTimelineEditorView {
         }
     }
 
+    /// Names in a fixed order (sensors first, then the user's edits), so the
+    /// line reads the same on every render whatever order the set iterates.
     func sourceLabel(for provs: Set<HealthKitManager.SleepStageProvenance>) -> String {
         if provs.isEmpty { return String(localized: "Recording bounds", bundle: LanguageManager.appBundle) }
-        let names: [String] = provs.compactMap {
+        let order: [HealthKitManager.SleepStageProvenance] = [.watch, .iphone, .hrvDerived, .userAdded, .userCarved, .userAdjusted]
+        let names: [String] = order.filter(provs.contains).map {
             switch $0 {
             case .watch: "Watch"
             case .iphone: "iPhone"
@@ -304,7 +324,7 @@ extension SleepTimelineEditorView {
 
     func formatEditSummary(_ counts: [SleepEditRecord.Kind: Int]) -> String {
         let order: [SleepEditRecord.Kind] = [
-            .adjustBoundary, .addSegment, .removeSegment, .split, .merge, .carveAwake
+            .adjustBoundary, .addSegment, .removeSegment, .split, .merge, .carveAwake, .unknown
         ]
         var parts: [String] = []
         for kind in order {
@@ -390,21 +410,31 @@ extension SleepTimelineEditorView {
         }
     }
 
+    /// A fetch that fails keeps the timeline and shows why. A night with
+    /// nothing to draw (no stages and no sleep envelope, which is what the
+    /// fetch returns for a night that does not fit the recording) is refused
+    /// the same way rather than blanking the timeline. A good fetch replaces
+    /// the starting point and clears undo, as the card warns: undoing past
+    /// it would put the old night's timeline over the new one.
     @MainActor
     func runRefreshFromHealthKit() async {
         guard let provider = onRefreshFromHealthKit else { return }
         refreshing = true
         refreshError = nil
         defer { refreshing = false }
-        if let fresh = await provider() {
-            // Push current state to undo so user can recover edits if they
-            // didn't actually want to wipe them.
-            undo.push(state)
-            originalSleepData = fresh
-            state = SleepTimelineState.initial(from: fresh)
-        } else {
+        guard let fresh = await provider() else {
             refreshError = String(localized: "Couldn't pull sleep data from Apple Health. Check Settings → Privacy & Security → Health → Emuqu.", bundle: LanguageManager.appBundle)
+            return
         }
+        let freshState = SleepTimelineState.initial(from: fresh)
+        guard !freshState.segments.isEmpty else {
+            refreshError = String(localized: "No sleep data found for the requested period", bundle: LanguageManager.appBundle)
+            return
+        }
+        undo.clear()
+        originalSleepData = fresh
+        state = freshState
+        refreshedFromHealth = true
     }
 
     // MARK: - Apply / Undo / Commit
@@ -437,9 +467,12 @@ extension SleepTimelineEditorView {
     /// a PURE refresh (no manual edit) look changed → fire onSave → re-lock
     /// `sleepUserAdjusted`, re-opening the "I didn't adjust sleep" bug.
     /// Against `originalSleepData`: a manual edit differs → saves + locks; a
-    /// pure refresh matches → no save, no lock; refresh-then-edit → saves.
+    /// pure refresh matches → hands the refreshed night to
+    /// `onRefreshAccepted` (stored without the lock); refresh-then-edit →
+    /// saves.
     func commit() {
         guard !state.hasSameContent(as: SleepTimelineState.initial(from: originalSleepData)) else {
+            if refreshedFromHealth { onRefreshAccepted?(originalSleepData) }
             dismiss()
             return
         }
@@ -448,16 +481,6 @@ extension SleepTimelineEditorView {
     }
 
     // MARK: - Helpers
-
-    /// Snap a date to the nearest 5-minute boundary. Prevents the drag
-    /// handle from feeling "jumpy" — small finger movements don't produce
-    /// visible time changes, and the preview label shows clean times.
-    func snapTo5Min(_ date: Date) -> Date {
-        let interval: TimeInterval = 5 * 60
-        let t = date.timeIntervalSinceReferenceDate
-        let snapped = (t / interval).rounded() * interval
-        return Date(timeIntervalSinceReferenceDate: snapped)
-    }
 
     var selectedSegment: SleepTimelineState.Segment? {
         guard let id = selectedSegmentId else { return nil }

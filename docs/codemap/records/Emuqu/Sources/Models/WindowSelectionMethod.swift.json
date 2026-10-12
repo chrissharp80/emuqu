@@ -1,0 +1,197 @@
+{
+ "file": "Emuqu/Sources/Models/WindowSelectionMethod.swift",
+ "hash": "6da5c69cda8b6ccb",
+ "role": "Enum of the user-selectable analysis-window methods (consolidated recovery, peak RMSSD/SDNN/Total Power, custom) with localized names, tooltip, SF symbol, dropdown list and default.",
+ "types": [
+  "WindowSelectionMethod: enum — String/Codable/CaseIterable window-selection method persisted in UserSettings"
+ ],
+ "state": [],
+ "toplevel": "Raw values are persisted (UserSettings Codable); Codable/CaseIterable synthesized.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WindowSelectionMethod.displayName",
+   "hash": "70618a6d6fd5a4d4",
+   "does": "Localized full menu label per method.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .consolidatedRecovery",
+     "effect": "'Best Recovery (Default)'"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .peakRMSSD",
+     "effect": "'Highest RMSSD'"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .peakSDNN",
+     "effect": "'Highest SDNN'"
+    },
+    {
+     "at": "+8",
+     "cond": "self == .peakTotalPower",
+     "effect": "'Highest Total Power' (actually SDNN-based, see file flag)"
+    },
+    {
+     "at": "+10",
+     "cond": "self == .custom",
+     "effect": "'Choose Your Own Window'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WindowSelectionMethod.shortName",
+   "hash": "08c6fa03e1d1801f",
+   "does": "Localized compact label per method.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .consolidatedRecovery",
+     "effect": "'Best Recovery'"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .peakRMSSD",
+     "effect": "'Highest RMSSD'"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .peakSDNN",
+     "effect": "'Highest SDNN'"
+    },
+    {
+     "at": "+8",
+     "cond": "self == .peakTotalPower",
+     "effect": "'Highest Total Power'"
+    },
+    {
+     "at": "+10",
+     "cond": "self == .custom",
+     "effect": "'Custom Window'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WindowSelectionMethod.tooltip",
+   "hash": "1a32a3240fd8d481",
+   "does": "Localized explanatory tooltip per method shown under the reanalysis picker; .peakTotalPower shares the .peakSDNN text because its selection uses SDNN as the total-power proxy (same window).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .consolidatedRecovery",
+     "effect": "most stable organized window during deep sleep"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .peakRMSSD",
+     "effect": "highest parasympathetic activity"
+    },
+    {
+     "at": "+8",
+     "cond": "self == .peakSDNN or .peakTotalPower",
+     "effect": "highest total HRV (sympathetic + parasympathetic)"
+    },
+    {
+     "at": "+10",
+     "cond": "self == .custom",
+     "effect": "tap/drag chart to choose"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WindowSelectionMethod.icon",
+   "hash": "c5c04adafadf2e55",
+   "does": "SF Symbol per method.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .consolidatedRecovery",
+     "effect": "star.fill"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .peakRMSSD",
+     "effect": "waveform.path.ecg"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .peakSDNN",
+     "effect": "chart.line.uptrend.xyaxis"
+    },
+    {
+     "at": "+8",
+     "cond": "self == .peakTotalPower",
+     "effect": "bolt.heart.fill"
+    },
+    {
+     "at": "+10",
+     "cond": "self == .custom",
+     "effect": "hand.draw.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WindowSelectionMethod.automaticMethods",
+   "hash": "18a8149139039964",
+   "does": "The four automatic methods shown in the dropdown (all except custom).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WindowSelectionMethod.defaultMethod",
+   "hash": "1ad4aa20fea09702",
+   "does": "Returns .consolidatedRecovery as the factory default (used by Dashboard reanalyze chip).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

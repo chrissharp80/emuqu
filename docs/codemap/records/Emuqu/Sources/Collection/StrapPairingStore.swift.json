@@ -1,0 +1,223 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapPairingStore.swift",
+ "hash": "296ebedde8c1d8e0",
+ "role": "Persistence of paired Polar straps and the last-connected time in the App Group UserDefaults suite, with forward migration from .standard and from the oldest single-device-id key.",
+ "types": [
+  "StrapPairingStore: enum — load/save/adding/removeAll for known devices and last-connected time"
+ ],
+ "state": [
+  "ud:PolarManager.knownDevices (App Group suite group.com.chrissharp.flowrecovery; legacy copy in .standard)",
+  "ud:PolarManager.lastConnectedTime (App Group; legacy .standard)",
+  "ud:PolarManager.lastDeviceId (legacy, .standard)"
+ ],
+ "toplevel": "Static lets knownDevicesKey/lastConnectedTimeKey from UserDefaultsKeys (Constants.swift:60-63).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var StrapPairingStore.defaults",
+   "hash": "a6b4ebf7fba9207f",
+   "does": "Returns SharedUserDefaults.appGroup.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "d4cc3511c4681e6c"
+   }
+  },
+  {
+   "key": "func StrapPairingStore.adding(_:to:)",
+   "hash": "4f686651b45262ee",
+   "does": "Returns the list with any entry of the same id removed and `device` inserted at index 0.",
+   "entry": "Called from PolarManager.addKnownDevice (PolarManager.swift:402).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapPairingStore.load()",
+   "hash": "6109c2f43f4ad2e8",
+   "does": "Loads known devices: App Group JSON; else legacy .standard JSON (copied into the App Group); else builds one H10 entry from the legacy lastDeviceId string (saved, legacy key removed); else [].",
+   "entry": "Called from PolarManager.loadKnownDevices (PolarManager.swift:413) in PolarManager.init.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.decode(_:source:)",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:PolarManager.knownDevices (App Group)",
+    "ud:PolarManager.knownDevices (.standard)",
+    "ud:PolarManager.lastDeviceId (.standard)"
+   ],
+   "writes": [
+    "ud:PolarManager.knownDevices (App Group)",
+    "ud:PolarManager.lastDeviceId (.standard, removed)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "App Group data decodes",
+     "effect": "true: return it; false (missing or corrupt — corrupt data logged and left in place): try legacy"
+    },
+    {
+     "at": "+4",
+     "cond": "legacy .standard data present and decodes",
+     "effect": "true: copy raw data to App Group, log, return; false: try oldest format"
+    },
+    {
+     "at": "+10",
+     "cond": "legacy lastDeviceId string present",
+     "effect": "false: return []; true: migrate to [KnownDevice(id, 'Polar <id>', .h10)], save, remove legacy key"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.decode(_:source:)": "7e318fe9dd676aa2",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "a106f22c64c8b583",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults": "d151fc3d11a8ab19",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapPairingStore.save(_:)",
+   "hash": "e70a2fbe729e4fb3",
+   "does": "JSON-encodes the device list into the App Group key; an encoding error is logged and nothing is written.",
+   "entry": "Called from PolarManager.addKnownDevice/removeKnownDevice (PolarManager.swift:405,410) and load migration.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PolarManager.knownDevices (App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "encode throws",
+     "effect": "catch: logged, pairing list not persisted; no throw: written"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults": "d151fc3d11a8ab19",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapPairingStore.loadLastConnectedTime()",
+   "hash": "92e03589a358a308",
+   "does": "Reads the last-connected epoch seconds from the App Group; if 0 reads .standard and copies a positive value to the App Group; returns a Date if > 0 else nil.",
+   "entry": "Called from PolarManager.loadLastConnectedTime (PolarManager.swift:415) in init.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults"
+   ],
+   "reads": [
+    "ud:PolarManager.lastConnectedTime (App Group)",
+    "ud:PolarManager.lastConnectedTime (.standard)"
+   ],
+   "writes": [
+    "ud:PolarManager.lastConnectedTime (App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "App Group value == 0 (missing)",
+     "effect": "true: fall back to .standard; false: use it"
+    },
+    {
+     "at": "+4",
+     "cond": "legacy value > 0",
+     "effect": "true: migrated to App Group; false: nothing"
+    },
+    {
+     "at": "+6",
+     "cond": "interval > 0 (ternary)",
+     "effect": "true: Date; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults": "d151fc3d11a8ab19"
+   }
+  },
+  {
+   "key": "func StrapPairingStore.saveLastConnectedTime(_:)",
+   "hash": "1e18652f8f22127d",
+   "does": "Writes time.timeIntervalSince1970 to the App Group last-connected key.",
+   "entry": "Called from PolarManager.saveLastConnectedTime (PolarManager.swift:420) after each connect.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PolarManager.lastConnectedTime (App Group)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults": "d151fc3d11a8ab19"
+   }
+  },
+  {
+   "key": "func StrapPairingStore.removeAll()",
+   "hash": "b494438353c3b43a",
+   "does": "Removes knownDevices and lastConnectedTime from both the App Group and .standard, and the legacy lastDeviceId.",
+   "entry": "Called from AppLaunchRecovery.swift:196 only under -UITests-FreshInstall in DEBUG.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PolarManager.knownDevices",
+    "ud:PolarManager.lastConnectedTime",
+    "ud:PolarManager.lastDeviceId"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each store (App Group, .standard)",
+     "effect": "both keys removed in each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::var StrapPairingStore.defaults": "d151fc3d11a8ab19"
+   }
+  },
+  {
+   "key": "func StrapPairingStore.decode(_:source:)",
+   "hash": "a1129254561772cd",
+   "does": "Decodes [KnownDevice] JSON; nil data → nil; decode error logged with the source name → nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "data non-nil",
+     "effect": "false: nil; true: decode"
+    },
+    {
+     "at": "+4",
+     "cond": "decode throws",
+     "effect": "catch: logged, returns nil (caller falls back to the next source)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

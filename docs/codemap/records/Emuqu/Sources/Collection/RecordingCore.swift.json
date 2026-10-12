@@ -1,0 +1,32 @@
+{
+ "file": "Emuqu/Sources/Collection/RecordingCore.swift",
+ "hash": "6972971bee271ee8",
+ "role": "MainActor protocol naming the shared recording dependencies (PolarManager, HealthKitManager, SessionArchive, CloudKitSyncManager, RawRRBackup, HRVAnalysisPipeline) and notifyArchiveChanged; RRCollector conforms, WorkoutRecorder depends on it.",
+ "types": [
+  "RecordingCore: protocol — shared recorder substrate"
+ ],
+ "state": [],
+ "toplevel": "Protocol declares get-only properties polarManager, healthKit, archive, cloudSyncManager, rawBackup, analysisPipeline; conformance in RRCollector+RecordingCore.swift:10.",
+ "flags": [],
+ "units": [
+  {
+   "key": "requirement RecordingCore.notifyArchiveChanged()",
+   "hash": "a814760ec0afdcb6",
+   "does": "Protocol requirement: tell downstream observers the archive changed after a recorder archives a session.",
+   "entry": null,
+   "calls": [
+    "dyn:RecordingCore.notifyArchiveChanged → Emuqu/Sources/Collection/RRCollector+Session.swift:25"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863"
+   }
+  }
+ ],
+ "deps": {}
+}

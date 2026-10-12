@@ -1,0 +1,192 @@
+{
+ "file": "EmuquTests/HeartRateMeasurementTests.swift",
+ "hash": "af8a012a5e97e982",
+ "role": "XCTest suite for HeartRateMeasurement.parse, the in-app decoder of the BLE Heart Rate Measurement characteristic (0x2A37) that replaced the Polar SDK decoder: real H10 packets, 1/1024 s→ms rounding, 16-bit rate, energy-expended skip, no-RR packets, odd trailing byte, short packets.",
+ "types": [
+  "HeartRateMeasurementTests: class — XCTestCase over HeartRateMeasurement.parse"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HeartRateMeasurementTests.parse(_:)",
+   "hash": "2862a2ab18753668",
+   "does": "Test helper: wraps a byte array in Data and calls HeartRateMeasurement.parse.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testAnH10PacketDecodesToItsRateAndIntervals()",
+   "hash": "a81d8bfa7652b155",
+   "does": "Asserts packet 10 49 52 03 64 03 decodes to hr 73, rrsMs [830, 848], rrAvailable true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testASecondH10PacketDecodesToItsRateAndIntervals()",
+   "hash": "a7d1d51320d575db",
+   "does": "Asserts packet 10 46 42 03 3B 03 decodes to hr 70, rrsMs [814, 808], rrAvailable true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testIntervalsRoundToTheNearestMillisecondAsTheSDKDid()",
+   "hash": "3ecc05dcce6ac247",
+   "does": "Asserts raw intervals 1024/512/1/1023 (1/1024 s) round to 1000/500/1/999 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testASixteenBitRateIsReadLittleEndian()",
+   "hash": "5d9f29a02629d5ac",
+   "does": "Asserts flags bit0 set reads the rate as 16-bit little-endian (0x012C → 300).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testEnergyExpendedIsSkippedBeforeTheIntervals()",
+   "hash": "688a3234a224cb2c",
+   "does": "Asserts flag 0x18 (energy + RR) skips the two energy bytes and decodes hr 60, rrsMs [1000].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testAPacketWithoutIntervalsSaysSo()",
+   "hash": "e60ce101a6c005f7",
+   "does": "Asserts a packet with flags 0 decodes to hr 64, no intervals, rrAvailable false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testATrailingOddByteIsIgnored()",
+   "hash": "d898bb5c30011651",
+   "does": "Asserts a trailing single byte after one full interval is ignored (rrsMs [1000]).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurementTests.testPacketsTooShortForWhatTheirFlagsDeclareAreDropped()",
+   "hash": "d08677fcb7258f15",
+   "does": "Asserts parse returns nil for empty data, a 1-byte packet, a 16-bit-rate packet missing its high byte, and an energy-flagged packet one byte short.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "EmuquTests/HeartRateMeasurementTests.swift::func HeartRateMeasurementTests.parse(_:)": "caba240ff008a75e"
+   }
+  }
+ ],
+ "deps": {}
+}

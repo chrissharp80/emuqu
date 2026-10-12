@@ -37,8 +37,9 @@ final class WorkoutPlanModel {
     /// Routes are a
     /// disclosure. Indoor sports never need them; most casual outdoor
     /// users use "just go" (record-as-you-walk + save-as-route at
-    /// end) more than pre-pick. Auto-expands when a route is already
-    /// selected so the user sees their pick without a tap.
+    /// end) more than pre-pick. The preflight sets it when a route is
+    /// picked, so the user sees their pick without a tap and can still
+    /// collapse it.
     var routeExpanded: Bool = false
 
     // MARK: Coaching (collapsible advanced options)
@@ -47,47 +48,42 @@ final class WorkoutPlanModel {
     var selectedPlan: IntervalPlan?
     var selectedTargetZone: Int?
 
-    // MARK: HR Source
-    /// User's explicit pick (if any). When nil, the tab resolves a
-    /// sensible default at Start time based on what's connected
-    /// (strap if paired+connected, else Watch).
-    var explicitHRSource: WorkoutRecorder.HRSource?
-
     // MARK: Sensor sheet
     /// Drives the strap-pill's tap target. A sheet for managing the
     /// Polar / foot pod / PM5 connections — never a gate, opened on
     /// demand when the user wants to fiddle with sensors.
     var sensorSheetPresented: Bool = false
 
-    // MARK: Start sequence
-    /// True from the moment the user taps Start until either the
-    /// recorder.phase has flipped to .recording OR the start failed.
-    /// Gates the Start button so a second tap during the
-    /// connect-and-start sequence can't fire `recorder.start()` twice.
-    var startInProgress: Bool = false
-    /// Live label shown on the Start button during the start sequence
-    /// — "Connecting H10…", "Starting…", etc.
-    var startProgressLabel: String = ""
-
     // MARK: - Resolution helpers
 
-    /// HR source the next Start tap will actually use. Resolves the
-    /// explicit pick if set, else falls back to the smart default.
+    /// HR source the next Start tap will use. There is no HR-source control:
+    /// the strap when one is connected or paired (a paired one is
+    /// reconnected in the background), else the Watch.
     func resolvedSource(strapConnected: Bool, hasKnownStrap: Bool) -> WorkoutRecorder.HRSource {
-        if let explicit = explicitHRSource { return explicit }
-        if strapConnected { return .strap }
-        if hasKnownStrap { return .strap }  // will trigger reconnect
-        return .watch
+        strapConnected || hasKnownStrap ? .strap : .watch
     }
 
-    /// True iff Start can fire right now (not already starting).
+    /// True iff Start can fire right now: the recorder exists and is not
+    /// recording or finalizing. The start runs synchronously and flips the
+    /// phase to `.recording` before a second tap is handled, so the phase is
+    /// the double-tap gate.
     func canStart(recorderPhase: WorkoutRecorder.Phase?) -> Bool {
-        guard !startInProgress else { return false }
         guard let phase = recorderPhase else { return false }
         switch phase {
         case .idle, .finished: return true
         case .failed: return true
         case .recording, .finalizing: return false
         }
+    }
+
+    /// Clears the picks that belong to one workout (route, interval plan,
+    /// target zone, cues) once it has started, so the next workout from the
+    /// tab starts from a clean plan. The sport stays.
+    func clearPerWorkoutPicks() {
+        selectedRoute = nil
+        routeExpanded = false
+        selectedPlan = nil
+        selectedTargetZone = nil
+        selectedThresholds = []
     }
 }

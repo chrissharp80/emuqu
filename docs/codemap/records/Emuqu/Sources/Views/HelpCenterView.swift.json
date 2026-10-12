@@ -1,0 +1,586 @@
+{
+ "file": "Emuqu/Sources/Views/HelpCenterView.swift",
+ "hash": "958393c3f21ad22d",
+ "role": "Help & Learn landing page (generic over a header view): searchable list of localized help categories, hero card with article counts and a link to the first Getting Started article, category grid, and search results; plus CategoryCard, HelpCategoryView and ArticleRow.",
+ "types": [
+  "HelpCenterView<Header: View>: struct (View) — help landing page",
+  "extension HelpCenterView where Header == HelpMethodologyHeader — init() using the methodology header",
+  "CategoryCard: private struct (View) — grid card",
+  "HelpCategoryView: struct (View) — article list for one category",
+  "ArticleRow: private struct (View) — article row"
+ ],
+ "state": [
+  "@State searchText",
+  "columns: two flexible GridItems"
+ ],
+ "toplevel": "#Preview pushes HelpCenterView() with AppDependencies.current.app.settingsManager. Entry points: SettingsView.swift:424, MoreMenuView.swift:109 (as HelpCenterV2View), SettingsSearchIndex.swift:326; snapshot test StateSnapshotTests.swift:145.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init HelpCenterView(header:)",
+   "hash": "df15cdc61be797a6",
+   "does": "Generic init storing header() result.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HelpCenterView.categories",
+   "hash": "52d194d059303a8c",
+   "does": "Returns HelpContent.categories(forAge: settings.age) — localized categories with the HRV-science article adjusted by age.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "1e8352913895189b"
+   }
+  },
+  {
+   "key": "var HelpCenterView.searchResults",
+   "hash": "d206e0639ee0f2a0",
+   "does": "Returns articles across all categories whose lowercased searchable text contains the lowercased query; empty when the query is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories",
+    "Emuqu/Sources/Views/HelpContent.swift::var HelpArticle.searchableText"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "searchText empty",
+     "effect": "returns []; otherwise filters by plain substring (no diacritic/whitespace folding)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "359493c26c0c6f6a",
+    "Emuqu/Sources/Views/HelpContent.swift::var HelpArticle.searchableText": "c13f9b63f65a5d5b"
+   }
+  },
+  {
+   "key": "var HelpCenterView.isSearching",
+   "hash": "866421da4b581afc",
+   "does": "True when searchText is non-empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HelpCenterView.stack",
+   "hash": "1121d08d321cb9db",
+   "does": "VStack showing search results while searching, otherwise header, hero card and category grid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.isSearching",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResultsView",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroCard",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryGrid"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isSearching",
+     "effect": "search results only (header hidden); otherwise header + hero + grid"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryGrid": "e086686fc7afb4e7",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroCard": "527518e95f4a9d4b",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.isSearching": "dd13e542d3f1684e",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResultsView": "bbf0293778488e8d"
+   }
+  },
+  {
+   "key": "var HelpCenterView.body",
+   "hash": "73237992bdb00a59",
+   "does": "ScrollView of the stack with .searchable bound to searchText, zen background, title 'Help & Learn'.",
+   "entry": "SwiftUI body; .searchable text edits",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.stack",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.stack": "ddc6b6895ca74115",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenBackground()": "9f665a4650974bfd"
+   }
+  },
+  {
+   "key": "var HelpCenterView.heroCard",
+   "hash": "74fe9022414b0932",
+   "does": "Hero card: header, divider, '<N> articles across <M> topics…' text, and the start-with-basics link.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroHeader",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.totalArticleCount",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.startWithBasicsLink",
+    "Emuqu/Sources/Views/Theme.swift::func View.heroCard()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "359493c26c0c6f6a",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroHeader": "67f8773e25369574",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.startWithBasicsLink": "3ef3a4d5a8935182",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.totalArticleCount": "b90bef95997fdbf1",
+    "Emuqu/Sources/Views/Theme.swift::func View.heroCard()": "f368fdfe6aed33f5"
+   }
+  },
+  {
+   "key": "var HelpCenterView.startWithBasicsLink",
+   "hash": "9798e7abbcf9ff0b",
+   "does": "NavigationLink to HelpArticleView for the localized first Getting Started article.",
+   "entry": "NavigationLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized",
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.body",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.startWithBasicsLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.body": "932d20faa59aa9fe",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.startWithBasicsLabel": "cafb391b54343413",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "e651e04da0d378ed"
+   }
+  },
+  {
+   "key": "var HelpCenterView.startWithBasicsLabel",
+   "hash": "669da6a29ed4d7e7",
+   "does": "White pill label 'New here? Start with the basics' with arrow.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HelpCenterView.heroHeader",
+   "hash": "cf3788ae4074753f",
+   "does": "Icon plus title texts row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroTitleText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroTitleText": "6a16ce23560fdcb0"
+   }
+  },
+  {
+   "key": "var HelpCenterView.heroTitleText",
+   "hash": "f6966af9511cee37",
+   "does": "'Emuqu' / 'Help & Learn' stacked texts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HelpCenterView.categoryGrid",
+   "hash": "dc4a1561e29f738d",
+   "does": "Two-column LazyVGrid of category cards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryCards"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryCards": "6e9e229f9e2b79e0"
+   }
+  },
+  {
+   "key": "var HelpCenterView.categoryCards",
+   "hash": "48b5a91740577414",
+   "does": "ForEach over categories building categoryLink.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories",
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.categoryLink(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.categoryLink(_:)": "cbbd620e3f4533b3",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "359493c26c0c6f6a"
+   }
+  },
+  {
+   "key": "func HelpCenterView.categoryLink(_:)",
+   "hash": "45f5bbcebaef8b1f",
+   "does": "NavigationLink to HelpCategoryView labelled with CategoryCard.",
+   "entry": "NavigationLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.body",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var CategoryCard.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var CategoryCard.body": "014e836e59bb1020",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.body": "ce27fa0e0817aa80"
+   }
+  },
+  {
+   "key": "var HelpCenterView.searchResultsView",
+   "hash": "74ce17063490f59e",
+   "does": "Search results: evaluates searchResults once per render into a local list, then shows the no-results placeholder when it is empty, else '<N> results' and the links for that same list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.noResultsPlaceholder",
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.searchResultLinks(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "results empty",
+     "effect": "noResultsPlaceholder; otherwise count + links"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.searchResultLinks(_:)": "f53a59b132a6bee1",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.noResultsPlaceholder": "d5122cb1a4e397a4",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults": "427d8b8456b399b9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var HelpCenterView.noResultsPlaceholder",
+   "hash": "87c2f45ed733816a",
+   "does": "Magnifying glass, 'No results for \"<query>\"' and 'Try different keywords'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func HelpCenterView.searchResultLinks(_:)",
+   "hash": "7328185a8db509cd",
+   "does": "ForEach over the given result articles, each an articleLink row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.articleLink(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.articleLink(_:)": "e2b2f6fcbe8a6b33"
+   }
+  },
+  {
+   "key": "func HelpCenterView.articleLink(_:)",
+   "hash": "0bae65b8b6be4ba6",
+   "does": "NavigationLink to HelpArticleView labelled with ArticleRow.",
+   "entry": "NavigationLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.body",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.body": "932d20faa59aa9fe",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.body": "d8ecd1df4516ffca"
+   }
+  },
+  {
+   "key": "var HelpCenterView.totalArticleCount",
+   "hash": "c22163dcce129b6e",
+   "does": "Sum of article counts across categories.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "359493c26c0c6f6a"
+   }
+  },
+  {
+   "key": "init HelpCenterView()",
+   "hash": "4fac37aa58f7c7ce",
+   "does": "Convenience init (Header == HelpMethodologyHeader) passing HelpMethodologyHeader() as header; used by every entry point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView(header:)",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.body": "80061b524d28319e",
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView(header:)": "e8939c585b15ff6c"
+   }
+  },
+  {
+   "key": "var CategoryCard.body",
+   "hash": "0882779010fd4f1b",
+   "does": "Card with icon row, category title, and '<N> articles'.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var CategoryCard.categoryHeaderRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var CategoryCard.categoryHeaderRow": "d9500ab6a530f736",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var CategoryCard.categoryHeaderRow",
+   "hash": "1c6e695a710ffa13",
+   "does": "Tinted icon square plus article count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var HelpCategoryView.body",
+   "hash": "a272dfdc708b4385",
+   "does": "Returns categoryArticleList.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryArticleList"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryArticleList": "e5ecdd877ea44b56"
+   }
+  },
+  {
+   "key": "var HelpCategoryView.categoryArticleList",
+   "hash": "456f985dc5a4c44e",
+   "does": "ScrollView with category header and article links, inline title = category title.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryHeaderRow2",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryArticleLinks",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryArticleLinks": "12be86fdaf907428",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryHeaderRow2": "edba92acb5ad05d4",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenBackground()": "9f665a4650974bfd"
+   }
+  },
+  {
+   "key": "var HelpCategoryView.categoryArticleLinks",
+   "hash": "5cc574fe2225c630",
+   "does": "ForEach over category articles building links.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCategoryView.categoryArticleLink(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCategoryView.categoryArticleLink(_:)": "e2b2f6fcbe8a6b33"
+   }
+  },
+  {
+   "key": "func HelpCategoryView.categoryArticleLink(_:)",
+   "hash": "b80a53630a012f32",
+   "does": "NavigationLink to HelpArticleView labelled with ArticleRow.",
+   "entry": "NavigationLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.body",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.body": "932d20faa59aa9fe",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.body": "d8ecd1df4516ffca"
+   }
+  },
+  {
+   "key": "var HelpCategoryView.categoryHeaderRow2",
+   "hash": "e61ab0d2f123e5a3",
+   "does": "Large tinted icon plus header text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryHeaderText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCategoryView.categoryHeaderText": "17036424c80f433b"
+   }
+  },
+  {
+   "key": "var HelpCategoryView.categoryHeaderText",
+   "hash": "4aadb26a0ab7b446",
+   "does": "Category title and '<N> articles'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ArticleRow.body",
+   "hash": "91694be2affe6657",
+   "does": "Row card: icon, title/summary, chevron.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.articleRowIcon",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.articleRowText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.articleRowIcon": "6526aaba5ec0fa4a",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.articleRowText": "0438843728d32b97",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ArticleRow.articleRowIcon",
+   "hash": "e7a60afbb713db74",
+   "does": "Tinted article icon square.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var ArticleRow.body": "d8ecd1df4516ffca",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932"
+   }
+  },
+  {
+   "key": "var ArticleRow.articleRowText",
+   "hash": "8db45dd4fcc56422",
+   "does": "Title (1 line) and summary (2 lines).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

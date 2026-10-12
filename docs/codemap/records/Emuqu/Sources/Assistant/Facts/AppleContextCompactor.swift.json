@@ -1,0 +1,445 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift",
+ "hash": "0fceb8faaa5b8972",
+ "role": "Token budgeting for Apple Intelligence's 4,096-token on-device window: token estimation, verbatim newest-first transcript compaction, per-attempt budgets (full vs trimmed retry), truncation of tool results/instructions, a per-turn tool-output allowance and a reused-session ledger.",
+ "types": [
+  "AppleContextCompactor: enum — pure token-estimation and compaction helpers",
+  "AppleContextCompactor.Attempt: enum — .full / .trimmed retry budgets",
+  "AppleContextCompactor.ToolOutputAllowance: struct — remaining tool-result tokens for one turn",
+  "AppleContextCompactor.SessionLedger: struct — estimated tokens held by a reused LanguageModelSession"
+ ],
+ "state": [
+  "mem:AppleContextCompactor.contextWindow = 4096",
+  "mem:AppleContextCompactor.compactionThreshold = 0.70",
+  "mem:AppleContextCompactor.entryOverhead = 8",
+  "mem:AppleContextCompactor.responseReserve = 512",
+  "mem:AppleContextCompactor.estimateMargin = 300",
+  "mem:AppleContextCompactor.minToolOutputTokens = 60",
+  "mem:AppleContextCompactor.toolOutputCutNote",
+  "mem:AppleContextCompactor.instructionsCutNote",
+  "mem:ToolOutputAllowance.unsized (remaining 1024, perCallCap 600)",
+  "mem:ToolOutputAllowance.spentNote (rateLimited missing envelope JSON)"
+ ],
+ "toplevel": "Imports FoundationModels under #if canImport. ToolOutputAllowance.spentNote static initializer renders FactValue.missing(.rateLimited, 'no room left...') via toToolResultJSON (FactValue.swift:294). Callers: AppleFoundationProvider.swift (plan/lease/ledger), AppleToolDispatcher.swift:53,104 (allowance.admit), AppleFoundationToolAdapter.swift:114, tests AppleContextBudgetTests.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AppleContextCompactor.estimateTokens(_:)",
+   "hash": "b086b350c0db5b1e",
+   "does": "Estimates tokens: ceil(asciiScalars/4 × 1.05) + one token per non-ASCII scalar.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each unicode scalar",
+     "effect": "counts ASCII vs non-ASCII"
+    },
+    {
+     "at": "+4",
+     "cond": "scalar.isASCII",
+     "effect": "ascii += 1; else nonASCII += 1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/API_REFERENCE.md documents estimateTokens as 'chars / 4 x 1.05', but the code charges every non-ASCII scalar a whole token (only ASCII uses /4 x 1.05).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:56",
+      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:65",
+      "docs/API_REFERENCE.md:2435"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AppleContextCompactor.compact(_:systemPromptTokens:)",
+   "hash": "d3652264a58b0fbc",
+   "does": "Computes budget = 4096×0.70 − systemPromptTokens; if non-positive returns only the last turn, didCompact true only when that dropped something; else keeps the newest turns that fit, drops a leading assistant reply whose question was dropped (droppingOrphanReply), and logs how many were dropped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.droppingOrphanReply(_:from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "budget <= 0",
+     "effect": "returns (last message only, didCompact: whether any message was dropped)"
+    },
+    {
+     "at": "+12",
+     "cond": "kept fewer turns than given",
+     "effect": "debugLogs dropped count; didCompact true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.droppingOrphanReply(_:from:)": "525345c4146c6072",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "4b9e1af59e6896de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.newestTurnsFitting(_:budget:)",
+   "hash": "6e19e3b32d7bb038",
+   "does": "Walks turns newest→oldest adding estimateTokens(text)+8 each until the next would exceed budget; the newest turn is always kept even when it alone exceeds the budget.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each turn newest first",
+     "effect": "costs and possibly keeps it"
+    },
+    {
+     "at": "+8",
+     "cond": "adding this turn exceeds budget and at least one turn kept",
+     "effect": "break; otherwise insert at front and add cost"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.droppingOrphanReply(_:from:)",
+   "hash": "4c2d4f6e8bce6b35",
+   "does": "When turns were dropped, more than one is kept and the oldest kept turn is an assistant reply, drops that reply (its question is gone); otherwise returns the turns unchanged. The newest turn always stays.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nothing dropped, a single kept turn, or a user turn first",
+     "effect": "returns keep unchanged; else keep without its first turn"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)",
+   "hash": "7d38724a2f8422ee",
+   "does": "Returns compact(messages, systemPromptTokens:).compacted (used by AppleFoundationProvider.swift:375 when the attempt keeps history).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md says systemPromptTokens = estimateTokens(instructions); the only production caller passes instructions + tool-description tokens (fixedTokens), so the documented budget formula is stale.",
+     "evidence": [
+      "docs/FLOWCHART.md:1545",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:373",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:375"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "e4fee05924b00edd"
+   }
+  },
+  {
+   "key": "var AppleContextCompactor.Attempt.toolTokenBudget",
+   "hash": "e7603505163677ff",
+   "does": "Tool-description token budget: 1024 for .full, 512 for .trimmed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "self == .full (ternary)",
+     "effect": "1024; otherwise 512"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleContextCompactor.Attempt.toolOutputCap",
+   "hash": "c9703377e716cf3d",
+   "does": "Per-call tool-result cap: 600 for .full, 250 for .trimmed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "self == .full (ternary)",
+     "effect": "600; otherwise 250"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleContextCompactor.Attempt.instructionTokenCap",
+   "hash": "3af713820f88dab0",
+   "does": "Instruction token cap: unlimited (Int.max) for .full, 1800 for .trimmed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "self == .full (ternary)",
+     "effect": "Int.max; otherwise 1800"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleContextCompactor.Attempt.keepsHistory",
+   "hash": "49624203f434f44b",
+   "does": "True only for .full: earlier turns accompany the question.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleContextCompactor.Attempt.afterOverflow",
+   "hash": "e155274df4e7fb7c",
+   "does": "Next attempt after a context overflow: .trimmed after .full, nil after .trimmed (provider rethrows).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "self == .full (ternary)",
+     "effect": ".trimmed; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleContextCompactor.transcriptTokens(_:)",
+   "hash": "977811e1340cc0d0",
+   "does": "Sums estimateTokens(text)+entryOverhead over all turns.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)",
+   "hash": "8794d1478384405b",
+   "does": "Tool-output budget = 4096 − fixed − transcript − 512 reply − 300 margin, floored at 60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "5e73c6b8d113c2ac"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.truncate(_:toTokens:note:)",
+   "hash": "b207b973bb2f28b0",
+   "does": "Returns text unchanged if its estimate fits maxTokens; else the longest prefix fitting (maxTokens − note tokens) followed by the note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.prefix(of:fittingTokens:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "estimate <= maxTokens",
+     "effect": "returns text unchanged; else truncates and appends note (result can exceed maxTokens when the note alone is larger than maxTokens, since room floors at 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.prefix(of:fittingTokens:)": "766d795c38400ca4"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.prefix(of:fittingTokens:)",
+   "hash": "ad7d8af3f5d60a8b",
+   "does": "Scans characters accumulating 1.05/4 per ASCII scalar and 1 per non-ASCII scalar, stopping before cost exceeds tokens−1; returns that prefix.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each character index",
+     "effect": "accumulates cost"
+    },
+    {
+     "at": "+6",
+     "cond": "cost + charCost > limit",
+     "effect": "break; else extend end past this character"
+    },
+    {
+     "at": "+5",
+     "cond": "scalar.isASCII (ternary per scalar)",
+     "effect": "adds 1.05/4 for ASCII scalars, 1.0 for non-ASCII"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
+   "hash": "356c20ccab907169",
+   "does": "Memberwise-style init storing remaining tokens and perCallCap (spent starts 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleContextCompactor.ToolOutputAllowance.admit(_:)",
+   "hash": "7b0f701900741725",
+   "does": "Admits one tool result: if fewer than 60 tokens remain, charges and returns the spentNote; otherwise truncates to min(perCallCap, remaining − 8) with the cut note and spends its estimated tokens plus the 8-token entry overhead (the result's role marker, as charge counts it).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remaining < minToolOutputTokens (60)",
+     "effect": "charges spentNote (+8 overhead) and returns it in place of the result; else truncated result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "19e6c049d65cfc90",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.ToolOutputAllowance.charge(_:)",
+   "hash": "1e7052c035c988bf",
+   "does": "Spends estimateTokens(text) + entryOverhead (used for the tool call itself and refusal notes, AppleToolDispatcher.swift:91,94).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "19e6c049d65cfc90",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+   }
+  },
+  {
+   "key": "func AppleContextCompactor.ToolOutputAllowance.spend(_:)",
+   "hash": "cd48a8a44e242bb2",
+   "does": "Decrements remaining and increments spent by tokens.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AppleContextCompactor.SessionLedger(prefixTokens:)",
+   "hash": "5136b7c2299be266",
+   "does": "Starts a ledger with usedTokens = prefixTokens (instructions + tool descriptions).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)",
+   "hash": "996b76879a29850c",
+   "does": "Adds prompt + tool + reply tokens + 16 overhead to usedTokens after a finished turn (AppleFoundationProvider.swift:159).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)",
+   "hash": "8c040c78f620a6a5",
+   "does": "Returns tokens left for tool results of a follow-up (4096 − used − prompt − 16 − 512 − 300) or nil when that is below perCallCap (provider then starts a fresh session).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "left >= perCallCap (ternary)",
+     "effect": "returns left; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

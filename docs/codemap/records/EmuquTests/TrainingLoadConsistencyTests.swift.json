@@ -1,0 +1,328 @@
+{
+ "file": "EmuquTests/TrainingLoadConsistencyTests.swift",
+ "hash": "788940f32cf83d1f",
+ "role": "XCTest suite pinning one day-load builder and one EWMA for the live training load and the Load & Trajectory series: HeartRateAnchors.resolve precedence, dailyLoad zero-fill/window/cap, exact EWMA step, live point(through:) equals replay every day, and TrainingMetricsCache freshness (needsRebuild, LoadSettings, healthKitFingerprint).",
+ "types": [
+  "TrainingLoadConsistencyTests: class — XCTestCase over TrainingLoadSeries and TrainingMetricsCache freshness"
+ ],
+ "state": [
+  "calendar: Calendar.current"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingLoadConsistencyTests.day(_:from:)",
+   "hash": "b52eb64b12659853",
+   "does": "Test helper: start of day of the fixed reference (1_790_000_000) shifted by `offset` days in Calendar.current.",
+   "entry": null,
+   "calls": [
+    "ext:Calendar.date(byAdding:value:to:)",
+    "ext:Calendar.startOfDay(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "calendar.date(byAdding:) ?? reference",
+     "effect": "nil (never for day offsets) falls back to the reference date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)",
+   "hash": "eb51e78229425d92",
+   "does": "Test helper: running WorkoutSummary at 08:00 on `date`, default 60 min, avg HR 140, optional precomputed load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testWithoutAppleRestingHRTheSettingIsUsedNotSixty()",
+   "hash": "34cfccde4128db5f",
+   "does": "Asserts resolve(appleRestingHR nil, setting 48, max 185) gives resting 48 and max 185 (not a 60 default).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAppleRestingHRWinsOverTheSetting()",
+   "hash": "931638a08375678d",
+   "does": "Asserts resolve with Apple resting HR 52 and setting 48 gives resting 52.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testTheDayLoadUsesTheResolvedRestingHR()",
+   "hash": "3055bc2a09ef1156",
+   "does": "Asserts dailyLoad for today equals the session's effectiveLoad at resting 48/max 185, and that this exceeds the 60 bpm figure by more than 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "daily[day(0)] ?? -1",
+     "effect": "missing day falls back to -1 so the equality fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "4a665e461ef4629a",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)": "46b792f622900ec2"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testDailyLoadZeroFillsAndSkipsWorkoutsOutsideTheWindow()",
+   "hash": "aaff20c552b33ea2",
+   "does": "Asserts dailyLoad over days -3…0 has 4 entries, day -3 is 0, day -1 is 40, and workouts on day -10 and +3 are excluded.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "4a665e461ef4629a",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)": "46b792f622900ec2"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testDailyLoadIsCappedAtTheDailyCeiling()",
+   "hash": "77c8815664e5bb3f",
+   "does": "Asserts two 900-load workouts on one day are capped at TrainingConstants.TRIMP.maxDailyLoad.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "4a665e461ef4629a",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)": "46b792f622900ec2"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testOneStepIsTheExactExponentialEWMA()",
+   "hash": "131ee74485651926",
+   "does": "Asserts Point.zero.stepped(load: 100) gives ATL 100(1−e^(−1/7)) and CTL 100(1−e^(−1/42)).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testLivePointAndSeriesReplayAgreeOnEveryDay()",
+   "hash": "1125b5e14eb43dcd",
+   "does": "Over 60 days of a 4-in-7 workout pattern asserts replay(daily)[day] equals point(through: day, in: daily) on days −59, −30, −1, 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for offset in [-59, -30, -1, 0]",
+     "effect": "compares the live point with the replayed series"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "8ccd36469279a69c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "c30287884e799aea",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "4a665e461ef4629a",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)": "46b792f622900ec2"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
+   "hash": "bd253e2b28038314",
+   "does": "Test helper: TrainingMetricsCache.needsRebuild with lastUpdated `age` seconds ago, hasResult true and the given observed/settings flags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAnUnchangedResultIsRecomputedAfterHalfAnHour()",
+   "hash": "6f393b326349860f",
+   "does": "Asserts an unchanged result 10 min old is reused and one older than unchangedMaxAgeSec is rebuilt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)": "3cd1cc50d4edbece"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testASettingsChangeRecomputesAtOnce()",
+   "hash": "f92c8143efbb408a",
+   "does": "Asserts a settings change 5 s after the last build forces a rebuild.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)": "3cd1cc50d4edbece"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAWorkoutOrDayChangeRecomputesAfterTheBurstThrottle()",
+   "hash": "8e53abf87425d6d7",
+   "does": "Asserts an observed change 60 s after the last build is throttled, and is rebuilt after burstThrottleSec.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)": "3cd1cc50d4edbece"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testNoResultAlwaysRecomputes()",
+   "hash": "c708e84eca67ab5a",
+   "does": "Asserts needsRebuild is true with lastUpdated nil, and true with hasResult false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testLoadSettingsSeeAHeartRateSettingChange()",
+   "hash": "9bc7262ca1a1aa38",
+   "does": "Asserts LoadSettings built from settings with resting HR 48 differs from one with 52.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)": "4851ce86a369a931",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testHealthKitFingerprintSeesAnotherAppsWorkout()",
+   "hash": "c67ce5dafde05285",
+   "does": "Asserts healthKitFingerprint is stable for the same workouts and changes when another workout is added.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.healthKitFingerprint(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.healthKitFingerprint(_:)": "a42c3dd233c7fe99",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "4a665e461ef4629a",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)": "46b792f622900ec2"
+   }
+  }
+ ],
+ "deps": {}
+}

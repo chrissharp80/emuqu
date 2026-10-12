@@ -38,8 +38,8 @@ extension HealthKitManager {
         await sleepQueries.fetchDaytimeNapMinutes(nightAnchoredAt: nightAnchor)
     }
 
-    func findAdditionalSleepRange(after anchor: Date, before cutoff: Date) async -> (start: Date, end: Date)? {
-        await sleepQueries.findAdditionalSleepRange(after: anchor, before: cutoff)
+    func fetchDaytimeNapMinutesIfReadable(nightAnchoredAt nightAnchor: Date) async -> Int? {
+        await sleepQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: nightAnchor)
     }
 
     func estimateSleepFromHealthKitHR(

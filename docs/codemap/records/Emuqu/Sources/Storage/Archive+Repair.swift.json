@@ -1,0 +1,347 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+Repair.swift",
+ "hash": "2408598fcb6d3224",
+ "role": "SessionArchive repair & integrity tools: full index rebuild from session files (manual, Settings), single-session stale-hash repair used by CloudKit push, and an integrity report.",
+ "types": [
+  "SessionArchive: extension — repairArchive, repairSessionHashIfDecodable, verifyIntegrity and helpers",
+  "SessionArchive.HashRepair: enum — repaired / undecodable / notNow"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionArchive.repairArchive()",
+   "hash": "3180052cd77d2001",
+   "does": "Under the lock: lists the archive directory, rebuilds the index from UUID-named *.json files (excluding index/deleted.json, tombstoned ids; preserving existing entries for unreadable files), sorts newest-first, drops the derived caches, saves the index (failure logged), returns the entry count. Files with other extensions (*.encrypted) are left untouched. Triggered from Settings/diagnostics Repair Archive buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltIndex(from:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "catch: contentsOfDirectory threw",
+     "effect": "log, return 0 (no change)"
+    },
+    {
+     "at": "+17",
+     "cond": "catch: saveIndex threw",
+     "effect": "log; in-memory index replaced (caches already dropped), returns its count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltIndex(from:)": "64671ef6ee2fa85c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.rebuiltIndex(from:)",
+   "hash": "0a2cb8183fbabf3d",
+   "does": "Builds an id→existing entry map from the current index and returns rebuilt entries for every *.json file other than index.json/deleted.json.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltEntry(for:existing:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltEntry(for:existing:)": "a190879299fed924"
+   }
+  },
+  {
+   "key": "func SessionArchive.rebuiltEntry(for:existing:)",
+   "hash": "cc73fae831325b12",
+   "does": "Rebuilds one entry: nil for non-UUID filenames or tombstoned ids; preserves the existing entry when the file can't be read or decoded; otherwise SessionArchiveEntry.make with hash over the stored bytes, filename-derived id and readinessScore fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.preserved(_:filename:error:verb:)",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.deletedSessionIds",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "filename is not a UUID",
+     "effect": "return nil"
+    },
+    {
+     "at": "+6",
+     "cond": "id is tombstoned",
+     "effect": "return nil"
+    },
+    {
+     "at": "+10",
+     "cond": "catch: read threw",
+     "effect": "return preserved(existing) or nil"
+    },
+    {
+     "at": "+13",
+     "cond": "decodeRepairable returned nil",
+     "effect": "return preserved(existing) or nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)": "ea082f651e2da4ac",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.preserved(_:filename:error:verb:)": "eb8e26cfe13397fe",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "dd54ddf7bc0c2442"
+   }
+  },
+  {
+   "key": "func SessionArchive.decodeRepairable(_:id:)",
+   "hash": "be9ba2276bbeefb3",
+   "does": "Decodes stored bytes through the archive's dual-format reader (ArchiveStore.plaintextBytes: encrypted → decrypt, legacy JSON → as-is) and sessionDecoder; nil with a warning log when that throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "decrypt or decode throws",
+     "effect": "log, nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "46c976f3cbac7ee0",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.preserved(_:filename:error:verb:)",
+   "hash": "af56ee3e565f75f3",
+   "does": "Logs why a file could not be rebuilt and returns the existing entry if one exists, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error nil (?? '' via map)",
+     "effect": "detail string empty"
+    },
+    {
+     "at": "+4",
+     "cond": "no existing entry",
+     "effect": "log 'no existing index entry' warning, return nil; else log preserving and return existing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.repairSessionHashIfDecodable(sessionId:)",
+   "hash": "a258bc06915fa36b",
+   "does": "Under the lock: for an indexed session reads the stored bytes (bytesForRepair) and decodes them; if they decode, replaces the entry via SessionArchiveEntry.make with the current bytes' hash and saves. Returns .repaired when repaired or already matching, .undecodable when the bytes read but do not decode (caller quarantines), .notNow when the id is not indexed, the bytes cannot be read or decrypted now, or the index save failed (caller retries).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.bytesForRepair(at:id:)",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.persistRehash(sessionId:from:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id not indexed",
+     "effect": ".notNow"
+    },
+    {
+     "at": "+6",
+     "cond": "bytes unreadable now or encrypted with the key unavailable",
+     "effect": ".notNow"
+    },
+    {
+     "at": "+8",
+     "cond": "bytes do not decode",
+     "effect": "log warning, .undecodable"
+    },
+    {
+     "at": "+14",
+     "cond": "hash already matches",
+     "effect": ".repaired"
+    },
+    {
+     "at": "+19",
+     "cond": "persistRehash false",
+     "effect": ".notNow; else .repaired"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "462da1c0710663cb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.bytesForRepair(at:id:)": "a4cac8120e151639",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)": "ea082f651e2da4ac",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.persistRehash(sessionId:from:to:)": "df77c10035ffcf21",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "dd54ddf7bc0c2442",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.bytesForRepair(at:id:)",
+   "hash": "54511ec6d8b67c6d",
+   "does": "Reads the file's bytes; nil with a warning log when the read throws, or when they are encrypted (FR prefix) and the encryption key is unavailable — states that say nothing about corruption.",
+   "entry": null,
+   "calls": [
+    "ext:Data(contentsOf:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "read throws",
+     "effect": "log, nil"
+    },
+    {
+     "at": "+8",
+     "cond": "encrypted and key unavailable",
+     "effect": "log, nil; else the bytes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "b882b578163b2c45",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.persistRehash(sessionId:from:to:)",
+   "hash": "ff0ceac70a39498c",
+   "does": "Saves the index; on failure logs and returns false (the in-memory index keeps the new hash for the next save); on success logs the old→new hash prefix and returns true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/index.json",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch: saveIndex threw",
+     "effect": "log warning, return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.verifyIntegrity()",
+   "hash": "c4e28bfcf6206b82",
+   "does": "Snapshots the index under the lock, then for each entry reads its file and records whether its SHA256 equals the stored hash (false on read error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each entry",
+     "effect": "read and compare"
+    },
+    {
+     "at": "+11",
+     "cond": "catch: read threw",
+     "effect": "result false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests (ArchiveIntegrityTests.swift:409,500, ArchiveIntegrityTests+Codec.swift:225, IntegrationTests.swift:71, RRCollectorStateMachineTests.swift:246).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Repair.swift:185",
+      "EmuquTests/ArchiveIntegrityTests.swift:409"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "462da1c0710663cb",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "dd54ddf7bc0c2442"
+   }
+  }
+ ],
+ "deps": {}
+}

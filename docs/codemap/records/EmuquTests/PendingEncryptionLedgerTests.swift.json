@@ -1,0 +1,503 @@
+{
+ "file": "EmuquTests/PendingEncryptionLedgerTests.swift",
+ "hash": "10b826af6e2fc772",
+ "role": "XCTest suite pinning the fail-closed storage contract: plaintext archive writes use .completeFileProtection (encrypted ones the until-first-unlock class), both atomic; choosing plaintext options records the session in PendingEncryptionLedger and encrypted options clear it; the ledger is idempotent, persisted to UserDefaults off the caller's thread, and cleared by clearAll.",
+ "types": [
+  "PendingEncryptionLedgerTests: class — XCTestCase over archiveWriteOptions and PendingEncryptionLedger",
+  "CallingThreadProbe: private final class — counts UserDefaults change notifications delivered on the thread inside whileCalling"
+ ],
+ "state": [
+  "mem:PendingEncryptionLedgerTests.hostLedger (the host ledger captured in setUp, per store)",
+  "mem:CallingThreadProbe.lock/callingThread/count"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PendingEncryptionLedgerTests.setUp()",
+   "hash": "00689656acd35db3",
+   "does": "Captures the host ledger (pending(in:) for .session and .rawBackup, which loads the UserDefaults and file copies) into hostLedger, then clears both stores so each test starts empty.",
+   "entry": "XCTest per-test setUp",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)",
+    "file:Application Support/PendingEncryption/<store key>.json"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)",
+    "file:Application Support/PendingEncryption/<store key>.json",
+    "mem:PendingEncryptionLedger.cache",
+    "mem:PendingEncryptionLedgerTests.hostLedger"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.tearDown()",
+   "hash": "34d76c69eb2aade2",
+   "does": "Clears both stores, re-records every id captured in setUp into its store (putting the host app's repair records back), and waits for the queued UserDefaults/file writes to land.",
+   "entry": "XCTest per-test tearDown",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()"
+   ],
+   "reads": [
+    "mem:PendingEncryptionLedgerTests.hostLedger"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)",
+    "file:Application Support/PendingEncryption/<store key>.json",
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each (store, ids) in hostLedger, for each id",
+     "effect": "PendingEncryptionLedger.record(id, in: store)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testUnencryptedWritesUseTheStrictestProtectionClass()",
+   "hash": "dae8ba703152fca8",
+   "does": "Asserts plaintextPendingEncryption options include .completeFileProtection and not the until-first-unlock class, encrypted options include until-first-unlock, and the two differ.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testBothFormatsWriteAtomically()",
+   "hash": "bf426b638519ada4",
+   "does": "Asserts both disk formats' write options include .atomic.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testChoosingPlaintextOptionsRecordsTheSession()",
+   "hash": "9ab8b7ce7ea70fb6",
+   "does": "Asserts a fresh id is not pending, then choosing plaintext options records it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testChoosingEncryptedOptionsClearsTheSession()",
+   "hash": "f27200b99626570e",
+   "does": "Asserts plaintext options record the id and encrypted options then clear it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testRecordingIsIdempotent()",
+   "hash": "3dd3f0dac6ef0a15",
+   "does": "Asserts recording the same id twice leaves one entry.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testClearingAnUnknownSessionIsHarmless()",
+   "hash": "ae648b28b2aa19b3",
+   "does": "Asserts clearing an unknown id leaves the known one as the only pending entry.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testPendingSetSurvivesProcessRestart()",
+   "hash": "713e322163e2618f",
+   "does": "Records 3 ids, waits for the persist queue, and asserts the standard UserDefaults session key holds exactly those ids and pending equals them.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "stringArray(forKey:) ?? []",
+     "effect": "missing key reads as empty, failing the equality"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'survives process restart' but never reloads: `pending` is served from the in-memory cache, so only the UserDefaults write is checked, not that a fresh process reading the key gets the set back (the cache-miss load path in ids(_:in:) is untested).",
+     "evidence": [
+      "EmuquTests/PendingEncryptionLedgerTests.swift:114",
+      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:121"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testClearIsPersisted()",
+   "hash": "3382e597872b495e",
+   "does": "Records two ids, clears one, waits, and asserts UserDefaults holds only the kept id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "stringArray(forKey:) ?? []",
+     "effect": "missing key reads as empty, failing the equality"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testRecordAndClearDoNotWriteUserDefaultsOnTheCallingThread()",
+   "hash": "db5efd7c1008eff5",
+   "does": "Observes UserDefaults.didChangeNotification, records/clears an id in both stores inside probe.whileCalling, waits, and asserts no change notification fired on the calling thread.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::func CallingThreadProbe.whileCalling(_:)",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::func CallingThreadProbe.noteChange()",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::var CallingThreadProbe.changesOnCallingThread"
+   ],
+   "reads": [
+    "notif:UserDefaults.didChangeNotification"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::func CallingThreadProbe.noteChange()": "05a3ca7e27743f6f",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::func CallingThreadProbe.whileCalling(_:)": "103c1c5482598ac5",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::var CallingThreadProbe.changesOnCallingThread": "0c9bbb4efe24aabb"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testPurgeClearsEveryPendingEntry()",
+   "hash": "87ead7c53bd648f1",
+   "does": "Records two ids then asserts clearAll empties pending.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testDiskFormatDistinguishesTheTwoOutcomes()",
+   "hash": "50a6d2b29dda3608",
+   "does": "Asserts the two DiskFormat cases produce distinct write-option raw values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
+   }
+  },
+  {
+   "key": "var CallingThreadProbe.changesOnCallingThread",
+   "hash": "3939328f9b2ad38d",
+   "does": "Locked read of the count of changes seen on the calling thread.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CallingThreadProbe.whileCalling(_:)",
+   "hash": "eadccf6c8d5c984a",
+   "does": "Records the current thread as the calling thread, runs body, then clears it (all under the lock).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CallingThreadProbe.noteChange()",
+   "hash": "74a2504ef112d59c",
+   "does": "Notification handler: increments the count when invoked on the recorded calling thread.",
+   "entry": "NotificationCenter observer block for UserDefaults.didChangeNotification registered in testRecordAndClearDoNotWriteUserDefaultsOnTheCallingThread",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "a calling thread is recorded and it is the current thread",
+     "effect": "count += 1; otherwise ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

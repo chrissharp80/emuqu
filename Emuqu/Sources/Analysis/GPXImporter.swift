@@ -9,7 +9,8 @@ import Foundation
 // workouts from other apps without losing their data.
 //
 // What we extract:
-//   - trkpt/lat/lon/ele                    → GPS track
+//   - trkpt/lat/lon/ele                    → GPS track (rte/rtept when the
+//                                            file has no trkpt: planner routes)
 //   - trkpt/time                           → trackpoint timestamps
 //   - trkpt/extensions/gpxtpx:hr           → per-point heart rate (Garmin/Strava extension)
 //   - trkpt/extensions/gpxtpx:cad          → per-point cadence
@@ -22,7 +23,7 @@ import Foundation
 //   - Lap markers
 //
 // Parser is a tiny XMLParser — we don't need a full GPX type system, just the
-// three tags we consume.
+// few tags we consume.
 
 @MainActor
 enum GPXImporter {
@@ -65,10 +66,12 @@ enum GPXImporter {
         defaultSport: Sport
     ) -> ImportedWorkoutTrack {
         let pointTimes = times ?? Array(repeating: Date(), count: delegate.points.count)
-        let start = pointTimes.first ?? Date()
+        // Earliest and latest rather than first and last: a file with
+        // out-of-order timestamps must not end before it starts.
+        let start = pointTimes.min() ?? Date()
         return ImportedWorkoutTrack(
             startDate: start,
-            endDate: pointTimes.last ?? start,
+            endDate: pointTimes.max() ?? start,
             track: locations(from: delegate.points, times: pointTimes),
             heartRateSamples: delegate.points.compactMap { p in
                 guard let t = p.time, let hr = p.hr else { return nil }
@@ -134,24 +137,52 @@ enum GPXImporter {
         ImportedWorkoutBuilder.buildSession(from: parsed, source: .gpxFile)
     }
 
+    /// The sport a `<type>` label names. Matched by word stems, not raw
+    /// substrings, so "stride" is not a ride; a stem matches the start of one
+    /// word or of two adjacent words run together ("Indoor Cycling",
+    /// "air_bike", "TrailRun" all reach their compound stem).
     private static func sportFromType(_ type: String?) -> Sport? {
-        guard let type = type?.lowercased() else { return nil }
-        // Check "trail" before "run": Strava/Garmin export "trail running" /
-        // "TrailRun", which contain "run" — testing run first made .trailRun
-        // unreachable for the common labels.
-        if type.contains("trail") { return .trailRun }
-        if type.contains("run") { return .run }
-        if type.contains("walk") { return .walk }
-        // Stems, not words: Garmin and Strava write "hiking" and "cycling",
-        // which contain neither "hike" nor "cycle".
-        if type.contains("hik") { return .hike }
-        // Check air-bike and crossfit before the generic "bike" test:
-        // "air_bike"/"airbike" contain "bike" and would otherwise resolve
-        // to plain .bike.
-        if type.contains("crossfit") || type.contains("cross_fit") { return .crossFit }
-        if type.contains("air_bike") || type.contains("airbike") { return .airBike }
-        if ["bike", "biking", "cycl", "ride", "riding"].contains(where: { type.contains($0) }) { return .bike }
-        return nil
+        guard let type else { return nil }
+        let words = typeWords(type)
+        let candidates = words + zip(words, words.dropFirst()).map { $0 + $1 }
+        return sportRules.first { rule in startsWithAnyStem(candidates, rule.stems) }?.sport
+    }
+
+    private static func startsWithAnyStem(_ candidates: [String], _ stems: [String]) -> Bool {
+        stems.contains { stem in candidates.contains { $0.hasPrefix(stem) } }
+    }
+
+    /// Checked in order: a compound label before the generic stem it contains
+    /// ("treadmill running" is a treadmill, "indoor cycling" an indoor ride,
+    /// "trail running" a trail run, "air bike" an air bike). Stems, not words:
+    /// Garmin and Strava write "hiking", "cycling", "rowing".
+    private static let sportRules: [(sport: Sport, stems: [String])] = [
+        (.crossFit, ["crossfit"]),
+        (.airBike, ["airbike"]),
+        (.treadmill, ["treadmill"]),
+        (.indoorBike, ["indoorcycl", "indoorbik", "indoorrid", "virtualrid", "spin"]),
+        (.trailRun, ["trail"]),
+        (.run, ["run", "jog"]),
+        (.walk, ["walk"]),
+        (.hike, ["hik"]),
+        (.row, ["row"]),
+        (.bike, ["bik", "cycl", "rid"])
+    ]
+
+    /// Lowercased letter runs of a label, split at non-letters and at
+    /// camel-case humps: "TrailRun" and "trail_running" → ["trail", "run…"].
+    private static func typeWords(_ type: String) -> [String] {
+        var words: [String] = []
+        var current = ""
+        var previousWasLower = false
+        for ch in type {
+            let boundary = !ch.isLetter || (ch.isUppercase && previousWasLower)
+            if boundary, !current.isEmpty { words.append(current.lowercased()); current = "" }
+            if ch.isLetter { current.append(ch) }
+            previousWasLower = ch.isLowercase
+        }
+        if !current.isEmpty { words.append(current.lowercased()) }
+        return words
     }
 
     // MARK: - Numeric validation
@@ -201,7 +232,13 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
         var cad: Double?
     }
 
-    var points: [Point] = []
+    /// `<trkpt>`s, and `<rtept>`s for a file that is a planned route.
+    private(set) var trackPoints: [Point] = []
+    private(set) var routePoints: [Point] = []
+    /// The track's points, or the route's when the file has no track.
+    var points: [Point] { trackPoints.isEmpty ? routePoints : trackPoints }
+    /// The first `<type>` directly under `<trk>` or `<rte>`; a `<type>` of a
+    /// `<link>` or a later track does not overwrite it.
     var trkType: String?
     /// `<metadata><time>`, the file's own creation time.
     var metadataTime: Date?
@@ -210,6 +247,8 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
     private var current: Point?
     private var currentElement = ""
     private var textBuffer = ""
+    /// Open elements, outermost first, so a tag's parent is known.
+    private var path: [String] = []
 
     /// `Date.ISO8601FormatStyle` is a `Sendable` value, unlike the class-based
     /// `ISO8601DateFormatter`, so the parser can be shared across isolation
@@ -234,9 +273,10 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
         attributes attributeDict: [String: String] = [:]
     ) {
         currentElement = elementName.lowercased()
+        path.append(currentElement)
         textBuffer = ""
         if currentElement == "metadata" { inMetadata = true }
-        guard currentElement == "trkpt" else { return }
+        guard currentElement == "trkpt" || currentElement == "rtept" else { return }
         // Only start a point when both coordinates parse. A malformed trkpt
         // (missing/unparseable lat or lon) would otherwise append a phantom
         // (0,0) Null-Island fix that corrupts distance/polyline.
@@ -265,9 +305,10 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
     ) {
         let tag = elementName.lowercased()
         if tag == "metadata" { inMetadata = false }
-        apply(tag: tag, text: textBuffer.trimmingCharacters(in: .whitespacesAndNewlines))
-        if tag == "trkpt", let p = current {
-            points.append(p)
+        if path.last == tag { path.removeLast() }
+        apply(tag: tag, text: textBuffer.trimmingCharacters(in: .whitespacesAndNewlines), parent: path.last)
+        if tag == "trkpt" || tag == "rtept", let p = current {
+            if tag == "trkpt" { trackPoints.append(p) } else { routePoints.append(p) }
             current = nil
         }
         textBuffer = ""
@@ -284,7 +325,8 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
 
     /// Route one closed element's text onto the point being built. Namespaced
     /// extension tags (`gpxtpx:hr`, `ns3:cad`, …) are matched by suffix.
-    private func apply(tag: String, text: String) {
+    /// `parent` is the enclosing element, which places a `<type>`.
+    private func apply(tag: String, text: String, parent: String?) {
         switch tag {
         case "ele":
             // Same reasoning as the coordinates above: a non-finite or absurd
@@ -299,7 +341,7 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
                 current?.hr = Int(text).flatMap(GPXImporter.validHeartRate)
             } else if tag.hasSuffix(":cad") || tag == "cad" || tag == "cadence" {
                 current?.cad = Double(text).flatMap(GPXImporter.validCadence)
-            } else if tag == "type" {
+            } else if tag == "type", parent == "trk" || parent == "rte", trkType == nil {
                 trkType = text
             }
         }

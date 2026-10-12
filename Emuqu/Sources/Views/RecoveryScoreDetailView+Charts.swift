@@ -68,7 +68,7 @@ extension RecoveryScoreCharts {
 
     @ViewBuilder
     private func hrvChartContent(_ series: [RMSSDPoint]) -> some View {
-        hrvChartCanvas(series, selected: nearestRMSSDPoint(to: hrvHoverDate, in: series))
+        hrvChartCanvas(series, selected: nearestPoint(to: hrvHoverDate, in: series, at: \.time))
         hrvPickWindowSlot
     }
 
@@ -270,11 +270,11 @@ extension RecoveryScoreCharts {
     private var pickWindowButtons: some View {
         HStack {
             Button(role: .cancel) {
-                // Back to the previous segment without re-running its analysis,
-                // so Cancel never replaces the window the session already has.
+                // Back to the segment left for Pick Window, without re-running
+                // its analysis: Cancel never replaces the session's window.
                 previewWindowMs = nil
                 restoringSegment = true
-                selectedWindowSegment = segmentBeforePick == .pickWindow ? .bestRecovery : segmentBeforePick
+                selectedWindowSegment = segmentBeforePick
             } label: {
                 Text(String(localized: "Cancel", bundle: LanguageManager.appBundle)).frame(maxWidth: .infinity)
             }
@@ -289,8 +289,10 @@ extension RecoveryScoreCharts {
         }
     }
 
+    /// An untouched slider (or one reset by the previous Analyze) sits at
+    /// the recording midpoint with no preview set, so that is the target.
     private func runInlineReanalysis() {
-        guard let onReanalyzeAt, let target = previewWindowMs else { return }
+        guard let onReanalyzeAt, let target = previewWindowMs ?? pickWindowMidpointMs else { return }
         windowChangedHere = true
         Task {
             isReanalyzing = true
@@ -300,16 +302,18 @@ extension RecoveryScoreCharts {
         }
     }
 
-    /// Find the chart point closest to a hover Date. Returns nil when
-    /// hover hasn't started yet or the series is empty.
-    func nearestRMSSDPoint(to date: Date?, in series: [RMSSDPoint]) -> RMSSDPoint? {
-        guard let date, !series.isEmpty else { return nil }
-        return series.min(by: { abs($0.time.timeIntervalSince(date)) < abs($1.time.timeIntervalSince(date)) })
+    /// Middle of the recording, where the Pick Window slider sits until moved.
+    private var pickWindowMidpointMs: Int64? {
+        guard let startMs = recordingStartMs, let endMs = recordingEndMs, endMs > startMs else { return nil }
+        return startMs + (endMs - startMs) / 2
     }
 
-    func nearestHRPoint(to date: Date?, in series: [HRPoint]) -> HRPoint? {
+    /// Find the chart point closest to a hover Date, for either chart's
+    /// point type. Returns nil when hover hasn't started yet or the series
+    /// is empty.
+    func nearestPoint<Point>(to date: Date?, in series: [Point], at time: KeyPath<Point, Date>) -> Point? {
         guard let date, !series.isEmpty else { return nil }
-        return series.min(by: { abs($0.time.timeIntervalSince(date)) < abs($1.time.timeIntervalSince(date)) })
+        return series.min(by: { abs($0[keyPath: time].timeIntervalSince(date)) < abs($1[keyPath: time].timeIntervalSince(date)) })
     }
 
     // Read on every chartOverlay render, so it comes from the shared cache
@@ -401,19 +405,21 @@ extension RecoveryScoreCharts {
     }
 
     /// Shared estimator; see `TimeDomainAnalyzer.rmssd(points:range:isValid:)`.
-    /// This chart, the live stats card and the peak scan use the same
-    /// artifact-skipping arithmetic, so it is not inlined here. A pair split
-    /// by a recording break is not a successive difference and is skipped.
+    /// A beat counts when it is not flagged artifact and its interval is in
+    /// the physiological range, the same per-beat gate as
+    /// `TimeDomainAnalyzer.peakScanRMSSD` (the overnight-charts trace). A
+    /// pair split by a recording break is not a successive difference and is
+    /// skipped.
     ///
-    /// Nil unless the window holds at least 30 beats and 20 artifact-free
-    /// successive pairs — below that the estimate is noise, not a data point.
+    /// Nil unless the window holds at least 30 beats and 20 clean successive
+    /// pairs — below that the estimate is noise, not a data point. (The peak
+    /// scan's own floor differs: 30 clean beats and a result under 300 ms.)
     nonisolated private static func windowRMSSD(points: [RRPoint], flags: [ArtifactFlags]?, lo: Int, hi: Int) -> Double? {
         guard hi - lo >= 30 else { return nil }
         let isValid: (Int) -> Bool = { offset in
-            guard let flags else { return true }
             let absolute = lo + offset
-            guard absolute < flags.count else { return true }
-            return !flags[absolute].isArtifact
+            let isArtifact = flags.map { absolute < $0.count && $0[absolute].isArtifact } ?? false
+            return !isArtifact && HRVConstants.RRInterval.isValid(points[absolute].rr_ms)
         }
         let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: lo ..< hi)
         let validPairs = (1 ..< hi - lo).count { isValid($0) && isValid($0 - 1) && !breaks.contains(lo + $0) }
@@ -491,7 +497,7 @@ extension RecoveryScoreCharts {
     private func hrChartCanvas(_ series: [HRPoint]) -> some View {
         let minHR = series.map(\.hr).min() ?? 0
         let maxHR = series.map(\.hr).max() ?? 100
-        let selected = nearestHRPoint(to: hrHoverDate, in: series)
+        let selected = nearestPoint(to: hrHoverDate, in: series, at: \.time)
         return Chart {
             hrLineMarks(series)
             hrSelectionMarks(selected)

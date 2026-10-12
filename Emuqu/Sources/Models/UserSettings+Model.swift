@@ -29,10 +29,20 @@ struct UserSettings: Codable, Equatable {
     /// Used to calculate sleep completion ratio for effective recovery
     var typicalSleepHours: Double
 
-    /// Expected bedtime (hour and minute only). Defaults to 10:00 PM.
-    /// Combined with typicalSleepHours to derive the full sleep schedule.
-    /// Shift workers should set this to when they normally go to sleep.
-    var expectedBedtime: Date
+    /// Expected bedtime as a wall-clock time, in minutes after local midnight.
+    /// Defaults to 10:00 PM. Combined with typicalSleepHours to derive the full
+    /// sleep schedule. Shift workers should set this to when they normally go
+    /// to sleep. Stored as a minute of the day rather than an instant so a
+    /// change of time zone keeps the bedtime at the same clock time.
+    var expectedBedtimeMinuteOfDay: Int
+
+    /// `expectedBedtimeMinuteOfDay` as a `Date` for the time picker (only its
+    /// hour and minute are meaningful): built in the current calendar on every
+    /// read, so its hour and minute are always the stored clock time.
+    var expectedBedtime: Date {
+        get { Self.wallClockDate(minuteOfDay: expectedBedtimeMinuteOfDay) }
+        set { expectedBedtimeMinuteOfDay = Self.minuteOfDay(newValue) }
+    }
 
     /// Session merge mode: off (no linking), default (4.5h), or custom window
     var sessionMergeMode: SessionMergeMode = .defaultGap
@@ -90,8 +100,9 @@ struct UserSettings: Codable, Equatable {
     /// back to session-peak HR as the denominator — producing garbage output
     /// like "Zone 5 at 100 bpm" because the session peak was only ~105.
     ///
-    /// If nil, `effectiveMaxHR` falls back to 220 − age (approximate; fine as
-    /// a default, but users with real lab-tested HRmax should override here).
+    /// If nil, `effectiveMaxHR` falls back to the Tanaka estimate
+    /// 208 − 0.7 × age (`MaxHeartRate.tanaka`; approximate, so users with a
+    /// real lab-tested HRmax should override here).
     /// If birthday isn't set either, we default to a conservative 180 so
     /// zone coloring doesn't go catastrophically wrong for fit users.
     var maxHR: Int?
@@ -110,8 +121,10 @@ struct UserSettings: Codable, Equatable {
     /// Resolved LTHR — user override, else 0.88 x `effectiveMaxHR`, with a 120
     /// floor.
     ///
-    /// The 120 floor is only reachable at all through an absurd user-entered
-    /// max HR — with the derived max (150-220) the result lands at 133-158.
+    /// The 120 floor binds only for a max HR under 137: a low user-entered
+    /// value, or the formula's 130 bpm floor (about age 111 and over). The
+    /// derived max is clamped to 130-220 (180 without a birthday), so without
+    /// an override the result lands at 120-193.
     /// Deliberately not raised to 160, because LTHR is the denominator hrTSS
     /// divides by and raising it would shift every historical training-load
     /// figure.
@@ -211,23 +224,24 @@ struct UserSettings: Codable, Equatable {
     var defaultTrainingEmailCC: String?
 
     /// **Legacy** single-default fields, kept for back-compat.
-    /// Migrated forward into recovery + training defaults on first
-    /// read after the user sets the new fields. NOT safe to delete:
-    /// they are still first-precedence in `resolvedDefaultEmailRecipient` /
-    /// `resolvedDefaultEmailCC` below, and removing them from this
-    /// `Codable` type would drop the saved address for any user who set
-    /// the old field but never the new recovery/training split.
+    /// Decoding moves a stored value into each empty recovery/training
+    /// field and then sets these to nil, so the next save drops them. NOT
+    /// safe to delete from `CodingKeys`: the decoder still needs the keys to
+    /// carry the address forward for a user who set the old field but never
+    /// the new recovery/training split. They are last in
+    /// `resolvedDefaultEmailRecipient` / `resolvedDefaultEmailCC` below.
     var defaultEmailRecipient: String?
     var defaultEmailCC: String?
 
     /// Generic-default resolver for the "uncategorised"
     /// email path (per-message chat notes from the AI, anything else
     /// that doesn't have a recovery/training tag). Returns the first
-    /// non-empty match in: legacy generic → recovery → training. Nil
-    /// when nothing is configured. Callers `.flatMap { ... }` into a
-    /// recipients array.
+    /// non-empty match in: recovery → training → legacy generic, so an
+    /// address the user set in Settings always wins over the old single
+    /// field. Nil when nothing is configured. Callers `.flatMap { ... }`
+    /// into a recipients array.
     var resolvedDefaultEmailRecipient: String? {
-        let candidates = [defaultEmailRecipient, defaultRecoveryEmailRecipient, defaultTrainingEmailRecipient]
+        let candidates = [defaultRecoveryEmailRecipient, defaultTrainingEmailRecipient, defaultEmailRecipient]
         return candidates.compactMap { $0 }.first(where: { !$0.isEmpty })
     }
 
@@ -236,7 +250,7 @@ struct UserSettings: Codable, Equatable {
     /// when nothing configured), suitable for direct use as
     /// `MailComposerView.ccRecipients`.
     var resolvedDefaultEmailCC: [String] {
-        let raw = [defaultEmailCC, defaultRecoveryEmailCC, defaultTrainingEmailCC]
+        let raw = [defaultRecoveryEmailCC, defaultTrainingEmailCC, defaultEmailCC]
             .compactMap { $0 }
             .first(where: { !$0.isEmpty }) ?? ""
         return raw
@@ -338,15 +352,15 @@ struct UserSettings: Codable, Equatable {
     // days after start. Deactivation is silent — the score smoothly
     // transitions back to standard weighting as the day passes.
 
-    /// Date the user toggled Comeback mode on. Nil = never enabled or
-    /// already auto-expired and cleared by the next dashboard load.
+    /// Date the user toggled Comeback mode on. Nil = never enabled, or turned
+    /// off by the user (Settings → Modes, or the trajectory card's toggle).
+    /// An expired date is not cleared automatically: it stays until the user
+    /// toggles the mode again, and `isComebackModeActive` reads it as off.
     var comebackModeStartDate: Date?
 
     /// Whether Comeback mode is currently active. Window is 21 days
-    /// from `comebackModeStartDate`. Returns false (without auto-clearing
-    /// the date) once the window has passed — the value type can't
-    /// mutate itself, so cleanup happens at the next setter that touches
-    /// the settings document.
+    /// from `comebackModeStartDate`. Returns false (without clearing
+    /// the date) once the window has passed.
     var isComebackModeActive: Bool {
         guard let start = comebackModeStartDate else { return false }
         let calendar = Calendar.current
@@ -384,14 +398,17 @@ struct UserSettings: Codable, Equatable {
 
     var dailyReportDelivery: DailyReportDelivery = .smart
 
-    /// Wall-clock time for `.fixed` delivery (only the time-of-day
-    /// component is used; the date portion is irrelevant). Default 7:00am.
-    var dailyReportFixedTime: Date = {
-        var comps = DateComponents()
-        comps.hour = 7
-        comps.minute = 0
-        return Calendar.current.date(from: comps) ?? Date()
-    }()
+    /// Wall-clock time for `.fixed` delivery, in minutes after local
+    /// midnight. Default 7:00am. A minute of the day rather than an instant,
+    /// so a change of time zone keeps the report at the same clock time.
+    var dailyReportFixedMinuteOfDay: Int = 7 * 60
+
+    /// `dailyReportFixedMinuteOfDay` as a `Date` for the time picker and the
+    /// scheduler (only its hour and minute are meaningful).
+    var dailyReportFixedTime: Date {
+        get { Self.wallClockDate(minuteOfDay: dailyReportFixedMinuteOfDay) }
+        set { dailyReportFixedMinuteOfDay = Self.minuteOfDay(newValue) }
+    }
 
     enum DailyReportFormat: String, Codable, CaseIterable {
         /// "Recovery 38 · Easy Z2 today — body still digesting Tuesday's load."
@@ -587,7 +604,9 @@ struct UserSettings: Codable, Equatable {
     // MARK: - Trial
 
     /// When the free trial started. Nil means no trial has been initiated.
-    /// Set once after onboarding completes (first-time users only).
+    /// Written only by `SettingsManager.adoptTrialStart`, which mirrors the
+    /// entitlement anchor's trial start (the App Store's trial transaction) so
+    /// CloudKit carries a second copy.
     var trialStartDate: Date?
 
     // MARK: - iCloud Sync
@@ -752,11 +771,9 @@ struct UserSettings: Codable, Equatable {
     /// Derived sleep schedule from bedtime + typical sleep hours.
     /// Use this everywhere instead of hardcoded clock assumptions.
     var sleepSchedule: SleepSchedule {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.hour, .minute], from: expectedBedtime)
-        return SleepSchedule(
-            bedtimeHour: components.hour ?? 22,
-            bedtimeMinute: components.minute ?? 0,
+        SleepSchedule(
+            bedtimeHour: expectedBedtimeMinuteOfDay / 60,
+            bedtimeMinute: expectedBedtimeMinuteOfDay % 60,
             sleepHours: typicalSleepHours
         )
     }
@@ -790,7 +807,7 @@ struct UserSettings: Codable, Equatable {
         case intentionalOverreachEndDate
         case dailyReportEnabled
         case dailyReportDelivery
-        case dailyReportFixedTime
+        case dailyReportFixedTime, dailyReportFixedMinuteOfDay
         case dailyReportFormat
         case hrvAnomalyAlertsEnabled
         case batteryLowAlertsEnabled
@@ -813,7 +830,7 @@ struct UserSettings: Codable, Equatable {
         case hasAcknowledgedScoreArchitectureChange
         case hasRunScoreHistoryRecompute
         case hasFixedTempAsymmetry
-        case expectedBedtime
+        case expectedBedtime, expectedBedtimeMinuteOfDay
         case sessionMergeMode, customMergeGapHours, sleepSplitGapMinutes
         case appearanceTheme, colorTheme
         case enableHealthKitExport, exportSDNN, exportHeartRate, exportRestingHeartRate, exportSleepData
@@ -823,17 +840,24 @@ struct UserSettings: Codable, Equatable {
         case enableAIAssistant, enableVoiceMode, enableWatchConnectivity, keepScreenOnDuringRecording
     }
 
-    /// Typical sleep in minutes (for calculations)
-    var typicalSleepMinutes: Double {
-        typicalSleepHours * 60.0
-    }
-
-    /// Computed age from birthday
+    /// Computed age from birthday, today, in the current calendar.
     var age: Int? {
         guard let birthday else { return nil }
-        let calendar = Calendar.current
-        let ageComponents = calendar.dateComponents([.year], from: birthday, to: Date())
-        return ageComponents.year
+        return MaxHeartRate.age(from: birthday, to: Date(), calendar: Calendar.current)
+    }
+
+    /// Minutes after midnight of `date`'s hour and minute in the current
+    /// calendar: how a time picker's `Date` is stored as a clock time.
+    static func minuteOfDay(_ date: Date) -> Int {
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+    }
+
+    /// A `Date` whose hour and minute in the current calendar are
+    /// `minuteOfDay`, for the pickers and the readers that take a `Date`.
+    static func wallClockDate(minuteOfDay: Int) -> Date {
+        let parts = DateComponents(hour: minuteOfDay / 60, minute: minuteOfDay % 60)
+        return Calendar.current.date(from: parts) ?? Date()
     }
 
     enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
@@ -859,7 +883,7 @@ struct UserSettings: Codable, Equatable {
     init() {
         customTags = []
         typicalSleepHours = 8.0 // Default 8 hours, user should customize
-        expectedBedtime = Calendar.current.date(from: DateComponents(hour: 22, minute: 0)) ?? Date()
+        expectedBedtimeMinuteOfDay = 22 * 60
         defaultWindowSelectionMethod = .consolidatedRecovery
         hasCompletedOnboarding = false
         iCloudSyncEnabled = false

@@ -1,0 +1,2701 @@
+{
+ "file": "Tools/validation/test_ports.py",
+ "hash": "8fbfbdbad1218c99",
+ "role": "Re-runs Emuqu unit-test expectations (EmuquTests @ e028039: DFAAnalysisTests, DFAReferenceValidationTests, FrequencyDomainTests, HRVSleepStageClassifierTests, ArtifactDetectionTests, LiveDFAAnalyzerTests, TimeDomainTests, HRVReferenceValidationTests) against the Python ports; each @case registers a runner that records PASS/FAIL; exits 1 on any failure. Output is committed as test_ports_output.txt (114/114).",
+ "types": [],
+ "state": [
+  "RESULTS list of (suite, name, ok, detail) (line 21)",
+  "CASES list of registered runners (line 38)",
+  "_REF / _NIGHT / _FIX memo caches (lines 204, 453, 953)",
+  "N_REF = 4096 (line 160)",
+  "git object e028039:EmuquTests/HRVReferenceFixtures.swift (read via `git show`)"
+ ],
+ "toplevel": "Imports the six port modules and swift_rng; module-level @case decorators register 114 runners in CASES; the __main__ block (lines 1040-1048) runs every case, prints PASS/FAIL lines and 'N/M cases matched', exits 1 if any failed. Not referenced by any .github workflow, so port drift from Swift is only caught when someone reruns it by hand.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The ports and this suite are pinned to commit e028039 and are not run in CI (no workflow references Tools/validation); a later change to the ported Swift methods would leave RESULTS.md, which the white papers cite, silently describing old code. At main 8d32097 only comment lines of LiveDFAAnalyzer.swift changed since e028039.",
+   "evidence": [
+    "Tools/validation/test_ports.py:1",
+    "docs/whitepapers/02-exercise-hrv-and-training-load.md:629",
+    ".github/workflows/ci.yml"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def case",
+   "hash": "9f0df33a0ea4db8d",
+   "does": "Decorator factory: case(suite, name) returns deco, which wraps a test function in a runner and appends it to CASES; the original function is returned (so all `_` names shadow each other harmlessly).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/test_ports.py::def case.deco"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def case.deco": "a319a2d32bdca81d",
+    "Tools/validation/test_ports.py::def case.deco.run": "76cc61a5964ea8dc"
+   }
+  },
+  {
+   "key": "def case.deco",
+   "hash": "5e3cb3ad7e431664",
+   "does": "Wraps fn in run(), names it, appends run to CASES and returns fn.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def case.deco.run": "76cc61a5964ea8dc"
+   }
+  },
+  {
+   "key": "def case.deco.run",
+   "hash": "b92cceb2be68c4aa",
+   "does": "Runner: calls the case function, records (suite, name, ok, detail) in RESULTS; any exception is recorded as a FAIL with the exception repr.",
+   "entry": "Called from the __main__ loop over CASES (test_ports.py:1041).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fn raises",
+     "effect": "recorded as FAIL with 'exception ...'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def approx",
+   "hash": "295ed5825d6149ea",
+   "does": "True when a is not None and |a-b| <= tol.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def rr_sin",
+   "hash": "7275634d7ab17282",
+   "does": "Sinusoidal RR fixture: mean + sin(0.3 i)*var for count beats (mirrors DFAAnalysisTests helper).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def white_d1",
+   "hash": "ecfebeb9688331b5",
+   "does": "White-noise RR fixture: 850 + SplitMix64(0xD1).double_closed(-50,50) per beat.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc",
+    "Tools/validation/test_ports.py::def _ #114": "d1cff3c09fddfd74"
+   }
+  },
+  {
+   "key": "def correlated_d2",
+   "hash": "0fd9ecdcc138e1ad",
+   "does": "Correlated RR fixture: 850 + three sines + SplitMix64(0xD2) uniform +/-5 noise.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc"
+   }
+  },
+  {
+   "key": "def _",
+   "hash": "727afef5bb2b75d2",
+   "does": "Mirrors DFAAnalysisTests.testDFARequiresMinimumSamples: passes iff `port_dfa.compute(rr_sin(50)) is None` (lines 69-69).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def rr_sin"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def rr_sin": "916e7d9cf542bac3"
+   }
+  },
+  {
+   "key": "def _ #2",
+   "hash": "6079b6704d4aa899",
+   "does": "Mirrors DFAAnalysisTests.testDFAWithMinimumSamples: passes iff `port_dfa.compute(rr_sin(64)) is not None` (lines 74-74).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def rr_sin"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def rr_sin": "916e7d9cf542bac3"
+   }
+  },
+  {
+   "key": "def _ #3",
+   "hash": "d5fa0ad2399aeedb",
+   "does": "Mirrors DFAAnalysisTests.testDFAAlpha1InPhysiologicalRange: passes iff `0.3 < a < 2.0`; setup: a = port_dfa.compute(correlated_d2(300))[\"alpha1\"] (lines 79-80).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #4",
+   "hash": "5f79ce629f41bada",
+   "does": "Mirrors DFAAnalysisTests.testDFAReturnsValidR2: passes iff `0 <= r <= 1`; setup: r = port_dfa.compute(correlated_d2(200))[\"alpha1R2\"] (lines 85-86).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #5",
+   "hash": "8d160817e42c245b",
+   "does": "Mirrors DFAAnalysisTests.testAlpha2RequiresSufficientData: passes iff `r is not None and r[\"alpha2\"] is None`; setup: r = port_dfa.compute(rr_sin(100)) (lines 91-92).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def rr_sin"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def rr_sin": "916e7d9cf542bac3"
+   }
+  },
+  {
+   "key": "def _ #6",
+   "hash": "87d026a3d0c8ab95",
+   "does": "Mirrors DFAAnalysisTests.testAlpha2WithSufficientData: passes iff `r[\"alpha2\"] is not None and r[\"alpha2R2\"] is not None`; setup: r = port_dfa.compute(correlated_d2(500)) (lines 97-98).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #7",
+   "hash": "93d69167bc0d8502",
+   "does": "Mirrors DFAAnalysisTests.testAlpha2InReasonableRange: passes iff `0.2 < a2 < 2.0`; setup: a2 = port_dfa.compute(correlated_d2(500))[\"alpha2\"] (lines 103-104).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #8",
+   "hash": "1189aa587a272aa1",
+   "does": "Mirrors DFAAnalysisTests.testWhiteNoiseProducesLowAlpha: passes iff `m < 0.9`; setup: a = [port_dfa.compute(white_d1(300))[\"alpha1\"] for _ in range(5)] | m = sum(a) / len(a) (lines 109-112).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def white_d1"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Mirrors a Swift test that re-seeds 0xD1 on every call, so the 5 'independent' white-noise series are identical and the mean over 5 equals one sample; the case gives no averaging (the comment at line 109 acknowledges it).",
+     "evidence": [
+      "Tools/validation/test_ports.py:109",
+      "Tools/validation/test_ports.py:110"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e",
+    "Tools/validation/test_ports.py::def white_d1": "8ef4ecf74f30ad67"
+   }
+  },
+  {
+   "key": "def _ #9",
+   "hash": "9a1dec5344f6d9f0",
+   "does": "Mirrors DFAAnalysisTests.testCorrelatedSignalProducesModerateAlpha: passes iff `0.4 < a < 2.0`; setup: a = port_dfa.compute(correlated_d2(300))[\"alpha1\"] (lines 117-118).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #10",
+   "hash": "ea5ebb36b5e980ac",
+   "does": "Mirrors DFAAnalysisTests.testCustomAlpha1Range: passes iff `abs(a - b) > 0.01`; setup: rr = correlated_d2(200) | a = port_dfa.compute(rr)[\"alpha1\"] | b = port_dfa.compute(rr, alpha1_range=(5, 12))[\"alpha1\"] (lines 123-126).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #11",
+   "hash": "82340a6f39d23a3c",
+   "does": "Mirrors DFAAnalysisTests.testDFAIsReproducible: passes iff `port_dfa.compute(rr)[\"alpha1\"] == port_dfa.compute(rr)[\"alpha1\"]`; setup: rr = correlated_d2(300) (lines 131-132).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #12",
+   "hash": "2f3700af620e61bd",
+   "does": "Mirrors DFAAnalysisTests.testDFAWithConstantRR: passes iff `r is None or math.isfinite(r[\"alpha1\"])`; setup: r = port_dfa.compute([850.0] * 100) (lines 137-138).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86"
+   }
+  },
+  {
+   "key": "def _ #13",
+   "hash": "cce6b3decca93f39",
+   "does": "Mirrors DFAAnalysisTests.testDFAWithLargeDataset: passes iff `r is not None and r[\"alpha2\"] is not None`; setup: r = port_dfa.compute(correlated_d2(7200)) (lines 143-144).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def _ #14",
+   "hash": "c7f931f36821b6fe",
+   "does": "Mirrors DFAAnalysisTests.testDFAWithHighVariability: passes iff `r is not None and not math.isnan(r[\"alpha1\"])`; setup: r = port_dfa.compute([600 + math.sin(i * 0.2) * 300 for i in range(300)]) (lines 149-150).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86"
+   }
+  },
+  {
+   "key": "def _ #15",
+   "hash": "970a368e466bda62",
+   "does": "Mirrors DFAAnalysisTests.testGoodFitProducesHighR2: passes iff `r > 0.7`; setup: r = port_dfa.compute(correlated_d2(500))[\"alpha1R2\"] (lines 155-156).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def correlated_d2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+   }
+  },
+  {
+   "key": "def gaussian",
+   "hash": "e238c8be383fa443",
+   "does": "Box-Muller Gaussian samples from SplitMix64(seed) (u1 in [1e-12,1], u2 in [0,1]), two per draw.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer than count samples",
+     "effect": "draw a pair"
+    },
+    {
+     "at": "+8",
+     "cond": "room for second sample",
+     "effect": "append sine branch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc"
+   }
+  },
+  {
+   "key": "def uncorrelated",
+   "hash": "fa54df395423bc52",
+   "does": "Uncorrelated reference process: 850 + 40*gaussian(4096, 0x5EED0001).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/test_ports.py::def gaussian"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def gaussian": "42d5eb13fc728e72"
+   }
+  },
+  {
+   "key": "def brownian",
+   "hash": "00a1a6698e6c73c8",
+   "does": "Brownian reference process: cumulative sum of gaussian(4096, 0x5EED0002), mean-centred, *2 + 850.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/test_ports.py::def gaussian"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "accumulate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def gaussian": "42d5eb13fc728e72"
+   }
+  },
+  {
+   "key": "def pink",
+   "hash": "6954f11df5eaeea6",
+   "does": "Pink-noise reference process (Voss-McCartney, 12 octaves, SplitMix64 0x5EED0003): 850 + 12*sum of octave sources.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each sample",
+     "effect": "update octaves"
+    },
+    {
+     "at": "+6",
+     "cond": "for each octave",
+     "effect": "check"
+    },
+    {
+     "at": "+7",
+     "cond": "i divisible by 2^o",
+     "effect": "redraw that octave"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc",
+    "Tools/validation/test_ports.py::def _ #114": "d1cff3c09fddfd74"
+   }
+  },
+  {
+   "key": "def ref",
+   "hash": "2dcb5386913b41d2",
+   "does": "Memoised alpha results of port_dfa.compute on the uncorrelated ('w'), pink ('p') or brownian ('b') process.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not cached",
+     "effect": "compute and cache"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def brownian": "eda6650e019c53b9",
+    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0",
+    "Tools/validation/test_ports.py::def uncorrelated": "fae2cbb31a92b235"
+   }
+  },
+  {
+   "key": "def _ #16",
+   "hash": "a02eb4c7e5833f6d",
+   "does": "Mirrors DFAReferenceValidationTests.testUncorrelatedNoiseScalesAtOneHalf (+ quoted measured a1=0.581): passes iff `ok where ok = approx(r[\"alpha1\"], 0.5, 0.15) and approx(r[\"alpha2\"], 0.5, 0.10)`; setup: r = ref(\"w\") | ok = approx(r[\"alpha1\"], 0.5, 0.15) and approx(r[\"alpha2\"], 0.5, 0.10) (lines 215-217).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def ref",
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+   }
+  },
+  {
+   "key": "def _ #17",
+   "hash": "5e5471e59974e686",
+   "does": "Mirrors DFAReferenceValidationTests.testPinkNoiseScalesAtOne (+ quoted measured a1=1.088): passes iff `ok where ok = approx(r[\"alpha1\"], 1.0, 0.15) and approx(r[\"alpha2\"], 1.0, 0.15)`; setup: r = ref(\"p\") | ok = approx(r[\"alpha1\"], 1.0, 0.15) and approx(r[\"alpha2\"], 1.0, 0.15) (lines 222-224).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def ref",
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+   }
+  },
+  {
+   "key": "def _ #18",
+   "hash": "dbe4dd037e2ba8c1",
+   "does": "Mirrors DFAReferenceValidationTests.testBrownianMotionScalesAtThreeHalves (+ quoted measured a1=1.526): passes iff `ok where ok = approx(r[\"alpha1\"], 1.5, 0.15) and approx(r[\"alpha2\"], 1.5, 0.10)`; setup: r = ref(\"b\") | ok = approx(r[\"alpha1\"], 1.5, 0.15) and approx(r[\"alpha2\"], 1.5, 0.10) (lines 229-231).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def ref",
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+   }
+  },
+  {
+   "key": "def _ #19",
+   "hash": "f68f124fafb28025",
+   "does": "Mirrors DFAReferenceValidationTests.quoted measured values 0.581/1.088/1.526 reproduced to 3 dp: passes iff `got == [0.581, 1.088, 1.526]`; setup: got = [round(ref(k)[\"alpha1\"], 3) for k in \"wpb\"] (lines 236-237).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def ref",
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+   }
+  },
+  {
+   "key": "def _ #20",
+   "hash": "b73bef44f97bd1d5",
+   "does": "Mirrors DFAReferenceValidationTests.testExponentsSeparateTheThreeProcesses: passes iff `w + 0.2 < p and p + 0.2 < b`; setup: w, p, b = (ref(k)[\"alpha1\"] for k in \"wpb\") (lines 242-243).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def ref",
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+   }
+  },
+  {
+   "key": "def _ #21",
+   "hash": "b42b2f981526cb11",
+   "does": "Mirrors DFAReferenceValidationTests.testExponentIsUnchangedByAConstantOffset: passes iff `approx(port_dfa.compute(s)[\"alpha1\"], port_dfa.compute([x + 250 for x in s])[\"alpha1\"], 1e-9)`; setup: s = pink() (lines 248-249).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def pink",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0"
+   }
+  },
+  {
+   "key": "def _ #22",
+   "hash": "b2cd2622b5d4d800",
+   "does": "Mirrors DFAReferenceValidationTests.testExponentIsUnchangedByAmplitudeScaling: passes iff `approx(port_dfa.compute(s)[\"alpha1\"], port_dfa.compute([850 + (x - 850) * 3.5 for x in s])[\"alpha1\"], 1e-9)`; setup: s = pink() (lines 254-255).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def pink",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0"
+   }
+  },
+  {
+   "key": "def _ #23",
+   "hash": "2cbe3839d4171e89",
+   "does": "Mirrors DFAReferenceValidationTests.testAPureLinearRampProducesAFiniteExponent: passes iff `r is not None and math.isfinite(r[\"alpha1\"])`; setup: r = port_dfa.compute([800 + i * 0.05 for i in range(N_REF)]) (lines 260-261).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The detail f-string dereferences r['alpha1'] even when r is None, so a None result turns into a TypeError recorded as 'exception ...' instead of a clean FAIL detail.",
+     "evidence": [
+      "Tools/validation/test_ports.py:261"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86"
+   }
+  },
+  {
+   "key": "def _ #24",
+   "hash": "fd16fb09ec8cd125",
+   "does": "Mirrors DFAReferenceValidationTests.testTheSameSeriesGivesTheSameExponent: passes iff `a[\"alpha1\"] == b[\"alpha1\"] and a[\"alpha2\"] == b[\"alpha2\"]`; setup: s = pink() | a, b = port_dfa.compute(s), port_dfa.compute(s) (lines 266-268).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/test_ports.py::def pink"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0"
+   }
+  },
+  {
+   "key": "def sine",
+   "hash": "a2d830c262ac6dd3",
+   "does": "Sine test signal of n samples at fs=4 Hz with amplitude a and optional DC offset.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _ #25",
+   "hash": "57cacec968425598",
+   "does": "Mirrors FrequencyDomainTests.testSpectralWith025HzSine: passes iff `ok where ok = m[\"hf\"] > m[\"lf\"] * 10 and m[\"hf\"] / tot > 0.9 and approx(m[\"hf\"], 1250, 1250 * 0.25)`; setup: m = fd.compute_psd(sine(1200, 0.25, 50)) | tot = m[\"hf\"] + m[\"lf\"] + (m[\"vlf\"] or 0) | ok = m[\"hf\"] > m[\"lf\"] * 10 and m[\"hf\"] / tot > 0.9 and approx(m[\"hf\"], 1250, 1250 * 0.25) (lines 281-284).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #26",
+   "hash": "d6d0b02e9c942f90",
+   "does": "Mirrors FrequencyDomainTests.testSpectralWith01HzSine: passes iff `m[\"lf\"] > m[\"hf\"] * 10 and m[\"lf\"] / tot > 0.9`; setup: m = fd.compute_psd(sine(1200, 0.1, 50)) | tot = m[\"hf\"] + m[\"lf\"] + (m[\"vlf\"] or 0) (lines 289-291).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #27",
+   "hash": "f79c97382ad79ff7",
+   "does": "Mirrors FrequencyDomainTests.testMixedFrequencySignal: passes iff `ok where ok = approx(m[\"lf\"], 450, 135) and approx(m[\"hf\"], 800, 240) and approx(m[\"lfHfRatio\"], 450 / 800, 0.2)`; setup: s = [30 * math.sin(2 * math.pi * 0.1 * i / 4) + 40 * math.sin(2 * math.pi * 0.25 * i / 4) for i in range(1200)] | m = fd.compute_psd(s) | ok = approx(m[\"lf\"], 450, 135) and approx(m[\"hf\"], 800, 240) and approx(m[\"lfHfRatio\"], 450 / 800, 0.2) (lines 296-299).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #28",
+   "hash": "965b45b997f0023c",
+   "does": "Mirrors FrequencyDomainTests.testVLFGatingShortWindow: passes iff `fd.compute_psd(sine(1200, 0.02, 50), usable_window_min=5.0)[\"vlf\"] is None` (lines 304-304).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #29",
+   "hash": "fec790f445ca4613",
+   "does": "Mirrors FrequencyDomainTests.testVLFGatingLongWindow: passes iff `v is not None and v > 0`; setup: v = fd.compute_psd(sine(2400, 0.02, 50), usable_window_min=10.0)[\"vlf\"] (lines 309-310).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #30",
+   "hash": "8011b4bbda11f99a",
+   "does": "Mirrors FrequencyDomainTests.testVLFPowerMatchesASineInTheBand: passes iff `approx(v, 1250, 312.5)`; setup: v = fd.compute_psd(sine(2400, 0.02, 50), usable_window_min=10.0)[\"vlf\"] (lines 315-316).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #31",
+   "hash": "3baf212e0fc2ee73",
+   "does": "Mirrors FrequencyDomainTests.testLinearDriftDoesNotReadAsVLF: passes iff `m[\"vlf\"] < m[\"hf\"] * 0.01 and approx(m[\"hf\"], 1250, 312.5)`; setup: n = 2400 | s = [50 * math.sin(2 * math.pi * 0.25 * i / 4) + 200.0 * i / n for i in range(n)] | m = fd.compute_psd(s, usable_window_min=10.0) (lines 321-324).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #32",
+   "hash": "4c951040fa73476a",
+   "does": "Mirrors FrequencyDomainTests.testShortWindowPowerIsScaledToTheSignalNotThePadding: passes iff `approx(m[\"hf\"], 1250, 125)`; setup: m = fd.compute_psd(sine(140, 0.25, 50)) (lines 329-330).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #33",
+   "hash": "2657319f65f43965",
+   "does": "Mirrors FrequencyDomainTests.testLinearDetrendRemovesOffsetAndSlope: passes iff `all(abs(v) < 1e-9 for v in fd.linearly_detrended([3 + 0.5 * i for i in range(64)]))` (lines 335-335).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "fc013a933a38b25a"
+   }
+  },
+  {
+   "key": "def _ #34",
+   "hash": "ccd63b30940b787f",
+   "does": "Mirrors FrequencyDomainTests.testDCComponentRemoval: passes iff `approx(m[\"hf\"], 1250, 312.5)`; setup: m = fd.compute_psd(sine(1200, 0.25, 50, dc=1000)) (lines 340-341).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #35",
+   "hash": "22e8808074a88629",
+   "does": "Mirrors FrequencyDomainTests.testDFTCaching: passes iff `all(fd.compute_psd(sine(n, 0.25, 50))[\"totalPower\"] > 0 for n in [256, 512, 1024, 512, 256])` (lines 346-346).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #36",
+   "hash": "2ed5ac0ddf68ad8a",
+   "does": "Mirrors FrequencyDomainTests.testSmallAmplitudes: passes iff `h > 0 and math.isfinite(h)`; setup: h = fd.compute_psd(sine(1200, 0.25, 0.001))[\"hf\"] (lines 351-352).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #37",
+   "hash": "ce83d251557679f4",
+   "does": "Mirrors FrequencyDomainTests.testZeroSignal: passes iff `abs(m[\"totalPower\"]) < 1e-10 and m[\"lfHfRatio\"] is None`; setup: m = fd.compute_psd([0.0] * 1024) (lines 357-358).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be"
+   }
+  },
+  {
+   "key": "def _ #38",
+   "hash": "5765ebd8f713c890",
+   "does": "Mirrors FrequencyDomainTests.testVLFIsNilBelowOneLongSegment: passes iff `m[\"vlf\"] is None and m[\"hf\"] > 0`; setup: m = fd.compute_psd(sine(1000, 0.25, 50), usable_window_min=10.0) (lines 363-364).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #39",
+   "hash": "9a4ba60e223af03f",
+   "does": "Mirrors FrequencyDomainTests.testSingleWindowPathGatesVLFOnTheUsableWindow: passes iff `ok where ok = lo[\"vlf\"] is not None and math.isfinite(lo[\"vlf\"]) and lo[\"vlf\"] >= 0 and sh[\"vlf\"] is None and lo[\"hf\"] > lo[\"lf\"]`; setup: s = sine(200, 0.25, 50) | lo, sh = fd.compute_psd(s, usable_window_min=10.0), fd.compute_psd(s, usable_window_min=5.0) | ok = lo[\"vlf\"] is not None and math.isfinite(lo[\"vlf\"]) and lo[\"vlf\"] >= 0 and sh[\"vlf\"] is None and lo[\"hf\"] > lo[\"lf\"] (lines 369-372).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+   }
+  },
+  {
+   "key": "def _ #40",
+   "hash": "c7db5ff4b5dac0b7",
+   "does": "Mirrors FrequencyDomainTests.testComputeFromCleanPairsPlacesRespiratoryModulationInHF: passes iff `m[\"hf\"] > m[\"lf\"]`; setup: t, ts, rr = 0.0, [], [] | for _ in range(400): | v = 800 + 40 * math.sin(2 * math.pi * 0.25 * t) | t += v / 1000 | ts.append(t) | rr.append(v) | m = fd.compute_from_clean_pairs(ts, rr) (lines 377-384).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f"
+   }
+  },
+  {
+   "key": "def _ #41",
+   "hash": "e3df141ea3089a15",
+   "does": "Mirrors FrequencyDomainTests.testComputeFromCleanPairsRejectsTooLittleData: passes iff `fd.compute_from_clean_pairs(few, [800] * 59) is None and fd.compute_from_clean_pairs(still, [800] * 100) is None`; setup: few = [i * 0.8 for i in range(59)] | still = [5.0] * 100 (lines 389-391).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f"
+   }
+  },
+  {
+   "key": "def _ #42",
+   "hash": "c1ed38b329a1d376",
+   "does": "Mirrors FrequencyDomainTests.(extra) Welch port vs scipy.signal.welch, same settings: passes iff `approx(m[\"lf\"], lf, 1e-6 * lf) and approx(m[\"hf\"], hf, 1e-6 * hf)`; setup: import numpy as np | from scipy.signal import welch | rng = np.random.default_rng(1) | x = rng.normal(0, 30, 1200) + sine_np(1200) | m = fd.compute_psd(list(x)) | f, p = welch(x - x.mean(), fs=4.0, window=\"hann\", nperseg=256, noverlap=128, detrend=\"linear\", scaling=\"density\") | res = f[1] - f[0] | lf = float(np.sum(p[(f >= 0.04) & (f < 0.15)]) * res) | hf = float(np.sum(p[(f >= 0.15) & (f <= 0.4)] (lines 396-405).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def compute_psd",
+    "Tools/validation/test_ports.py::def sine_np",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def sine_np": "08ed16bb3fd6f059"
+   }
+  },
+  {
+   "key": "def sine_np",
+   "hash": "a2126841c340fc4a",
+   "does": "numpy 40-amplitude 0.25 Hz sine at 4 Hz.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def sleep_night",
+   "hash": "dfe2ede479913aa8",
+   "does": "Synthetic night fixture (mirrors HRVSleepStageClassifierTests): 90-min cycles with deep (1154 ms), core (1000), REM (923) and 2-min awake (800, cycles > 0) phases plus LCG jitter, RR clamped 200-2000.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def deterministic_offset"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each 90-min cycle",
+     "effect": "generate"
+    },
+    {
+     "at": "+11",
+     "cond": "while inside cycle",
+     "effect": "emit beat"
+    },
+    {
+     "at": "+12",
+     "cond": "early awake part of non-first cycle",
+     "effect": "awake RR"
+    },
+    {
+     "at": "+14",
+     "cond": "before deep end",
+     "effect": "deep RR"
+    },
+    {
+     "at": "+16",
+     "cond": "after REM start",
+     "effect": "REM RR; else core RR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8"
+   }
+  },
+  {
+   "key": "def uniform",
+   "hash": "2a5baab9e57ad4d5",
+   "does": "Constant-HR RR points for the given number of minutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "t < duration",
+     "effect": "emit"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def night_result",
+   "hash": "b369f4f8bf33310c",
+   "does": "Memoised sc.classify result for sleep_night(hours) from 0 to the last point's time.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify",
+    "Tools/validation/test_ports.py::def sleep_night"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not cached",
+     "effect": "build and classify"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def sleep_night": "4eabb36421fe9d16"
+   }
+  },
+  {
+   "key": "def _ #43",
+   "hash": "c58296189cf698ad",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyProducesAllStages: passes iff `ok where ok = r[\"deepSleepMinutes\"] > 0 and r[\"remSleepMinutes\"] > 0 and r[\"coreSleepMinutes\"] > 0 and abs(tot - exp) <= 15`; setup: p = sleep_night(7.0) | r = night_result(7.0) | tot = r[\"deepSleepMinutes\"] + r[\"remSleepMinutes\"] + r[\"coreSleepMinutes\"] + r[\"awakeMinutes\"] | exp = int(p[-1][0] / 60000.0) | ok = r[\"deepSleepMinutes\"] > 0 and r[\"remSleepMinutes\"] > 0 and r[\"coreSleepMinutes\"] > 0 and abs(tot - exp) <= 15 (lines 465-470).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def sleep_night",
+    "Tools/validation/test_ports.py::def night_result",
+    "Tools/validation/port_sleep_stage_classifier.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a",
+    "Tools/validation/test_ports.py::def sleep_night": "4eabb36421fe9d16"
+   }
+  },
+  {
+   "key": "def _ #44",
+   "hash": "4b12814d90e0db99",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyDeepSleepProportions: passes iff `5 < d < 45`; setup: r = night_result(8.0) | ts = r[\"deepSleepMinutes\"] + r[\"remSleepMinutes\"] + r[\"coreSleepMinutes\"] | d = r[\"deepSleepMinutes\"] / ts * 100 (lines 475-478).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def night_result",
+    "Tools/validation/port_sleep_stage_classifier.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+   }
+  },
+  {
+   "key": "def _ #45",
+   "hash": "0a7cf7f77cc96a3f",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyREMNotInFirstHour: passes iff `not any(s == \"rem\" and a < 3600000 for s, a, b in r[\"stageIntervals\"])`; setup: r = night_result(7.0) (lines 483-484).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def night_result",
+    "Tools/validation/port_sleep_stage_classifier.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+   }
+  },
+  {
+   "key": "def _ #46",
+   "hash": "3eded40fd184f881",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyInsufficientDataReturnsNil: passes iff `sc.classify(p, 0, p[-1][0]) is None`; setup: p = uniform(60, 10) (lines 489-490).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify",
+    "Tools/validation/test_ports.py::def uniform"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def uniform": "621aaa6266ac9899"
+   }
+  },
+  {
+   "key": "def _ #47",
+   "hash": "d8dbc6a535220a0d",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyEmptyDataReturnsNil: passes iff `sc.classify([], 0, 100000) is None` (lines 495-495).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6"
+   }
+  },
+  {
+   "key": "def _ #48",
+   "hash": "1b6b99b9a863f35e",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyInvertedBoundariesReturnsNil: passes iff `sc.classify(uniform(60, 120), 100000, 50000) is None` (lines 500-500).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify",
+    "Tools/validation/test_ports.py::def uniform"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def uniform": "621aaa6266ac9899"
+   }
+  },
+  {
+   "key": "def _ #49",
+   "hash": "fb7a25be71b50ea8",
+   "does": "Mirrors HRVSleepStageClassifierTests.testStageIntervalsAreContinuous: passes iff `all(abs(iv[i - 1][2] - iv[i][1]) <= 1000 for i in range(1, len(iv)))`; setup: p = sleep_night(6.0) | r = sc.classify(p, 0, p[-1][0]) | iv = r[\"stageIntervals\"] (lines 505-508).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify",
+    "Tools/validation/test_ports.py::def sleep_night"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def sleep_night": "4eabb36421fe9d16"
+   }
+  },
+  {
+   "key": "def _ #50",
+   "hash": "6d5ce0d7934533be",
+   "does": "Mirrors HRVSleepStageClassifierTests.testAdjacentIntervalsHaveDifferentStages: passes iff `all(iv[i - 1][0] != iv[i][0] for i in range(1, len(iv)))`; setup: iv = night_result(7.0)[\"stageIntervals\"] (lines 513-514).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def night_result",
+    "Tools/validation/port_sleep_stage_classifier.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+   }
+  },
+  {
+   "key": "def _ #51",
+   "hash": "a7930e5938a1619b",
+   "does": "Mirrors HRVSleepStageClassifierTests.testSmoothingRemovesSingleWindowBlips: passes iff `sc.smooth_stages([\"deep\", \"deep\", \"core\", \"deep\", \"deep\"]) == [\"deep\"] * 5` (lines 519-519).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+   }
+  },
+  {
+   "key": "def _ #52",
+   "hash": "daccfcb84662b276",
+   "does": "Mirrors HRVSleepStageClassifierTests.testSmoothingPreservesBriefAwakenings: passes iff `sc.smooth_stages([\"deep\", \"deep\", \"awake\", \"deep\", \"deep\"])[2] == \"awake\"` (lines 524-524).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+   }
+  },
+  {
+   "key": "def _ #53",
+   "hash": "396d12652a91be76",
+   "does": "Mirrors HRVSleepStageClassifierTests.testSmoothingPreservesRealTransitions: passes iff `sc.smooth_stages(s) == s`; setup: s = [\"deep\", \"deep\", \"core\", \"core\", \"rem\", \"rem\"] (lines 529-530).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+   }
+  },
+  {
+   "key": "def _ #54",
+   "hash": "0f115c26d8aad2e8",
+   "does": "Mirrors HRVSleepStageClassifierTests.testSmoothingShortInput: passes iff `sc.smooth_stages([\"deep\", \"core\"]) == [\"deep\", \"core\"]` (lines 535-535).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+   }
+  },
+  {
+   "key": "def _ #55",
+   "hash": "4ec9ef0b15d7dbf4",
+   "does": "Mirrors HRVSleepStageClassifierTests.testComputeRanksOrdering: passes iff `all(abs(a - b) <= 0.01 for a, b in zip(r, [0.5, 0.25, 0.75, 0.0, 1.0]))`; setup: r = sc.compute_ranks([50.0, 30.0, 70.0, 10.0, 90.0]) (lines 540-541).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be"
+   }
+  },
+  {
+   "key": "def _ #56",
+   "hash": "bd8a5e88f1246e3f",
+   "does": "Mirrors HRVSleepStageClassifierTests.testComputeRanksGivesTiesTheirAverageRank: passes iff `a == [0.5] * 4 and approx(m[1], 0, 1e-9) and approx(m[3], 0.25, 1e-9) and approx(m[0], 0.75, 1e-9) and approx(m[4], 0.75, 1e-9)`; setup: a = sc.compute_ranks([1.0] * 4) | m = sc.compute_ranks([3.0, 1.0, 3.0, 2.0, 3.0]) (lines 546-548).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #57",
+   "hash": "26219deaee85ce42",
+   "does": "Mirrors HRVSleepStageClassifierTests.testComputeRanksSingleElement: passes iff `sc.compute_ranks([42.0]) == [0.5]` (lines 553-553).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be"
+   }
+  },
+  {
+   "key": "def _ #58",
+   "hash": "883fbe5e785eb95c",
+   "does": "Mirrors HRVSleepStageClassifierTests.testDFARankDirectionLowAlpha1IsDeepLike: passes iff `approx(r[0], 0, 0.01) and approx(r[4], 1, 0.01)`; setup: r = sc.compute_ranks([0.55, 0.85, 1.10, 0.95, 1.25]) (lines 558-559).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #59",
+   "hash": "85f0dfda21dbfc7a",
+   "does": "Mirrors HRVSleepStageClassifierTests.testCoreSleepDominatesWithUniformPhysiology: passes iff `c > 15 and d < 80`; setup: pts, t, bi = [], 0, 0 | dur = 7 * 3600 * 1000 | while t < dur: | rr = 1250 + deterministic_offset(bi, -20, 20) | pts.append((t, rr)) | t += rr | bi += 1 | r = sc.classify(pts, 0, dur) | ts = r[\"deepSleepMinutes\"] + r[\"remSleepMinutes\"] + r[\"coreSleepMinutes\"] | c, d = r[\"coreSleepMinutes\"] / ts * 100, r[\"deepSleepMinutes\"] / ts * 100 (lines 564-574).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify",
+    "Tools/validation/swift_rng.py::def deterministic_offset"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8"
+   }
+  },
+  {
+   "key": "def _ #60",
+   "hash": "1b6909aa85e4b0e6",
+   "does": "Mirrors HRVSleepStageClassifierTests.testClassifyREMProportionWithinNorms: passes iff `5 < p < 35`; setup: r = night_result(8.0) | ts = r[\"deepSleepMinutes\"] + r[\"remSleepMinutes\"] + r[\"coreSleepMinutes\"] | p = r[\"remSleepMinutes\"] / ts * 100 (lines 579-582).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def night_result",
+    "Tools/validation/port_sleep_stage_classifier.py::def classify"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+   }
+  },
+  {
+   "key": "def _ #61",
+   "hash": "6cfe8944ba0c5c8f",
+   "does": "Mirrors HRVSleepStageClassifierTests.testBuildIntervalsNoWindows: passes iff `sc.build_intervals([], []) == []` (lines 587-587).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874"
+   }
+  },
+  {
+   "key": "def fw",
+   "hash": "97061f3dd889d486",
+   "does": "Builds a stub 5-min window dict (start/end/midpoint) for index i.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _ #62",
+   "hash": "ed4f8b93ae5944fe",
+   "does": "Mirrors HRVSleepStageClassifierTests.testBuildIntervalsMergesAdjacentSameStage: passes iff `len(iv) == 2 and iv[0][0] == \"deep\" and iv[1][0] == \"core\"`; setup: iv = sc.build_intervals([fw(i) for i in range(4)], [\"deep\", \"deep\", \"core\", \"core\"]) (lines 596-597).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals",
+    "Tools/validation/test_ports.py::def fw"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874",
+    "Tools/validation/test_ports.py::def fw": "7684ef923893dafd"
+   }
+  },
+  {
+   "key": "def _ #63",
+   "hash": "fca9c92c3e15b99d",
+   "does": "Mirrors HRVSleepStageClassifierTests.testBuildIntervalsEndsAtADropoutGap: passes iff `len(iv) == 2 and iv[0][2] == ws[1][\"end_ms\"] and iv[1][1] == ws[2][\"start_ms\"]`; setup: ws = [fw(i) for i in [0, 1, 20, 21]] | iv = sc.build_intervals(ws, [\"core\"] * 4) (lines 602-604).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals",
+    "Tools/validation/test_ports.py::def fw"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874",
+    "Tools/validation/test_ports.py::def fw": "7684ef923893dafd"
+   }
+  },
+  {
+   "key": "def _ #64",
+   "hash": "18ee26e2a3c6e855",
+   "does": "Mirrors HRVSleepStageClassifierTests.testBuildFeatureWindowsRMSSDParityExact: passes iff `len(w) == 1 and approx(w[0][\"rmssd\"], 64.25396041156863, 1e-6)`; setup: pts, t = [], 0 | for _ in range(3): | for rr in [1000, 1050, 950, 1020, 980]: | pts.append((t, rr)) | t += rr | w = sc.build_feature_windows(pts, 0, 300000) (lines 609-615).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "e5efde449d3d895e",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #65",
+   "hash": "a08408c8b7303e73",
+   "does": "Mirrors HRVSleepStageClassifierTests.testSDNNUsesPopulationVarianceNotTheSampleForm: passes iff `approx(r[1], 79.0569, 0.001)`; setup: r = sc.window_variability([900, 950, 1050, 1100], 1000) (lines 620-621).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #66",
+   "hash": "355590df495af27f",
+   "does": "Mirrors HRVSleepStageClassifierTests.testSDNNMatchesThePopulationFormulaForEveryWindowSize: for every window size c = 2..12 (rr = 1000 + 13*i) it compares sc.window_variability(rr, mean)[1] with the population SD sqrt(sum((v-m)^2)/c); returns (False, 'count c') at the first size differing by more than 1e-9, else passes (lines 626-632).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #67",
+   "hash": "f0790682ecc0e519",
+   "does": "Mirrors HRVSleepStageClassifierTests.testRMSSDIsTheRootMeanSquareOfSuccessiveDifferences: passes iff `approx(sc.window_variability([900, 1000, 1100, 1200], 1050)[0], 100, 0.001)` (lines 637-637).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #68",
+   "hash": "597fb147a9959d30",
+   "does": "Mirrors HRVSleepStageClassifierTests.testCoefficientOfVariationIsSDNNOverTheMean: passes iff `approx(r[2], r[1] / 1000, 1e-9)`; setup: r = sc.window_variability([900, 950, 1050, 1100], 1000) (lines 642-643).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #69",
+   "hash": "303b4deeb923f964",
+   "does": "Mirrors HRVSleepStageClassifierTests.testTooFewBeatsYieldsZeroesRatherThanTrapping: passes iff `sc.window_variability([], 1000) == (0, 0, 0) and sc.window_variability([1000.0], 1000) == (0, 0, 0)` (lines 648-648).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564"
+   }
+  },
+  {
+   "key": "def _ #70",
+   "hash": "cc8f6239879ac464",
+   "does": "Mirrors HRVSleepStageClassifierTests.testAZeroMeanYieldsZeroCoefficientRatherThanNaN: passes iff `sc.window_variability([0, 0, 0], 0)[2] == 0` (lines 653-653).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564"
+   }
+  },
+  {
+   "key": "def _ #71",
+   "hash": "259fb02991570d9c",
+   "does": "Mirrors ArtifactDetectionTests.testCleanBeatsDetection (Int.random: 200 seeds): passes iff `worst > 95`; setup: worst = 100.0 | for seed in range(200): | rnd = random.Random(seed) | fl = ad.detect_artifacts([800 + rnd.randint(-30, 30) for _ in range(100)]) | worst = min(worst, sum(1 for f in fl if not f[\"isArtifact\"])) (lines 662-667). Swift uses unseeded Int.random, so the port substitutes Python random.Random(seed) for 200 seeds and requires > 95 of 100 beats clean in the worst seed; this is not bit-exact with any Swift run.",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+   }
+  },
+  {
+   "key": "def _ #72",
+   "hash": "24b368cf6e424333",
+   "does": "Mirrors ArtifactDetectionTests.testEctopicDetection: passes iff `ok and fs and fl_ where ok = True; ok &= f[\"type\"] in (\"ectopic\", \"extra\"); ok &= f[\"type\"] in (\"ectopic\", \"missed\")`; setup: rr = [] | for i in range(50): | rr += [500, 1100] if i == 25 else [800] | fl = ad.detect_artifacts(rr) | fs = fl_ = False | ok = True | for v, f in zip(rr, fl): | if v == 500 and f[\"isArtifact\"]: | fs = True | ok &= f[\"type\"] in (\"ectopic\", \"extra\") | if v == 1100 and f[\"isArtifact\"]: | fl_ = True | ok &= f[\"type\"] in (\"ectopic\", \"missed\") (lines 672-685).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+   }
+  },
+  {
+   "key": "def _ #73",
+   "hash": "c87b338d649fe61f",
+   "does": "Mirrors ArtifactDetectionTests.testTechnicalArtifacts: passes iff `fl[1][\"type\"] == \"technical\" and fl[3][\"type\"] == \"technical\"`; setup: fl = ad.detect_artifacts([800, 150, 800, 2500, 800]) (lines 690-691).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+   }
+  },
+  {
+   "key": "def _ #74",
+   "hash": "7dfc50eea2d8d6ce",
+   "does": "Mirrors ArtifactDetectionTests.testMissedBeatDetection: passes iff `fl[10][\"isArtifact\"] and fl[10][\"type\"] == \"missed\"`; setup: fl = ad.detect_artifacts([1500 if i == 10 else 800 for i in range(20)]) (lines 696-697).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+   }
+  },
+  {
+   "key": "def _ #75",
+   "hash": "cd3bff6fc08b6fa0",
+   "does": "Mirrors ArtifactDetectionTests.testArtifactPercentage: passes iff `approx(ad.artifact_percentage(fl, 0, 100), 10.0, 0.1)`; setup: fl = ad.detect_artifacts([800] * 100) | for i in range(10): | fl[i] = {\"isArtifact\": True, \"type\": \"ectopic\", \"confidence\": 1.0} (lines 702-705).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts",
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "2d3fb11667581edd",
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #76",
+   "hash": "44fa5037becbea2c",
+   "does": "Mirrors ArtifactDetectionTests.testArtifactPercentageWithBounds: passes iff `approx(ad.artifact_percentage(fl, 20, 30), 100, 0.1) and approx(ad.artifact_percentage(fl, 0, 20), 0, 0.1)`; setup: fl = [dict(ad.CLEAN) for _ in range(100)] | for i in range(20, 30): | fl[i] = {\"isArtifact\": True, \"type\": \"ectopic\", \"confidence\": 1.0} (lines 710-713).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "2d3fb11667581edd",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #77",
+   "hash": "aa6c8087e3d332ca",
+   "does": "Mirrors ArtifactDetectionTests.testSearchClampToZero: passes iff `ad.artifact_percentage([dict(ad.CLEAN)] * 50, -10, 20) == 0.0` (lines 718-718).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "2d3fb11667581edd"
+   }
+  },
+  {
+   "key": "def _ #78",
+   "hash": "167249f3aae0e319",
+   "does": "Mirrors ArtifactDetectionTests.testEdgeEffects: passes iff `not fl[0][\"isArtifact\"] and not fl[-1][\"isArtifact\"]`; setup: fl = ad.detect_artifacts([800] * 100) (lines 723-724).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+   }
+  },
+  {
+   "key": "def steady",
+   "hash": "17a66ee1c4fa7a61",
+   "does": "List of n identical RR values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def cl",
+   "hash": "10042b53440a5521",
+   "does": "Shorthand for lc.clean_rr_for_dfa.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1"
+   }
+  },
+  {
+   "key": "def _mod",
+   "hash": "29acb1e9f264434b",
+   "does": "Steady series with selected indices overwritten.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/test_ports.py::def steady"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each change",
+     "effect": "overwrite"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def steady": "262abb5110a50d02"
+   }
+  },
+  {
+   "key": "def _ #79",
+   "hash": "1f5bffdf3fc77cec",
+   "does": "Mirrors LiveDFAAnalyzerTests.testBeatsFasterThan200BPMAreReplaced: passes iff `v[10] != 250 and approx(v[10], 1000, 1)`; setup: v = cl(_mod(20, {10: 250}))[0] (lines 748-749).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #80",
+   "hash": "bf37121b5a9d541f",
+   "does": "Mirrors LiveDFAAnalyzerTests.testBeatsSlowerThan30BPMAreReplaced: passes iff `approx(cl(_mod(20, {10: 2500}))[0][10], 1000, 1)` (lines 754-754).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #81",
+   "hash": "20269f8f89a4b4a2",
+   "does": "Mirrors LiveDFAAnalyzerTests.testEctopicBeatBeyondTwentyPercentIsReplaced: passes iff `approx(cl(_mod(20, {12: 700}))[0][12], 1000, 1)` (lines 759-759).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #82",
+   "hash": "2d919a9a162cfee0",
+   "does": "Mirrors LiveDFAAnalyzerTests.testNormalVariationIsPreserved: passes iff `approx(cl(_mod(20, {12: 1080}))[0][12], 1080, 0.01)` (lines 764-764).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #83",
+   "hash": "c3cacfcc822e333b",
+   "does": "Mirrors LiveDFAAnalyzerTests.testCleaningPreservesSeriesLength: passes iff `len(cl(_mod(40, {5: 250, 20: 2400}))[0]) == 40` (lines 769-769).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #84",
+   "hash": "61d8e16c77a007ca",
+   "does": "Mirrors LiveDFAAnalyzerTests.testShortSeriesIsReturnedUnchanged: passes iff `cl([1000, 250, 1000])[0] == [1000, 250, 1000]` (lines 774-774).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #85",
+   "hash": "7bdbe2e20d974bdf",
+   "does": "Mirrors LiveDFAAnalyzerTests.testEmptySeriesIsSafe: passes iff `cl([])[0] == []` (lines 779-779).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #86",
+   "hash": "59d8112b3b637870",
+   "does": "Mirrors LiveDFAAnalyzerTests.testArtifactAtSeriesStartUsesTheFollowingCleanBeat: passes iff `approx(cl(_mod(20, {0: 250}))[0][0], 1000, 1)` (lines 784-784).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #87",
+   "hash": "4809fb5953ff98af",
+   "does": "Mirrors LiveDFAAnalyzerTests.testArtifactAtSeriesEndUsesThePrecedingCleanBeat: passes iff `approx(cl(_mod(20, {19: 2400}))[0][19], 1000, 1)` (lines 789-789).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #88",
+   "hash": "cb5980e4f5d40e8d",
+   "does": "Mirrors LiveDFAAnalyzerTests.testConsecutiveArtifactsInterpolateAcrossTheGap: passes iff `all(approx(v[i], 1000, 1) for i in (9, 10, 11))`; setup: v = cl(_mod(20, {9: 250, 10: 250, 11: 250}))[0] (lines 794-795).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #89",
+   "hash": "7c36a28b852aef4b",
+   "does": "Mirrors LiveDFAAnalyzerTests.testCleanSeriesIsUnchanged: passes iff `all(abs(a - b) < 0.001 for a, b in zip(s, cl(s)[0]))`; setup: s = [950.0 + 30 * math.sin(i / 4) for i in range(30)] (lines 800-801).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #90",
+   "hash": "9274afd1bbc66ebd",
+   "does": "Mirrors LiveDFAAnalyzerTests.testCorrectionCountIsReportedIndependentlyOfLength: passes iff `len(v) == 20 and c == 3`; setup: v, c = cl(_mod(20, {5: 250, 11: 2400, 15: 700})) (lines 806-807).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #91",
+   "hash": "9d9fe8e09932d7db",
+   "does": "Mirrors LiveDFAAnalyzerTests.testCorrectedFractionMatchesTheCorrectedShare: passes iff `approx(lc.corrected_fraction(v, c), 0.10, 1e-4)`; setup: v, c = cl(_mod(20, {4: 250, 9: 250})) (lines 812-813).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction",
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #92",
+   "hash": "ba69adb5e8d772d8",
+   "does": "Mirrors LiveDFAAnalyzerTests.testCleanSeriesReportsNoCorrections: passes iff `c == 0 and lc.corrected_fraction(v, c) == 0`; setup: s = [950.0 + 30 * math.sin(i / 4) for i in range(30)] | v, c = cl(s) (lines 818-820).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction",
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #93",
+   "hash": "3883719cea82ec53",
+   "does": "Mirrors LiveDFAAnalyzerTests.testEmptySeriesFractionIsZeroNotNaN: passes iff `lc.corrected_fraction([], 0) == 0` (lines 825-825).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c"
+   }
+  },
+  {
+   "key": "def _ #94",
+   "hash": "dcced4fbcbba1e40",
+   "does": "Mirrors LiveDFAAnalyzerTests.testShortSeriesReportsNoCorrections: passes iff `cl([1000, 250, 1000])[1] == 0` (lines 830-830).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def _ #95",
+   "hash": "91f7d66cf649d1a7",
+   "does": "Mirrors LiveDFAAnalyzerTests.testRejectionThresholdsMatchThePublishedBias: passes iff `lc.LOW_CONFIDENCE_CORRECTED_FRACTION == 0.03 and lc.MAX_CORRECTED_FRACTION == 0.06` (lines 835-835).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Tautology against the port's own constants (0.03/0.06 typed into port_live_dfa_clean.py); it cannot detect divergence from LiveDFAAnalyzer.swift:213,216.",
+     "evidence": [
+      "Tools/validation/test_ports.py:835",
+      "Tools/validation/port_live_dfa_clean.py:12"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def _ #96",
+   "hash": "35200cf9ab1f2927",
+   "does": "Mirrors LiveDFAAnalyzerTests.testAHeavilyCorruptedWindowExceedsTheRejectionThreshold: passes iff `c == 10 and lc.corrected_fraction(v, c) > 0.06`; setup: s = steady(40) | for i in range(0, 40, 4): | s[i] = 250 | v, c = cl(s) (lines 840-844).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction",
+    "Tools/validation/test_ports.py::def steady",
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a",
+    "Tools/validation/test_ports.py::def steady": "262abb5110a50d02"
+   }
+  },
+  {
+   "key": "def _ #97",
+   "hash": "a579c194c3ab6218",
+   "does": "Mirrors LiveDFAAnalyzerTests.testARealisticStrapGlitchStaysUnderTheRejectionThreshold: passes iff `c == 1 and lc.corrected_fraction(v, c) < 0.03`; setup: v, c = cl(_mod(100, {50: 2400})) (lines 849-850).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction",
+    "Tools/validation/test_ports.py::def cl",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/test_ports.py::def _mod"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
+    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
+    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+   }
+  },
+  {
+   "key": "def series",
+   "hash": "ef03cadc352145f8",
+   "does": "Builds (t_ms, rr) points from RR values with optional extra time gaps inserted before given indices.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each RR",
+     "effect": "emit"
+    },
+    {
+     "at": "+3",
+     "cond": "gap configured at this index",
+     "effect": "advance time by gap"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _ #98",
+   "hash": "9a1367853efe8ba3",
+   "does": "Mirrors TimeDomainTests.testRMSSDAccuracy: passes iff `approx(m[\"rmssd\"], math.sqrt(11200 / 9), 0.01)`; setup: p = series([800, 820, 790, 830, 780] * 2) | m = td.compute_time_domain(p, [False] * 10, 0, 10) (lines 869-871).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #99",
+   "hash": "f6f0de02d6e74419",
+   "does": "Mirrors TimeDomainTests.testRMSSDParityExact: passes iff `approx(m[\"rmssd\"], 35.276684147527874, 1e-6)`; setup: p = series([800, 820, 790, 830, 780] * 2) | m = td.compute_time_domain(p, [False] * 10, 0, 10) (lines 876-878).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #100",
+   "hash": "d70e032e9e4e4e5e",
+   "does": "Mirrors TimeDomainTests.testSDNNParityExact: passes iff `approx(m[\"sdnn\"], 74.53559924999298, 1e-6)`; setup: p = series([800, 900, 700, 850, 750] * 2) | m = td.compute_time_domain(p, [False] * 10, 0, 10) (lines 883-885).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #101",
+   "hash": "c2d2c381cf5e28b4",
+   "does": "Mirrors TimeDomainTests.testArtifactExclusion (meanRR): passes iff `approx(m[\"meanRR\"], 800, 1)`; setup: rr = [800, 810, 400, 790, 800, 805, 795, 800, 810, 790, 800] | fl = [False] * 11 | fl[2] = True | m = td.compute_time_domain(series(rr), fl, 0, 11) (lines 890-894).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #102",
+   "hash": "aa59a48f46ea313f",
+   "does": "Mirrors TimeDomainTests.testRMSSDDoesNotBridgeARemovedBeat: passes iff `approx(m[\"rmssd\"], 10, 1e-9)`; setup: rr = [(800 if i < 7 else 900) + (0 if i % 2 == 0 else 10) for i in range(14)] | fl = [False] * 14 | fl[6] = True | m = td.compute_time_domain(series(rr), fl, 0, 14) (lines 899-903).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #103",
+   "hash": "73c272e06907b58e",
+   "does": "Mirrors TimeDomainTests.testInsufficientData: passes iff `td.compute_time_domain(series([800, 810]), [False] * 2, 0, 2) is None` (lines 908-908).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #104",
+   "hash": "bf94a9792e4a01bf",
+   "does": "Mirrors TimeDomainTests.testWindowBounds: passes iff `td.compute_time_domain(p, [False] * 20, 5, 15) is not None`; setup: p = [(i * 800, 800 + (20 if i % 2 == 0 else -20)) for i in range(20)] (lines 913-914).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5"
+   }
+  },
+  {
+   "key": "def _ #105",
+   "hash": "766a6c902747a6f0",
+   "does": "Mirrors TimeDomainTests.testNoSuccessiveDifferenceAcrossARecordingBreak: passes iff `approx(m[\"rmssd\"], 20, 1e-9) and br == [16]`; setup: rr = [800 if i % 2 == 0 else 820 for i in range(16)] + [900 if i % 2 == 0 else 920 for i in range(16)] | p = series(rr, gaps={16: 10000}) | m = td.compute_time_domain(p, [False] * 32, 0, 32) | br = [i for i in range(1, 32) if td.is_recording_break(p[i - 1], p[i])] (lines 919-923).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/port_time_domain.py::def is_recording_break",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/port_time_domain.py::def is_recording_break": "d466268e8a19ca17",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #106",
+   "hash": "e780ee759540b73f",
+   "does": "Mirrors TimeDomainTests.testPNN50: passes iff `approx(m[\"pnn50\"], 60.0, 0.1)`; setup: rr = [800, 860, 840, 895, 865, 935, 900, 820, 880, 830, 890] | m = td.compute_time_domain(series(rr), [False] * 11, 0, 11) (lines 928-930).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def approx"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _ #107",
+   "hash": "0c5987d2979a6fb0",
+   "does": "Mirrors TimeDomainTests.testSDNN: passes iff `70 < m[\"sdnn\"] < 90`; setup: m = td.compute_time_domain(series([800, 900, 700, 850, 750] * 2), [False] * 10, 0, 10) (lines 935-936).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _fixtures",
+   "hash": "a75224492edd92a4",
+   "does": "Loads the nsr2db fixture corpus by running `git show e028039:EmuquTests/HRVReferenceFixtures.swift` and JSON-parsing the Swift multi-line string literal 'static let json'; returns its 'records'.",
+   "entry": null,
+   "calls": [
+    "ext:subprocess.run(git show)"
+   ],
+   "reads": [
+    "file:git:e028039:EmuquTests/HRVReferenceFixtures.swift"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Reads fixtures with `git show e028039:...`; in a shallow clone or a source export without that commit every HRVReferenceValidationTests case fails with an exception rather than testing anything.",
+     "evidence": [
+      "Tools/validation/test_ports.py:947"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def fix",
+   "hash": "13aa580bf943018d",
+   "does": "Memoised fixture records list.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/test_ports.py::def _fixtures"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cache empty",
+     "effect": "load fixtures"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9"
+   }
+  },
+  {
+   "key": "def _an",
+   "hash": "95ab58e1fc77e5dc",
+   "does": "computeTimeDomain over a whole fixture record with no flags.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  },
+  {
+   "key": "def _raw_rmssd",
+   "hash": "6db19934a6e7f244",
+   "does": "Unfiltered RMSSD over all successive differences.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _ #108",
+   "hash": "e3847e8c744f1ce4",
+   "does": "Mirrors HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible: passes iff `len(r) == 20 and sum(len(x[\"rrMs\"]) for x in r) == 6000`; setup: r = fix() (lines 972-973).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+   }
+  },
+  {
+   "key": "def _ #109",
+   "hash": "d85b8a73af06bcf0",
+   "does": "Mirrors HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord: passes iff `worst <= 1e-6`; setup: worst = 0.0 | for r in fix(): | m = _an(r) | worst = max(worst, abs(m[\"meanRR\"] - r[\"expected\"][\"meanRR\"]), abs(m[\"sdnn\"] - r[\"expected\"][\"sdnn\"])) (lines 978-982).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures",
+    "Tools/validation/test_ports.py::def _an",
+    "Tools/validation/port_time_domain.py::def compute_time_domain"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+   }
+  },
+  {
+   "key": "def _ #110",
+   "hash": "51b12902ac3fe6a1",
+   "does": "Mirrors HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord: passes iff `worst <= 1e-6`; setup: worst = max(abs(_raw_rmssd(r[\"rrMs\"]) - r[\"expected\"][\"rmssdUnfiltered\"]) for r in fix()) (lines 987-988).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures",
+    "Tools/validation/test_ports.py::def _raw_rmssd"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def _raw_rmssd": "a2f18a97cef83b09",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+   }
+  },
+  {
+   "key": "def _ #111",
+   "hash": "6584f1c7ac6707a4",
+   "does": "Mirrors HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue: passes iff `ok and narrowed > 0 where ok &= m <= raw + 1e-6`; setup: narrowed, ok = 0, True | for r in fix(): | m = _an(r)[\"rmssd\"] | raw = _raw_rmssd(r[\"rrMs\"]) | ok &= m <= raw + 1e-6 | narrowed += m < raw - 1e-6 (lines 993-999).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures",
+    "Tools/validation/test_ports.py::def _an",
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def _raw_rmssd"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def _raw_rmssd": "a2f18a97cef83b09",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+   }
+  },
+  {
+   "key": "def _ #112",
+   "hash": "9699b7852ea74f49",
+   "does": "Mirrors HRVReferenceValidationTests.(comment value) nsr005 '16.03 against 28.98' -- stale: from the pre-5c4a23d collapsed-array rule: passes iff `ok where ok = round(_raw_rmssd(r[\"rrMs\"]), 2) == 28.98 and round(collapsed, 2) == 16.03`; setup: r = [x for x in fix() if x[\"record\"] == \"nsr005\"][0] | rr = [float(v) for v in r[\"rrMs\"]] | keep = td.ectopic_keep_mask(rr) | c = [v for v, k in zip(rr, keep) if k] | collapsed = math.sqrt(sum((c[i] - c[i - 1]) ** 2 for i in range(1, len(c))) / (len(c) - 1)) | cur = _an(r)[\"rmssd\"] | ok = round(_raw_rmssd(r[\"rrMs\"]), 2) == 28.98 and round(collapsed, 2) == 16.03 (lines 1004-1015).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask",
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures",
+    "Tools/validation/test_ports.py::def _an",
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def _raw_rmssd"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "This extra case asserts only the raw value 28.98 and the superseded pre-5c4a23d 'collapsed array' value 16.03 recomputed inline; the current-rule pipeline RMSSD (15.96) is printed but not asserted, so it documents a stale Swift doc comment rather than testing the port.",
+     "evidence": [
+      "Tools/validation/test_ports.py:1014",
+      "Tools/validation/test_ports.py:1015"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
+    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def _raw_rmssd": "a2f18a97cef83b09",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+   }
+  },
+  {
+   "key": "def _ #113",
+   "hash": "5431b25336a27fde",
+   "does": "Mirrors HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered: passes iff `ok and compared > 0 where ok &= abs(_an(r)[\"pnn50\"] - r[\"expected\"][\"pnn50Unfiltered\"]) <= 1e-5`; setup: compared, ok = 0, True | for r in fix(): | rr = [float(v) for v in r[\"rrMs\"]] | if not all(td.ectopic_keep_mask(rr)): | continue | ok &= abs(_an(r)[\"pnn50\"] - r[\"expected\"][\"pnn50Unfiltered\"]) <= 1e-5 | compared += 1 (lines 1020-1027).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask",
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures",
+    "Tools/validation/test_ports.py::def _an",
+    "Tools/validation/port_time_domain.py::def compute_time_domain"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
+    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+   }
+  },
+  {
+   "key": "def _ #114",
+   "hash": "699ac3fcae2f132f",
+   "does": "Mirrors HRVReferenceValidationTests.testVariabilityIsInvariantUnderAConstantShift: for the first 5 fixture records, shifts every RR by +100 ms, recomputes computeTimeDomain over all 300 beats ([False]*300 and range 0..300 are hard-coded; every fixture record has 300 intervals, 6000/20) and fails with the record id if meanRR does not rise by exactly 100 (1e-9) or SDNN changes by more than 1e-9; otherwise passes (lines 1032-1037).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/test_ports.py::def series",
+    "Tools/validation/test_ports.py::def fix",
+    "Tools/validation/test_ports.py::def _fixtures",
+    "Tools/validation/test_ports.py::def _an"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
+    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
+    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab",
+    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8",
+  "Tools/validation/test_ports.py::def case": "ec4717160ed3d622"
+ }
+}

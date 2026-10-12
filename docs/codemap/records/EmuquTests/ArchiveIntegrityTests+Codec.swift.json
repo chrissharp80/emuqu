@@ -1,0 +1,510 @@
+{
+ "file": "EmuquTests/ArchiveIntegrityTests+Codec.swift",
+ "hash": "1238e424eccf14e3",
+ "role": "Extension of ArchiveIntegrityTests holding same-night merge/duplicate prevention, linked-segment filtering, SessionFileCodec hash/round-trip parity, SessionArchiveEntry.make completeness, archiveBatch index fields, schema-version decode gate tests and the shared createTestSession fixture.",
+ "types": [
+  "ArchiveIntegrityTests: extension — additional test methods and fixtures on the class declared in ArchiveIntegrityTests.swift"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+   "hash": "92e4cf0fde56d213",
+   "does": "Returns 23:00 local on the calendar day daysAgo days before now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "calendar.date(byAdding:.day) returns nil",
+     "effect": "uses Date() (now); otherwise the day daysAgo back"
+    },
+    {
+     "at": "+3",
+     "cond": "date(bySettingHour:23) returns nil",
+     "effect": "returns that day unchanged; otherwise 23:00 on it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testSameNightDuplicatePrevention()",
+   "hash": "87b672ad7dcac4b4",
+   "does": "Archives two overnight sessions 2 h apart on the same night (10 days ago) and asserts only one overnight entry for that night, merged RR points = sum of both, the second recording starts at t=7,200,000 ms, and no interleaved too-soon beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightEntries(anchoredAt:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+26",
+     "cond": "session1.rrSeries is nil",
+     "effect": "firstCount 0; else its point count"
+    },
+    {
+     "at": "+27",
+     "cond": "session2.rrSeries is nil",
+     "effect": "adds 0; else its point count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightEntries(anchoredAt:)": "5e2c848c79c8a0ef",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)": "53ea2742ad077749",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testAnUnreadableMergeTargetDoesNotProduceASameNightDuplicate()",
+   "hash": "6a6cac8e9176a3aa",
+   "does": "Archives session1, overwrites its file with 'not json', and asserts archiving a same-night session2 throws, leaving exactly one night entry still owned by session1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightEntries(anchoredAt:)",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightEntries(anchoredAt:)": "5e2c848c79c8a0ef"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.nightEntries(anchoredAt:)",
+   "hash": "9c72192f31212aec",
+   "does": "Returns archive overnight entries whose overnightWindowStart (22:00/8h schedule) equals that of start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDifferentNightsNotDeduplicated()",
+   "hash": "c295de69f3e8ed68",
+   "does": "Archives overnight sessions on two consecutive nights (15 and 14 days ago) and asserts both exist.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "calendar.date(byAdding:.day,1) returns nil",
+     "effect": "night2 = night1+86400s; else next calendar day 23:00"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testLinkedSegmentsFiltersTinyAndDedupesOverlap()",
+   "hash": "31703f1dce59e6bb",
+   "does": "Archives two near-identical quick sessions, a 2-minute fragment and a parent linking all three, then asserts linkedSegments(for:) returns one segment, the longer duplicate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testLinkedSegmentsReturnsNilWhenAllLinksAreTiny()",
+   "hash": "3ad6d6b815aebedf",
+   "does": "Archives a 3-minute linked session and a parent and asserts linkedSegments returns nil (all links tiny).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testCodecHashMatchesBytesAsWritten()",
+   "hash": "e66babc94c29b100",
+   "does": "Encodes a session with SessionFileCodec.encodeForDisk and asserts the returned hash equals an independent CryptoKit SHA256 of the bytes (64 hex chars); when encryption is available asserts format .encrypted and that the bytes look encrypted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)",
+    "ext:CryptoKit.SHA256"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "EncryptionManager.shared.isAvailable",
+     "effect": "asserts format == .encrypted; otherwise no format assertion"
+    },
+    {
+     "at": "+16",
+     "cond": "EncryptionManager.shared.isAvailable",
+     "effect": "asserts looksEncrypted(bytes); otherwise skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "e6c82b9ad6ed0e15",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "d0cc6fdb1e766587",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testCodecRoundTripDecodesEqualSession()",
+   "hash": "ad754314d12293a2",
+   "does": "For both sessionEncoder and indexEncoder, encodes for disk, writes to a temp file, asserts sha256Hex of the re-read bytes equals the codec hash and loadAndDecodeSessionFile returns a session with equal id, start, RR count and first/last points; deletes the file.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:<tmp>/<uuid>.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of 2 encoders",
+     "effect": "round-trips and asserts parity"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "dd54ddf7bc0c2442",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)": "9fd9fd666aa6ecd9",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "d0cc6fdb1e766587",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testWriteEncodersRemainDivergentAndBothDecode()",
+   "hash": "630587ee69a68508",
+   "does": "Asserts sessionEncoder (compact) and indexEncoder (pretty) produce different bytes and both decode back to the same id with sessionDecoder.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "d0cc6fdb1e766587",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testEntryFactoryPopulatesEveryIndexField()",
+   "hash": "bc664f5eaa83619c",
+   "does": "Builds a fully populated overnight session (ANS dip, recovery score, imported SDNN, tags, notes, links, sleep snapshot) and asserts SessionArchiveEntry.make copies every index field (incl. meanSDNN 48.5, sleep stage mirrors, core = total-deep-REM, nocturnalDip 15.5); then asserts the repair overrides (overridingSessionId, recoveryScoreFallback = readiness 8.0) apply.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testBatchArchiveEntryGainsPreviouslyDroppedFields()",
+   "hash": "1023e55e61399200",
+   "does": "Archives an overnight session with imported SDNN and sleep snapshot via archiveBatch and asserts the index entry carries meanSDNN, deep/REM/core/awake minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "b5be05ffd711fc74",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDecodingNewerSchemaVersionSucceedsAndSetsSourceSchemaVersion()",
+   "hash": "931b347c77d687d7",
+   "does": "Encodes a session with schemaVersion rewritten to current+1 and asserts decoding succeeds with sourceSchemaVersion == current+1 and the id intact.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.sessionJSON(_:overridingSchemaVersion:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.sessionJSON(_:overridingSchemaVersion:)": "e5b634f28245cd36"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testArchivingNewerSchemaSessionThrowsNewerSchemaVersion()",
+   "hash": "db5461a83c7e3e1e",
+   "does": "Decodes a newer-schema session and asserts archive() throws ArchiveError.newerSchemaVersion(current+1) and nothing is written for its id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.sessionJSON(_:overridingSchemaVersion:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "error is ArchiveError.newerSchemaVersion",
+     "effect": "asserts the carried version equals current+1; any other error → XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.sessionJSON(_:overridingSchemaVersion:)": "e5b634f28245cd36"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testCurrentSchemaVersionRoundTripDoesNotTripGate()",
+   "hash": "66638fcb012a812b",
+   "does": "Asserts an in-memory session has nil sourceSchemaVersion, after archive+retrieve it carries currentSchemaVersion, and re-archiving it does not throw.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.sessionJSON(_:overridingSchemaVersion:)",
+   "hash": "948fafc73c5456cf",
+   "does": "Encodes a session with an ISO-8601 JSONEncoder, rewrites the top-level schemaVersion key to the given version via JSONSerialization and returns the bytes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "ext:JSONSerialization"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+   "hash": "52cedec0278bbbec",
+   "does": "Builds a complete HRVSession of 200 synthetic RR points (790-810 ms), clean flags, time-domain metrics from TimeDomainAnalyzer, fixed nonlinear metrics and optional ANS metrics; start is the given date or 1,700,000,000 + counter*7200 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "startDate supplied",
+     "effect": "uses it; otherwise derives from sessionCounter and increments it"
+    },
+    {
+     "at": "+15",
+     "cond": "for i in 0..<200",
+     "effect": "appends an RR point and advances t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  }
+ ],
+ "deps": {}
+}

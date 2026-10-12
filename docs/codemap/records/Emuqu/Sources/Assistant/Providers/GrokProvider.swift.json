@@ -1,0 +1,92 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/GrokProvider.swift",
+ "hash": "00e8f0edbbcf2aff",
+ "role": "xAI Grok AIProvider: model catalog, reasoning default, tool-schema cap; delegates streaming to OpenAICompatibleStreamer.",
+ "types": [
+  "GrokProvider: class — AIProvider for xAI Grok"
+ ],
+ "state": [
+  "mem:GrokProvider.models (grok-4.3 default, grok-4.7) GrokProvider.swift:12",
+  "mem:GrokProvider.reasoning = .modelDefault GrokProvider.swift:41",
+  "kc:com.chrissharp.flowrecovery.assistant.apikey account grok (via APIKeyStore)"
+ ],
+ "toplevel": "Static catalog pinned by ProviderModelCatalogTests; id .grok.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var GrokProvider.availableModels",
+   "hash": "761626cd7f4ea4b6",
+   "does": "Returns GrokProvider.models.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [],
+   "reads": [
+    "mem:GrokProvider.models"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var GrokProvider.requiresKey",
+   "hash": "e9238caebf755141",
+   "does": "Always true.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var GrokProvider.isAvailable",
+   "hash": "36cd9315a46ced94",
+   "does": "True when the Keychain holds a Grok key.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey:grok"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "var GrokProvider.maxToolSchemaCount",
+   "hash": "4d4e53a813f485f4",
+   "does": "Returns 110: the cap on tool schemas AssistantViewModel routing trims the tool list to for Grok (overrides the protocol default nil).",
+   "entry": "AIProvider protocol requirement read by AssistantViewModel+Routing.swift:521 (dyn:AIProvider.maxToolSchemaCount).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "ea589d623747e553",
+   "does": "Sends the turn through OpenAICompatibleStreamer.send with providerID .grok, the api.x.ai endpoint and model-default reasoning.",
+   "entry": "AIProvider.send protocol witness called by the assistant tool loop.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "5d45cd0a0c7df49b"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -76,9 +76,12 @@ enum StrapFeedHealth {
         if let last = inputs.lastSampleAt, inputs.now.timeIntervalSince(last) <= liveSilenceSec {
             return Decision(status: .live, action: .none)
         }
+        // With a sample seen, the stall starts exactly where `.live` ended
+        // above, so only a link still waiting for its first beat can be
+        // inside its grace here.
         let stalledSince = stallStart(inputs, linkedAt: linkedAt)
         guard inputs.now >= stalledSince else {
-            return Decision(status: inputs.lastSampleAt == nil ? .settingUp : .live, action: .none)
+            return Decision(status: .settingUp, action: .none)
         }
         return Decision(status: .stalled, action: stalledAction(inputs, stalledSince: stalledSince))
     }

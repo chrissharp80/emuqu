@@ -1,0 +1,77 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+Session.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector conveniences: resetSession between recordings and the notifyArchiveChanged forwarder (RecordingCore requirement).",
+ "types": [
+  "RRCollector: extension — session reset and archive-changed forwarder"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRCollector.resetSession()",
+   "hash": "b6ce1f2c39de80d4",
+   "does": "Clears the active-session state between recordings: currentSession, collectedPoints, verificationResult, recoveryWindow, needsAcceptance, lastError (the Record screen alerts on a change of error, so a dismissed one left in place hid the next identical one), isCollecting, isStreamingMode, sessionStartTime, reviewArchivedSessionId, baselineDeviation, recordingPhase .idle, isPaused false, pausedSession nil, isDeviceFetchInProgress false, then clears the persisted paused-session state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionState.currentSession",
+    "mem:SessionState.collectedPoints",
+    "mem:SessionState.verificationResult",
+    "mem:SessionState.recoveryWindow",
+    "mem:SessionState.needsAcceptance",
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.baselineDeviation",
+    "mem:StreamingLifecycle.isPaused",
+    "mem:StreamingLifecycle.pausedSession",
+    "mem:MorningCoordination.isDeviceFetchInProgress",
+    "mem:SessionState.lastError",
+    "mem:SessionState.isCollecting",
+    "mem:StreamingLifecycle.isStreamingMode",
+    "mem:RRCollector.sessionStartTime",
+    "mem:SessionState.reviewArchivedSessionId"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.baselineDeviation": "245731384ffd2292",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "210a4862ba3075d2",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused": "21725ec1f10a942e",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "d47ea010230d507a",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "d1c7a9cf6bfb0ffc",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recoveryWindow": "6b15c120c9ab1b2b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "85a59852d009664a",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()": "b3dd5c46574fadb5"
+   }
+  },
+  {
+   "key": "func RRCollector.notifyArchiveChanged()",
+   "hash": "5e450e732983b77f",
+   "does": "Posts .flowRecoveryArchiveChanged via ArchiveSignal.notifyChanged so ArchiveSignal (coalesced) bumps its version. Satisfies RecordingCore.notifyArchiveChanged for WorkoutRecorder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54"
+   }
+  }
+ ],
+ "deps": {}
+}

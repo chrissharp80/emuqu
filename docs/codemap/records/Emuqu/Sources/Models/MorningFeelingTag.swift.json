@@ -1,0 +1,240 @@
+{
+ "file": "Emuqu/Sources/Models/MorningFeelingTag.swift",
+ "hash": "7e791863c866ecbc",
+ "role": "Morning-feeling context tags (9 tags in body/mind clusters) shown as chips when the user rates the morning 1-2, plus a lenient array wrapper that drops unknown tags when decoding archived sessions.",
+ "types": [
+  "MorningFeelingTag: enum (String, Codable, CaseIterable) — infection/allergies/hangover/stomach/sore/tired/headache/stressed/down",
+  "MorningFeelingTag.Cluster: enum — body/mind",
+  "MorningFeelingTagArray: struct (Codable) — forward-compatible [MorningFeelingTag] wrapper"
+ ],
+ "state": [],
+ "toplevel": "Raw values (case names) are the persisted form inside SessionMetadata.morningFeelingTags and the strings Flo context/fact resolver send (rawValue). Encode and decode of a single tag are the synthesized RawRepresentable Codable (decode throws dataCorrupted on an unknown raw value); arrays go through MorningFeelingTagArray.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MorningFeelingTag.cluster",
+   "hash": "0a42f62a48f01411",
+   "does": "Cluster for a tag: body for infection..headache, mind for stressed/down; used to split chip rows.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "somatic tags",
+     "effect": "body"
+    },
+    {
+     "at": "+4",
+     "cond": "stressed/down",
+     "effect": "mind"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningFeelingTag.emoji",
+   "hash": "a6009ec74cf63450",
+   "does": "Emoji for each tag shown on the chip.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case infection",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+3",
+     "cond": "case allergies",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+4",
+     "cond": "case hangover",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+5",
+     "cond": "case stomach",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+6",
+     "cond": "case sore",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+7",
+     "cond": "case tired",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+8",
+     "cond": "case headache",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+9",
+     "cond": "case stressed",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+10",
+     "cond": "case down",
+     "effect": "its emoji"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningFeelingTag.localizedLabel",
+   "hash": "54679fde3c1188b9",
+   "does": "Localized chip label in the app language bundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case infection",
+     "effect": "localized label"
+    },
+    {
+     "at": "+4",
+     "cond": "case allergies",
+     "effect": "localized label"
+    },
+    {
+     "at": "+5",
+     "cond": "case hangover",
+     "effect": "localized label"
+    },
+    {
+     "at": "+6",
+     "cond": "case stomach",
+     "effect": "localized label"
+    },
+    {
+     "at": "+7",
+     "cond": "case sore",
+     "effect": "localized label"
+    },
+    {
+     "at": "+8",
+     "cond": "case tired",
+     "effect": "localized label"
+    },
+    {
+     "at": "+9",
+     "cond": "case headache",
+     "effect": "localized label"
+    },
+    {
+     "at": "+10",
+     "cond": "case stressed",
+     "effect": "localized label"
+    },
+    {
+     "at": "+11",
+     "cond": "case down",
+     "effect": "localized label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init MorningFeelingTagArray(_:)",
+   "hash": "af18a3c2ff130afc",
+   "does": "Wraps a tag array for encoding.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init MorningFeelingTagArray(from:)",
+   "hash": "9a168e51b1b3455b",
+   "does": "Decodes a tag array leniently via decodeTags from an unkeyed container.",
+   "entry": "Decodable: SessionMetadata decode of morningFeelingTags (SessionMetadata.swift:551).",
+   "calls": [
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagArray.decodeTags(from:)",
+   "hash": "da6bd7744ab21fec",
+   "does": "Iterates the unkeyed container, using superDecoder to always advance, keeping entries that decode as a known raw string and dropping anything else; stops if the container fails to advance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "container not at end",
+     "effect": "process next element"
+    },
+    {
+     "at": "+4",
+     "cond": "superDecoder throws",
+     "effect": "break (stop, keep tags so far)"
+    },
+    {
+     "at": "+9",
+     "cond": "element decodes as string and maps to a tag",
+     "effect": "append; else drop silently"
+    },
+    {
+     "at": "+15",
+     "cond": "currentIndex did not advance",
+     "effect": "break to avoid infinite loop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "baa14f905dcfb177"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagArray.encode(to:)",
+   "hash": "d2d858f09e84ae62",
+   "does": "Encodes each tag's rawValue into an unkeyed container.",
+   "entry": "Encodable: SessionMetadata encode (SessionMetadata.swift:617).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each tag",
+     "effect": "encode rawValue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

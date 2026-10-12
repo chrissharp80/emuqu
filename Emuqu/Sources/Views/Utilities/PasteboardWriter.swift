@@ -3,9 +3,10 @@ import UniformTypeIdentifiers
 
 /// The single place the app writes to the pasteboard.
 ///
-/// Every write sets `[.localOnly: true]` plus a
-/// 60-second expiry (unless the user opts out via
-/// `preserveClipboardForPaste`). Scattered write sites drift: a bare
+/// Every write sets `[.localOnly: true]`. A 60-second expiry is added only
+/// when the user has turned `preserveClipboardForPaste` off; that setting is
+/// on by default, so by default the copy does not expire. Scattered write
+/// sites drift: a bare
 /// `UIPasteboard.general.string = …` hands the content to the Universal
 /// Clipboard — synced to the user's other Apple devices over iCloud, with no
 /// expiry. Both of those carry health data: overnight RMSSD and DFA α1 in the
@@ -18,7 +19,7 @@ enum PasteboardWriter {
     /// Copy `text` local-only, with the user-configurable expiry.
     ///
     /// `.localOnly` keeps it off the Universal Clipboard. The expiry is skipped
-    /// when the user has turned on `preserveClipboardForPaste` — some people
+    /// while `preserveClipboardForPaste` is on, which is the default — some people
     /// copy a report and paste it minutes later into another app, and a
     /// clipboard that empties itself reads as a bug to them.
     @MainActor

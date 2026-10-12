@@ -21,7 +21,8 @@ extension OvernightStreamingCoordinator {
         collector.overnightArmingTask = Task { [weak collector] in
             guard let collector else { return }
             let started = await collector.overnightStreaming.awaitDeviceRecordingStart()
-            guard !started, !collector.isOvernightEnding else { return }
+            // A loop cancelled by a relaunch hands the night to its successor.
+            guard !started, !collector.isOvernightEnding, !Task.isCancelled else { return }
             // PRIMARY, not backup: `docs/ARCHITECTURE.md` puts H10 internal
             // recording first ("more stable, survives disconnects") and BLE
             // streaming second. A night that ran streaming-only ran on the

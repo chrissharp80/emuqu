@@ -1,0 +1,143 @@
+{
+ "file": "Emuqu/Sources/Storage/DataCompression.swift",
+ "hash": "d577ab15abd05b25",
+ "role": "ZLIB (raw DEFLATE via Apple Compression) compress/decompress used for session JSON and live-backup payloads before CloudPayloadCodec encryption.",
+ "types": [
+  "DataCompression: enum — compress/decompress",
+  "DataCompression.CompressionError: enum — compressionFailed/decompressionFailed/invalidBufferPointer"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DataCompression.CompressionError.errorDescription",
+   "hash": "a62952b5b9f035c6",
+   "does": "Localized text for CompressionError cases.",
+   "entry": "LocalizedError witness; reaches the Settings sync error line",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".compressionFailed",
+     "effect": "compress message"
+    },
+    {
+     "at": "+5",
+     "cond": ".decompressionFailed",
+     "effect": "decompress message"
+    },
+    {
+     "at": "+7",
+     "cond": ".invalidBufferPointer",
+     "effect": "buffer message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DataCompression.compress(_:)",
+   "hash": "4589094cb5a2c5bc",
+   "does": "Compresses data with COMPRESSION_ZLIB into a buffer of max(n+512, 2n) bytes; throws compressionFailed when the encoder returns 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)",
+    "ext:compression_encode_buffer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "compressedSize > 0",
+     "effect": "return compressed Data; else throw compressionFailed (also for empty input via invalidBufferPointer earlier)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompression.withSourcePointer(_:_:)",
+   "hash": "f23db06155cc1d7e",
+   "does": "Runs body with the Data's base pointer; throws invalidBufferPointer when the buffer has no base address (empty Data).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "baseAddress non-nil",
+     "effect": "call body; else throw invalidBufferPointer"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DataCompression.decompress(_:)",
+   "hash": "4cf2d88fa7ba092d",
+   "does": "Decompresses ZLIB data starting with a 16x buffer and doubling up to 1024x; throws decompressionFailed if output never fits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "destinationSize <= 1024x source",
+     "effect": "try decodeOnce; loop exits → throw decompressionFailed"
+    },
+    {
+     "at": "+6",
+     "cond": "decodeOnce returned data",
+     "effect": "return it; nil → double buffer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a"
+   }
+  },
+  {
+   "key": "func DataCompression.decodeOnce(_:sourceSize:destinationSize:)",
+   "hash": "c2f52b461e6dd826",
+   "does": "One compression_decode_buffer attempt; throws when 0 bytes produced, returns nil when output filled the buffer (possible truncation), else the decoded bytes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)",
+    "ext:compression_decode_buffer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "decompressedSize > 0",
+     "effect": "continue; else throw decompressionFailed"
+    },
+    {
+     "at": "+16",
+     "cond": "size < buffer",
+     "effect": "return data; else nil (retry larger)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  }
+ ],
+ "deps": {}
+}

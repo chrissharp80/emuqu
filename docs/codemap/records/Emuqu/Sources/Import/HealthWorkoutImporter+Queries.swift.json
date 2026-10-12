@@ -1,0 +1,544 @@
+{
+ "file": "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift",
+ "hash": "98895d0f6a52333a",
+ "role": "HealthKit side of HealthWorkoutImporter: lists external HKWorkouts not already archived, assembles one into an HRVSession (route, HR, cadence, totals, weather), and exposes the shared step-window and heart-rate readers used by +Rebuild.",
+ "types": [
+  "HealthWorkoutImporter: extension — HealthKit queries and candidate mapping"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthWorkoutImporter.candidates(days:archive:now:)",
+   "hash": "023e711218fe30ff",
+   "does": "Lists Apple Health workouts from the last `days` (default 30) not written by this app, maps each to a Candidate (dropping <60 s and unmapped sports), removes those whose start is within 5 min of an archived workout entry, and returns them newest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.externalWorkouts(from:to:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidate(for:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType",
+    "archive:SessionArchive.entries(from:to:)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "manager.isHealthKitAvailable is false",
+     "effect": "return [] immediately"
+    },
+    {
+     "at": "+6",
+     "cond": "Calendar date arithmetic returns nil",
+     "effect": "window start falls back to `now` (empty window)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidate(for:)": "b2406e0fb04e7e37",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.externalWorkouts(from:to:)": "23660697abc38666",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)": "824f51d54645bda5",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.session(for:)",
+   "hash": "64f333935dd5936a",
+   "does": "Re-fetches the HKWorkout by candidate.id, builds an ImportedWorkoutTrack (route, HR, cadence), turns it into an HRVSession via ImportedWorkoutBuilder.buildSession with source .appleHealth(sourceName:) (stamped healthKitExportedAt), then applies HealthKit distance and weather.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.importedTrack(for:candidate:)",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.applyTotals(from:to:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout(withID:) returns the workout",
+     "effect": "continue; otherwise return nil (caller HealthWorkoutImportSheet.swift reports 'no longer in Apple Health'). A read error or timeout also yields nil (now logged by workouts(matching:...)), so a slow or failed read still reads as 'workout gone' to the user."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "workout(withID:) returns nil on a bounded-query timeout or HKSampleQuery error as well as on absence, and session(for:) maps all of them to nil, so the import sheet tells the user 'That workout is no longer in Apple Health' when the store was merely slow or the read failed.",
+     "evidence": [
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:42",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:122",
+      "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift:71",
+      "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:316"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.applyTotals(from:to:)": "a39e3ed9606ec9a7",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidate(for:)": "b2406e0fb04e7e37",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.importedTrack(for:candidate:)": "4e45d24c64cae85a",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "0aea9d1aae5624d4",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "f1a4266e2463267c"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.importedTrack(for:candidate:)",
+   "hash": "bf0737d67bc825f6",
+   "does": "Concurrently reads the workout's route locations, heart-rate samples and step-derived cadence over the candidate's window and packs them with dates and sport into an ImportedWorkoutTrack.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.routeLocations(for:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.heartRateSamples(from:to:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.cadenceSamples(from:to:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutRoute",
+    "hk:heartRate",
+    "hk:stepCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.cadenceSamples(from:to:)": "06c6fbfe7bca2147",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidate(for:)": "b2406e0fb04e7e37",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.heartRateSamples(from:to:)": "fa5649482a1577d2",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.routeLocations(for:)": "63f08a4418cc6db3",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.applyTotals(from:to:)",
+   "hash": "fd1fca3e4e83720c",
+   "does": "Writes candidate.distanceMeters into session.workoutMetadata.distanceMeters only when the track-derived distance is nil/<=0, and copies candidate.weather onto the metadata when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session has workoutMetadata",
+     "effect": "continue; otherwise return without changes"
+    },
+    {
+     "at": "+2",
+     "cond": "candidate distance exists and > 0",
+     "effect": "check derived distance; otherwise distance unchanged"
+    },
+    {
+     "at": "+3",
+     "cond": "derived (track) distance is nil or <= 0",
+     "effect": "replace with HealthKit total; otherwise the track-derived distance is kept even if it disagrees with HealthKit"
+    },
+    {
+     "at": "+6",
+     "cond": "candidate.weather is non-nil",
+     "effect": "set metadata.weatherSnapshot; otherwise leave as built (nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidate(for:)": "b2406e0fb04e7e37",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.distance(of:)": "3c3fbb96a7b23dd8",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.externalWorkouts(from:to:)",
+   "hash": "3b87511e3b70080a",
+   "does": "Builds the predicate for all HKWorkouts in [start,end] not written by HKSource.default() and reads them newest first, unlimited, through workouts(matching:limit:sortDescriptors:reading:); a timed-out read (logged there) becomes [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workouts(...) returns nil (timeout, already logged)",
+     "effect": "?? [] — empty list. A query error (also logged) arrives as an empty list too, so the sheet still cannot tell a failed read from 'nothing to import'."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "HKSampleQuery error argument is ignored and a timeout maps to []; the import sheet cannot distinguish a failed/denied read from 'nothing to import'.",
+     "evidence": [
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:106",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:109"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)": "824f51d54645bda5"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.workout(withID:)",
+   "hash": "2157c25cc098a532",
+   "does": "Reads the single HKWorkout with the given UUID (limit 1) through workouts(matching:limit:sortDescriptors:reading:) and returns its first element: nil when the workout is gone, the read errored or it timed out (the last two logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "workouts(...) returned nil (timeout) or an empty list (absent or query error)",
+     "effect": "?.first — nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)": "824f51d54645bda5"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)",
+   "hash": "2c038c87e6d51c4e",
+   "does": "Runs a bounded HKSampleQuery (background aggregate timeout) for workouts matching `predicate` with the given limit and sort; logs a query error via noteFailedRead and a timeout via noteTimedOutRead. Returns the workouts ([] on a query error) or nil on timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteFailedRead(_:error:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteTimedOutRead(_:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "samples cast to [HKWorkout] fails or is nil (query error)",
+     "effect": "?? [] — resolves an empty list; the error itself is logged on the line before"
+    },
+    {
+     "at": "+17",
+     "cond": "bounded query returned nil (timeout)",
+     "effect": "logs the timeout; returns nil either way the result came back"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteFailedRead(_:error:)": "2dde435fd67a4889",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteTimedOutRead(_:)": "1b685c0f5a8e3efe"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.noteFailedRead(_:error:)",
+   "hash": "2e918c2700239323",
+   "does": "Logs '[HealthImport] <what> read failed: <error>' at .warning when `error` is non-nil; does nothing for nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is nil",
+     "effect": "return without logging"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.noteTimedOutRead(_:)",
+   "hash": "5c08ef916c8db65c",
+   "does": "Logs '[HealthImport] <what> read timed out' at .warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.routeLocations(for:)",
+   "hash": "e7e79af8f9adfab0",
+   "does": "Reads the workout's HKWorkoutRoute via TrainingHealthQueries and returns its CLLocations, or [] when there is no route.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeSeries(for:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeLocations(_:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutRoute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "routeSeries(for:) returns a route",
+     "effect": "return its locations; otherwise [] (indoor/route-less workout)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeLocations(_:)": "34e27b9793be6ee3",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeSeries(for:)": "55fc552a1e0f565e",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.heartRateSamples(from:to:)",
+   "hash": "9b8d742423effbb4",
+   "does": "Fetches heart-rate samples in [start,end] through HealthKitManager.fetchHeartRateSamples and filters them to finite 1-299 bpm Ints; on a thrown error logs a warning and returns [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.usableHeartRates(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fetchHeartRateSamples throws",
+     "effect": "catch: log '[HealthImport] heart rate read failed' at warning and return [] — import proceeds without HR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.usableHeartRates(_:)": "7086d84b688b1d48",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.usableHeartRates(_:)",
+   "hash": "65518cd62729f2b7",
+   "does": "Drops non-finite, <=0 or >=300 bpm heart-rate samples and rounds the rest to Int.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "hr finite and 0<hr<300",
+     "effect": "keep (rounded); otherwise drop"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutImporter.cadenceSamples(from:to:)",
+   "hash": "5ecdb66224d587bf",
+   "does": "Fetches step windows over the range and converts them to one cadence point per covered second within [start,end] via cadenceSamples(from:coveringFrom:to:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(from:to:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)"
+   ],
+   "reads": [
+    "hk:stepCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(from:to:)": "f4e216ac03db5ba9",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)": "472d150727a93d69"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.stepWindows(from:to:)",
+   "hash": "1a5d993d52ff5880",
+   "does": "Bounded unlimited HKSampleQuery of stepCount samples overlapping [start,end] (no strictStartDate) mapped to HealthSampleWindow(count). A query error is logged (noteFailedRead) and yields []; a timeout is logged (noteTimedOutRead) and yields [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(_:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteFailedRead(_:error:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteTimedOutRead(_:)"
+   ],
+   "reads": [
+    "hk:stepCount"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HKTypes.quantity(.stepCount) returns a type",
+     "effect": "continue; otherwise return []"
+    },
+    {
+     "at": "+16",
+     "cond": "bounded query returned nil (timeout)",
+     "effect": "log the timeout and return []; otherwise return the windows (empty after a logged query error). Callers still cannot tell a failed read from no steps."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteFailedRead(_:error:)": "2dde435fd67a4889",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.noteTimedOutRead(_:)": "1b685c0f5a8e3efe",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(_:)": "efb0d748884b9de4",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.stepWindows(_:)",
+   "hash": "dbb134c6713969a5",
+   "does": "Maps HKSample results to HealthSampleWindow(start,end,count value).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples cast to [HKQuantitySample] fails or is nil",
+     "effect": "?? [] — empty array"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.candidate(for:)",
+   "hash": "1a81cf0cead9bae6",
+   "does": "Maps an HKWorkout to a Candidate: rejects <60 s workouts and unmapped sports, reads HKMetadataKeyIndoorWorkout, source name, distance statistic, and (for GPS sports only) the weather snapshot from metadata.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.distance(of:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout.duration >= 60 s",
+     "effect": "continue; otherwise nil (ghost workout dropped)"
+    },
+    {
+     "at": "+2",
+     "cond": "metadata indoor key present as Bool",
+     "effect": "use it; ?? false when absent"
+    },
+    {
+     "at": "+3",
+     "cond": "sport(for:isIndoor:) maps the activity",
+     "effect": "continue; otherwise nil (not importable)"
+    },
+    {
+     "at": "+11",
+     "cond": "sport.usesGPS",
+     "effect": "weather = WorkoutWeatherSnapshot(healthKitMetadata:) (may itself be nil); otherwise nil for indoor sports"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.distance(of:)": "3c3fbb96a7b23dd8",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)": "9e97f23c0995ddd9",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.distance(of:)",
+   "hash": "4b20743b296211c2",
+   "does": "Returns the workout's summed distance in metres from walking/running, else cycling, else (iOS 18+) rowing statistics; nil when none or not finite/positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.rowingDistance(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "walkRun statistics nil",
+     "effect": "fall back to cycling, then rowing statistics (?? chain); sumQuantity nil propagates nil"
+    },
+    {
+     "at": "+4",
+     "cond": "sum exists, finite and > 0",
+     "effect": "return it; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.rowingDistance(of:)": "83c5b718acfb7df3",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.rowingDistance(of:)",
+   "hash": "4e58ec0073f11724",
+   "does": "Returns the workout's distanceRowing statistics on iOS 18+, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "#available(iOS 18)",
+     "effect": "query statistics; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c"
+   }
+  }
+ ],
+ "deps": {}
+}

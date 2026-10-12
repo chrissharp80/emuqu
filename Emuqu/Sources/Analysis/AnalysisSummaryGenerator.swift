@@ -85,9 +85,11 @@ final class AnalysisSummaryGenerator {
     /// PDF render Task.detached), where assumeIsolated would trap.
     /// Caller resolves on MainActor before instantiating.
     let liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?
-    /// "Now" for trend-window math (7-day split in computeTrendStats).
-    /// Injected so trend stats are deterministic. Never later than the end of
-    /// the session being read, so an old night is explained by its own week.
+    /// Capped at the end of the session being read. It reaches the output
+    /// only through the `daySpan` fallback in `trendStats(for:referenceDate:)`;
+    /// the 7-day split is `TrendVerdict.weeklyRMSSDChange`, which reads the
+    /// sessions' own dates, and the recent sessions are already limited to
+    /// nights before this one (init).
     private let referenceDate: Date
 
     /// Canonical HRV baseline the RECOVERY SCORE is computed against — the
@@ -105,6 +107,10 @@ final class AnalysisSummaryGenerator {
 
     /// Computed once
     lazy var stats: TrendStats = computeTrendStats(referenceDate: referenceDate)
+
+    /// Computed once: the summary field, the headline fallback and the
+    /// headline-driven title, icon and steps all read it.
+    lazy var diagnosticScore: Double = computeDiagnosticScore()
 
     // MARK: - Init
 
@@ -152,7 +158,7 @@ final class AnalysisSummaryGenerator {
         AnalysisSummary(
             analysisTitle: analysisTitle,
             diagnosticIcon: diagnosticIcon,
-            diagnosticScore: computeDiagnosticScore(),
+            diagnosticScore: diagnosticScore,
             headlineScore: headlineScore,
             analysisExplanation: analysisExplanation,
             probableCauses: probableCauses,
@@ -249,12 +255,14 @@ final class AnalysisSummaryGenerator {
 // it. `private` at file scope is fileprivate, so every call site in this
 // file resolves exactly as before.
 
-/// Baselines prefer tagged "Morning" readings, falling back to every valid
-/// session when the user doesn't tag.
+/// Baselines prefer readings carrying the system "Morning" tag (matched by
+/// its fixed id, so a user tag that happens to be named "Morning" does not
+/// count; recording applies it to any reading ending 4–10 am), falling back
+/// to every valid session when none carries it.
 private func sessionBaselines(
     _ validSessions: [HRVSession]
 ) -> (rmssd: Double?, hr: Double?, stress: Double?) {
-    let morningReadings = validSessions.filter { $0.tags.contains { $0.name == "Morning" } }
+    let morningReadings = validSessions.filter { $0.tags.contains { $0.id == ReadingTag.morning.id } }
     let baselineSessions = morningReadings.isEmpty ? validSessions : morningReadings
     guard baselineSessions.count >= 3 else { return (nil, nil, nil) }
     // The five most recent. The list arrives newest first, so `suffix(5)`

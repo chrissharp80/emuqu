@@ -43,8 +43,19 @@ extension RecoveryScoreDetailView {
                 restoringSegment = false
                 return
             }
+            guard newSegment == .bestRecovery || recordingMidpointMs != nil else {
+                return restoreSegment(oldSegment)
+            }
             handleWindowSegmentChange(newSegment)
         }
+    }
+
+    /// Pick Window and Last 5 min place a window on the beat stream; a
+    /// session without one (pruned or legacy) cannot, so the control
+    /// returns to where it was rather than appearing to choose.
+    private func restoreSegment(_ segment: AnalysisWindowSegment) {
+        restoringSegment = true
+        selectedWindowSegment = segment
     }
 
     @ViewBuilder
@@ -69,9 +80,7 @@ extension RecoveryScoreDetailView {
             // Inline picker, no modal sheet. The slider shows up
             // beneath the HRV chart and the user sees the preview band move
             // live as they drag. Initialize at the recording midpoint.
-            if let startMs = recordingStartMs, let endMs = recordingEndMs, endMs > startMs {
-                previewWindowMs = startMs + (endMs - startMs) / 2
-            }
+            previewWindowMs = recordingMidpointMs
         case .lastFiveMin:
             previewWindowMs = nil
             windowChangedHere = true
@@ -112,6 +121,13 @@ extension RecoveryScoreDetailView {
         effectiveRRSeries?.points.first?.t_ms
     }
 
+    /// Middle of the recording, where the Pick Window slider starts; nil
+    /// without a beat stream to place a window on.
+    var recordingMidpointMs: Int64? {
+        guard let startMs = recordingStartMs, let endMs = recordingEndMs, endMs > startMs else { return nil }
+        return startMs + (endMs - startMs) / 2
+    }
+
     /// The selected analysis window's clock-time range — displayed in the
     /// engine room and used to draw the band on the HRV chart so the user
     /// can see which slice of the night produced the headline RMSSD.
@@ -135,7 +151,7 @@ extension RecoveryScoreDetailView {
     var engineRoomSection: some View {
         EngineRoomDisclosure(
             title: String(localized: "Recording details", bundle: LanguageManager.appBundle),
-            memoryKey: "engineRoom.recoveryDetail.\(session.id.uuidString)"
+            memoryKey: "engineRoom.recoveryDetail"
         ) {
             engineRoomDetails
         }
@@ -190,15 +206,20 @@ extension RecoveryScoreDetailView {
         }
     }
 
-    /// The segment on screen once the user changes it here; before that, the
-    /// method the shown result was selected by, read from its stored reason
-    /// (a re-analysis elsewhere may have used Highest RMSSD, SDNN or Total
-    /// Power, and a manual or last-5-minutes window is a custom one).
+    /// The method the shown result was selected by, read from its stored
+    /// reason (a re-analysis elsewhere may have used Highest RMSSD, SDNN or
+    /// Total Power; no recognised reason is the default selection). A custom
+    /// window chosen here is named by its segment, Pick Window or Last 5 min.
+    /// Read from the result, not from the request, so an analysis that
+    /// failed or never ran leaves the row naming what is on screen.
     private var windowMethodText: String {
-        guard !windowChangedHere, let stored = RecoveryDetailCopy.storedWindowMethod(result.windowSelectionReason) else {
-            return selectedWindowSegment.shortName
+        guard let stored = RecoveryDetailCopy.storedWindowMethod(result.windowSelectionReason) else {
+            return WindowSelectionMethod.consolidatedRecovery.shortName
         }
-        return stored.shortName
+        guard stored == .custom, windowChangedHere, selectedWindowSegment != .bestRecovery else {
+            return stored.shortName
+        }
+        return selectedWindowSegment.shortName
     }
 
     @ViewBuilder
@@ -243,18 +264,7 @@ extension RecoveryScoreDetailView {
             if let deviceBeats = dataSource.deviceBeats {
                 detailRow(String(localized: "Device beats", bundle: LanguageManager.appBundle), value: "\(deviceBeats)")
             }
-            detailRow(String(localized: "Source", bundle: LanguageManager.appBundle), value: Self.sourceLabel(dataSource.selectedSource))
-        }
-    }
-
-    /// `selectedSource` is an internal tag ("streaming", "internal",
-    /// "composite"), not display text.
-    private static func sourceLabel(_ source: String) -> String {
-        switch source {
-        case "streaming": String(localized: "Streaming", bundle: LanguageManager.appBundle)
-        case "internal": String(localized: "Strap recording", bundle: LanguageManager.appBundle)
-        case "composite": String(localized: "Merged", bundle: LanguageManager.appBundle)
-        default: source
+            detailRow(String(localized: "Source", bundle: LanguageManager.appBundle), value: RecoveryDetailCopy.dataSourceLabel(dataSource.selectedSource))
         }
     }
 
@@ -321,15 +331,18 @@ extension RecoveryScoreDetailView {
         if onReanalyze != nil { retryAnalysisButtonBody }
     }
 
+    /// Runs as Best Recovery does, so it shows it is running and cannot be
+    /// tapped twice; the banner goes once the new analysis is sufficient.
     private var retryAnalysisButtonBody: some View {
-        Button {
-            Task { await onReanalyze?(.consolidatedRecovery) }
-        } label: {
-            Text(String(localized: "Retry analysis", bundle: LanguageManager.appBundle))
+        Button(action: reanalyzeBestRecovery) {
+            Text(isReanalyzing
+                ? String(localized: "Re-analyzing…", bundle: LanguageManager.appBundle)
+                : String(localized: "Retry analysis", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 13, weight: .semibold)
                 .foregroundStyle(AppTheme.primary)
         }
         .buttonStyle(.plain)
+        .disabled(isReanalyzing)
     }
 
     var isBuildingBaseline: Bool { !ScoreAppearancePolicy.showsScore(baselineNights: totalSessionCount) }
@@ -371,7 +384,10 @@ extension RecoveryScoreDetailView {
         .accessibilityLabel(String(localized: "Share recovery card", bundle: LanguageManager.appBundle))
     }
 
+    /// Not while the score is held back for the building baseline (the
+    /// toolbar hides the button then too).
     func shareRecapCard() {
+        guard !isBuildingBaseline else { return }
         let score = ScoreVerdict.safeDisplayScore(compositeScore)
         let date = session.startDate
         let card = RecapCard(variant: .recovery(score: score, verdict: verdict, date: date))

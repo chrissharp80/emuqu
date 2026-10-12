@@ -39,23 +39,27 @@ import Foundation
 // needs neither.
 
 enum JourneyIntelligenceService {
+    /// Raw values are the snake_case strings the `location.journey` tool
+    /// description and the system prompt name, since they reach the model
+    /// verbatim.
     enum Shape: String, Sendable {
         /// We've been out, we've turned around, we're heading back.
-        case outAndBackReturning
+        case outAndBackReturning = "out_and_back_returning"
         /// We're still moving away from the origin; haven't turned yet.
-        case outAndBackOutbound
+        case outAndBackOutbound = "out_and_back_outbound"
         /// Path length grossly exceeds crow-fly — likely a loop.
         case loop
         /// Net distance ≈ path length AND not close to origin —
         /// probably a one-way journey to somewhere new.
-        case pointToPoint
+        case pointToPoint = "point_to_point"
         /// Not enough fixes yet to infer.
         case unknown
     }
 
+    /// Snake_case raw values, as for `Shape`.
     enum Direction: String, Sendable {
-        case towardOrigin
-        case awayFromOrigin
+        case towardOrigin = "toward_origin"
+        case awayFromOrigin = "away_from_origin"
         case stationary
         case unknown
     }
@@ -80,12 +84,14 @@ enum JourneyIntelligenceService {
         /// for projecting return-leg duration in out-and-back shapes.
         let elapsedAtFarthestSeconds: TimeInterval?
         /// Best-effort projected total journey duration. Only set
-        /// when shape is `.outAndBackReturning` or
-        /// `.outAndBackOutbound`. For loops + point-to-point we
-        /// don't have enough info to project without a destination.
+        /// when shape is `.outAndBackReturning` (twice the time to the
+        /// farthest point). Outbound, loops and point-to-point have no
+        /// turnaround or destination to project from.
         let projectedTotalSeconds: TimeInterval?
-        /// Best-effort projected remaining time. Same caveat — only
-        /// for out-and-back. Loops and point-to-point return nil.
+        /// Best-effort projected remaining time, out-and-back only: on the
+        /// return leg the projected total minus elapsed; outbound, the
+        /// elapsed time — how long the way back takes if the user turns
+        /// around now. Loops and point-to-point return nil.
         let projectedRemainingSeconds: TimeInterval?
         /// Origin label (street name or trailhead) when the
         /// breadcrumb has one cached. Lets the AI say "you're 12 min

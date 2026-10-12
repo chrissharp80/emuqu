@@ -151,7 +151,7 @@ enum WorkoutRecoveryService {
             distanceMeters: metadata.distanceMeters,
             elevationGainMeters: metadata.elevationGainMeters,
             elevationLossMeters: metadata.elevationLossMeters,
-            meanHR: rrPoints.isEmpty ? nil : 60_000.0 / (rrPoints.reduce(0.0) { $0 + Double($1.rr_ms) } / Double(rrPoints.count)),
+            meanHR: Self.plausibleMeanHeartRate(rrPoints),
             userMaxHR: settings.effectiveMaxHR,
             bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: metadata.samples ?? [],
@@ -164,7 +164,7 @@ enum WorkoutRecoveryService {
 
     /// Recover an interrupted workout. Returns `nil` if there's nothing
     /// usable on disk for the session (no RR backup AND no track
-    /// backup) — the caller can then fall through to the existing
+    /// backup, or no source says when it started) — the caller can then fall through to the existing
     /// HRV-style `recoverFromBackup` path.
     ///
     /// The `.shared` defaults resolve INSIDE the function body. The
@@ -285,7 +285,11 @@ enum WorkoutRecoveryService {
         sessionId: UUID, reason: PartialDataReason, prepared: Prepared,
         overrides: Overrides, deps: Dependencies
     ) -> Outcome? {
-        let recovered = Self.resolveRecovered(sessionId: sessionId, prepared: prepared, overrides: overrides)
+        guard let startDate = Self.knownStartDate(prepared) else {
+            debugLog("[WorkoutRecovery] aborting — no backup or archived copy says when the workout started", level: .warning)
+            return nil
+        }
+        let recovered = Self.resolveRecovered(sessionId: sessionId, startDate: startDate, prepared: prepared, overrides: overrides)
         guard Self.hasRecoverableData(recovered) else {
             debugLog("[WorkoutRecovery] aborting — the backup holds no beats, track points or samples past the start", level: .warning)
             return nil
@@ -297,10 +301,31 @@ enum WorkoutRecoveryService {
             sessionId: sessionId, startDate: recovered.startDate, endDate: recovered.endDate,
             rrPoints: recovered.rrPoints, metadata: metadata
         )
-        if deps.archive.exists(sessionId), let archived = deps.archive.retrieveOrLog(sessionId) {
-            Self.carryForward(from: archived, into: &session)
-        }
+        Self.carryArchived(into: &session, recovered: recovered, deps: deps)
         return Self.persist(session, metadata: session.workoutMetadata ?? metadata, recovered: recovered, overrides: overrides, deps: deps)
+    }
+
+    /// When the workout started: the track header, else the archived copy,
+    /// else the RR backup's capture date. Nil when none of them is there —
+    /// strap or override beats are timed from the start, so anchoring them
+    /// to the moment of recovery would date the workout wrongly.
+    private static func knownStartDate(_ prepared: Prepared) -> Date? {
+        prepared.workoutRecord?.header.startDate ?? prepared.existingSession?.startDate ?? prepared.rrEntry?.captureDate
+    }
+
+    /// What the rebuild cannot recompute, from the archived copy it replaces.
+    /// That can bring the per-second samples back (a saved workout's track
+    /// backup is gone), so the analysis snapshot, built from the rebuild's own
+    /// samples, is built again over the samples the session now holds.
+    private static func carryArchived(into session: inout HRVSession, recovered: RecoveredWorkout, deps: Dependencies) {
+        guard deps.archive.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
+        Self.carryForward(from: archived, into: &session)
+        guard var metadata = session.workoutMetadata else { return }
+        Self.attachAnalysisSnapshot(
+            to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec,
+            rrPoints: recovered.rrPoints, settings: deps.settingsManager.settings
+        )
+        session.workoutMetadata = metadata
     }
 
     /// Something to save: a crash seconds into a workout leaves a header with
@@ -330,11 +355,10 @@ enum WorkoutRecoveryService {
     /// A trim moves the end in; the per-tick and barometer streams are cut to
     /// it like the beats and the track, so charts and elevation stop there.
     private static func resolveRecovered(
-        sessionId: UUID, prepared: Prepared, overrides: Overrides
+        sessionId: UUID, startDate: Date, prepared: Prepared, overrides: Overrides
     ) -> RecoveredWorkout {
         let record = prepared.workoutRecord
         let sport = record?.header.sport ?? prepared.existingSession?.workoutMetadata?.sport ?? .run
-        let startDate = record?.header.startDate ?? prepared.existingSession?.startDate ?? prepared.rrEntry?.captureDate ?? Date()
         let rawTrack: [CLLocation] = overrides.track ?? record?.track ?? []
         let liveSamples: [WorkoutSample] = record?.samples ?? []
         let baroSamples = record?.barometricSamples ?? []
@@ -385,6 +409,7 @@ enum WorkoutRecoveryService {
             overrideDistanceMeters: overrides.distanceMeters
         )
         metadata.healthKitHROffsets = Self.healthKitHROffsets(recovered.backupHealthKitHROffsets, in: recovered.liveSamples)
+        if recovered.baroSamples.isEmpty { Self.applyGPSElevation(to: &metadata, track: recovered.track) }
         Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
         if recovered.rawTrackWasEmpty, let existing = prepared.existingSession?.workoutMetadata {
             Self.backfillRouteFields(into: &metadata, from: existing)
@@ -452,6 +477,17 @@ enum WorkoutRecoveryService {
         let processed = BarometricAltitudeProcessor.process(samples: tuples)
         metadata.elevationGainMeters = processed.gainMeters
         metadata.elevationLossMeters = processed.lossMeters
+    }
+
+    /// No barometer samples: gain and loss from the track's GPS altitude,
+    /// with the same 5 m per-fix gate the live recorder's fallback uses
+    /// (`WorkoutLocationManager.accumulateGPSElevationFallback`). Left nil
+    /// without two fixes, so a trim can still keep the earlier figures.
+    private static func applyGPSElevation(to metadata: inout WorkoutMetadata, track: [CLLocation]) {
+        guard track.count > 1 else { return }
+        let deltas = zip(track, track.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }.filter { abs($0) >= 5.0 }
+        metadata.elevationGainMeters = deltas.filter { $0 > 0 }.reduce(0, +)
+        metadata.elevationLossMeters = -deltas.filter { $0 < 0 }.reduce(0, +)
     }
 
     static func buildMetadata(
@@ -623,6 +659,14 @@ enum WorkoutRecoveryService {
             i += windowBeats
         }
         return windows
+    }
+
+    /// Mean heart rate over the beats inside 300–2000 ms, or nil when there
+    /// are none: dropout gaps and artifact beats would otherwise pull the
+    /// snapshot's mean far from what the user's heart did.
+    private static func plausibleMeanHeartRate(_ points: [RRPoint]) -> Double? {
+        let mean = meanHeartRate(points[...])
+        return mean > 0 ? mean : nil
     }
 
     private static func meanHeartRate(_ slice: ArraySlice<RRPoint>) -> Double {

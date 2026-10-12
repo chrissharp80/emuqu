@@ -1,0 +1,177 @@
+{
+ "file": "Emuqu/Sources/Storage/SleepDataCache.swift",
+ "hash": "e8b5994a56a162cb",
+ "role": "UserDefaults-backed cache of processed SleepData per night (up to 14 nights) so morning processing / RR collector can read sleep without re-querying HealthKit.",
+ "types": [
+  "SleepDataCache: enum — static read/write/clear",
+  "SleepDataCache.Store: struct (private) — Codable list of entries",
+  "SleepDataCache.Entry: struct (private) — dayKey/sleepData/lastUpdated"
+ ],
+ "state": [
+  "ud:SleepDataCache.v2 (standard suite; JSON Store)",
+  "ud:SleepDataCache.v1 (retired key, removed on every save and on clear)",
+  "SleepDataCache.maxEntries = 14"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepDataCache.read(coveringRecordingStart:)",
+   "hash": "4b0a50733397ebed",
+   "does": "Computes the morning dayKey for recordingStart, loads the store and returns the SleepData whose dayKey is within 25h of that target and closest to it; nil otherwise. Callers (HealthKitManager+Sleep.swift:447, MorningProcessingService+Sleep.swift:102, RRCollector+OvernightStreaming.swift:404) must check plausiblyBelongsToRecording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.morningKey(for:calendar:)",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()"
+   ],
+   "reads": [
+    "ud:SleepDataCache.v2"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "loadStore returns nil (no data or decode failure)",
+     "effect": "returns nil (cache miss), else filters/min-selects entries"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "3d4541666e868f45",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.morningKey(for:calendar:)": "e2d68c6b0291b4c7"
+   }
+  },
+  {
+   "key": "func SleepDataCache.write(_:)",
+   "hash": "ba116d898ea880cb",
+   "does": "Writes SleepData into the store keyed by startOfDay(data.date), replacing any same-day entry, sorts newest first, truncates to 14 entries, and saves. Called from HealthKitManager+Sleep.swift:133 and HealthKitManager+SleepTrends.swift:519.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.saveStore(_:)"
+   ],
+   "reads": [
+    "ud:SleepDataCache.v2"
+   ],
+   "writes": [
+    "ud:SleepDataCache.v2",
+    "ud:SleepDataCache.v1"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loadStore returns nil",
+     "effect": "?? fallback: start an empty Store (an undecodable existing store is overwritten, its entries lost)"
+    },
+    {
+     "at": "+8",
+     "cond": "more than maxEntries (14) entries",
+     "effect": "true: keep the 14 newest; false: keep all"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "3d4541666e868f45",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.saveStore(_:)": "3a4ae02e14c6aa1e",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func SleepDataCache.clear()",
+   "hash": "3e75b740bc939bd4",
+   "does": "Removes SleepDataCache.v2 and the retired SleepDataCache.v1 from UserDefaults. Called by DataPurgeService.swift:700.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:SleepDataCache.v2",
+    "ud:SleepDataCache.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepDataCache.morningKey(for:calendar:)",
+   "hash": "850d073967141003",
+   "does": "Maps a recording start time to the start of the day of the morning its sleep belongs to: hour>=16 -> next day start, else same day start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "calendar returns no hour component",
+     "effect": "?? fallback hour 0 (treated as morning, same day)"
+    },
+    {
+     "at": "+5",
+     "cond": "hour >= 16",
+     "effect": "true: next calendar day startOfDay; false: falls to same-day startOfDay"
+    },
+    {
+     "at": "+6",
+     "cond": "calendar.date(byAdding: .day) returns nil",
+     "effect": "?? fallback to same-day startOfDay"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func SleepDataCache.loadStore()",
+   "hash": "ffc21cd4ce58157c",
+   "does": "Loads and JSON-decodes the Store from SleepDataCache.v2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [
+    "ud:SleepDataCache.v2"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data under key",
+     "effect": "returns nil; else decodes via attempt (decode error logged, returns nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SleepDataCache.saveStore(_:)",
+   "hash": "6f8ebfdb2729146b",
+   "does": "Encodes the Store and saves it under SleepDataCache.v2, then removes retired keys.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:SleepDataCache.v2",
+    "ud:SleepDataCache.v1"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encoding succeeds",
+     "effect": "true: data written; false: encode error logged by attempt, store not written (retired keys still removed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

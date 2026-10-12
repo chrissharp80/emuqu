@@ -91,21 +91,16 @@ enum ScoreDetailBuilder {
             detail: detail.text,
             score: tier1,
             weight: weight,
-            impact: tier1 >= 60 ? .positive : (tier1 >= 40 ? .neutral : .negative),
+            impact: hrvImpact(tier1),
             facts: detail.facts
         )
     }
 
-    /// The HRV row for a detail line that carries no facts, which is then
-    /// shown as written.
-    static func hrvFactor(tier1: Double, detail: String, weight: Double) -> RecoveryScoreCalculator.ScoreFactor {
-        RecoveryScoreCalculator.ScoreFactor(
-            label: "HRV",
-            detail: detail,
-            score: tier1,
-            weight: weight,
-            impact: tier1 >= 60 ? .positive : (tier1 >= 40 ? .neutral : .negative)
-        )
+    /// The impact band of an HRV factor score. Shared with the
+    /// perceived-readiness blend, which re-scores the HRV factor and must
+    /// re-band it the same way.
+    static func hrvImpact(_ score: Double) -> RecoveryScoreCalculator.ScoreFactor.Impact {
+        score >= 60 ? .positive : (score >= 40 ? .neutral : .negative)
     }
 
     static func sleepFactor(
@@ -170,23 +165,18 @@ enum ScoreDetailBuilder {
         }
     }
 
-    /// The explanation for the HRV score factor, in `NarrativeLanguage`.
-    static func buildHRVDetail(
-        rmssd: Double?,
-        baselineStats: BaselineTracker.RecoveryBaselineStats?,
-        meanHR: Double?,
-        dfaAlpha1: Double?,
-        hrvReadiness: Double?,
-        ansBalance: Double? = nil,
-        referenceDate: Date = Date()
-    ) -> String {
-        describeHRV(
-            rmssd: rmssd, baselineStats: baselineStats, meanHR: meanHR, dfaAlpha1: dfaAlpha1,
-            hrvReadiness: hrvReadiness, ansBalance: ansBalance, referenceDate: referenceDate
-        ).text
-    }
-
     /// The HRV factor's line and the numbers it quotes.
+    ///
+    /// Without a usable RMSSD, `calculateTier1` scores from the readiness
+    /// score or falls back to neutral; the note then says whether a baseline
+    /// exists, so a night with a baseline but no HRV reading is never called
+    /// "No baseline yet".
+    ///
+    /// The base score is rounded, not truncated, so base + shown adjustments
+    /// land within a point or two of the factor score. They are not an exact
+    /// reconstruction: each part is rounded on its own, and the factor is
+    /// clamped to 0–100 while the shown parts are not (a z ≤ −3 base of 5
+    /// with −10 of adjustments shows −5 against a factor of 0).
     static func describeHRV(
         rmssd: Double?,
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
@@ -196,12 +186,13 @@ enum ScoreDetailBuilder {
         ansBalance: Double? = nil,
         referenceDate: Date = Date()
     ) -> DescribedDetail {
-        guard let stats = baselineStats, let r = rmssd, r > 0 else {
+        guard let r = rmssd, r > 0 else {
+            return .note(missingReadingNote(hasBaseline: baselineStats != nil, usesReadiness: hrvReadiness != nil))
+        }
+        guard let stats = baselineStats else {
             return .note(hrvReadiness != nil ? .hrvNoBaselineUsingReadiness : .hrvNoBaseline)
         }
         let z = (log(r) - stats.lnRmssdMean) / stats.lnRmssdSD
-        // Rounded, not truncated, so base + shown adjustments reconstruct the
-        // factor score (which is Int(tier1.rounded())).
         let baseScore = Int(RecoveryScoreCalculator.zToRecoveryScore(z).rounded())
         var adjustments = restingHRAdjustments(meanHR: meanHR, stats: stats)
         adjustments += dfaAlpha1Adjustments(dfaAlpha1) + cvAdjustments(stats.lnRmssdCV7Day)
@@ -213,14 +204,23 @@ enum ScoreDetailBuilder {
         )
     }
 
+    /// The note for a night without a usable RMSSD: whether a baseline exists,
+    /// and whether the readiness score stood in.
+    static func missingReadingNote(hasBaseline: Bool, usesReadiness: Bool) -> ScoreFactorFacts.Note {
+        switch (hasBaseline, usesReadiness) {
+        case (true, true): .hrvNoReadingUsingReadiness
+        case (true, false): .hrvNoReading
+        case (false, true): .hrvNoBaselineUsingReadiness
+        case (false, false): .hrvNoBaseline
+        }
+    }
+
+    /// The resting-HR adjustment `calculateTier1` applies, rounded for display.
     static func restingHRAdjustments(
         meanHR: Double?,
         stats: BaselineTracker.RecoveryBaselineStats
     ) -> [ScoreFactorFacts.Adjustment] {
-        guard let hr = meanHR else { return [] }
-        let zHR = (hr - stats.meanHRBaseline) / stats.meanHRSD
-        let rhrAdj = max(RecoveryScoreConstants.HRVAdjustments.rhrClampMin, min(RecoveryScoreConstants.HRVAdjustments.rhrClampMax, zHR * RecoveryScoreConstants.HRVAdjustments.rhrZScoreMultiplier))
-        let rounded = Int(rhrAdj.rounded())
+        let rounded = Int(RecoveryScoreCalculator.rhrAdjustment(meanHR: meanHR, stats: stats).rounded())
         return rounded == 0 ? [] : [.restingHR(points: rounded)]
     }
 
@@ -233,24 +233,18 @@ enum ScoreDetailBuilder {
 
     /// Surface the silent baseline-staleness penalty so
     /// the user understands a score drop attributable to gap-in-recording
-    /// rather than physiological change. Mirrors the penalty in
-    /// `calculateTier1` — both feed off the shared
-    /// `baselineStalenessDays(baselineDate:referenceDate:)` helper.
+    /// rather than physiological change. Reads the penalty `calculateTier1`
+    /// deducts (`RecoveryScoreCalculator.baselineStalenessPenalty`), rounded.
     static func baselineStalenessAdjustments(
         stats: BaselineTracker.RecoveryBaselineStats,
         referenceDate: Date
     ) -> [ScoreFactorFacts.Adjustment] {
-        guard let lastDate = stats.lastDataPointDate else { return [] }
-        let daysSince = baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
-        guard daysSince >= RecoveryScoreConstants.BaselineStaleness.staleAfterDays else { return [] }
-        let weeksStale = Double(daysSince - RecoveryScoreConstants.BaselineStaleness.staleAfterDays) / 7.0
-        let penalty = min(
-            RecoveryScoreConstants.BaselineStaleness.maxPenalty,
-            RecoveryScoreConstants.BaselineStaleness.penaltyPerWeek * (1.0 + weeksStale)
-        )
-        let penaltyRounded = Int(penalty.rounded())
+        guard let stale = RecoveryScoreCalculator.baselineStalenessPenalty(stats: stats, referenceDate: referenceDate) else {
+            return []
+        }
+        let penaltyRounded = Int(stale.penalty.rounded())
         guard penaltyRounded > 0 else { return [] }
-        return [.staleBaseline(days: daysSince, points: penaltyRounded)]
+        return [.staleBaseline(days: stale.days, points: penaltyRounded)]
     }
 
     /// "42ms — near your average (base score 61)", one sentence per band of
@@ -275,15 +269,6 @@ enum ScoreDetailBuilder {
         var adjList = adjustments
         adjList[0] = adjList[0].prefix(1).uppercased(with: NarrativeLanguage.locale) + adjList[0].dropFirst()
         return "\(base). \(adjList.joined(separator: "; "))"
-    }
-
-    /// The explanation for the sleep score factor, in `NarrativeLanguage`.
-    static func buildSleepDetail(
-        score: Double,
-        sleepData: SleepData?,
-        typicalSleepHours: Double
-    ) -> String {
-        describeSleep(score: score, sleepData: sleepData, typicalSleepHours: typicalSleepHours).text
     }
 
     /// The sleep factor's line and the night it describes.
@@ -395,30 +380,22 @@ enum ScoreDetailBuilder {
     // MARK: - Baseline Staleness
 
     /// Whole days between the baseline's most recent data point and the
-    /// reference date. Shared by calculateTier1 (score penalty) and
-    /// buildHRVDetail (user-facing explanation) so the two can never
-    /// drift. Pure: the reference date is injected — no wall-clock read —
+    /// reference date, for `RecoveryScoreCalculator.baselineStalenessPenalty`, which
+    /// both the score penalty and the shown adjustment read. Pure: the reference date is injected — no wall-clock read —
     /// which keeps the recovery score deterministic for a given input.
     static func baselineStalenessDays(baselineDate: Date, referenceDate: Date) -> Int {
         Calendar.current.dateComponents([.day], from: baselineDate, to: referenceDate).day ?? 0
     }
 
-    /// The DFA α1 adjustment `calculateTier1` applies.
+    /// The DFA α1 adjustment `calculateTier1` applies, read from
+    /// `RecoveryScoreCalculator.dfaAlpha1Adjustment`.
     static func dfaAlpha1Adjustments(_ dfaAlpha1: Double?) -> [ScoreFactorFacts.Adjustment] {
-        guard let a1 = dfaAlpha1 else { return [] }
-        if a1 >= HRVThresholds.dfaAlpha1OptimalLower, a1 <= HRVThresholds.dfaAlpha1OptimalUpper {
-            return [.alphaBalanced]
-        }
-        if a1 > HRVThresholds.dfaAlpha1Fatigue { return [.alphaStrained] }
-        if a1 < HRVThresholds.dfaAlpha1FlexibleLower { return [.alphaReduced] }
-        return []
+        RecoveryScoreCalculator.dfaAlpha1Adjustment(dfaAlpha1).map { [$0.kind] } ?? []
     }
 
-    /// The 7-day coefficient-of-variation adjustment `calculateTier1` applies.
+    /// The 7-day coefficient-of-variation adjustment `calculateTier1` applies,
+    /// read from `RecoveryScoreCalculator.cvAdjustment`.
     static func cvAdjustments(_ cv7Day: Double?) -> [ScoreFactorFacts.Adjustment] {
-        guard let cv = cv7Day else { return [] }
-        if cv < RecoveryScoreConstants.HRVAdjustments.cvFlatThreshold { return [.variabilityFlat] }
-        if cv > RecoveryScoreConstants.HRVAdjustments.cvErraticThreshold { return [.variabilityErratic] }
-        return []
+        RecoveryScoreCalculator.cvAdjustment(cv7Day).map { [$0.kind] } ?? []
     }
 }

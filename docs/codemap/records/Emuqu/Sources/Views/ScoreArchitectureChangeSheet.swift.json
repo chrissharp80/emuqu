@@ -1,0 +1,156 @@
+{
+ "file": "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift",
+ "hash": "503c6002c0578916",
+ "role": "One-time full-screen disclosure explaining the recovery-score switch to HRV 60 / Sleep 25 / Vitals 15 with training load moved out, linking to the methodology page; dismissal (Got it) sets the binding false, which EmuquApp turns into hasAcknowledgedScoreArchitectureChange = true.",
+ "types": [
+  "ScoreArchitectureChangeSheet: struct (View) — the disclosure modal"
+ ],
+ "state": [
+  "mem:ScoreArchitectureChangeSheet.isPresented (@Binding from EmuquApp.scoreArchitectureChangeBinding)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ScoreArchitectureChangeSheet.body",
+   "hash": "171ec8203b305be8",
+   "does": "NavigationStack around the scroll content with interactive (swipe) dismissal disabled.",
+   "entry": "SwiftUI View.body; presented by EmuquApp fullScreenCover for LaunchModal.scoreArchitectureChange (AppLaunchTasks.presentLaunchModal)",
+   "calls": [
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeScroll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeScroll": "5498f07f765e4f65"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.changeScroll",
+   "hash": "73841cc218b91b81",
+   "does": "ScrollView on the app background with the navigation bar hidden.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeStack": "7e2a53c4415d57ef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.changeStack",
+   "hash": "90c30f50fdd2ab78",
+   "does": "Vertical stack: headline, body copy, spacer, action buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeHeadline",
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeBodyBlock",
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeActionButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeActionButtons": "4f6b08ce1f2266be",
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeBodyBlock": "2e6bb554a35b145a",
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.changeHeadline": "7cc88516b71a75b5"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.changeHeadline",
+   "hash": "60f3924c29aab7df",
+   "does": "Heart icon and 'We've updated how Emuqu scores recovery' title.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.changeBodyBlock",
+   "hash": "c10415ec5bf8de8f",
+   "does": "Three paragraphs: the 60/25/15 split, why load was removed, and that past scores are not rewritten (recompute from Settings).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.changeActionButtons",
+   "hash": "72434117c540cf32",
+   "does": "Methodology link above the Got it button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.showMeTheMethodologyLink",
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.gotItButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.gotItButton": "7cbb0f2a72c90dbc",
+    "Emuqu/Sources/Views/ScoreArchitectureChangeSheet.swift::var ScoreArchitectureChangeSheet.showMeTheMethodologyLink": "e4edf063c307b7a8"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.showMeTheMethodologyLink",
+   "hash": "de62723081c83852",
+   "does": "NavigationLink pushing RecoveryMethodologyView.",
+   "entry": "SwiftUI NavigationLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body": "9d902bfc2800dd9d",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+   }
+  },
+  {
+   "key": "var ScoreArchitectureChangeSheet.gotItButton",
+   "hash": "73f957033427575d",
+   "does": "'Got it' button setting isPresented = false; EmuquApp's binding setter then records the acknowledgement and clears activeModal.",
+   "entry": "SwiftUI Button action (Got it tap)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ScoreArchitectureChangeSheet.isPresented → ud/file:user_settings.json hasAcknowledgedScoreArchitectureChange (via EmuquApp binding)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

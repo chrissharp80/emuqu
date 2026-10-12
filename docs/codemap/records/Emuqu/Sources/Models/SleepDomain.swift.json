@@ -1,0 +1,73 @@
+{
+ "file": "Emuqu/Sources/Models/SleepDomain.swift",
+ "hash": "cb466bb91bd6f61a",
+ "role": "Sleep domain vocabulary types (boundary source, validation, HR quality, segment, stage, provenance, stage interval) shared by HealthKit and the analysis layer; HealthKitManager keeps typealiases.",
+ "types": [
+  "SleepBoundarySource: enum String Codable — healthKit/hrValidated/hrEstimated/healthKitHREstimated/recordingBounds",
+  "SleepBoundaryValidation: struct — HK vs HR-detected boundaries",
+  "HRSleepQuality: struct — RMSSD-derived sleep quality",
+  "SleepSegment: struct — one contiguous sleep segment",
+  "SleepStage: enum — deep/core/rem/awake/unspecified",
+  "SleepStageProvenance: enum — watch/iphone/hrvDerived (repainted by HRVSleepStageClassifier)/userAdded/userCarved/userAdjusted",
+  "SleepStageInterval: struct (Identifiable, Codable, Equatable) — one stage period"
+ ],
+ "state": [],
+ "toplevel": "Type declarations with synthesized Codable; SleepStageInterval has explicit CodingKeys and decoder.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init SleepStageInterval(stage:start:end:provenance:)",
+   "hash": "8f7d72336c72520a",
+   "does": "Creates an interval with a new UUID and the given stage, start, end and provenance (default .watch).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepStageInterval.durationMinutes",
+   "hash": "8c6e9f822f844af6",
+   "does": "Duration in whole minutes, rounded from seconds.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init SleepStageInterval(from:)",
+   "hash": "4425b9667418c0f6",
+   "does": "Decodes id, start, end; stage leniently (a case this build does not know reads as .unspecified); provenance leniently when present (unknown → .watch) with .watch when missing.",
+   "entry": "Decodable init when archived/CloudKit SleepData is decoded.",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stage raw value unknown",
+     "effect": ".unspecified"
+    },
+    {
+     "at": "+6",
+     "cond": "provenance missing / unknown",
+     "effect": ".watch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)": "f1723a2f2e51bf9b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "c768f7a21d96a4b4"
+   }
+  }
+ ],
+ "deps": {}
+}

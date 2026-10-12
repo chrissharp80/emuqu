@@ -1,0 +1,142 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthExportIdentity.swift",
+ "hash": "9c66dc37d9e9240e",
+ "role": "The HKMetadataKeyExternalUUID naming scheme for samples the app writes to Apple Health and the exact/prefix predicates re-exports use to delete their own prior samples; plus RRPoint.exportTimeMs (wall clock or beat-sum).",
+ "types": [
+  "HealthExportIdentity: enum — ID builders and match predicates",
+  "HealthExportIdentity.Metric: enum (String, CaseIterable) — hr, rhr, sdnn, rmssd, sleep",
+  "RRPoint: extension — exportTimeMs"
+ ],
+ "state": [
+  "ExternalUUID formats: '<uuid>-<metric>' (summary), '<uuid>-<metric>-<n|suffix>' (series)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthExportIdentity.summary(sessionId:metric:)",
+   "hash": "678b94a5dd0c2262",
+   "does": "Returns '<sessionUUID>-<metric>' (summary sample id). Used for HR and RHR summaries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthExportIdentity.seriesMember(sessionId:metric:index:)",
+   "hash": "25a8777fe0efd7c1",
+   "does": "Returns the numbered series member id '<uuid>-<metric>-<index>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40"
+   }
+  },
+  {
+   "key": "func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+   "hash": "31a9a9ff19d2d74c",
+   "does": "Returns seriesPrefix + suffix (e.g. sleep's '-inbed').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a"
+   }
+  },
+  {
+   "key": "func HealthExportIdentity.seriesPrefix(sessionId:metric:)",
+   "hash": "b1adbb54021692b4",
+   "does": "Returns '<uuid>-<metric>-' (the series prefix).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+   "hash": "eaeed597a65bc425",
+   "does": "Exact equality with the summary id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)",
+   "hash": "a28b2ae031198ab3",
+   "does": "True when the id starts with the series prefix.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a"
+   }
+  },
+  {
+   "key": "func HealthExportIdentity.belongsToSession(_:sessionId:metric:)",
+   "hash": "920129f63d7fea0d",
+   "does": "Summary-or-series membership; used for sleep's delete predicate (HealthKitManager+SleepTrends.swift:250).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4"
+   }
+  },
+  {
+   "key": "var RRPoint.exportTimeMs",
+   "hash": "a9d72fba167b551a",
+   "does": "Beat time for export: wallClockMs when the stream recorded one, else t_ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "wallClockMs ?? t_ms",
+     "effect": "no wall clock (internal recording/legacy): t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

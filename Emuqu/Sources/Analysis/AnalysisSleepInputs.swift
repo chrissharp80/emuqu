@@ -69,9 +69,9 @@ struct AnalysisSleepTrendInput {
     let trend: SleepTrend
     let nightsAnalyzed: Int
 
-    enum SleepTrend: String {
-        case improving, declining, stable, insufficient
-    }
+    /// The HealthKit trend's own enum, so a new case reaches every reader
+    /// instead of a hand-kept copy.
+    typealias SleepTrend = SleepTrendStats.SleepTrend
 
     static let empty = AnalysisSleepTrendInput(
         averageSleepMinutes: 0, averageDeepSleepMinutes: nil,
@@ -95,11 +95,6 @@ struct AnalysisSleepTrendInput {
         averageDeepSleepMinutes = hk.averageDeepSleepMinutes
         averageEfficiency = hk.averageEfficiency
         nightsAnalyzed = hk.nightsAnalyzed
-        switch hk.trend {
-        case .improving: trend = .improving
-        case .declining: trend = .declining
-        case .stable: trend = .stable
-        case .insufficient: trend = .insufficient
-        }
+        trend = hk.trend
     }
 }

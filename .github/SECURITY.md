@@ -84,10 +84,16 @@ the App Group container is set to
 while the phone is locked during overnight recording and screen-locked
 workouts, or every write in that window fails. It is still encrypted at rest.
 
-Lines are passed through `scrubPHI`, which redacts health values and session
-IDs, before they are flushed to disk and again on export. An export is written
-to a temporary directory with no file protection so the share sheet can open
-it. `make log-redaction-guard` fails the build when a log call interpolates a
+Lines are passed through `scrubPHI`, which redacts health values: a number
+after a health-metric name (RMSSD, heart rate, sleep score and the like), the
+further numbers chained to one by an arrow or comparison, and latitude and
+longitude values. Session IDs are not redacted: they are random UUIDs, kept so
+that lines can be tied to a session. Lines are scrubbed once, as they are
+flushed to disk, and an export of the log file returns that scrubbed content.
+With Persistent Logging off, the export comes from the in-memory buffer and
+each line is scrubbed as it is exported; the error-catalog export is scrubbed
+the same way. An export is written to a temporary directory with no file
+protection so the share sheet can open it. `make log-redaction-guard` fails the build when a log call interpolates a
 raw health or identifying value.
 
 ### Privacy manifest (`PrivacyInfo.xcprivacy`)
@@ -101,7 +107,7 @@ domains.
 | `Health` | Yes | HRV, RMSSD, SDNN, pNN50, DFA α1, LF/HF and the recovery metrics derived from them. Reaches a hosted AI provider when the user turns one on and consents. |
 | `Fitness` | Yes | Workouts, sleep stages and activity from HealthKit, merged into scoring and training load. Reaches a consented hosted provider the same way. |
 | `PreciseLocation` | Yes | GPS during workout recording and Get Me Back. Route coordinates rounded to about 11 m go to OpenTopoData when the user asks for real elevation. Nearby street names are part of the assistant's context, so during a live workout they reach a consented hosted provider. |
-| `CoarseLocation` | No | Coordinates rounded to about 1 km for MET Norway weather, and to about 100 m for OpenStreetMap Overpass road and trail lookups. |
+| `CoarseLocation` | No | Coordinates rounded to about 1 km for MET Norway weather and to about 100 m for OpenStreetMap Overpass trail searches. Nearby-road lookups send Overpass the centre of the 250 m grid cell the user is in, not the user's position. |
 | `AudioData` | No | Microphone input for voice mode. Transcribed on the device when the device and language support it, otherwise by Apple's speech service. Not stored. |
 | `OtherUserContent` | Yes | Assistant chat transcripts and remembered facts (`ConversationStore`, `UserFactsStore`). The active conversation goes to a hosted provider only after per-provider consent in `ProviderConsentSheet`. Apple Intelligence, the default, runs on the device. |
 | `Contacts` | Yes | The in-app email address book (`EmailContactStore`): names, addresses and notes. The assistant reads it through `assistant.contacts.list` to address email, so it reaches a consented hosted provider. |
@@ -127,6 +133,14 @@ but are summarized here for completeness:
 - **Bluetooth** (`NSBluetoothAlwaysUsageDescription`) — Polar H10 / Verity
   Sense pairing and streaming, optional power, stride, bike and rower sensors,
   and the optional heart-rate and power broadcaster.
+- **Health** (`NSHealthShareUsageDescription`,
+  `NSHealthUpdateUsageDescription`) — reads sleep, heart rate, HRV, vitals,
+  workouts and their routes, activity, VO2 max, body weight, date of birth and
+  biological sex from Apple Health; writes the workouts the user records, with
+  energy, distance and route, and, with Apple Health export turned on in
+  Settings → Wearables, HRV, heart rate, resting heart rate and detected sleep.
+- **Photo library, add only** (`NSPhotoLibraryAddUsageDescription`) — saves a
+  recovery recap or workout summary image when the user chooses Save Image.
 - **Microphone** (`NSMicrophoneUsageDescription`) — voice input to the
   assistant.
 - **Speech recognition** (`NSSpeechRecognitionUsageDescription`) —
@@ -164,10 +178,14 @@ DeepSeek), consents, and sends a message, the provider receives:
 - On every turn, the facts saved to the assistant's memory, in the system
   prompt.
 - On every turn, a short live-state block (`renderLiveStateForCloud`): the
-  latest session's recovery score and tier, RMSSD, SDNN, mean HR, overnight
-  HR nadir and mean, sleep duration and efficiency; the previous session's
-  score, RMSSD and mean HR; and, during a live workout, the user's location
-  (street, cross street, locality, heading, speed and altitude).
+  most recent session, labelled today, yesterday, or with its date and age
+  (one that is not an overnight recording, used when no night was recorded,
+  is labelled with its type), with its recovery score and tier, RMSSD, SDNN,
+  mean HR, overnight HR nadir and mean, sleep duration and efficiency, and the
+  score's explanatory note; the session before it: score, RMSSD and mean HR;
+  and, during a live workout, the user's location (street, cross street,
+  locality, subdivision, administrative area, country, heading, speed,
+  altitude, GPS accuracy and the age of the fix).
 - The results of the tools the model calls, which can cover anything the
   in-app privacy policy lists: heart rate, HRV, sleep, overnight vitals,
   training load and workouts, steps and distance, profile, notes, tags,
@@ -177,10 +195,29 @@ DeepSeek), consents, and sends a message, the provider receives:
 - A provider without tool support gets a compact render of the whole context
   instead of tool results.
 
-With Apple Intelligence selected, routing (Quick, Auto, Deep) can hand voice
-turns and requests to email, get directions or search the web to the first
-hosted provider the user has consented to. Manual keeps every turn on Apple.
-With a hosted model selected, every turn goes to it.
+With Apple Intelligence selected, the routing mode decides which turns leave
+the device (`TurnRouter`, `TierProviderMapper`):
+
+- **Quick** answers typed questions on Apple Intelligence.
+- **Auto** sends every turn its classifier flags as needing tools, the web,
+  more reasoning or speculation to xAI Grok, or to DeepSeek when Grok is not
+  consented, and answers on Apple Intelligence when neither is. The tier is
+  sticky within a conversation, so later turns can follow. Turns with no flag
+  stay on Apple Intelligence.
+- **Deep** sends every turn to Grok, or DeepSeek when Grok is not consented,
+  and answers on Apple Intelligence only when neither is.
+- In all three, voice turns, and requests to send email, get directions or
+  search the web that would otherwise land on Apple Intelligence (it cannot
+  call those tools), go to the first hosted provider the user has consented
+  to, in the app's fixed provider order. With none consented they stay on
+  the device.
+- When the model a turn was sent to fails, Quick lets only Apple
+  Intelligence retry it; Auto and Deep let any model the user has consented
+  to retry it, Apple last.
+
+Only a consented provider ever receives a routed turn; a key on file is not
+consent. Manual keeps every turn on Apple. With a hosted model selected, every
+turn goes to it.
 
 **Raw beat-to-beat RR intervals and beat timestamps are never sent to
 third-party AI providers.** They are uploaded, encrypted by the app, to the
@@ -266,9 +303,11 @@ with. It does not, and cannot, assert that another device can decrypt: a
 local Keychain read cannot tell whether iCloud Keychain is on and has synced.
 
 **Framing.** Payloads carry a magic prefix (`EMQC`) and a version byte. A
-record without the prefix is a legacy record and is returned unchanged. That
-branch is chosen by positively identifying the envelope, never by a failed
-decryption.
+record with the older `FR` prefix was sealed by `EncryptionManager` and is
+decrypted with the device's archive key, so it opens only on the device that
+wrote it. A record with neither prefix is a legacy, compressed-only record and
+is returned unchanged. Each branch is chosen by positively identifying the
+envelope, never by a failed decryption.
 
 **Fail closed.** If no key is available the upload throws rather than falling
 back to plaintext. A skipped backup can be retried; an uploaded one cannot be

@@ -10,9 +10,11 @@ import Foundation
 /// recorder subscription; views that show only the map or only the stat
 /// chips subscribe to this object alone.
 ///
-/// Writers: `WorkoutRecorder.incrementalBackupTick` + `resetMetrics`
-/// (reads from `WorkoutLocationManager`, `WorkoutPedometer`, and the
-/// foot-pod). Back-compat forwarding on the recorder keeps
+/// Writers: the per-second tick (`WorkoutTicker.incrementalBackupTick`,
+/// which reads `WorkoutLocationManager`, `WorkoutPedometer`, the foot pod
+/// and the rower), `reset()` after a workout stops
+/// (`resetRecorderStateAfterStop`), and the power / foot-pod fields cleared
+/// at start. Back-compat forwarding on the recorder keeps
 /// `recorder.distanceMeters` etc. working.
 @Observable
 @MainActor

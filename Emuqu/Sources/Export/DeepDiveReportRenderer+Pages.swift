@@ -279,13 +279,18 @@ extension DeepDiveReportRenderer {
         context: UIGraphicsPDFRendererContext,
         pageRect: CGRect
     ) -> CGFloat {
-        let explainHeight = metricExplanationHeight(metric.explanation, contentWidth: contentWidth)
-        let totalHeight = 18 + ceil(explainHeight) + (metric.interpretation != nil ? 14 : 0) + 8
+        // Measured with the attributes and width they are drawn at, so the
+        // reserved block and the drawn text agree.
+        let explanation = metricExplanationText(metric.explanation)
+        let explainHeight = wrappedTextHeight(explanation, width: contentWidth - 8)
+        let interpretation = metric.interpretation.map(metricInterpretationText)
+        let interpHeight = interpretation.map { wrappedTextHeight($0, width: contentWidth - 8) } ?? 0
+        let totalHeight = 15 + explainHeight + 6 + interpHeight + 4
         var currentY = ensureSpace(needed: wholeBlock(totalHeight, pageRect: pageRect), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         currentY = drawMetricNameAndValue(name: metric.name, value: metric.value, y: currentY, contentWidth: contentWidth)
-        currentY = drawMetricExplanation(metric.explanation, y: currentY, contentWidth: contentWidth, height: explainHeight)
-        if let interp = metric.interpretation {
-            currentY = drawMetricInterpretation(interp, y: currentY, contentWidth: contentWidth)
+        currentY = drawMetricText(explanation, y: currentY, contentWidth: contentWidth, height: explainHeight) + 6
+        if let interpretation {
+            currentY = drawMetricText(interpretation, y: currentY, contentWidth: contentWidth, height: interpHeight)
         }
         return currentY + 4
     }
@@ -307,33 +312,10 @@ extension DeepDiveReportRenderer {
         return y + 15
     }
 
-    private func drawMetricExplanation(_ explanation: String, y: CGFloat, contentWidth: CGFloat, height: CGFloat) -> CGFloat {
-        let paragraphStyle = PDFReadingDirection.paragraphStyle()
-        paragraphStyle.lineBreakMode = .byWordWrapping
-        paragraphStyle.lineSpacing = 1.0
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 8.5),
-            .foregroundColor: UIColor.gray,
-            .paragraphStyle: paragraphStyle
-        ]
-        NSAttributedString(string: explanation, attributes: attrs).pdfDraw(
-            in: CGRect(x: config.margins.left + 4, y: y, width: contentWidth - 8, height: ceil(height) + 4)
-        )
-        return y + ceil(height) + 6
-    }
-
-    private func drawMetricInterpretation(_ interp: String, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
-        let attrs: [NSAttributedString.Key: Any] = [
-            .paragraphStyle: PDFReadingDirection.paragraphStyle(),
-            .font: UIFont.systemFont(ofSize: 8.5, weight: .medium),
-            // One neutral colour: the words carry the reading in every
-            // language, and colour guessed from English keywords got it wrong.
-            .foregroundColor: UIColor.darkGray
-        ]
-        "\(PDFReadingDirection.bullet) \(interp)".pdfDraw(
-            in: CGRect(x: config.margins.left + 4, y: y, width: contentWidth - 8, height: 14), withAttributes: attrs
-        )
-        return y + 14
+    /// A measured, wrapped block of metric text at its full height.
+    private func drawMetricText(_ text: NSAttributedString, y: CGFloat, contentWidth: CGFloat, height: CGFloat) -> CGFloat {
+        text.pdfDraw(in: CGRect(x: config.margins.left + 4, y: y, width: contentWidth - 8, height: height))
+        return y + height
     }
 
     // MARK: - Interpretation Helpers
@@ -380,7 +362,9 @@ extension DeepDiveReportRenderer {
         let bundle = LanguageManager.appBundle
         if tsb > 25 { return String(localized: "Very fresh — possible detraining if sustained; ideal for race day", bundle: bundle) }
         if tsb > 5 { return String(localized: "Fresh and ready — good performance window", bundle: bundle) }
-        if tsb > -10 { return String(localized: "Near neutral — balanced training/recovery", bundle: bundle) }
+        // Fatigue starts where the advice gate's heavy-fatigue line does, so
+        // this row and the report's advice describe the same TSB the same way.
+        if tsb >= TrainingAdviceGate.heavyFatigueTSB { return String(localized: "Near neutral — balanced training/recovery", bundle: bundle) }
         if tsb > -30 { return String(localized: "Fatigued — productive overload zone if planned", bundle: bundle) }
         return String(localized: "Deeply fatigued — significant high strain, rest recommended", bundle: bundle)
     }
@@ -423,7 +407,7 @@ extension DeepDiveReportRenderer {
         if concerns.count == 1 {
             return String(localized: "One vital is flagged (\(concerns[0])). Isolated elevation may be noise or a transient response, but if it persists for 2+ nights, it warrants attention. Your recovery score already reflects it.", bundle: bundle)
         }
-        return String(localized: "Respiratory rate, wrist temperature and blood oxygen are within your usual ranges.", bundle: bundle)
+        return vitalsWithinRangeSentence(vitals, bundle: bundle)
     }
 
 }
@@ -626,7 +610,7 @@ private func sd1Sd2RatioRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveRep
     DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "SD1/SD2 Ratio", bundle: bundle), value: String(format: "%.3f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio),
         explanation: String(localized: "The balance between short-term and long-term variability. Higher ratios mean more beat-to-beat variation relative to slow trends. During sleep, ratios of 0.3–0.6 are typical.", bundle: bundle),
-        interpretation: nl.sd1Sd2Ratio > 0.3 ? String(localized: "0.3 or higher", bundle: bundle) : String(localized: "Below 0.3 — lower than typical during sleep", bundle: bundle)
+        interpretation: nl.sd1Sd2Ratio >= 0.3 ? String(localized: "0.3 or higher", bundle: bundle) : String(localized: "Below 0.3 — lower than typical during sleep", bundle: bundle)
     )
 }
 
@@ -726,11 +710,16 @@ private func respirationRateRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveRepo
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "HRV-Derived Respiration Rate", bundle: bundle), value: reportBreathsPerMinute(resp),
         explanation: String(localized: "Respiration rate estimated from the HF peak frequency (respiratory sinus arrhythmia). During sleep, 12–16 breaths/min is typical. Rates below 10 during deep relaxation are normal. Elevated rates (>18) during rest are unusual and typically reflect arousal, illness, or physical exertion within the last few minutes — context-sensitive.", bundle: bundle),
-        interpretation: bandedAscending(resp, [
-            (16, String(localized: "Normal range for rest/sleep", bundle: bundle)),
-            (20, String(localized: "Slightly elevated", bundle: bundle))
-        ], else: String(localized: "Elevated — context-sensitive; check for arousal, recent activity, or illness", bundle: bundle))
+        interpretation: respirationRateInterpretation(resp, bundle: bundle)
     )
+}
+
+/// "Elevated" starts above 18, where the row's explanation calls a resting
+/// rate unusual; 16–18 is the upper end of rest.
+private func respirationRateInterpretation(_ resp: Double, bundle: Bundle) -> String {
+    if resp < 16 { return String(localized: "Normal range for rest/sleep", bundle: bundle) }
+    if resp <= 18 { return String(localized: "Slightly elevated", bundle: bundle) }
+    return String(localized: "Elevated — context-sensitive; check for arousal, recent activity, or illness", bundle: bundle)
 }
 
 /// The direction comes from the shared trend verdict over these sessions and
@@ -767,17 +756,40 @@ private func wrappedTextAttributes(for style: DeepDiveReportRenderer.TextStyle) 
     }
 }
 
-/// Height the explanation will occupy once wrapped — needed before drawing
-/// so the page-break decision can be made first.
-private func metricExplanationHeight(_ explanation: String, contentWidth: CGFloat) -> CGFloat {
-    NSAttributedString(string: explanation, attributes: [
+/// A metric's explanation: 8.5 pt grey, word-wrapped, 1 pt line spacing.
+private func metricExplanationText(_ explanation: String) -> NSAttributedString {
+    let paragraphStyle = PDFReadingDirection.paragraphStyle()
+    paragraphStyle.lineBreakMode = .byWordWrapping
+    paragraphStyle.lineSpacing = 1.0
+    return NSAttributedString(string: explanation, attributes: [
         .font: UIFont.systemFont(ofSize: 8.5),
-        .foregroundColor: UIColor.gray
-    ]).boundingRect(
-        with: CGSize(width: contentWidth - 20, height: .greatestFiniteMagnitude),
+        .foregroundColor: UIColor.gray,
+        .paragraphStyle: paragraphStyle
+    ])
+}
+
+/// A metric's interpretation line, bulleted and wrapped so a long one (or
+/// its translation) keeps its last sentence. One neutral colour: the words
+/// carry the reading in every language, and colour guessed from English
+/// keywords got it wrong.
+private func metricInterpretationText(_ interpretation: String) -> NSAttributedString {
+    let paragraphStyle = PDFReadingDirection.paragraphStyle()
+    paragraphStyle.lineBreakMode = .byWordWrapping
+    return NSAttributedString(string: "\(PDFReadingDirection.bullet) \(interpretation)", attributes: [
+        .font: UIFont.systemFont(ofSize: 8.5, weight: .medium),
+        .foregroundColor: UIColor.darkGray,
+        .paragraphStyle: paragraphStyle
+    ])
+}
+
+/// Height (rounded up) a wrapped block takes at `width` — measured before
+/// drawing so the page-break decision can be made first.
+private func wrappedTextHeight(_ text: NSAttributedString, width: CGFloat) -> CGFloat {
+    ceil(text.boundingRect(
+        with: CGSize(width: width, height: .greatestFiniteMagnitude),
         options: [.usesLineFragmentOrigin, .usesFontLeading],
         context: nil
-    ).height
+    ).height)
 }
 
 private func interpretRMSSD(_ rmssd: Double, session _: HRVSession) -> String {
@@ -820,6 +832,17 @@ private func interpretDFAAlpha1(_ a1: Double) -> String {
     if a1 <= 1.0 { return String(localized: "0.75–1.0 — within the reference range", bundle: bundle) }
     if a1 < 1.2 { return String(localized: "1.0–1.2 — slightly above the reference range", bundle: bundle) }
     return String(localized: "Above 1.2 — above the reference range", bundle: bundle)
+}
+
+/// No concern: name all three vitals only when all three were checked (a
+/// respiratory rate with a baseline, a wrist-temperature deviation, SpO₂);
+/// otherwise speak only for what was measured.
+private func vitalsWithinRangeSentence(_ vitals: PDFReportGenerator.VitalsData, bundle: Bundle) -> String {
+    guard vitals.respiratoryRateBaseline != nil, vitals.respiratoryRate != nil,
+          vitals.wristTemperature != nil, vitals.oxygenSaturation != nil else {
+        return String(localized: "Every vital measured last night is within your usual range. No systemic stress flagged.", bundle: bundle)
+    }
+    return String(localized: "Respiratory rate, wrist temperature and blood oxygen are within your usual ranges.", bundle: bundle)
 }
 
 /// Which vitals sit outside their band, named the way the summary reads them.

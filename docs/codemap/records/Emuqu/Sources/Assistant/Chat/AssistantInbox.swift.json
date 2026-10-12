@@ -1,0 +1,74 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift",
+ "hash": "72c2ae09e03e93e5",
+ "role": "Main-actor observable channel from other screens into the Assistant tab: pre-filled draft text, an open-tab request token and a transient banner notice.",
+ "types": [
+  "AssistantInbox: final class (@Observable @MainActor)"
+ ],
+ "state": [
+  "mem:AssistantInbox.shared",
+  "mem:AssistantInbox.pendingDraft",
+  "mem:AssistantInbox.openRequestToken",
+  "mem:AssistantInbox.transientNotice",
+  "mem:AssistantInbox.transientNoticeAutoClearSeconds = 4.0",
+  "mem:AssistantInbox.noticeGeneration (@ObservationIgnored flash counter)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AssistantInbox.requestOpen()",
+   "hash": "1a9f87257272d14a",
+   "does": "Sets openRequestToken to a fresh UUID so MainTabView's onChange switches to the Assistant tab.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AssistantInbox.openRequestToken"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantInbox.flashTransientNotice(_:)",
+   "hash": "7099f0006cb46754",
+   "does": "Sets transientNotice to message, bumps noticeGeneration and, after 4 s (sleepQuietly), clears the notice only if no later flash happened (generation unchanged) — a repeat of the same text restarts the 4 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [
+    "mem:AssistantInbox.noticeGeneration"
+   ],
+   "writes": [
+    "mem:AssistantInbox.transientNotice",
+    "mem:AssistantInbox.noticeGeneration"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "noticeGeneration still equals this flash's generation after 4 s",
+     "effect": "clear it; else leave the newer notice"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "init AssistantInbox()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op init.",
+   "entry": "static let shared initializer",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

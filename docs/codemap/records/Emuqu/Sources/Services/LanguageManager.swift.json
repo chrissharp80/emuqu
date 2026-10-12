@@ -1,0 +1,299 @@
+{
+ "file": "Emuqu/Sources/Services/LanguageManager.swift",
+ "hash": "a514d12c3322cff7",
+ "role": "@Observable singleton that holds the in-app language's Locale and .lproj Bundle behind locks (readable from nonisolated code) and bumps an observed revision so SwiftUI re-renders on a language change.",
+ "types": [
+  "LanguageManager: final class (@Observable, @MainActor; nonisolated lock-backed state) — in-app language switching",
+  "LanguageManager.Localization: private struct — locale + bundle stored together"
+ ],
+ "state": [
+  "mem:LanguageManager.shared (nonisolated static let)",
+  "notif:LanguageManagerDidChangeLanguage (LanguageManager.languageDidChangeNotification)",
+  "mem:LanguageManager.localizationBox (one OSAllocatedUnfairLock holding locale + bundle) / revisionBox",
+  "ud:AppleLanguages (read in systemLanguage; written via AppLanguage.apply)"
+ ],
+ "toplevel": "shared is created lazily via thread-safe static let; revisionBox initial 0.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LanguageManager.appBundle",
+   "hash": "e25fbe5558074213",
+   "does": "Static forwarder to LanguageManager.shared.bundle (registers observation of revision).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+   }
+  },
+  {
+   "key": "var LanguageManager.appLocale",
+   "hash": "441b68419606bf83",
+   "does": "Static forwarder to LanguageManager.shared.locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524"
+   }
+  },
+  {
+   "key": "var LanguageManager.locale",
+   "hash": "405efded0ae210b4",
+   "does": "Lock-backed Locale: registers observation of revision and returns the locale from localizationBox. Get-only; written together with the bundle by init/setLanguage.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b"
+   }
+  },
+  {
+   "key": "var LanguageManager.bundle",
+   "hash": "abb91d21aa6c82ad",
+   "does": "Lock-backed .lproj Bundle: registers observation of revision and returns the bundle from localizationBox. Get-only.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b"
+   }
+  },
+  {
+   "key": "var LanguageManager.revision",
+   "hash": "5b354f8b0dcb4ddf",
+   "does": "Registers observation and returns the revision counter.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.revision"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LanguageManager.currentLocale",
+   "hash": "2ebed4335a142d34",
+   "does": "Locale for SwiftUI's \\.locale environment (= locale); applied at the app root.",
+   "entry": "SwiftUI: read by EmuquApp root view .environment(\\.locale, ...) (EmuquApp.swift:320)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524"
+   }
+  },
+  {
+   "key": "var LanguageManager.layoutDirection",
+   "hash": "2ac427ff31c27cb6",
+   "does": "Right-to-left when the locale's character direction is RTL (Arabic), else left-to-right.",
+   "entry": "SwiftUI: read by EmuquApp root .environment(\\.layoutDirection, ...) (EmuquApp.swift:321)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "locale.language.characterDirection == .rightToLeft",
+     "effect": "returns .rightToLeft; otherwise .leftToRight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524"
+   }
+  },
+  {
+   "key": "init LanguageManager()",
+   "hash": "07c5d92d4cd6aafe",
+   "does": "Private init: resolves AppLanguage.current to (Locale, Bundle) and seeds localizationBox with both.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current"
+   ],
+   "reads": [
+    "ud:AppleLanguages (app persistent domain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+   }
+  },
+  {
+   "key": "func LanguageManager.resolve(_:)",
+   "hash": "153f0dd5b03af663",
+   "does": "Maps an AppLanguage to (Locale, Bundle): system → systemLanguage(); otherwise Locale(identifier: rawValue) and that .lproj bundle (Bundle.main when missing).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.systemLanguage()",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "language == .system",
+     "effect": "returns systemLanguage()"
+    },
+    {
+     "at": "+4",
+     "cond": "lprojBundle(for: rawValue) is nil",
+     "effect": "falls back to Bundle.main; otherwise the .lproj bundle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "3a83e6bf2674bdc3",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.systemLanguage()": "0433c87d0edfdd9a"
+   }
+  },
+  {
+   "key": "func LanguageManager.systemLanguage()",
+   "hash": "0b3153a4d9adf7a4",
+   "does": "Reads the device's preferred languages fresh (AppleLanguages through the global domain, else Locale.preferredLanguages), picks the best of the bundle's localizations (excluding Base), and returns its locale and .lproj bundle; keeps Locale.current when the language code matches. Without a matching .lproj the fallback is (Locale(first preferred language) ?? Locale.current, Bundle.main).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)",
+    "ext:Bundle.preferredLocalizations"
+   ],
+   "reads": [
+    "ud:AppleLanguages (standard, falls through to global domain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "AppleLanguages array absent",
+     "effect": "falls back to Locale.preferredLanguages"
+    },
+    {
+     "at": "+3",
+     "cond": "no preferred localization or no .lproj bundle for it",
+     "effect": "returns (Locale of the first fresh preferred language, else Locale.current; Bundle.main)"
+    },
+    {
+     "at": "+8",
+     "cond": "Locale.current has the same language code",
+     "effect": "returns Locale.current (keeps region); otherwise Locale(identifier: code)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "3a83e6bf2674bdc3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+   }
+  },
+  {
+   "key": "func LanguageManager.setLanguage(_:)",
+   "hash": "386d9b7cf20b1fa2",
+   "does": "Applies a language: persists via AppLanguage.apply (AppleLanguages), resolves the new locale and bundle and stores both in one lock acquisition, posts languageDidChangeNotification, then bumps revision inside withMutation so observing views re-render.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.locale",
+    "mem:LanguageManager.bundle",
+    "mem:LanguageManager.revision",
+    "notif:LanguageManagerDidChangeLanguage"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/API_REFERENCE.md says setLanguage 'Resets cached formatters'; setLanguage only persists AppleLanguages, swaps locale/bundle, posts languageDidChangeNotification and bumps revision; no formatter cache is touched.",
+     "evidence": [
+      "docs/API_REFERENCE.md:1625",
+      "Emuqu/Sources/Services/LanguageManager.swift:130",
+      "Emuqu/Sources/Services/LanguageManager.swift:132",
+      "Emuqu/Sources/Services/LanguageManager.swift:135",
+      "Emuqu/Sources/Services/LanguageManager.swift:137"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014"
+   }
+  },
+  {
+   "key": "func LanguageManager.lprojBundle(for:)",
+   "hash": "bdb8f05e6ad1221d",
+   "does": "Finds <code>.lproj in the main bundle; if absent and the code has a '-' region, tries the base language's .lproj; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "ext:Bundle.path(forResource:ofType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "<code>.lproj exists and loads",
+     "effect": "returns it"
+    },
+    {
+     "at": "+7",
+     "cond": "components.first is nil",
+     "effect": "base = code (never nil in practice for components(separatedBy:))"
+    },
+    {
+     "at": "+8",
+     "cond": "base differs from code and base .lproj exists",
+     "effect": "returns base bundle; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+   }
+  }
+ ],
+ "deps": {}
+}

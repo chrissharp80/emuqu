@@ -75,28 +75,34 @@ extension CloudKitSyncManager {
     // The four decision blocks (batch selection, backoff, prep-failure
     // classification, zone recovery) are named functions rather than inline
     // so each is readable on its own.
-    /// `zoneNotFoundEncountered` tracks consecutive zone-not-found failures so
-    /// we attempt ONE zone recreation per sync cycle, not once per session — a
-    /// single zoneNotFound from session A means the entire batch will fail, so
-    /// recreate and then retry the loop.
+    /// `zoneNotFoundEncountered` records that this cycle has already recreated
+    /// the zone, so it is recreated at most ONCE per sync cycle, not once per
+    /// session: the zone vanishing again after that ends the cycle.
+    ///
+    /// The backoff counter advances on every cycle that gets this far, one
+    /// whose whole batch is deferred included; advanced only after a
+    /// non-empty batch, it froze while every pending session was deferred and
+    /// none of them was ever tried again. Each session's turn counts as
+    /// progress for the stall watchdog, failed or not.
     func pushPendingSessions() async {
-        guard cloudUploadsAllowed else { return }
-        guard !schemaUnavailable else { return }
+        lastPushErrorMessage = nil
+        guard cloudUploadsAllowed, !schemaUnavailable else { return }
         let pendingIds = pendingPushBatch()
+        Self.pushCycleCounter &+= 1
         guard !pendingIds.isEmpty else { return }
         var zoneNotFoundEncountered = false
         for sessionId in pendingIds {
             if schemaUnavailable || Task.isCancelled { break }
+            defer { noteSyncProgress() }
             guard let prepared = await prepareUpload(sessionId) else { continue }
             if await pushOne(prepared, sessionId: sessionId, zoneNotFound: &zoneNotFoundEncountered) {
                 break
             }
         }
-        Self.pushCycleCounter &+= 1
-        state.saveSyncState()
-        state.savePendingQueue()
+        await state.saveSyncStateAsync()
+        await state.savePendingQueueAsync()
         if zoneNotFoundEncountered {
-            debugLog("[CloudKit] Push cycle hit zoneNotFound at least once — recreation handled inline", level: .info)
+            debugLog("[CloudKit] Push cycle recreated the zone after zoneNotFound", level: .info)
         }
     }
 
@@ -126,7 +132,8 @@ extension CloudKitSyncManager {
     }
 
     /// Save one prepared record. Returns true when the whole push cycle should
-    /// stop (zone recreated, or the schema turned out to be unavailable); false
+    /// stop (the zone could not be recreated or vanished again after this
+    /// cycle's recreation, or the schema turned out to be unavailable); false
     /// continues with the next session.
     ///
     /// The record's temp asset file is removed only once this session is done
@@ -139,12 +146,10 @@ extension CloudKitSyncManager {
             try await privateDB.save(prepared.record)
             state.markUploaded(sessionId)
             trashRestore.clear(sessionId)
-            noteSyncProgress()
         } catch let error as CKError where error.code == .serverRecordChanged {
             return await resolveConflict(error, prepared: prepared, sessionId: sessionId)
         } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
-            zoneNotFound = true
-            return await handleZoneGone(error, sessionId: sessionId)
+            return await handleZoneGone(error, sessionId: sessionId, recreatedThisCycle: &zoneNotFound)
         } catch {
             if Self.isPermanentSchemaError(error) {
                 flagSchemaUnavailable(reason: error.localizedDescription)
@@ -237,7 +242,11 @@ extension CloudKitSyncManager {
     /// the user removed the session on another device; copying this device's
     /// `isDeleted = 0` over it would bring the session back everywhere. The
     /// deletion wins and is applied here, the same way a pull applies it.
-    private func resolveConflict(
+    ///
+    /// Shared by the batch push and the direct upload
+    /// (`CloudKitSyncManager.resolveDirectConflict`), which persists the state
+    /// afterwards. Always returns false: a conflict never stops the cycle.
+    func resolveConflict(
         _ error: CKError, prepared: PreparedUpload, sessionId: UUID
     ) async -> Bool {
         guard let serverRecord = error.serverRecord else {
@@ -255,7 +264,6 @@ extension CloudKitSyncManager {
             try await privateDB.save(serverRecord)
             state.markUploaded(sessionId)
             trashRestore.clear(sessionId)
-            noteSyncProgress()
         } catch {
             noteConflictUnresolved(sessionId, reason: "\(error)", error: error)
         }
@@ -293,24 +301,42 @@ extension CloudKitSyncManager {
     /// Quarantine stops re-attempts (kills the spam), leaves the file on disk
     /// untouched (reversible via `state.clearQuarantine`), and surfaces via
     /// `quarantinedCount` — no silent data loss.
+    ///
+    /// A transient failure is retried with backoff. One the user can see the
+    /// cause of (`CloudSyncError`, the encryption key being unavailable) is
+    /// also kept as `lastPushErrorMessage`, which ends the full sync as an
+    /// error rather than "Up to date".
     private func handlePrepFailure(_ error: Error, sessionId: UUID) async {
         guard let archiveError = error as? SessionArchive.ArchiveError,
               archiveError.isPermanentUploadFailure
         else {
             state.markFailed(sessionId)
+            if let syncError = error as? CloudSyncError { lastPushErrorMessage = syncError.localizedDescription }
             debugLog("[CloudKit] Push: prep failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
             return
         }
-
-        if case .hashMismatch = archiveError, archive.repairSessionHashIfDecodable(sessionId: sessionId) {
+        switch hashRepair(for: archiveError, sessionId: sessionId) {
+        case .repaired:
             // Reset backoff so the now-good file uploads next cycle.
             state.clearFailureCount(sessionId)
             debugLog("[CloudKit] Push: REPAIRED stale hash for \(sessionId.uuidString.prefix(8)) — file decoded fine; will re-attempt upload next cycle", level: .warning)
-        } else {
+        case .notNow:
+            state.markFailed(sessionId)
+        case .undecodable:
             state.markQuarantined(sessionId)
             await state.saveQuarantineQueueAsync()
-            debugLog("[CloudKit] Push: QUARANTINED \(sessionId.uuidString.prefix(8)) — permanent, undecodable prep failure (\(error.localizedDescription)); will not retry. File kept on disk; surfaced to user.", level: .warning)
+            debugLog("[CloudKit] Push: QUARANTINED \(sessionId.uuidString.prefix(8)) — permanent, undecodable prep failure (\(error.localizedDescription)); will not retry. File kept on disk.", level: .warning)
         }
+    }
+
+    /// A hash mismatch is repaired when the file still decodes, or left to a
+    /// later retry while it cannot be read or decrypted (`.notNow`: a
+    /// transient failure is never quarantined). Any other permanent failure
+    /// (`.newerSchemaVersion`) is not a hash problem and counts as
+    /// undecodable.
+    private func hashRepair(for archiveError: SessionArchive.ArchiveError, sessionId: UUID) -> SessionArchive.HashRepair {
+        guard case .hashMismatch = archiveError else { return .undecodable }
+        return archive.repairSessionHashIfDecodable(sessionId: sessionId)
     }
 
     /// A session read out of Apple Health whole stays on this device. One this
@@ -339,32 +365,46 @@ extension CloudKitSyncManager {
 
     /// Zone gone server-side — recreate ONCE per cycle and retry this session
     /// inline. Returns `true` when the whole cycle should bail: if recreation
-    /// fails, every remaining push will fail too, and continuing would log
-    /// the same error twenty times.
-    private func handleZoneGone(_ error: CKError, sessionId: UUID) async -> Bool {
+    /// fails, or the zone is gone again after this cycle already recreated
+    /// it, every remaining push will fail too, and continuing would log the
+    /// same error twenty times. A retry that lands is handled as `pushOne`
+    /// handles a save: uploaded, and any Trash-restore mark cleared.
+    private func handleZoneGone(_ error: CKError, sessionId: UUID, recreatedThisCycle: inout Bool) async -> Bool {
+        guard !recreatedThisCycle else {
+            debugLog("[CloudKit] Push: zone gone again after this cycle's recreation — bailing on this sync cycle", level: .error)
+            state.markFailed(sessionId)
+            return true
+        }
+        recreatedThisCycle = true
         debugLog("[CloudKit] Push: zone gone (\(error.code.rawValue)) — attempting recreation", level: .warning)
-
         guard await recreateZoneAfterNotFound() else {
             debugLog("[CloudKit] Push: zone recreation failed — bailing on this sync cycle", level: .error)
             state.markFailed(sessionId)
             return true
         }
+        await retryAfterZoneRecreation(sessionId)
+        return false
+    }
 
+    /// The session's save, once more, into the recreated zone.
+    private func retryAfterZoneRecreation(_ sessionId: UUID) async {
         do {
-            guard let retryPrepared = try await prepareUploadOffMain(sessionId: sessionId) else { return false }
+            guard let retryPrepared = try await prepareUploadOffMain(sessionId: sessionId) else { return }
             defer { cleanupTempAsset(for: retryPrepared.record) }
             try await privateDB.save(retryPrepared.record)
             state.markUploaded(sessionId)
+            trashRestore.clear(sessionId)
         } catch {
             state.markFailed(sessionId)
             debugLog("[CloudKit] Push: retry-after-recreate failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .error)
         }
-        return false
     }
 
     /// Stable retry-spreading bucket derived from the UUID's own bytes —
-    /// unlike `hashValue`, identical across launches so exponential
-    /// backoff schedules actually hold.
+    /// unlike `hashValue`, identical across launches, so a session's place in
+    /// the retry spread does not reshuffle at each launch. The failure counts
+    /// themselves are kept in memory only (`CloudKitSyncState`), so every
+    /// backoff starts over when the app is relaunched.
     static func stableRetryBucket(for id: UUID) -> Int {
         let b = id.uuid
         return Int(b.0) | (Int(b.1) << 8) | (Int(b.2) << 16)
@@ -490,7 +530,11 @@ extension CloudKitSyncManager {
             try await privateDB.save(zone)
             zoneCreated = true
         } catch let error as CKError where error.code == .serverRejectedRequest {
-            // Zone may already exist
+            // Usually the zone already exists. Confirmed by fetching it before
+            // it counts as created; a fetch that fails throws, so a refused
+            // zone is not reported as recreated.
+            _ = try await privateDB.recordZone(for: zoneID)
+            debugLog("[CloudKit] Zone save rejected (\(error.code.rawValue)) but the zone exists")
             zoneCreated = true
         }
     }
@@ -578,8 +622,10 @@ extension CloudKitSyncManager {
     /// Race an async operation against a timeout. Returns
     /// `.success(value)` if the operation finished first, `.failure(error)`
     /// if the operation threw, `.failure(SyncTimeoutError.timedOut)` if
-    /// the sleep won the race. Used to cap the full-sync body so a wedged
-    /// CloudKit call can't freeze the syncState machine. `runWithTimeout`
+    /// the sleep won the race. Used to cap the remote delete
+    /// (`CloudDeletionCoordinator.performDeleteAllRemoteData`) so a wedged
+    /// CloudKit call can't hold it; the full sync uses the no-progress
+    /// `withProgressWatchdog` instead. `runWithTimeout`
     /// returns without awaiting the loser, so a call that ignores
     /// cancellation cannot hold it past the deadline.
     func withTimeoutResult<T: Sendable>(

@@ -1,0 +1,543 @@
+{
+ "file": "EmuquTests/NormalizedPowerTests.swift",
+ "hash": "90592f106d481361",
+ "role": "XCTest suite for WorkoutRecorder.computeNormalizedPower (30-s rolling mean, 4th-power mean), FTPAutoEstimator best-20-minute power / 95 % FTP / best effort across sessions, and Concept2Manager.strokeData decoding of the PM5 0x0036 stroke packet.",
+ "types": [
+  "NormalizedPowerTests: class — @MainActor XCTestCase over NP, FTP auto-estimate and Concept2 stroke decoding"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func NormalizedPowerTests.samples(_:)",
+   "hash": "092f5664b6e9af88",
+   "does": "Helper: maps a watts array to WorkoutSamples with offsetSec = index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testFewerThanThirtySamplesHasNoNormalizedPower()",
+   "hash": "d70df45d2606adfb",
+   "does": "Asserts 29 power samples give nil NP.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testExactlyThirtySamplesProducesAValue()",
+   "hash": "feba98373063fc1e",
+   "does": "Asserts 30 samples at 200 W give NP 200.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "np ?? 0",
+     "effect": "nil NP is compared as 0 so the equality fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testNoSamplesAtAllIsNil()",
+   "hash": "8aec1769b2231c06",
+   "does": "Asserts no samples gives nil NP.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testSamplesWithoutPowerAreExcluded()",
+   "hash": "615b6370366d1ca7",
+   "does": "Asserts 60 samples without powerWatts give nil NP.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testMixedSamplesUseOnlyThoseWithPower()",
+   "hash": "dcf19d68cf41fdba",
+   "does": "Asserts 40 samples at 250 W plus 40 power-less samples give NP 250 (power-less samples ignored).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "np ?? 0",
+     "effect": "nil compared as 0 → fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testConstantPowerEqualsThatPower()",
+   "hash": "09740ad9782191fe",
+   "does": "Asserts 60 s at constant 200 W gives NP 200.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "np ?? 0",
+     "effect": "nil compared as 0 → fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testSurgesPushNormalizedPowerAboveTheAverage()",
+   "hash": "04efd73df747a4f8",
+   "does": "Asserts 90 s at 100 W + 30 s at 500 W (average 200) gives NP 273.1329±0.01 and NP > average.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "np ?? 0",
+     "effect": "nil NP becomes 0 and the equality fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testRapidAlternationIsSmoothedByTheWindow()",
+   "hash": "c90c5f8da2ba8039",
+   "does": "Asserts 120 s alternating 300/100 W gives NP 200±0.01 (30-s smoothing removes alternation).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index even",
+     "effect": "300 W; odd → 100 W"
+    },
+    {
+     "at": "+2",
+     "cond": "np ?? 0",
+     "effect": "nil becomes 0 → fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testLongerSurgesScoreHigherThanShorterOnes()",
+   "hash": "4dc3c51dbb582a87",
+   "does": "Asserts a 40-s 500 W surge yields higher NP than a 10-s 500 W surge at the same base.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "shortNP ?? 0",
+     "effect": "nil short NP treated as 0"
+    },
+    {
+     "at": "+4",
+     "cond": "longNP ?? 0",
+     "effect": "nil long NP treated as 0 (would fail the > assertion)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testZeroPowerThroughoutIsZeroNotNil()",
+   "hash": "d2982373b621bea5",
+   "does": "Asserts 60 s at 0 W gives NP 0, not nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "np ?? -1",
+     "effect": "nil becomes -1 so the 0 assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "b189c4fc65a71a98"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.steady(_:seconds:from:)",
+   "hash": "c70d962a226917e5",
+   "does": "Helper: `seconds` consecutive WorkoutSamples at constant watts from offset `start`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testTheBestTwentyMinutesIsFoundInsideALongerSession()",
+   "hash": "8ffd32edf99f3342",
+   "does": "Asserts bestTwentyMinuteMeanPower finds 300 W inside a 150/300/150 W hour.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "5cd28b3328c5acce",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "c402751b2f9ac913",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "c6f512c8a305819e",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "3a514f81762fb1e6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean": "6c6beb58b2940c8c",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)": "fe6bbf748c0317f1"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testUnderTwentyMinutesOfPowerHasNoEstimate()",
+   "hash": "6eb94f03fa5f1f4c",
+   "does": "Asserts 1199 s of power gives nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "5cd28b3328c5acce",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "c402751b2f9ac913",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "c6f512c8a305819e",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "3a514f81762fb1e6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean": "6c6beb58b2940c8c",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)": "fe6bbf748c0317f1"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testAWindowWithTooFewPowerReadingsDoesNotCount()",
+   "hash": "bd6cbf0de4800022",
+   "does": "Asserts a 20-min window with every 5th reading removed (80 % coverage) gives nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index multiple of 5",
+     "effect": "replaces the sample with a power-less one; else keeps it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "5cd28b3328c5acce",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "c402751b2f9ac913",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "c6f512c8a305819e",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "3a514f81762fb1e6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean": "6c6beb58b2940c8c",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)": "fe6bbf748c0317f1"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testFTPIsNinetyFivePercentOfTheBestTwentyMinutes()",
+   "hash": "585be60a12dcc4b2",
+   "does": "Asserts FTPAutoEstimator.ftp for 300 W mean is 285 (95 %).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)": "178e97421afdd645",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testTheStrongestWorkoutAnchorsTheEstimate()",
+   "hash": "4c802f62b823515b",
+   "does": "Builds three 25-min run sessions at 220/280/250 W and asserts bestEffort picks the 280 W session with mean 280.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.run(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "5cd28b3328c5acce",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "c402751b2f9ac913",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "6966d0f5ca0e5a0d",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "c6f512c8a305819e",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "3a514f81762fb1e6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.RollingPower.mean": "6c6beb58b2940c8c",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.run(_:)": "cbb4f5200f40e2c4"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.run(_:)",
+   "hash": "43e9e5ec26bc7636",
+   "does": "Nested helper: returns a workout HRVSession whose WorkoutMetadata(sport: .run) carries 1500 s of steady samples at the given watts.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)": "fe6bbf748c0317f1"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testNoQualifyingWorkoutGivesNoEffort()",
+   "hash": "ebb3efccd7c895cf",
+   "does": "Asserts bestEffort over no sessions is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "6966d0f5ca0e5a0d"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.strokePacket(power:strokes:)",
+   "hash": "ab92ffa56a9f248b",
+   "does": "Helper: builds a 15-byte synthetic 0x0036 packet with power at bytes 3–4 and stroke count at bytes 7–8 (little-endian).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NormalizedPowerTests.testStrokePowerAndCountAreDecodedFromTheStrokePacket()",
+   "hash": "e0a345d342fc48eb",
+   "does": "Asserts strokeData decodes power 245 and stroke count 312 from the synthetic packet.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.strokePacket(power:strokes:)",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The fixture is built from the same assumed byte layout the decoder reads (source says the layout is 'Not verified against a live PM5 capture'), so the test is circular and cannot catch a wrong offset.",
+     "evidence": [
+      "EmuquTests/NormalizedPowerTests.swift:148",
+      "Emuqu/Sources/Collection/Concept2Manager.swift:452"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)": "efbc4319ce4cd1c4",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.strokePacket(power:strokes:)": "4ead52684f38dc60"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testImplausibleStrokePowerIsDropped()",
+   "hash": "b2fa719b7e04e954",
+   "does": "Asserts power 0 and 4000 W decode to nil powerWatts (out of plausible range).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.strokePacket(power:strokes:)",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)": "efbc4319ce4cd1c4",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.strokePacket(power:strokes:)": "4ead52684f38dc60"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testAShortStrokePacketIsIgnored()",
+   "hash": "3b4260dd64c22d4d",
+   "does": "Asserts a 5-byte packet returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)": "efbc4319ce4cd1c4"
+   }
+  }
+ ],
+ "deps": {}
+}

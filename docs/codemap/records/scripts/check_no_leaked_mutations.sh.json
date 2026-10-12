@@ -1,0 +1,15 @@
+{
+ "file": "scripts/check_no_leaked_mutations.sh",
+ "hash": "0d2f1358080f5531",
+ "role": "CI gate: for each `mutate \"name\"` case in scripts/verify_tests_fail.sh, the ORIGINAL code string must still be present in its target Swift file (detects a killed mutation run left applied).",
+ "types": [],
+ "state": [
+  "file:scripts/verify_tests_fail.sh"
+ ],
+ "toplevel": "set -euo pipefail; no cd. Python: missing verify_tests_fail.sh -> 2; splits on `\\nmutate \"`; target = first quoted Emuqu/...swift; original from `o='...';assert` or `s.count('...')`; unescapes and resolves `' + chr(N) + '`; unresolved -> unparsed (fatal exit 1); target missing or original absent -> leaked (exit 1). Current run: 125 mutations, clean.",
+ "flags": [],
+ "units": [],
+ "deps": {
+  "scripts/verify_tests_fail.sh::": "6f602ba6fc17aa85"
+ }
+}

@@ -1,0 +1,158 @@
+{
+  "file": "Emuqu/Sources/Views/TrialReminderView.swift",
+  "hash": "7778d03ee93e8bc7",
+  "role": "Non-swipe-dismissable daily free-trial reminder sheet showing days remaining with Continue and Unlock Now buttons; declares the showPaywallFromTrial notification.",
+  "types": [
+    "TrialReminderView: struct (View) — trial reminder modal",
+    "Notification.Name: extension — showPaywallFromTrial"
+  ],
+  "state": [
+    "notif:showPaywallFromTrial (Notification.Name(\"showPaywallFromTrial\"), posted here, observed by EmuquApp.observeTrialPaywallRequests EmuquApp.swift:817)"
+  ],
+  "toplevel": "Declares Notification.Name.showPaywallFromTrial (110-112). #Preview (114-117). Presented by EmuquApp root modal .trialReminder (EmuquApp.swift:353-354).",
+  "flags": [],
+  "units": [
+    {
+      "key": "var TrialReminderView.body",
+      "hash": "e0c7c39fe0f74cad",
+      "does": "Filling scroll container with the trial card and buttons; background; interactive dismissal disabled.",
+      "entry": "SwiftUI body; shown as the .trialReminder launch modal from EmuquApp.swift:354",
+      "calls": [
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.freeTrialSection",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.bottomButtonsSection",
+        "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body"
+      ],
+      "reads": [],
+      "writes": [],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body": "955c78adee36528d",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.bottomButtonsSection": "d329badde5d292b5",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.freeTrialSection": "ce4ba6a4463e768a"
+      }
+    },
+    {
+      "key": "var TrialReminderView.freeTrialSection",
+      "hash": "147f27644727e46a",
+      "does": "Card (rounded, shadowed) wrapping the icon/title/message group.",
+      "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+      "calls": [
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.iconSection2"
+      ],
+      "reads": [],
+      "writes": [],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.iconSection2": "6c9f19d2e13e94be",
+        "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+      }
+    },
+    {
+      "key": "var TrialReminderView.iconSection2",
+      "hash": "328ef879a4c29fbc",
+      "does": "Icon, title section and the one-time-purchase trial message.",
+      "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+      "calls": [
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.iconSection",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.titleSection"
+      ],
+      "reads": [],
+      "writes": [],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.iconSection": "9e081323df87ca65",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.titleSection": "b4eb75d89e16440f"
+      }
+    },
+    {
+      "key": "var TrialReminderView.iconSection",
+      "hash": "fdcd8fc2bfbfa9ba",
+      "does": "Clock icon in a tinted circle.",
+      "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+      "calls": [
+        "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+      ],
+      "reads": [],
+      "writes": [],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+        "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+      }
+    },
+    {
+      "key": "var TrialReminderView.titleSection",
+      "hash": "35274725e990162b",
+      "does": "'Free Trial' title and days-remaining headline.",
+      "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+      "calls": [
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.daysRemainingText"
+      ],
+      "reads": [],
+      "writes": [],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText": "5fe81441a0858ebb",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+        "Emuqu/Sources/Views/TrialReminderView.swift::var TrialReminderView.daysRemainingText": "2bde2d73058acf62"
+      }
+    },
+    {
+      "key": "var TrialReminderView.bottomButtonsSection",
+      "hash": "2e912b2bff03f198",
+      "does": "Continue records today's reminder shown (UserDefaults lastTrialReminderDate) and dismisses; Unlock Now records, dismisses and posts showPaywallFromTrial, which EmuquApp.observeTrialPaywallRequests (EmuquApp.swift:817-823, a notification observer, not a direct call) answers by setting activeModal = .paywall after 400 ms.",
+      "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button taps",
+      "calls": [
+        "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.recordTrialReminderShown()",
+        "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)"
+      ],
+      "reads": [],
+      "writes": [
+        "ud:UserDefaultsKeys.lastTrialReminderDate (standard)",
+        "notif:showPaywallFromTrial"
+      ],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.recordTrialReminderShown()": "8ba2c5557fa11a54",
+        "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+        "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+        "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+      }
+    },
+    {
+      "key": "var TrialReminderView.daysRemainingText",
+      "hash": "eed911838e68b0b8",
+      "does": "'N days remaining' from SettingsManager.trialDaysRemaining (EntitlementAnchor trial start, else settings.trialStartDate).",
+      "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+      "calls": [
+        "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining"
+      ],
+      "reads": [
+        "kc:EntitlementAnchor (cached)",
+        "mem:SettingsManager.settings"
+      ],
+      "writes": [],
+      "branches": [],
+      "flags": [],
+      "deps": {
+        "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining": "42d686db341dd612",
+        "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+      }
+    }
+  ],
+  "deps": {}
+}

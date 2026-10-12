@@ -1,0 +1,240 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift",
+ "hash": "adbce114eb83cad1",
+ "role": "FitnessTabView extension for the toolbar data menu (Apple Health import, GPX import, GPX download), the Health import sheet, and the interrupted-recording card with its reload.",
+ "types": [
+  "FitnessTabView: extension — data import/export menu and interrupted-recording surface"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessTabView.fitnessDataMenu",
+   "hash": "c51def33b7d4504f",
+   "does": "Toolbar ellipsis Menu (accessibility id 'fitness.dataMenu') containing the data menu items.",
+   "entry": "ToolbarItem in FitnessTabView (FitnessTabView.swift:461)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenuItems",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenuItems": "e7fc628174b59b7a"
+   }
+  },
+  {
+   "key": "var FitnessTabView.fitnessDataMenuItems",
+   "hash": "368d67ea5d5bc683",
+   "does": "Menu items: Import from Apple Health, Import GPX file, divider, Download GPX.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportMenuButton",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxImportMenuButton",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxDownloadMenuButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxDownloadMenuButton": "53a4aeca5a16c861",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxImportMenuButton": "6fb72967199ae206",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportMenuButton": "cd0cae36b89b84d1"
+   }
+  },
+  {
+   "key": "var FitnessTabView.healthImportMenuButton",
+   "hash": "d3cf1eec5735a834",
+   "does": "Button that sets showHealthImport = true (presents HealthWorkoutImportSheet).",
+   "entry": "Menu button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportMenuLabel"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.showHealthImport"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportMenuLabel": "811b265f820bb2fc"
+   }
+  },
+  {
+   "key": "var FitnessTabView.healthImportMenuLabel",
+   "hash": "1f87f1aa800aafd4",
+   "does": "Label 'Import from Apple Health' with heart.text.square icon.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessTabView.gpxImportMenuButton",
+   "hash": "73678ec8e2fb1e03",
+   "does": "Button that sets showImporter = true, presenting the GPX .fileImporter.",
+   "entry": "Menu button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxImportMenuLabel"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.showImporter"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxImportMenuLabel": "c8e6e969c8e2bd1d"
+   }
+  },
+  {
+   "key": "var FitnessTabView.gpxImportMenuLabel",
+   "hash": "ef0e29820e221314",
+   "does": "Label 'Import GPX file'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessTabView.gpxDownloadMenuButton",
+   "hash": "9ce0737b2d73322e",
+   "does": "Button that starts Task { await exportLatestGPX() } to build and share the latest workout's GPX.",
+   "entry": "Menu button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxDownloadMenuLabel",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.exportLatestGPX()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.gpxDownloadMenuLabel": "cc20f98f0b9d7fbf",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.exportLatestGPX()": "91cfed3dc4b8153c"
+   }
+  },
+  {
+   "key": "var FitnessTabView.gpxDownloadMenuLabel",
+   "hash": "b804b1fdb63aeb00",
+   "does": "Label 'Download GPX'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessTabView.healthImportSheet",
+   "hash": "709e808a14d6ef34",
+   "does": "NavigationStack hosting HealthWorkoutImportSheet with a new importer and the archive. On import it posts archive-changed and reloads the interrupted-recordings card.",
+   "entry": ".sheet(isPresented: $showHealthImport) in FitnessTabView (FitnessTabView.swift:509); onImported closure called by the sheet",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryArchiveChanged",
+    "mem:FitnessTabView.interruptedRecordings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "ca8d6ca32d1d437f",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter": "d22d80907afabff3"
+   }
+  },
+  {
+   "key": "var FitnessTabView.healthImporter",
+   "hash": "242ac9cf434f55b1",
+   "does": "Constructs a new HealthWorkoutImporter around the collection HealthKitManager on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.collection.healthKitManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8"
+   }
+  },
+  {
+   "key": "var FitnessTabView.interruptedRecordingCard",
+   "hash": "e8230bd58e8c966b",
+   "does": "Shows InterruptedRecordingCard for the newest interrupted recording; its action sets showHealthImport = true.",
+   "entry": "Rendered from FitnessTabView default body (FitnessTabView.swift:350)",
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.interruptedRecordings"
+   ],
+   "writes": [
+    "mem:FitnessTabView.showHealthImport"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "interruptedRecordings non-empty",
+     "effect": "true: card for .first (newest); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.reloadInterruptedRecordings()",
+   "hash": "7d266297d8fd1af7",
+   "does": "Sets interruptedRecordings to the archive's workouts from the last 30 days that ran under the minimum importable duration and have a readable sport.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries(from:to:)",
+    "archive:retrieveLightweight (short workouts only)"
+   ],
+   "writes": [
+    "mem:FitnessTabView.interruptedRecordings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)": "130980037689363f",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter": "d22d80907afabff3"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -53,20 +53,6 @@ struct ScoredRecoveryBlock {
         return rmssd * stabilityFactor * artifactFactor
     }
 
-    /// Classify this window as Organized Recovery or High Variability
-    /// Organized Recovery: DFA α1 ~0.75-1.0 and stable HR (the LF/HF ≤ 1.5
-    /// alternative below is dormant: production blocks carry lfHfRatio nil)
-    /// High Variability: high RMSSD but disorganized (α1 outside range or unstable)
-    /// Check DFA α1 is in OPTIMAL range (0.75-1.0).
-    /// Research (PMC4100066) shows healthy NREM α1 values:
-    ///   N3 (deep): 0.78 ± 0.21, N2: 0.85 ± 0.16, N1: 0.89 ± 0.23
-    /// Range 0.75-1.0 captures core healthy NREM values.
-    /// Values > 1.0 = over-correlated, approaching Brownian noise.
-    /// Values < 0.75 = less organized, transitional.
-    private var alpha1IsOptimal: Bool {
-        dfaAlpha1.map { WindowSelector.RecoveryWindow.optimalAlpha1Range.contains($0) } ?? false
-    }
-
     /// LF/HF is parasympathetic-dominant (vacuously true when unavailable).
     private var lfHfIsOrganized: Bool {
         lfHfRatio.map { $0 <= WindowSelector.RecoveryWindow.maxOrganizedLfHf } ?? true
@@ -76,42 +62,49 @@ struct ScoredRecoveryBlock {
         hrCV < WindowSelector.RecoveryWindow.unstableCVThreshold
     }
 
+    /// Whether the window is Organized Recovery. Read off `classification`,
+    /// so the flag and the stored classification can never disagree.
     var isOrganizedRecovery: Bool {
-        // Must have DFA α1 to classify (need sufficient data). If we can't
-        // compute DFA, use HR stability as proxy.
-        guard dfaAlpha1 != nil else { return hrIsStable }
+        classification == .organizedRecovery
+    }
 
-        // If LF/HF is missing, require stable HR so "organized" still reflects
-        // sustained regulation rather than alpha1-only spikes.
-        if lfHfRatio == nil {
-            return alpha1IsOptimal && hrIsStable
-        }
-
-        // With LF/HF available (never, from the production selector — it
-        // passes nil; only tests reach this), keep the tolerant rule:
-        // strong alpha1 plus either favorable LF/HF or stable HR.
-        return alpha1IsOptimal && (lfHfIsOrganized || hrIsStable)
+    /// Whether an optimal-α1 window also has the regulation that makes it
+    /// organized. Without LF/HF, stable HR is required, so "organized" still
+    /// reflects sustained regulation rather than an α1-only spike. With LF/HF
+    /// (never, from the production selector — it passes nil; only tests reach
+    /// this), the tolerant rule: favorable LF/HF or stable HR.
+    private var optimalAlpha1IsRegulated: Bool {
+        lfHfRatio == nil ? hrIsStable : (lfHfIsOrganized || hrIsStable)
     }
 
     /// Get window classification for reporting
+    ///
+    /// Organized Recovery: DFA α1 ~0.75-1.0 and stable HR (the LF/HF ≤ 1.5
+    /// alternative is dormant: production blocks carry lfHfRatio nil).
+    /// Research (PMC4100066) shows healthy NREM α1 values:
+    ///   N3 (deep): 0.78 ± 0.21, N2: 0.85 ± 0.16, N1: 0.89 ± 0.23
+    /// Range 0.75-1.0 captures core healthy NREM values.
+    /// Values > 1.0 = over-correlated, approaching Brownian noise.
+    /// Values < 0.75 = less organized, transitional.
+    ///
     /// Three-tier classification based on DFA α1:
-    /// - Organized Recovery (0.75-1.0): readiness indicator (healthy NREM range)
+    /// - Organized Recovery (0.75-1.0, with the regulation
+    ///   `optimalAlpha1IsRegulated` requires): readiness indicator (healthy NREM range)
     /// - Flexible Unconsolidated (0.60-0.75): some capacity, not strong readiness
-    /// - High Variability (outside both): neither
+    /// - High Variability (outside both, or optimal α1 without that regulation): neither
     var classification: WindowSelector.RecoveryWindow.WindowClassification {
-        if cleanBeatCount < 60 {
-            return .insufficient
-        }
+        if cleanBeatCount < 60 { return .insufficient }
 
         guard let alpha1 = dfaAlpha1 else {
             // Without DFA, use HR stability as proxy
-            return hrCV < WindowSelector.RecoveryWindow.unstableCVThreshold ? .organizedRecovery : .highVariability
+            return hrIsStable ? .organizedRecovery : .highVariability
         }
 
         // Three-tier classification based on α1
         if WindowSelector.RecoveryWindow.optimalAlpha1Range.contains(alpha1) {
-            // α1 in 0.75-1.0: organized, adaptive autonomic control (healthy NREM range)
-            return .organizedRecovery
+            // α1 in 0.75-1.0: organized, adaptive autonomic control (healthy
+            // NREM range) — when HR (or LF/HF) shows sustained regulation.
+            return optimalAlpha1IsRegulated ? .organizedRecovery : .highVariability
         } else if WindowSelector.RecoveryWindow.flexibleAlpha1Range.contains(alpha1) {
             // α1 in 0.60-0.75: approaching uncorrelated — some capacity, less organized
             return .flexibleUnconsolidated

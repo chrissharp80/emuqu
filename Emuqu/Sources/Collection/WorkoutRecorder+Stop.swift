@@ -245,12 +245,13 @@ extension WorkoutRecorder {
         // recording phase is `.finished`. The strap stays connected
         // through the HRR window — the detached HRR-capture task
         // below tears it down when the +120 s window completes.
+        // The recorder's own foot-pod manager (injected at init), the one
+        // the workout read from.
         AppDependencies.current.collection.concept2Manager.holdLinkForWorkout(false)
-        AppDependencies.current.collection.footPodManager.holdLinkForWorkout(false)
-        if AppDependencies.current.collection.footPodManager.connectionState == .connected
-            || AppDependencies.current.collection.footPodManager.connectionState == .connecting {
+        footPod.holdLinkForWorkout(false)
+        if footPod.connectionState == .connected || footPod.connectionState == .connecting {
             debugLog("[Recorder.stop] step=footpod.disconnect (post-workout)")
-            AppDependencies.current.collection.footPodManager.disconnect()
+            footPod.disconnect()
         }
     }
 
@@ -282,10 +283,12 @@ extension WorkoutRecorder {
         let archive = core.archive
         let wasStrap = (activeHRSource == .strap)
         let polarRef = core.polarManager
+        let workoutStreamStart = polarRef.streamingStartTime
         Task.detached(priority: .userInitiated) {
             await self.captureHRRAndRearchive(
                 captureService: captureService, stopDate: stopDate, endHR: endHR,
-                wasStrap: wasStrap, polarRef: polarRef, archive: archive, sessionId: sessionId
+                wasStrap: wasStrap, polarRef: polarRef, workoutStreamStart: workoutStreamStart,
+                archive: archive, sessionId: sessionId
             )
         }
     }
@@ -296,31 +299,60 @@ extension WorkoutRecorder {
     /// array — that tells the UI "we tried and got nothing" instead of leaving
     /// the HRR card stuck on "capturing…" forever. An empty array is
     /// a meaningful signal (strap disconnected in the window, or no
-    /// Watch HR samples for the minute after stop).
+    /// Watch HR samples for the minute after stop). When the archive copy
+    /// cannot take them (the update throws, or the session is not in the
+    /// archive) the samples still reach the summary on screen
+    /// (`showUnsavedHRR`), so the card never stays on "capturing…".
     nonisolated private func captureHRRAndRearchive(
         captureService: HRRCaptureService,
         stopDate: Date,
         endHR: Int,
         wasStrap: Bool,
         polarRef: PolarManager,
+        workoutStreamStart: Date?,
         archive: SessionArchive,
         sessionId: UUID
     ) async {
         let samples = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
         if wasStrap {
-            await releaseStrapAfterHRR(polarRef)
+            await releaseStrapAfterHRR(polarRef, workoutStreamStart: workoutStreamStart)
         }
+        guard let finalSession = Self.rearchiveLoggingFailure(samples, archive: archive, sessionId: sessionId) else {
+            await MainActor.run { self.showUnsavedHRR(samples, sessionId: sessionId) }
+            return
+        }
+        await MainActor.run {
+            self.announceHRRAndStageReport(samples: samples, finalSession: finalSession)
+        }
+        debugLog("[WorkoutRecorder] HRR capture complete: \(samples.count) samples")
+    }
+
+    /// `rearchiveWithHRR` with each way it can come back empty logged: nil
+    /// when the update threw or the session is not in the archive.
+    nonisolated private static func rearchiveLoggingFailure(
+        _ samples: [HRRSample],
+        archive: SessionArchive,
+        sessionId: UUID
+    ) -> HRVSession? {
         do {
-            guard let finalSession = try Self.rearchiveWithHRR(samples, archive: archive, sessionId: sessionId) else {
-                return
+            guard let updated = try rearchiveWithHRR(samples, archive: archive, sessionId: sessionId) else {
+                debugLog("[WorkoutRecorder] HRR capture complete but the session is not in the archive — shown, not saved")
+                return nil
             }
-            await MainActor.run {
-                self.announceHRRAndStageReport(samples: samples, finalSession: finalSession)
-            }
-            debugLog("[WorkoutRecorder] HRR capture complete: \(samples.count) samples")
+            return updated
         } catch {
             debugLog("[WorkoutRecorder] HRR post-archive update failed: \(error)", level: .warning)
+            return nil
         }
+    }
+
+    /// HRR samples the archive did not take still reach the summary, if it
+    /// is still showing this session.
+    @MainActor
+    private func showUnsavedHRR(_ samples: [HRRSample], sessionId: UUID) {
+        guard var shown = lifecycle.finishedSession, shown.id == sessionId else { return }
+        shown.workoutMetadata?.hrrSamples = samples
+        lifecycle.finishedSession = shown
     }
 
     /// The session is re-bound to a `let` before it leaves here so Swift 6
@@ -360,11 +392,19 @@ extension WorkoutRecorder {
     ///
     /// Not when another workout has started inside the capture window: that
     /// workout's session is the one buffering now, and stopping it here would
-    /// end its heart rate a couple of minutes in.
+    /// end its heart rate a couple of minutes in. Nor when the live stream is
+    /// not this workout's (its start differs from `workoutStreamStart`): a
+    /// second workout that started and already finished inside the window is
+    /// in its own HRR capture, and an RRCollector overnight or quick reading
+    /// started meanwhile is buffering on the same manager.
     @MainActor
-    private func releaseStrapAfterHRR(_ polarRef: PolarManager) {
+    private func releaseStrapAfterHRR(_ polarRef: PolarManager, workoutStreamStart: Date?) {
         guard phase != .recording, phase != .finalizing else {
             debugLog("[WorkoutRecorder] HRR window closed during a new workout — leaving the strap session running")
+            return
+        }
+        guard !polarRef.isStreaming || polarRef.streamingStartTime == workoutStreamStart else {
+            debugLog("[WorkoutRecorder] HRR window closed while another session buffers on the strap — leaving it running")
             return
         }
         _ = polarRef.stopStreaming()

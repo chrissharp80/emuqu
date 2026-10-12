@@ -363,9 +363,10 @@ extension WorkoutLiveNamespace {
 
     // Decimate to ≤120 points so a 30-min lookback (1800
     // samples) becomes ~120 (one per ~15s) — keeps the
-    // serialised result bounded but the trend visible.
+    // serialised result bounded but the trend visible. The stride
+    // rounds up: rounding down left 121–239 samples undecimated.
     private func decimated(_ windowed: [WorkoutSample]) -> [WorkoutSample] {
-        let stride = max(1, windowed.count / 120)
+        let stride = max(1, (windowed.count + 119) / 120)
         return windowed.enumerated()
             .compactMap { idx, sample in idx % stride == 0 ? sample : nil }
     }
@@ -387,7 +388,7 @@ extension WorkoutLiveNamespace {
 
     private static let workoutLiveTimelineSecondsDescription = """
     Recent correlated time-series for the active workout. `$seconds` is the lookback window in seconds (60 for 'last minute', 300 for 'last 5 min', 1800 for 'last 30 min'; a whole number from 1 to 86400, clamped to 30–3600). Returns a list of records, each: { \
-    offset_sec, hr, altitude_m?, distance_m?, pace_sec_per_km?, cadence_spm?, alpha1?, mets?, power_w? }. The list is decimated to ≤ 120 points so a 30-min lookback is one sample per ~15 s. Use this to answer questions where \
+    offset_sec, hr?, altitude_m?, distance_m?, pace_sec_per_km?, cadence_spm?, alpha1?, mets?, power_w? }. The list is decimated to ≤ 120 points so a 30-min lookback is one sample per ~15 s. Use this to answer questions where \
     you need to correlate variables across time — 'did my HR rise without grade?' / 'when did my pace drop?' / 'did α1 cross AeT during that climb?'. Returns missing when no workout is active.
     """
 
@@ -435,15 +436,15 @@ extension WorkoutLiveNamespace {
     // `RoadGeocodingService.cachedAddressMaxDistanceMeters`
     // (100 m, the same block) of the user, nil otherwise so
     // address_status says "pending" and the model waits
-    // rather than naming a street the user has left. `cachedIfCloseTo` kicks a background refresh
+    // rather than naming a street the user has left. A fix
+    // missing latitude or longitude can't be distance-checked,
+    // so it gets nil too. `cachedIfCloseTo` kicks a background refresh
     // so the NEXT tool call gets fresh data without
     // burning rate budget on this one.
     private func liveRoadContext(_ s: AssistantContext.LiveWorkoutSnapshot) -> RoadGeocodingService.RoadContext? {
         MainActor.assumeIsolated {
             let svc = AppDependencies.current.location.roadGeocodingService
-            guard let lat = s.currentLatitude, let lon = s.currentLongitude else {
-                return svc.current
-            }
+            guard let lat = s.currentLatitude, let lon = s.currentLongitude else { return nil }
             let here = CLLocation(latitude: lat, longitude: lon)
             return svc.cachedIfCloseTo(here)
         }
@@ -468,20 +469,17 @@ extension WorkoutLiveNamespace {
     // resolution, the model interprets that as "lookup
     // failed" and dumps the internal failure mode on the
     // user ("I don't have a street from the live location
-    // fix"). So: ready ⇒ everything resolved; partial ⇒
-    // some fields present, others still resolving; pending
-    // ⇒ no road context yet at all. The system prompt's
+    // fix"). So: ready ⇒ street and cross street; partial ⇒
+    // street without a cross street; pending ⇒ no street yet
+    // (a city alone is not a street to quote). The system prompt's
     // no-dev-jargon rule says how to translate these to
     // plain English.
     private func liveAddressStatus(
         _ rec: [String: FactValue],
         road: RoadGeocodingService.RoadContext?
     ) -> String {
-        let hasRoad = rec["street"] != nil || rec["city"] != nil
-        if road == nil { return "pending" }
-        if hasRoad && rec["cross_street"] != nil { return "ready" }
-        if hasRoad { return "partial_no_cross_street" }
-        return "pending"
+        guard road != nil, rec["street"] != nil else { return "pending" }
+        return rec["cross_street"] != nil ? "ready" : "partial_no_cross_street"
     }
 
     private static let workoutLiveLocationBundleDescription = """

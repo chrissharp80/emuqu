@@ -1,0 +1,225 @@
+{
+ "file": "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift",
+ "hash": "ad67f89e7f8d4d71",
+ "role": "Non-dismissable SwiftUI sheet explaining what enabling the Zwift/TrainerRoad/Rouvy BLE HR+power broadcaster does, with Enable / Don't enable buttons that call the caller's closures and dismiss.",
+ "types": [
+  "BroadcasterDisclosureSheet: struct — View, presented by WearablesSettingsPage.broadcasterDisclosure"
+ ],
+ "state": [],
+ "toplevel": "Stored onAccept/onDecline closures; reads accessibilityReduceTransparency and dismiss from the environment.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var BroadcasterDisclosureSheet.body",
+   "hash": "502ac039df9cc656",
+   "does": "Wraps disclosureScroll in a NavigationStack.",
+   "entry": "SwiftUI body of the sheet presented by WearablesSettingsPage (.sheet(isPresented: $showingBroadcastExplainer), WearablesSettingsPage.swift:92).",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureScroll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureScroll": "67882c590d81c69a"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.disclosureScroll",
+   "hash": "3c652879ead36d8d",
+   "does": "ScrollView of disclosureBody with inline 'BLE Broadcast' title, the action bar pinned in the bottom safe-area inset, and interactive (swipe) dismissal disabled so the user must pick a button.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureBody",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureActionBar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureActionBar": "a16a5787d1c67da9",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureBody": "5b8965808e6a951e"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.disclosureActionBar",
+   "hash": "84fb7fdbc4479420",
+   "does": "Bottom bar stacking the prominent Enable button and the bordered Don't enable button over an ultra-thin (or opaque under reduce-transparency) material.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.enableBroadcastingButton",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.dontEnableButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.dontEnableButton": "6d85be127d4879d1",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.enableBroadcastingButton": "9b841c0fc023ade8",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.ultraThin(_:)": "c4738b7db48b800b"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.enableBroadcastingButton",
+   "hash": "dae65a625999ddd2",
+   "does": "Prominent 'Enable broadcasting' button: calls onAccept (sets broadcastAcknowledged and settings.enableZwiftBroadcast = true in WearablesSettingsPage) then dismisses.",
+   "entry": "Button tap",
+   "calls": [
+    "closure:onAccept set by WearablesSettingsPage.broadcasterDisclosure (WearablesSettingsPage.swift:106)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:settings.broadcaster.acknowledged (@AppStorage in WearablesSettingsPage, via onAccept)",
+    "file:user_settings.json enableZwiftBroadcast=true (SettingsManager.settings, via onAccept)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.disclosureBody",
+   "hash": "3b1bd5a2b069c88a",
+   "does": "Vertical stack of header, three bullet sections and a footer saying the feature can be turned off in Settings → Wearables.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureHeader",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.whatThisTurnsOnSection",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.whatItDoesNotShareSection",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.whoCanSeeItSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.disclosureHeader": "d1b1924f0cb18d98",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.whatItDoesNotShareSection": "5798262625659bd9",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.whatThisTurnsOnSection": "da4c5044e3676101",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::var BroadcasterDisclosureSheet.whoCanSeeItSection": "6e2f71a3149d92b6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.disclosureHeader",
+   "hash": "feff9433de0acab5",
+   "does": "Antenna icon plus headline 'Broadcast your heart rate and power to other apps?'.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.whatThisTurnsOnSection",
+   "hash": "d3fb320233087354",
+   "does": "'What this turns on' heading and bullets: phone advertises as a BLE peripheral during workouts, Zwift/TrainerRoad/Rouvy can pair as HR monitor and cycling power meter, live HR and any connected power source sent as cycling power.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletList(_:)": "22a793061db90403"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.whatItDoesNotShareSection",
+   "hash": "086cc1c7093fed7f",
+   "does": "'What it doesn't share' heading and bullets: no HRV/GPS/identity/Apple Health, only live HR + power while a workout is active, everything else stays on device.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletList(_:)": "22a793061db90403"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.whoCanSeeItSection",
+   "hash": "3c94f85d1df4db55",
+   "does": "'Who can see it' heading and bullets: any BLE device in range (~10 m), advertises as \"Emuqu\", off between workouts and stops when the workout ends (matches ZwiftPeripheralBroadcaster local name and WorkoutRecorder+Stop stopBroadcasting).",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletList(_:)": "22a793061db90403"
+   }
+  },
+  {
+   "key": "var BroadcasterDisclosureSheet.dontEnableButton",
+   "hash": "db105f7ab0c557b8",
+   "does": "'Don't enable' button: calls onDecline (sets settings.enableZwiftBroadcast = false in WearablesSettingsPage) then dismisses.",
+   "entry": "Button tap",
+   "calls": [
+    "closure:onDecline set by WearablesSettingsPage.broadcasterDisclosure (WearablesSettingsPage.swift:106)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json enableZwiftBroadcast=false (SettingsManager.settings, via onDecline)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func BroadcasterDisclosureSheet.bulletList(_:)",
+   "hash": "4d4b22301a2c6bc9",
+   "does": "Renders a VStack of bulletRow for each string, identified by the string itself.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BroadcasterDisclosureSheet.swift::func BroadcasterDisclosureSheet.bulletRow(_:)": "a96e9d462a4f1db0"
+   }
+  },
+  {
+   "key": "func BroadcasterDisclosureSheet.bulletRow(_:)",
+   "hash": "df69e6cd4e1b1b0f",
+   "does": "Renders a localized bullet glyph and the item text in callout font, wrapping vertically.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

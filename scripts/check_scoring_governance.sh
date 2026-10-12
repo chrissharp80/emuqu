@@ -17,8 +17,10 @@
 #    user can see would present a made-up figure as a confidence. It may not
 #    leave Analysis/CauseDetection.
 #
-# 2. The scoring constants are hashed. Change a weight, a threshold or a band
-#    and the hash moves; the gate then requires ScoringVersion.current to have
+# 2. The scoring constants are hashed (Constants+RecoveryScore.swift,
+#    HRVThresholds.swift, and the ScoringBounds / ScoringWeights enums of
+#    Constants.swift, where the composite weights live). Change a weight, a
+#    threshold or a band and the hash moves; the gate then requires ScoringVersion.current to have
 #    moved too. This is what stops an archive quietly becoming a mixture of two
 #    algorithms under one version string — the failure the version stamp exists
 #    to prevent.
@@ -74,6 +76,25 @@ for name in SCORING_SOURCES:
     for symbol, value in sorted(CONST_RE.findall(source)):
         digest.update(f"{name}:{symbol}={value}\n".encode())
         seen += 1
+
+# Composite weights and score bounds live in Constants.swift beside
+# non-scoring constants (unit conversions, UserDefaults keys), so only
+# these two enums are hashed from it.
+SCORING_ENUMS = {"Emuqu/Sources/Utilities/Constants.swift": ["ScoringBounds", "ScoringWeights"]}
+for name, enums in SCORING_ENUMS.items():
+    path = pathlib.Path(name)
+    if not path.is_file():
+        sys.stderr.write(f"check_scoring_governance: missing {name}\n")
+        raise SystemExit(2)
+    source = re.sub(r"//[^\n]*", "", path.read_text(encoding="utf-8"))
+    for enum in enums:
+        block = re.search(r"^enum " + enum + r"\b.*?^\}", source, re.S | re.M)
+        if not block:
+            sys.stderr.write(f"check_scoring_governance: enum {enum} not found in {name}\n")
+            raise SystemExit(2)
+        for symbol, value in sorted(CONST_RE.findall(block.group(0))):
+            digest.update(f"{name}:{enum}.{symbol}={value}\n".encode())
+            seen += 1
 
 current_hash = digest.hexdigest()[:16]
 

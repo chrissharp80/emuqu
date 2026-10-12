@@ -1,0 +1,712 @@
+{
+ "file": "Emuqu/Sources/Views/LostSessionsView.swift",
+ "hash": "dc5f90506777d520",
+ "role": "Settings > Data screen listing sessions that have raw RR backups but no archive entry, with Recover All (rebuild each from backup) and delete (mark as intentionally deleted).",
+ "types": [
+  "LostSessionsView: struct — list/recover/delete UI over RRCollector recovery API"
+ ],
+ "state": [
+  "@State lostSessions [(id,date,beatCount)], isLoading, isRecovering, recoveryProgress, currentSessionDate, recoveredCount, failedCount, showingResult, resultMessage, selectedSessions, showingDeleteConfirmation",
+  "@Environment RRCollector, dismiss, editMode"
+ ],
+ "toplevel": "#Preview builds LostSessionsView in a NavigationStack with a fresh RRCollector() environment (lines 370-375).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LostSessionsView.isEditing",
+   "hash": "bfb2cfd58fb877d6",
+   "does": "True when the environment editMode is editing; false when editMode is absent.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "editMode environment nil",
+     "effect": "?? false; otherwise wrappedValue.isEditing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LostSessionsView.body",
+   "hash": "b5f67035e9940c08",
+   "does": "Selectable List of the content with toolbar, interactive dismiss disabled while recovering, loads lost sessions in .task, result alert and delete confirmation dialog.",
+   "entry": "SwiftUI view-body evaluation (NavigationLink at SettingsPages+Data.swift:402; snapshot test PageSnapshotTests.swift:79); .task runs loadLostSessions",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsContent",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsToolbar",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteActions",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteMessage",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogActions",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()": "72e93d4209d0c458",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogActions": "d56d0480e9122e69",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage": "5cce98b43219b406",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsContent": "265587a95f213075",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsToolbar": "7945d835693fc96a",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteActions": "1c2380fd6b9e4fc6",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteMessage": "6511b21ec067f6da",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var LostSessionsView.recoveryCompleteActions",
+   "hash": "922b4656573eb493",
+   "does": "Alert OK button that dismisses the screen.",
+   "entry": "Alert button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var LostSessionsView.recoveryCompleteMessage",
+   "hash": "f789d75007b9b739",
+   "does": "Alert message text = resultMessage.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LostSessionsView.lostSessionsContent",
+   "hash": "35190cc6bc7372c9",
+   "does": "Shows scanning spinner while loading, empty state when no lost sessions, else header, list and recovery section.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.scanningSection",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.emptyStateSection",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsHeaderSection",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverySection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isLoading",
+     "effect": "scanning section"
+    },
+    {
+     "at": "+4",
+     "cond": "lostSessions empty (not loading)",
+     "effect": "'No Lost Sessions' empty state; else header+list+recovery"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.emptyStateSection": "f4307f12238e93e5",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsHeaderSection": "773ef438abd4a0e6",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "fad401774b3683f3",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverySection": "d3680f3079ad67f3",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.scanningSection": "638e527ca9d18980"
+   }
+  },
+  {
+   "key": "var LostSessionsView.scanningSection",
+   "hash": "d3836968c523fdab",
+   "does": "Centered scanning indicator in a section.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.scanningIndicator"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.scanningIndicator": "04b2e1452c0326d8"
+   }
+  },
+  {
+   "key": "var LostSessionsView.scanningIndicator",
+   "hash": "f6b823f0b0a63b6f",
+   "does": "Spinner with 'Scanning backups...'.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LostSessionsView.emptyStateSection",
+   "hash": "2249ee9ee2bbb4da",
+   "does": "Centered empty-state copy in a section.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.emptyStateCopy"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.emptyStateCopy": "fee8f4e20beff730"
+   }
+  },
+  {
+   "key": "var LostSessionsView.emptyStateCopy",
+   "hash": "313a4069feebf69a",
+   "does": "Checkmark, 'No Lost Sessions' and 'All backup sessions are already in your archive.'",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LostSessionsView.lostSessionsHeaderSection",
+   "hash": "f605d07280e4e7f4",
+   "does": "Header section: found headline plus explanation of why backups can lack archive entries.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.foundHeadline",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.foundHeadline": "04152f9a46ce7de0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LostSessionsView.foundHeadline",
+   "hash": "06a7c4724f50021a",
+   "does": "Warning icon and '<n> Lost Sessions Found'.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var LostSessionsView.lostSessionsListSection",
+   "hash": "2a1df98471d46a51",
+   "does": "'Sessions' section with a tagged row per lost session and swipe-to-delete via deleteSessionsAtOffsets; rows are deleteDisabled while Recover All runs, so a session cannot be swiped away from under the recovery loop.",
+   "entry": "SwiftUI view-body evaluation; .onDelete swipe",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LostSessionsView.isRecovering"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isRecovering",
+     "effect": "swipe-to-delete disabled on every row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)": "1fef63f8af3086f3",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)": "edd68dcb026c221f"
+   }
+  },
+  {
+   "key": "func LostSessionsView.sessionRow(_:)",
+   "hash": "71a5d79d388313fb",
+   "does": "Row: formatted date and '<beatCount> RR intervals'. No duration: a beat count alone cannot give one without assuming a heart rate.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDate(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDate(_:)": "4a883e6bc0b490f6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LostSessionsView.recoverySection",
+   "hash": "6ad90db2d5684447",
+   "does": "Section showing the progress panel while recovering, else the Recover All button.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryProgressPanel",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverAllButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRecovering",
+     "effect": "progress panel; else Recover All button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverAllButton": "61dbdf1f84b0cf43",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryProgressPanel": "1660fd39f27d57de"
+   }
+  },
+  {
+   "key": "var LostSessionsView.recoveryProgressPanel",
+   "hash": "c7105e10beaf0b71",
+   "does": "Recovery progress: determinate bar, caption and processing line when progress is set, else an indeterminate 'Starting recovery...'.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.progressCaption(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.processingLine",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "recoveryProgress non-nil",
+     "effect": "progress bar + caption + processing line; else spinner 'Starting recovery...'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.progressCaption(_:)": "88e0193f6f5555db",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.processingLine": "633b770e7675b741",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func LostSessionsView.progressCaption(_:)",
+   "hash": "3bb6b2150435bc65",
+   "does": "'Recovering x of y...' with the outcome tally.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.outcomeTally",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.outcomeTally": "bc2d4fd2e1a65ad2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LostSessionsView.outcomeTally",
+   "hash": "62dd9804764475d4",
+   "does": "'<ok> OK, <failed> failed' once any session has finished.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveredCount > 0 or failedCount > 0",
+     "effect": "shows tally; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var LostSessionsView.processingLine",
+   "hash": "1b12c4ffea811ffb",
+   "does": "'Processing: <date>' for the session being recovered.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDate(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentSessionDate non-nil",
+     "effect": "shows line; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDate(_:)": "4a883e6bc0b490f6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var LostSessionsView.recoverAllButton",
+   "hash": "7516e8c71563c8ab",
+   "does": "'Recover All <n> Sessions' button starting recoverAllSessions.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()": "fbf4a9da0798eb49",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var LostSessionsView.lostSessionsToolbar",
+   "hash": "e2b91412a9dc8531",
+   "does": "Toolbar: Close (disabled while recovering), Edit button, bottom-bar delete-selected button.",
+   "entry": "SwiftUI view-body evaluation; Close tap dismisses",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.editButton",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton": "d5a44d6b7e8048dd",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.editButton": "5dbeb07fb21df8a7"
+   }
+  },
+  {
+   "key": "var LostSessionsView.editButton",
+   "hash": "30d3f9a86ab224d0",
+   "does": "EditButton shown only when there are lost sessions and no recovery is running.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lostSessions non-empty and not recovering",
+     "effect": "EditButton; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LostSessionsView.deleteSelectedButton",
+   "hash": "66ab91f1226e89b6",
+   "does": "Destructive 'Delete <n> Selected' button (opens confirmation) while editing with a selection.",
+   "entry": "SwiftUI view-body evaluation; Button tap sets showingDeleteConfirmation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isEditing and selectedSessions non-empty",
+     "effect": "shows button; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.isEditing": "2ea3cf7c8247a9e9"
+   }
+  },
+  {
+   "key": "var LostSessionsView.deleteDialogActions",
+   "hash": "7f5c57f285f13f68",
+   "does": "Confirmation dialog actions: Delete → deleteSelectedSessions; Cancel no-op.",
+   "entry": "Dialog button tap",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSelectedSessions()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSelectedSessions()": "e4cc7fb19f5950fc"
+   }
+  },
+  {
+   "key": "var LostSessionsView.deleteDialogMessage",
+   "hash": "14ecec2f3f3c6433",
+   "does": "Dialog message saying the sessions leave the list but raw backups stay on the device.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LostSessionsView.loadLostSessions()",
+   "hash": "106eadcf6e7ac56b",
+   "does": "Runs collector.checkForLostSessions() in a detached userInitiated task, sorts newest first into lostSessions and clears isLoading.",
+   "entry": ".task in body; also re-run after finishRecovery",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForLostSessions()"
+   ],
+   "reads": [
+    "file:raw RR backups",
+    "archive:session index"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForLostSessions()": "6b8ab0193c66ad77"
+   }
+  },
+  {
+   "key": "func LostSessionsView.deleteSessionsAtOffsets(_:)",
+   "hash": "55c186364adf915f",
+   "does": "Swipe-delete: marks the sessions at the offsets as deleted via collector.deleteLostSessions and removes them from the list.",
+   "entry": "List .onDelete",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:markAsDeleted"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "deleteLostSessions swallows archive.markAsDeleted errors (debugLog only) while this view removes the rows unconditionally, so a failed mark shows the session gone and it reappears on the next scan.",
+     "evidence": [
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:268",
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:270",
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:272",
+      "Emuqu/Sources/Views/LostSessionsView.swift:300",
+      "Emuqu/Sources/Views/LostSessionsView.swift:301"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)": "9ae7f73168698bed"
+   }
+  },
+  {
+   "key": "func LostSessionsView.deleteSelectedSessions()",
+   "hash": "737a27a0315ceadd",
+   "does": "Marks all selected sessions deleted via collector.deleteLostSessions, removes them from the list, clears the selection and exits edit mode.",
+   "entry": "Confirmation dialog Delete",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:markAsDeleted"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "deleteLostSessions swallows archive.markAsDeleted errors (debugLog only) while this view removes the rows unconditionally, so a failed mark shows the session gone and it reappears on the next scan.",
+     "evidence": [
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:268",
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:270",
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:272",
+      "Emuqu/Sources/Views/LostSessionsView.swift:306",
+      "Emuqu/Sources/Views/LostSessionsView.swift:307"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)": "9ae7f73168698bed"
+   }
+  },
+  {
+   "key": "func LostSessionsView.recoverAllSessions()",
+   "hash": "2b191e852c00145b",
+   "does": "Sets isRecovering, zeroes counts, then in a Task recovers each listed session in order (yielding between) and calls finishRecovery.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverOne(_:index:total:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.finishRecovery(total:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each lost session (loop)",
+     "effect": "recoverOne per session in list order; empty list → finishRecovery immediately"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.finishRecovery(total:)": "b9033f3a9b709744",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverOne(_:index:total:)": "046bc393ef07692a"
+   }
+  },
+  {
+   "key": "func LostSessionsView.recoverOne(_:index:total:)",
+   "hash": "af6e3b6ba0e1b413",
+   "does": "Updates progress/current date, awaits collector.recoverFromBackup(id), and increments recoveredCount when a session comes back or failedCount when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)"
+   ],
+   "reads": [
+    "file:raw RR backups"
+   ],
+   "writes": [
+    "archive:recovered session"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "recoverFromBackup returned non-nil",
+     "effect": "recoveredCount += 1; nil → failedCount += 1 (no reason surfaced)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "2032ea4920766602"
+   }
+  },
+  {
+   "key": "func LostSessionsView.finishRecovery(total:)",
+   "hash": "bdea23a46cad2cdb",
+   "does": "Clears recovery state, builds the result message, shows the result alert and reloads the lost-session list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoveryResultMessage(total:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()": "72e93d4209d0c458",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoveryResultMessage(total:)": "518e5eeafe30a7b8"
+   }
+  },
+  {
+   "key": "func LostSessionsView.recoveryResultMessage(total:)",
+   "hash": "00e76977a6021a63",
+   "does": "Result text: all recovered, partial ('Recovered x of y … could not be recovered'), or none recovered.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recoveredCount == total",
+     "effect": "'Successfully recovered all n sessions.'"
+    },
+    {
+     "at": "+4",
+     "cond": "recoveredCount > 0",
+     "effect": "partial message with failedCount; else 'Could not recover any sessions…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LostSessionsView.formatDate(_:)",
+   "hash": "7d732fb392246ae2",
+   "does": "Formats a date abbreviated date + short time in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

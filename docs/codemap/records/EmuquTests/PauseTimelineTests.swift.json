@@ -1,0 +1,88 @@
+{
+ "file": "EmuquTests/PauseTimelineTests.swift",
+ "hash": "cd6e5ec7f5c85221",
+ "role": "XCTest suite for PauseTimeline: mapping a pause-stopped workout offset back to wall-clock time.",
+ "types": [
+  "PauseTimelineTests: class — XCTestCase over PauseTimeline"
+ ],
+ "state": [
+  "mem:PauseTimelineTests.start (Date 1_785_600_000)"
+ ],
+ "toplevel": "start stored-property initializer.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PauseTimelineTests.testWithoutPausesTheOffsetIsTheWallClock()",
+   "hash": "935fc1238fbb3c00",
+   "does": "Asserts with no pauses wallClock(forOffset: 600) is start+600 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)": "508a770ddea33edc"
+   }
+  },
+  {
+   "key": "func PauseTimelineTests.testAPauseShiftsEveryLaterSample()",
+   "hash": "24293bb320acdc57",
+   "does": "Pauses at elapsed 1200 for 600 s and asserts offset 1800 maps to start+2400 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)": "276f1c92535f5c7e",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)": "707bce475f8ec463",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)": "508a770ddea33edc"
+   }
+  },
+  {
+   "key": "func PauseTimelineTests.testTheSampleAtThePauseSecondIsNotShifted()",
+   "hash": "3673cca93063c131",
+   "does": "Same 600-s pause at 1200 and asserts offset 1200 (the pause second) is not shifted: start+1200 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)": "276f1c92535f5c7e",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)": "707bce475f8ec463",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)": "508a770ddea33edc"
+   }
+  },
+  {
+   "key": "func PauseTimelineTests.testAResumeWithoutAPauseRecordsNothing()",
+   "hash": "856a1c30c88e218f",
+   "does": "Asserts resume without a prior pause records no span.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)": "707bce475f8ec463"
+   }
+  }
+ ],
+ "deps": {}
+}

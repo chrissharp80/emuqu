@@ -1,0 +1,394 @@
+{
+ "file": "EmuquTests/HRVAnalysisPipelineTests.swift",
+ "hash": "d9fb23e77389a65f",
+ "role": "@MainActor XCTest suite for HRVAnalysisPipeline: analyzeFullSeries results/nil floor/window indices/capacity metadata, ANSConfiguration, uniform-RR low RMSSD, pure helpers nocturnalMedianHR/nocturnalHRDip/extractCleanRRs, and that analyzeFullSession reads daytime resting HR from the injected HealthKit service.",
+ "types": [
+  "HRVAnalysisPipelineTests: class — @MainActor XCTestCase for Analysis/HRVAnalysisPipeline*.swift"
+ ],
+ "state": [
+  "mem:HRVAnalysisPipelineTests.artifactDetector (ArtifactDetector)",
+  "mem:HRVAnalysisPipelineTests.mockHealthKit (MockHealthKitService)",
+  "mem:HRVAnalysisPipelineTests.pipeline (lazy HRVAnalysisPipeline over the two above + WindowSelector())"
+ ],
+ "toplevel": "Stored-property initialisers build a fresh ArtifactDetector and MockHealthKitService per test instance; `pipeline` is a lazy HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:) using them (calls HRVAnalysisPipeline.init at HRVAnalysisPipeline.swift:21, ArtifactDetector.init, WindowSelector.init).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)",
+   "hash": "88555eb23f8bd762",
+   "does": "Test helper: builds an RRSeries of beatCount uniform RR points (default 800 ms) via createUniformPoints and runs the artifact detector on it.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func createUniformPoints(count:rrMs:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "EmuquTests/Helpers/TestHelpers.swift::func createUniformPoints(count:rrMs:)": "d1f67528bc798f29"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)",
+   "hash": "9d58ea734ac8a722",
+   "does": "Test helper: builds an RRSeries of beatCount realistic RR points via createRealisticPoints and runs the artifact detector on it.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)": "fa50f4e7a420e1ef"
+   }
+  },
+  {
+   "key": "var HRVAnalysisPipelineTests.defaultANSConfig",
+   "hash": "c93996a3958b3e6c",
+   "does": "Test helper: ANSConfiguration(baselineRMSSD 40, vo2Max nil, trainingLoadAdjustment 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testAnalyzeFullSeriesReturnsResultForValidData()",
+   "hash": "d403c2bfe83ad6eb",
+   "does": "Asserts analyzeFullSeries on 500 realistic beats returns a result with time-domain, nonlinear and ANS metrics.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testAnalyzeFullSeriesReturnsNilForInsufficientData()",
+   "hash": "afd0eba17eff9b1f",
+   "does": "Asserts analyzeFullSeries returns nil for 5 uniform beats (below 10-beat floor).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testAnalyzeFullSeriesWindowIndicesSetCorrectly()",
+   "hash": "faf7546fe17a84d9",
+   "does": "Asserts analyzeFullSeries with windowStart 100/windowEnd 400 reports those indices.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testAnalyzeFullSeriesWithCapacitySetsMetadata()",
+   "hash": "0c24375d29cadb96",
+   "does": "Asserts analyzeFullSeriesWithCapacity on 1000 realistic beats attaches the given PeakCapacity (peakRMSSD 45).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "6aad7214a42011a0",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testANSConfigurationExplicitConstruction()",
+   "hash": "f29bb59854f0af03",
+   "does": "Asserts ANSConfiguration stores baselineRMSSD 42, vo2Max 55, trainingLoadAdjustment -0.3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Tautology: asserts a memberwise struct initialiser returns the values passed in; exercises no pipeline logic.",
+     "evidence": [
+      "EmuquTests/HRVAnalysisPipelineTests.swift:106",
+      "EmuquTests/HRVAnalysisPipelineTests.swift:112"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testUniformRRProducesLowRMSSD()",
+   "hash": "54056d8f71a07f7d",
+   "does": "Asserts 500 uniform 800 ms beats give RMSSD < 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalMedianHREmptyInput()",
+   "hash": "35cc09e7db59887c",
+   "does": "Asserts nocturnalMedianHR([]) is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalMedianHRSingleValue()",
+   "hash": "1595c98c23b89666",
+   "does": "Asserts nocturnalMedianHR([800]) ≈ 75 bpm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalMedianHROddCount()",
+   "hash": "ba24cb7be387c442",
+   "does": "Asserts odd-count median of 750/800/857.14 ms ≈ 75 bpm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalMedianHREvenCount()",
+   "hash": "1baf640b46031d98",
+   "does": "Asserts even-count median of 80/75/70/60 bpm is 72.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalMedianHRIgnoresZeroRR()",
+   "hash": "d3dd0ba83619fb6a",
+   "does": "Asserts zero RR values are ignored ([0,800,0] → 75).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalMedianHRAllZero()",
+   "hash": "189ab054fea7efd2",
+   "does": "Asserts all-zero RR returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalHRDipNormalCase()",
+   "hash": "6be9ccc046a98a4f",
+   "does": "Asserts nocturnalHRDip(70, 56) ≈ 20%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalHRDipZeroDaytime()",
+   "hash": "23fc9ae1f04010dc",
+   "does": "Asserts nocturnalHRDip with daytime 0 is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testNocturnalHRDipNegativeDip()",
+   "hash": "fae64079e357ce09",
+   "does": "Asserts nocturnal median above daytime gives a negative dip.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testExtractCleanRRsNoArtifacts()",
+   "hash": "70ddc31056d720c0",
+   "does": "Asserts extractCleanRRs over 10 uniform beats returns ten 800s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testExtractCleanRRsWindowSubset()",
+   "hash": "5c589bf099accde5",
+   "does": "Asserts extractCleanRRs over window 5..<15 of 20 beats returns 10 values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipelineTests.testPipelineUsesInjectedHealthKit()",
+   "hash": "1cd4a72e53b4d300",
+   "does": "Sets mock daytimeRestingHR 65, analyzes a 500-beat quick session via analyzeFullSession and asserts ansMetrics.daytimeRestingHR ≈ 65.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MockHealthKitService.daytimeRestingHR (this test's own mock instance, set to 65)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651"
+   }
+  }
+ ],
+ "deps": {}
+}

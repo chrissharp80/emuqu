@@ -1,0 +1,379 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveryMethodologyView.swift",
+ "hash": "421476e615049a4a",
+ "role": "Static methodology page 'How Emuqu scores recovery' (reached from More menu, Settings, Help Center, settings search and the score-architecture-change sheet): score inputs and weights, why ACWR is excluded, scope disclaimers, validated-vs-calibrated disclosure, references, limits. Records a telemetry count on appear.",
+ "types": [
+  "RecoveryMethodologyView: struct (View) — methodology page"
+ ],
+ "state": [
+  "@Environment(\\.dependencies)"
+ ],
+ "toplevel": "Doc comment states the page is allowlisted in Tools/copy_linter/prohibited_terms.json because its text holds negated prohibited terms (\"not a medical device\", \"does not ... diagnose\").",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecoveryMethodologyView.body",
+   "hash": "f9a8e16f040480db",
+   "does": "ScrollView of all sections in order; on appear records one methodology view in ValidationTelemetry.",
+   "entry": "SwiftUI body; NavigationLink destinations in MoreMenuView.swift:204, SettingsView.swift:432, HelpCenterV2View.swift:28, SettingsSearchIndex.swift:344, ScoreArchitectureChangeSheet.swift:102; .task fires on each appearance",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.methodologyTitle",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scoreInputsSection",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrExclusionSection",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrEvidenceSection",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scopeSection",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationSection",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.referencesSection",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.limitsSection",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.validationTelemetry",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordMethodologyView()"
+   ],
+   "reads": [
+    "ud:telemetry.methodologyViews"
+   ],
+   "writes": [
+    "ud:telemetry.methodologyViews"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordMethodologyView()": "fc901a63188e1027",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.validationTelemetry": "bc555877026a986a",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrEvidenceSection": "e39b77021ac09847",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrExclusionSection": "8c9f53b3877b596e",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.limitsSection": "017ade0dfb604145",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.methodologyTitle": "b82bb46dfbd0e582",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.referencesSection": "b5ef3a31b0105179",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scopeSection": "07b63f2d36454322",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scoreInputsSection": "998bf32be0b00f68",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationSection": "623d5b7f138af769",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.methodologyTitle",
+   "hash": "fde523d2d6c6a74c",
+   "does": "Large title 'Recovery Score Methodology'.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.scoreInputsSection",
+   "hash": "55fd7c095839d99a",
+   "does": "Intro paragraph, the four score-input bullets, and two paragraphs saying training load is not in the score.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scoreInputBullets"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)": "9359f2a9d37fe082",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)": "b14264f34539833d",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scoreInputBullets": "ff0e1a517255873e"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.scoreInputBullets",
+   "hash": "373b665092149dd8",
+   "does": "Bullet copy: HRV 60%, Sleep 25%, Vitals 15% (matching Constants.swift:400-402) and the 10-point low-SpO₂ (<95% over 24 h) penalty (spo2Penalty = 10, Constants+RecoveryScore.swift:263).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The page states the weights as fixed HRV 60% / Sleep 25% / Vitals 15%, but those are only the Tier-3 weights: without vitals the score uses 0.70/0.30 (dampened 0.85/0.15), and Comeback mode uses 0.80/0.20/0. The methodology page never mentions the renormalised tiers.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryMethodologyView.swift:86",
+      "Emuqu/Sources/Views/RecoveryMethodologyView.swift:88",
+      "Emuqu/Sources/Utilities/Constants.swift:400",
+      "Emuqu/Sources/Utilities/Constants.swift:410",
+      "Emuqu/Sources/Utilities/Constants.swift:413",
+      "Emuqu/Sources/Utilities/Constants.swift:422"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.acwrExclusionSection",
+   "hash": "4bdef95ed7333a1d",
+   "does": "ACWR exclusion heading and two paragraphs.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)": "b14264f34539833d"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.acwrEvidenceSection",
+   "hash": "79f6d2faf44159ef",
+   "does": "ACWR evidence bullets and the Altini/Doherty lineage paragraph.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrEvidenceBullets",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)": "9359f2a9d37fe082",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)": "b14264f34539833d",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrEvidenceBullets": "cf3d1e516ad18ef8"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.acwrEvidenceBullets",
+   "hash": "857151b60573fcd1",
+   "does": "Five ACWR-critique bullet strings (Impellizzeri 2020/2021, Lolli 2019, Gabbett 2016 critique, no validation in recreational/masters).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.scopeSection",
+   "hash": "4303dee125fd057f",
+   "does": "Scope heading and three disclaimer bullets (wellness tool, no diagnosis/injury prediction, research-informed).",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)": "9359f2a9d37fe082",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.validationSection",
+   "hash": "94b9489c462648ae",
+   "does": "'What is validated, and what is calibrated' heading, intro paragraph, bullets and closing.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationBullets",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationClosing"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)": "9359f2a9d37fe082",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)": "b14264f34539833d",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationBullets": "69fe729038dca113",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationClosing": "9b06fab078515f44"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.validationClosing",
+   "hash": "0786cddfe23b12e6",
+   "does": "Two closing paragraphs pointing to Help Center accuracy figures and stating composite scores rarely disclose validation.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)": "b14264f34539833d"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.validationBullets",
+   "hash": "942adfbe3df4aa6e",
+   "does": "Three validation bullets (HRV metrics vs 6,000 PhysioNet ECG intervals, Polar H10 validated by others, research-informed ln(RMSSD) z-score) plus calibrationBullets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.calibrationBullets"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.calibrationBullets": "104d08f6545a1f0b"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.calibrationBullets",
+   "hash": "636f72af43aea526",
+   "does": "Two bullets: weights/bands/sleep formula/stages/vitals thresholds/DFA range are calibrated not validated; Doherty 2025 found no composite score rigorously validated.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.referencesSection",
+   "hash": "561c9f8aba549329",
+   "does": "References heading and ten English citation strings, including every paper the page cites (Lolli 2019, Gabbett 2016, Task Force 1996 among them).",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.referenceList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.referenceList(_:)": "c6d03edebe9696ac"
+   }
+  },
+  {
+   "key": "var RecoveryMethodologyView.limitsSection",
+   "hash": "73ecc3b22b06e3cc",
+   "does": "'Limits' heading and paragraph on HRV blind spots and 24-48 h latency.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.paragraph(_:)": "b14264f34539833d"
+   }
+  },
+  {
+   "key": "func RecoveryMethodologyView.heading(_:)",
+   "hash": "4023ad07a07d44c4",
+   "does": "Title3 semibold heading text.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func RecoveryMethodologyView.paragraph(_:)",
+   "hash": "95f7dc4547bf6819",
+   "does": "Callout secondary paragraph text with line spacing.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func RecoveryMethodologyView.bullets(_:)",
+   "hash": "2499301874cef5d6",
+   "does": "VStack of bulletRow for each string (ForEach id: \\.self — duplicate strings would collide).",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bulletRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bulletRow(_:)": "623f4362e099098a"
+   }
+  },
+  {
+   "key": "func RecoveryMethodologyView.bulletRow(_:)",
+   "hash": "d861e92c291bf7de",
+   "does": "'•' plus wrapped callout text.",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func RecoveryMethodologyView.referenceList(_:)",
+   "hash": "34d28ab86fbbfdfd",
+   "does": "VStack of footnote citation texts (ForEach id: \\.self).",
+   "entry": "SwiftUI view-tree evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

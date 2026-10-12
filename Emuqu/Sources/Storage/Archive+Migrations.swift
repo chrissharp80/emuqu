@@ -26,9 +26,12 @@ extension ArchiveMigrations {
         static let sleepIndexDone = "FlowRecovery.migration.sleepIndexFields.v1.done"
     }
 
-    /// Run one-time data migrations in the background so they don't block
-    /// app launch or dashboard rendering. Safe to call multiple times —
-    /// each migration is a no-op if already complete.
+    /// Run the archive's data migrations in the background so they don't block
+    /// app launch or dashboard rendering. Runs at launch and after every
+    /// iCloud pull. Safe to call multiple times: the four backfills are
+    /// no-ops once their done flag is set, while `removeDuplicates` and
+    /// `relinkSameNightSessions` run on every call because what they repair
+    /// can come back.
     ///
     /// Each migration acquires/releases archive.archiveLock internally and yields
     /// the lock during disk I/O so the main thread is never blocked for
@@ -182,7 +185,9 @@ extension ArchiveMigrations {
             tags: entry.tags,
             notes: entry.notes,
             sessionType: entry.sessionType,
-            linkedSessionIds: session.linkedSessionIds
+            linkedSessionIds: entry.linkedSessionIds,
+            sleepEnd: entry.sleepEnd,
+            sleepSegmentCount: entry.sleepSegmentCount
         ).mirroringSleepFields(from: session)
     }
 
@@ -216,7 +221,9 @@ extension ArchiveMigrations {
             tags: entry.tags,
             notes: entry.notes,
             sessionType: entry.sessionType,
-            linkedSessionIds: entry.linkedSessionIds
+            linkedSessionIds: entry.linkedSessionIds,
+            sleepEnd: entry.sleepEnd,
+            sleepSegmentCount: entry.sleepSegmentCount
         ).mirroringSleepFields(from: session)
     }
 
@@ -249,7 +256,9 @@ extension ArchiveMigrations {
             tags: entry.tags,
             notes: entry.notes,
             sessionType: entry.sessionType,
-            linkedSessionIds: entry.linkedSessionIds
+            linkedSessionIds: entry.linkedSessionIds,
+            sleepEnd: entry.sleepEnd,
+            sleepSegmentCount: entry.sleepSegmentCount
         ).mirroringSleepFields(from: session)
     }
 
@@ -292,15 +301,51 @@ extension ArchiveMigrations {
         guard !quarantined.isEmpty else { return }
         // Phase 3: update archive.index + tombstones under lock
         archive.archiveLock.lock()
-        archive.index.removeAll { quarantined.contains($0.sessionId) }
-        archive.deletedSessionIds.formUnion(quarantined)
+        defer { archive.archiveLock.unlock() }
+        do {
+            try retireQuarantined(quarantined)
+        } catch {
+            debugLog("[Archive] ⚠️ Failed to save the indexes after quarantining duplicates — moving the files back: \(error)", level: .warning)
+            restoreFromQuarantine(quarantineWork.filter { quarantined.contains($0.0) })
+        }
+    }
+
+    /// Phase 3, caller holds the lock: drop the quarantined ids from the
+    /// index and tombstone them, tombstones saved first (an index saved
+    /// without them would let the orphan scan adopt the files back). A failed
+    /// save undoes both in-memory changes, rewrites the tombstone list
+    /// without them, and throws; the stored index then still names the
+    /// files, so the caller moves them back.
+    private func retireQuarantined(_ ids: Set<UUID>) throws {
+        let preIndex = archive.index
+        let preDeleted = archive.deletedSessionIds
+        archive.index.removeAll { ids.contains($0.sessionId) }
+        archive.deletedSessionIds.formUnion(ids)
+        do {
+            try archive.saveDeletedIndex()
+            try archive.saveIndex()
+        } catch {
+            archive.index = preIndex
+            archive.deletedSessionIds = preDeleted
+            archive.sortedEntriesCache = nil
+            archive.sessionIdLookup = nil
+            attempt("Archive.dedupe.rollbackTombstones") { try archive.saveDeletedIndex() }
+            throw error
+        }
         // Dated like any deletion: an undated tombstone loses to a restore
         // made on another device, and is missing from the rebuild of an
         // unreadable deleted list, either of which brought the duplicate back.
-        quarantined.forEach(ArchiveStore.recordDeletionTime)
-        do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after quarantining duplicates: \(error)") }
-        do { try archive.saveDeletedIndex() } catch { debugLog("[Archive] ⚠️ Failed to save deleted index after quarantining duplicates: \(error)") }
-        archive.archiveLock.unlock()
+        ids.forEach(ArchiveStore.recordDeletionTime)
+    }
+
+    /// Move quarantined files back to where the (restored) index expects them.
+    private func restoreFromQuarantine(_ work: [(UUID, URL)]) {
+        let quarantineDir = archive.archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
+        for (_, fileURL) in work {
+            attempt("Archive.dedupe.restoreFromQuarantine") {
+                try archive.fileManager.moveItem(at: quarantineDir.appendingPathComponent(fileURL.lastPathComponent), to: fileURL)
+            }
+        }
     }
 
     /// Phase 1: identify duplicates under lock. The
@@ -412,8 +457,7 @@ extension ArchiveMigrations {
         for (_, dayEntries) in grouped where dayEntries.count > 1 {
             let unlinked = dayEntries.filter { !linkedIds.contains($0.sessionId) }
             guard unlinked.count > 1 else { continue }
-            let hasRecentEntry = unlinked.contains { now.timeIntervalSince($0.date) < SessionArchive.Tuning.dedupeSafetyWindow }
-            if hasRecentEntry { continue }
+            if hasRecentEntry(unlinked, now: now) { continue }
             quarantineIds += containedDuplicates(in: unlinked)
         }
         return quarantineIds
@@ -586,15 +630,39 @@ extension ArchiveMigrations {
     /// write: saved once at the end, the cached lookups kept the old file
     /// hash until then (a read in between failed its integrity check), and a
     /// crash in between left files the stored index no longer matched.
+    ///
+    /// A failed index save puts the parent's previous file and entry back
+    /// (`ArchiveStore.rollBackWrite`): the stored index would otherwise keep
+    /// the old hash for the rewritten file, and every read of the night would
+    /// fail its integrity check after a relaunch. The next launch tries again.
     private func relinkUnderLock(_ work: RelinkWork) -> RelinkResult? {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         guard let idx = archive.index.firstIndex(where: { $0.sessionId == work.parentEntry.sessionId }),
               archive.index[idx].fileHash == work.parentEntry.fileHash,
+              let prior = priorFile(for: work),
               let result = relink(work) else { return nil }
+        let preIndex = archive.index
         archive.index[idx] = Self.relinked(archive.index[idx], result: result)
-        do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after re-linking: \(error)") }
+        do {
+            try archive.saveIndex()
+        } catch {
+            debugLog("[Archive] ⚠️ Failed to save index after re-linking \(result.sessionId.uuidString.prefix(8)) — previous file restored: \(error)", level: .warning)
+            archive.store.rollBackWrite(to: preIndex, filePath: work.fileURL, prior: prior, id: result.sessionId)
+            return nil
+        }
         return result
+    }
+
+    /// The parent's file as it is before the rewrite, for the rollback. Nil
+    /// (night skipped) when it cannot be read.
+    private func priorFile(for work: RelinkWork) -> ArchiveStore.PriorFile? {
+        do {
+            return try ArchiveStore.PriorFile(at: work.fileURL, id: work.parentEntry.sessionId, fileManager: archive.fileManager)
+        } catch {
+            debugLog("[Archive] relinkSameNightSessions: cannot read \(work.parentEntry.sessionId.uuidString.prefix(8)) before rewriting it: \(error)", level: .warning)
+            return nil
+        }
     }
 
     /// Phase 2 for one night: read, modify, and write the parent's file.
@@ -634,11 +702,10 @@ extension ArchiveMigrations {
     private func writeRelinked(_ session: HRVSession, to fileURL: URL, id: UUID) -> String? {
         do {
             // Shared codec path. A relink under a locked Keychain falls back
-            // to plaintext; `archiveWriteOptions` picks protection per the
-            // format actually written.
+            // to plaintext; `writeArchiveBytes` picks protection per the
+            // format actually written and keeps the ledger in step with disk.
             let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: Self.relinkEncoder)
-            let options = archiveWriteOptions(for: result.format, sessionID: session.id)
-            try result.bytes.write(to: fileURL, options: options)
+            try writeArchiveBytes(result.bytes, to: fileURL, format: result.format, sessionID: session.id)
             return result.hash
         } catch {
             debugLog("[Archive] ⚠️ Failed to write re-linked session \(id.uuidString.prefix(8)): \(error)")

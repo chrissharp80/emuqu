@@ -1,0 +1,1335 @@
+{
+ "file": "Emuqu/Sources/Services/StoreKitManager.swift",
+ "hash": "b5635b3ecd445614",
+ "role": "StoreKit 2 manager singleton: loads the lifetime-unlock and $0 30-day-trial products, runs purchase/trial/restore, sweeps Transaction.currentEntitlements into isPurchased/hasPurchasedProduct/hasTrialTransaction, verifies the AppTransaction environment, and exposes the trial clock and every non-purchase access route (beta tester, developer install, trial, debug grant).",
+ "types": [
+  "StoreKitManager: final class (@Observable, @MainActor) — in-app purchase state and entitlement routes",
+  "StoreKitManager.EntitlementSweep: private struct — one entitlement check's answer"
+ ],
+ "state": [
+  "mem:StoreKitManager.shared",
+  "mem:StoreKitManager.productId = com.chrissharp.flowrecovery.lifetime",
+  "mem:StoreKitManager.trialProductId = com.chrissharp.flowrecovery.trial30day",
+  "mem:StoreKitManager.paywallEnabled = true",
+  "mem:StoreKitManager.isPurchased / hasPurchasedProduct / hasTrialTransaction / product / trialProduct / isPurchasing / errorMessage / purchaseNotice / productsUnavailable / trialUnavailable",
+  "ud:storekit.lastKnownPurchased",
+  "ud:storekit.lastKnownTestFlight",
+  "ud:storekit.verifiedXcodeInstall",
+  "ud:storekit.verifiedProductionInstall",
+  "ud:debug_isPurchased (DEBUG only)",
+  "mem:StoreKitManager.refreshGeneration",
+  "mem:StoreKitManager.transactionListener"
+ ],
+ "toplevel": "isPurchased initializer: true when paywallEnabled is false, else UserDefaults storekit.lastKnownPurchased; hasPurchasedProduct initializer: storekit.lastKnownPurchased. isDebugBuild (#if DEBUG true) and isDeveloperInstall (isDebugBuild || ud:storekit.verifiedXcodeInstall) are computed statics that lookup.py does not list as units. debugGrantAccess/hasDebugGrant/debugPurchasedKey are compiled only under #if DEBUG.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init ()",
+   "hash": "5d7cae0ec5eaadf2",
+   "does": "Private empty init; all StoreKit wiring is deferred to boot().",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func boot()",
+   "hash": "d35e2b7c6a9a2da8",
+   "does": "Idempotent post-first-frame start: resolves the entitlement anchor across tiers, migrates the legacy TestFlight flag, installs the Transaction.updates listener, kicks off refreshStatus, and starts the background AppTransaction verification. Called from AppLaunchTasks.runDeferredBoot (timedBoot 'storeKitManager').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func listenForTransactions()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionInBackground()"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "ud:storekit.lastKnownTestFlight"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "transactionListener already set",
+     "effect": "returns (already booted)"
+    },
+    {
+     "at": "+2",
+     "cond": "paywallEnabled false",
+     "effect": "returns without touching StoreKit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func listenForTransactions()": "a82afdc8a527608c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)": "0a96e2bb61904cf4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "4a419daa1ea32c6c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionInBackground()": "e693c5f18f50b045"
+   }
+  },
+  {
+   "key": "func grandfatherExistingUserIfNeeded(hasHistory:now:)",
+   "hash": "8ac80e012735ca2d",
+   "does": "Outside DEBUG builds, runs EntitlementAnchor.recordHistoryCheck with whether the device already holds sessions — the one-time grandfathering of existing (beta) users. hasHistory nil (history unknown this launch) skips it with a warning so a later launch takes the look. Called from AppLaunchTasks.prepareEntitlementGate, which passes nil while the archive index is incomplete (SessionArchive.hasCompleteIndex false).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isDebugBuild",
+     "effect": "returns without checking"
+    },
+    {
+     "at": "+2",
+     "cond": "hasHistory nil",
+     "effect": "log, return without recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)": "c865f24db06c46b0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func migrateLegacyTestFlightFlag(now: Date)",
+   "hash": "2f14799f5226a40e",
+   "does": "If the legacy storekit.lastKnownTestFlight flag is true and the cached anchor is not already a beta tester, records the Apple ID as a beta tester in the anchor (both tiers) and logs. Called from AppLaunchTasks.prepareEntitlementGate (before the gate) and from boot().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:storekit.lastKnownTestFlight",
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "legacy TestFlight flag not set",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "cached anchor already isBetaTester",
+     "effect": "returns; otherwise recordBetaTester"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "05e93b4b6b00deb7",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "285d9d6e9a00f1ff",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func migrateLegacyTestFlightFlag(now:)",
+   "hash": "c0c09c6df61ee8de",
+   "does": "If the legacy storekit.lastKnownTestFlight flag is true and the cached anchor is not already a beta tester, records the Apple ID as a beta tester in the anchor (both tiers) and logs. Called from AppLaunchTasks.prepareEntitlementGate (before the gate) and from boot().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:storekit.lastKnownTestFlight",
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "legacy TestFlight flag not set",
+     "effect": "returns"
+    },
+    {
+     "at": "+2",
+     "cond": "cached anchor already isBetaTester",
+     "effect": "returns; otherwise recordBetaTester"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "e38f5e43d8f8feb2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "deinit ",
+   "hash": "dc38ebd0c590ef95",
+   "does": "Cancels the transaction listener task (never runs for the static singleton).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func loadProducts()",
+   "hash": "50c37aed43536f51",
+   "does": "Fetches both products from the App Store and sets product/trialProduct and the unavailable flags; on error marks both unavailable.",
+   "entry": null,
+   "calls": [
+    "ext:StoreKit.Product.products(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "net:App Store (StoreKit 2)"
+   ],
+   "writes": [
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct",
+    "mem:StoreKitManager.productsUnavailable",
+    "mem:StoreKitManager.trialUnavailable"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "paywallEnabled false",
+     "effect": "returns without contacting StoreKit"
+    },
+    {
+     "at": "+8",
+     "cond": "Product.products throws",
+     "effect": "productsUnavailable and trialUnavailable set true, error logged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func purchase()",
+   "hash": "c96c20a1e98e7ac0",
+   "does": "Buys the lifetime unlock: does nothing while the paywall is disabled; otherwise gets the product via loaded(\\.product) (loading it if needed; nil with 'Unable to load product' already shown) and buys it via buy(_:handle:) with handle. Called from PaywallView purchase button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "paywallEnabled false, or loaded(\\.product) nil",
+     "effect": "returns (loaded already set the error when the product is unavailable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "ab0c9eabda8a9cae",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "e329aa54bcf75960"
+   }
+  },
+  {
+   "key": "func buy(_:handle:)",
+   "hash": "c17c29202490db5c",
+   "does": "Shared purchase path: sets isPurchasing (cleared on exit via defer), awaits product.purchase() and passes the result to the given handler (handle for the lifetime unlock, handleTrial for the trial). StoreKitError.userCancelled (backing out of the Apple ID sign-in) returns silently; any other thrown error (from purchase or the handler, e.g. an unverified transaction) sets errorMessage 'Purchase failed. Please try again.' and logs the product id and error.",
+   "entry": null,
+   "calls": [
+    "ext:StoreKit.Product.purchase",
+    "dyn:handle parameter (handle(_:) from purchase, handleTrial(_:) from startFreeTrial)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "net:App Store (StoreKit 2)"
+   ],
+   "writes": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "StoreKitError.userCancelled thrown",
+     "effect": "returns silently"
+    },
+    {
+     "at": "+7",
+     "cond": "any other error",
+     "effect": "errorMessage 'Purchase failed', logged with product id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "e3656343c85219cc",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "9448035434dd0b63",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func loaded(_:)",
+   "hash": "e4d95bb79d4fe113",
+   "does": "Returns the product at keyPath (\\.product or \\.trialProduct), calling loadProducts() first when it is nil; when it is still nil after that, sets errorMessage 'Unable to load product. Check your connection and try again.' and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct"
+   ],
+   "writes": [
+    "mem:StoreKitManager.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "product at keyPath nil",
+     "effect": "await loadProducts()"
+    },
+    {
+     "at": "+2",
+     "cond": "still nil after loading",
+     "effect": "sets errorMessage, returns nil; else returns the product"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
+   }
+  },
+  {
+   "key": "func handle(_:)",
+   "hash": "e65cd6569cb43d08",
+   "does": "Handles a purchase result: success → verify, finish transaction, refreshStatus; pending → Ask-to-Buy notice; cancel/unknown → nothing. Unverified throws to the caller.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()",
+    "ext:StoreKit.Transaction.finish",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.purchaseNotice"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .success",
+     "effect": "verify (throws if unverified), finish, refreshStatus"
+    },
+    {
+     "at": "+6",
+     "cond": "case .pending",
+     "effect": "sets waiting-for-approval purchaseNotice"
+    },
+    {
+     "at": "+10",
+     "cond": "case .userCancelled",
+     "effect": "returns"
+    },
+    {
+     "at": "+12",
+     "cond": "@unknown default",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7"
+   }
+  },
+  {
+   "key": "func startFreeTrial()",
+   "hash": "c4c54bc263f47cb5",
+   "does": "Starts the free trial: does nothing while the paywall is disabled; otherwise gets the $0 trial product via loaded(\\.trialProduct) (loading it if needed; nil with the error already shown) and buys it via buy(_:handle:) with handleTrial (isPurchasing set; cancel silent; other errors 'Purchase failed'). Called from PaywallView start-trial button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "paywall disabled or trial product unavailable",
+     "effect": "returns (loaded already set the error)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "ab0c9eabda8a9cae",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "e3656343c85219cc",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "e329aa54bcf75960"
+   }
+  },
+  {
+   "key": "func handleTrial(_:)",
+   "hash": "83bd8a952b9256a9",
+   "does": "Handles the trial purchase result: pending → notice; success → verify, record the transaction's purchaseDate as the App Store trial start (anchor + settings), finish, refreshStatus, and if access is still not active tell the user the trial has ended.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess",
+    "ext:StoreKit.Transaction.finish",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.purchaseNotice",
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result is .pending",
+     "effect": "sets trial-waiting purchaseNotice (then returns at the next guard)"
+    },
+    {
+     "at": "+4",
+     "cond": "result is not .success",
+     "effect": "returns"
+    },
+    {
+     "at": "+9",
+     "cond": "!hasActiveAccess after refresh",
+     "effect": "sets 'free trial has ended' notice; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "8e670066c75e47a7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7"
+   }
+  },
+  {
+   "key": "func adoptStoreTrialStart(_:)",
+   "hash": "24f45563d2fd48b1",
+   "does": "Records the App Store trial start in the anchor (replacing any device start), then mirrors it into synced settings via SettingsManager.adoptTrialStart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "A StoreKit static reaches through AppDependencies.current.app.settingsManager to write settings, a hidden dependency on the global container from the purchase path.",
+     "evidence": [
+      "Emuqu/Sources/Services/StoreKitManager.swift:365"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "357fbb7428dfc716",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)": "f14ed2057ec54b1f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func restore()",
+   "hash": "3713e6a7d5db34d5",
+   "does": "Restore: AppStore.sync, then one entitlement sweep (sweepAndApply, applied unless superseded) and answers from that sweep via restoreMessage — restored, no purchase found, or could not restore when StoreKit gave no answer; nil on user cancel or paywall off; a failure message on other errors.",
+   "entry": null,
+   "calls": [
+    "ext:StoreKit.AppStore.sync",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restoreMessage(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "net:App Store (StoreKit 2)"
+   ],
+   "writes": [
+    "mem:StoreKitManager.isPurchasing"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "paywallEnabled false",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+10",
+     "cond": "userCancelled thrown",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+12",
+     "cond": "other error",
+     "effect": "log, return could-not-restore message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restoreMessage(for:)": "b496d778746cbc09",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()": "ae449c1db734c51a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func restoreMessage(for:)",
+   "hash": "71a8612ae3db36f2",
+   "does": "Static: the Restore answer for a sweep: 'Could not restore purchases. Please try again.' when StoreKit did not answer, else 'Your purchase has been restored.' or 'No purchase of Emuqu was found for this Apple ID.' by whether it found an entitlement.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sweep inconclusive",
+     "effect": "could-not-restore"
+    },
+    {
+     "at": "+3",
+     "cond": "entitlement found",
+     "effect": "restored; else not found"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func refreshStatus()",
+   "hash": "58b02dc3bfad2d95",
+   "does": "Entitlement refresh: with the paywall off sets isPurchased = true; otherwise runs sweepAndApply. Called from boot, purchase/trial handlers, Transaction.updates, AppTransaction verification and AppLaunchTasks.refreshPurchaseEntitlementsInBackground (launch + foreground).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.isPurchased",
+    "mem:StoreKitManager.refreshGeneration"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "paywallEnabled false",
+     "effect": "isPurchased = true, return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()": "ae449c1db734c51a"
+   }
+  },
+  {
+   "key": "func sweepAndApply()",
+   "hash": "b7656a3087478348",
+   "does": "Bumps the refresh generation, awaits an entitlement sweep, applies it only if no newer refresh started meanwhile, and returns the sweep either way.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func entitlementSweep()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func apply(_:)"
+   ],
+   "reads": [
+    "mem:StoreKitManager.refreshGeneration"
+   ],
+   "writes": [
+    "mem:StoreKitManager.refreshGeneration",
+    "mem:StoreKitManager.isPurchased"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a newer refresh began while awaiting",
+     "effect": "not applied; returned"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func apply(_:)": "012d74d399b3bde2",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func entitlementSweep()": "ef7faf071ddc08c5"
+   }
+  },
+  {
+   "key": "func apply(_:)",
+   "hash": "8bc6c6941d33f364",
+   "does": "Applies a sweep: adopts any App Store trial start, sets hasTrialTransaction; if StoreKit did not answer keeps the last confirmed purchase (isPurchased = cache || bypass) and logs; otherwise sets hasPurchasedProduct, isPurchased (entitlement || bypass) and persists storekit.lastKnownPurchased.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var lastConfirmedPurchase",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:storekit.lastKnownPurchased"
+   ],
+   "writes": [
+    "ud:storekit.lastKnownPurchased",
+    "mem:StoreKitManager.isPurchased",
+    "mem:StoreKitManager.hasPurchasedProduct",
+    "mem:StoreKitManager.hasTrialTransaction",
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sweep found a trial start",
+     "effect": "adoptStoreTrialStart (anchor + settings); otherwise skipped"
+    },
+    {
+     "at": "+5",
+     "cond": "!storeKitAnswered (inconclusive)",
+     "effect": "isPurchased = lastConfirmedPurchase || hasBypassGrant, hasPurchasedProduct untouched, return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "8e670066c75e47a7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "a1516a60a8eef2af",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var lastConfirmedPurchase": "c5f47428b44936b4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var lastConfirmedPurchase",
+   "hash": "c7b70386bcb94c76",
+   "does": "Reads storekit.lastKnownPurchased.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:storekit.lastKnownPurchased"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func entitlementSweep()",
+   "hash": "90a2eeae2f9daa0b",
+   "does": "Iterates Transaction.currentEntitlements: marks answered, ORs grantsEntitlement, takes the first trial purchaseDate; if nothing came back, Transaction.latest(for: unlock) also counts as answered (refund case); hasTrialTransaction = trial start found or Transaction.latest(for: trial) exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func grantsEntitlement(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func trialStartDate(_:)",
+    "ext:StoreKit.Transaction.currentEntitlements",
+    "ext:StoreKit.Transaction.latest(for:)"
+   ],
+   "reads": [
+    "net:App Store (StoreKit 2)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each current entitlement",
+     "effect": "storeKitAnswered = true, entitlement and trial start accumulated"
+    },
+    {
+     "at": "+5",
+     "cond": "trialStart already found",
+     "effect": "keeps first; otherwise this result's trial date"
+    },
+    {
+     "at": "+11",
+     "cond": "no entitlements and an unlock transaction exists",
+     "effect": "storeKitAnswered = true; otherwise unchanged"
+    },
+    {
+     "at": "+14",
+     "cond": "trialStart found",
+     "effect": "hasTrialTransaction = true; else asks Transaction.latest(for: trialProductId)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func grantsEntitlement(_:)": "b5f3745df112e61e",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func trialStartDate(_:)": "7315789c1639b2b9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latest": "5e42751419956bc4"
+   }
+  },
+  {
+   "key": "func trialStartDate(_:)",
+   "hash": "ffd95c4cb0e30741",
+   "does": "Purchase date of a verified trial-product transaction; nil for unverified or other products.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not verified or not the trial product",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func grantsEntitlement(_:)",
+   "hash": "7fa073eea893cc24",
+   "does": "True when the verified transaction is the lifetime unlock and not revoked; unverified payloads are logged and count as false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "checkVerified throws",
+     "effect": "logs 'Unverified transaction skipped', returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var hasBypassGrant",
+   "hash": "d6fc3a7888cbff5d",
+   "does": "True for a permanent grant, else (unless -UITests-ForcePaywall) when the trial is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hasPermanentGrant",
+     "effect": "returns true; otherwise !forcesPaywall && isTrialActive"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant": "99229b542fd0154b",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "f481fc574ba5ca83",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "4e4f0ca729be0f84"
+   }
+  },
+  {
+   "key": "var hasPermanentGrant",
+   "hash": "0c319f66611d9c6f",
+   "does": "Permanent no-purchase grant: DEBUG debug grant; false under -UITests-ForcePaywall; else grandfathered beta tester (production install) or developer install (DEBUG or verified Xcode).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasDebugGrant",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester"
+   ],
+   "reads": [
+    "ud:debug_isPurchased",
+    "ud:storekit.verifiedXcodeInstall",
+    "ud:storekit.verifiedProductionInstall",
+    "ud:entitlement.anchor.v1"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "DEBUG and debug grant set",
+     "effect": "returns true"
+    },
+    {
+     "at": "+4",
+     "cond": "forcesPaywall",
+     "effect": "returns false; otherwise isGrandfatheredBetaTester || isDeveloperInstall"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasDebugGrant": "5ed91678fb037cad",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester": "0e2bace7ba6b3827",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "4e4f0ca729be0f84"
+   }
+  },
+  {
+   "key": "func listenForTransactions()",
+   "hash": "a379b5475260edff",
+   "does": "Starts a detached task that for-awaits Transaction.updates and forwards each to finishVerifiedUpdate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func finishVerifiedUpdate(_:)",
+    "ext:StoreKit.Transaction.updates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each Transaction.updates element",
+     "effect": "finishVerifiedUpdate (self weak; nil after release)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func finishVerifiedUpdate(_:)": "ed9cb2d017b7c411"
+   }
+  },
+  {
+   "key": "func finishVerifiedUpdate(_:)",
+   "hash": "7548d4b831663d59",
+   "does": "Verifies a transaction update, finishes it and refreshes status; unverified updates are logged and skipped.",
+   "entry": "StoreKit Transaction.updates (refunds, Ask-to-Buy approvals, family sharing changes) via listenForTransactions",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()",
+    "ext:StoreKit.Transaction.finish",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "checkVerified throws",
+     "effect": "logs and skips the update (not finished)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var isTrialActive",
+   "hash": "6dee4ec9928af4f4",
+   "does": "Whether the free trial is running: TrialPolicy.isActive over trialClock (start, now).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "anchor has no trial start",
+     "effect": "falls back to settings.trialStartDate (nil → inactive)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "1a24752dd983fe9f"
+   }
+  },
+  {
+   "key": "var trialClock",
+   "hash": "c173d8535e1025fa",
+   "does": "Static: the one resolution of the trial clock — start = anchor cache trial start, else settings.trialStartDate; now = effectiveNow (wall clock, never before the anchor's high-water mark).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "anchor has no trial start",
+     "effect": "settings.trialStartDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "05e93b4b6b00deb7",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var localTrialStart",
+   "hash": "b6b4f59ffc69d44e",
+   "does": "Trial start kept on this device: trialClock.start. Only used by hasTrialStarted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "1a24752dd983fe9f"
+   }
+  },
+  {
+   "key": "var hasTrialStarted",
+   "hash": "f383bc3ca9308052",
+   "does": "localTrialStart != nil. Read by PaywallView (canStartTrial input and expired-trial copy).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var localTrialStart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var localTrialStart": "d35fe2b96dac8cef"
+   }
+  },
+  {
+   "key": "var trialDaysRemaining",
+   "hash": "eb6e302c6dc6e348",
+   "does": "Days left in the trial: TrialPolicy.daysRemaining over trialClock; read by PaywallView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same computation as SettingsManager.trialDaysRemaining (which the launch gate uses) — the copy is in SettingsManager, outside this file (handed off: it should read StoreKitManager.trialDaysRemaining or a shared resolver).",
+     "evidence": [
+      "Emuqu/Sources/Services/StoreKitManager.swift:611",
+      "Emuqu/Sources/Models/SettingsManager.swift:405"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "1a24752dd983fe9f"
+   }
+  },
+  {
+   "key": "var hasActiveAccess",
+   "hash": "b10ae1bb8b00bde1",
+   "does": "isPurchased || hasBypassGrant — access by any route. Read by EmuquApp, PaywallView and AppLaunchTasks.presentPaywallIfNowRequired.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "AppLaunchTasks.hasAccess is a second derivation of 'access by any route' with different inputs (SettingsManager.isInTrialPeriod instead of isTrialActive, and no DEBUG debug grant), so the launch gate and hasActiveAccess are two copies that must be kept in step.",
+     "evidence": [
+      "Emuqu/Sources/Services/StoreKitManager.swift:627",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:700"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "a1516a60a8eef2af"
+   }
+  },
+  {
+   "key": "var hasPermanentAccess",
+   "hash": "16d3b75172cd1d52",
+   "does": "hasPurchasedProduct || hasPermanentGrant (no trial). Read by PaywallView and AppLaunchTasks.paywallModal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant": "99229b542fd0154b"
+   }
+  },
+  {
+   "key": "var isGrandfatheredBetaTester",
+   "hash": "0f03f48ad8f21a75",
+   "does": "Anchored beta tester (cache) AND storekit.verifiedProductionInstall set, via PaywallGatePolicy.grantsBetaTesterAccess.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "ud:storekit.verifiedProductionInstall"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "05e93b4b6b00deb7",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)": "41b659749437d085"
+   }
+  },
+  {
+   "key": "func recordVerifiedEnvironment(_:)",
+   "hash": "115102ba755f4f44",
+   "does": "From a verified AppTransaction environment, sets or clears the verified-Xcode and verified-production flags (unknown environments change nothing).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedProductionInstall(for:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func setVerifiedFlag(_:forKey:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storekit.verifiedXcodeInstall",
+    "ud:storekit.verifiedProductionInstall"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "verifiedXcodeInstall returns non-nil",
+     "effect": "sets/clears the Xcode flag"
+    },
+    {
+     "at": "+5",
+     "cond": "verifiedProductionInstall returns non-nil",
+     "effect": "sets/clears the production flag"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func setVerifiedFlag(_:forKey:)": "a5b14e5286173f2a",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedProductionInstall(for:)": "6a940270930c94ec",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)": "69cdf6edf12aa185",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func setVerifiedFlag(_:forKey:)",
+   "hash": "c6e98c1c92da96a4",
+   "does": "Sets the key true or removes it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:storekit.verifiedXcodeInstall",
+    "ud:storekit.verifiedProductionInstall"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "verified",
+     "effect": "set true; otherwise removeObject"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func verifiedProductionInstall(for:)",
+   "hash": "4856cfdbb69a4e88",
+   "does": "Environment → production flag: production true, sandbox/xcode false, unknown nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .production",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "case .sandbox, .xcode",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "nil (no change)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func verifiedXcodeInstall(for:)",
+   "hash": "0111986b11629a48",
+   "does": "Environment → Xcode flag: xcode true, production false, other (sandbox) nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .xcode",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "case .production",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func verifyAppTransactionInBackground()",
+   "hash": "fc1f146beb1a1311",
+   "does": "Spawns a detached utility task running verifyAppTransactionWithRetries; when that reports a verified environment, refreshes the entitlement on this manager (weakly captured), so a route the launch gate could not yet see flips isPurchased and takes down the paywall.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "verifyAppTransactionWithRetries returns false (unverified, or every attempt failed)",
+     "effect": "returns without refreshing; true: await self?.refreshStatus() (no-op if the manager is gone)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()": "f2a11afeaf554ecf"
+   }
+  },
+  {
+   "key": "func verifyAppTransactionWithRetries()",
+   "hash": "f876816f0a7a7bea",
+   "does": "Static: tries verifyAppTransaction at 0, 30, 120 and 600 s, stopping at the first attempt AppTransaction answers, so a lookup that fails (offline launch after a reinstall or on a new phone) is retried within the process. Returns true when the answer was verified, false when it was unverified or every attempt failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "delay > 0",
+     "effect": "sleep first"
+    },
+    {
+     "at": "+3",
+     "cond": "AppTransaction answered (non-nil)",
+     "effect": "return its verified/unverified Bool"
+    },
+    {
+     "at": "+5",
+     "cond": "all attempts failed",
+     "effect": "return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()": "fb8369a454caf6f0",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func verifyAppTransaction()",
+   "hash": "6b6ddb938bcae468",
+   "does": "Awaits AppTransaction.shared: verified → record environment flags, return true (the caller refreshes the entitlement); unverified → set legacy TestFlight flag false, log, return false. Lookup error → logged, state unchanged, returns nil so the caller retries.",
+   "entry": null,
+   "calls": [
+    "ext:StoreKit.AppTransaction.shared",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func recordVerifiedEnvironment(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "net:App Store (StoreKit 2)"
+   ],
+   "writes": [
+    "ud:storekit.verifiedXcodeInstall",
+    "ud:storekit.verifiedProductionInstall",
+    "ud:storekit.lastKnownTestFlight"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "verified",
+     "effect": "recordVerifiedEnvironment, return true"
+    },
+    {
+     "at": "+6",
+     "cond": "unverified",
+     "effect": "clear legacy flag, return false"
+    },
+    {
+     "at": "+11",
+     "cond": "lookup throws",
+     "effect": "log, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func recordVerifiedEnvironment(_:)": "8000c796682fd5ac",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func debugGrantAccess()",
+   "hash": "1c94ff17a98be76b",
+   "does": "DEBUG: sets isPurchased true and persists debug_isPurchased. Called by PaywallView 'Skip (Debug)'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.isPurchased",
+    "ud:debug_isPurchased"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var hasDebugGrant",
+   "hash": "5f37c439b6831bad",
+   "does": "DEBUG: reads debug_isPurchased.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:debug_isPurchased"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func checkVerified(_:)",
+   "hash": "9e3930384878e916",
+   "does": "Unwraps a VerificationResult: returns the value when verified, throws the verification error when unverified.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .unverified",
+     "effect": "throws error"
+    },
+    {
+     "at": "+4",
+     "cond": "case .verified",
+     "effect": "returns value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

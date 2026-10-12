@@ -1,0 +1,485 @@
+{
+ "file": "Emuqu/Sources/Views/PreScorePromptView.swift",
+ "hash": "51c81af033dc3c9e",
+ "role": "Full-screen subjective check before the morning score reveal: the 1–5 'How are you feeling?' question (the only answer the caller stores, as morningFeeling); reports the answer and a skipped flag to its caller and counts shown/completed/skipped in PreScorePromptTelemetry.",
+ "types": [
+  "PreScorePromptView: struct — the prompt view",
+  "PreScorePromptView.Answers: struct — the optional feeling answer",
+  "PreScorePromptView.Feeling: enum — terrible…great"
+ ],
+ "state": [
+  "@State step (0 = question, 1 = answered), answers",
+  "ud:preScorePrompt.telemetry.* (written via PreScorePromptTelemetry)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PreScorePromptView.Feeling.emoji",
+   "hash": "d0b1aa30722afa23",
+   "does": "Feeling emoji for each case.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .terrible",
+     "effect": "returns 😩"
+    },
+    {
+     "at": "+3",
+     "cond": "case .hard",
+     "effect": "returns 😕"
+    },
+    {
+     "at": "+4",
+     "cond": "case .ok",
+     "effect": "returns 😐"
+    },
+    {
+     "at": "+5",
+     "cond": "case .good",
+     "effect": "returns 🙂"
+    },
+    {
+     "at": "+6",
+     "cond": "case .great",
+     "effect": "returns 🤩"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PreScorePromptView.Feeling.label",
+   "hash": "e13621b789334068",
+   "does": "Feeling localized label for each case.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .terrible",
+     "effect": "returns Terrible"
+    },
+    {
+     "at": "+3",
+     "cond": "case .hard",
+     "effect": "returns Hard"
+    },
+    {
+     "at": "+4",
+     "cond": "case .ok",
+     "effect": "returns OK"
+    },
+    {
+     "at": "+5",
+     "cond": "case .good",
+     "effect": "returns Good"
+    },
+    {
+     "at": "+6",
+     "cond": "case .great",
+     "effect": "returns Great"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.body",
+   "hash": "25bded6b633bb88c",
+   "does": "Dark full-screen body with the scrolling prompt content, swipe-dismiss disabled; .task records a 'shown' telemetry count.",
+   "entry": "SwiftUI view-body evaluation (fullScreenCover in RecordView.swift:168); .task on appear",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.promptContent",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordShown()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.firstSeen"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordShown()": "44ca422b13986e87",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.promptContent": "cf7a37d23dcc9c75"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.promptContent",
+   "hash": "ef4385bf095f130d",
+   "does": "Pills, current question and bottom actions stacked with spacers.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.topPills",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.currentQuestion",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.bottomActions"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.bottomActions": "c09b38162965816f",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.currentQuestion": "22cb13c5e45999f2",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.topPills": "78fe4db349b5dbad"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.topPills",
+   "hash": "eb30f214bf13cf6c",
+   "does": "The feeling pill once answered.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.pill(_:)",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "feeling answered",
+     "effect": "pill; else empty row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.pill(_:)": "e2be35c7f2d9cd15",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c"
+   }
+  },
+  {
+   "key": "func PreScorePromptView.pill(_:)",
+   "hash": "80f2daffc4467149",
+   "does": "White capsule text pill.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.currentQuestion",
+   "hash": "1cd6de05c8976940",
+   "does": "The feeling question at step 0; the 'Logged.' confirmation once answered.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.feelingQuestion",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.loggedConfirmation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "step == 0",
+     "effect": "feeling question; else confirmation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.feelingQuestion": "ae9cf5c8a7892c5c",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.loggedConfirmation": "389b0178354b21c5"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.feelingQuestion",
+   "hash": "92f3920fab2f87af",
+   "does": "'How are you feeling?' with subheading and the five feeling options.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionScreen(heading:subheading:content:)",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.feelingOptions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionScreen(heading:subheading:content:)": "db4b6d04dda7ef11",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.feelingOptions": "88babc9a9236e58d"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.feelingOptions",
+   "hash": "5c4b04b6683584d3",
+   "does": "Grid of five feeling buttons.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.feelingButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.feelingButton(_:)": "b0e7b0a294c78583",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)": "d64fdc3d3e6c9b3e"
+   }
+  },
+  {
+   "key": "func PreScorePromptView.optionGrid(_:spacing:cell:)",
+   "hash": "cb32ba7a417fea27",
+   "does": "LazyVGrid with all items in one row, or two per row at accessibility sizes.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isAccessibilitySize",
+     "effect": "perRow = min(count,2); else count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptView.feelingButton(_:)",
+   "hash": "a7e33133684393fe",
+   "does": "Emoji button that stores the feeling, medium haptic (the final answer), advances to the confirmation step.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticMedium()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()": "73984112d26b0973",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)": "4ff26d068ae2a31e",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticMedium()": "71cd21c463f81df3",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.loggedConfirmation",
+   "hash": "fd9524d7708f0f39",
+   "does": "'Logged.' and 'Tap below to see your score.' text.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func PreScorePromptView.questionScreen(heading:subheading:content:)",
+   "hash": "9a2e57b1642cb802",
+   "does": "Heading block above the provided option content.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionHeading(_:subheading:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionHeading(_:subheading:)": "3cb2942dae5ad89f"
+   }
+  },
+  {
+   "key": "func PreScorePromptView.questionHeading(_:subheading:)",
+   "hash": "456a0d029b4c4676",
+   "does": "Heading text with optional subheading.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "subheading non-nil",
+     "effect": "shows subheading; else heading only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func PreScorePromptView.emojiButton(emoji:label:action:)",
+   "hash": "433143163f0edfdd",
+   "does": "Plain button with emoji and label, flexible width min 44x60, accessibility label.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.bottomActions",
+   "hash": "7939f47d3d633b0e",
+   "does": "Show-my-score section above the skip link.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.showMyScoreSection",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.showMyScoreSection": "f7c6cf8fa4fcd4a1",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeSection": "8df9947da5e3797a"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.showMyScoreSection",
+   "hash": "1afef6bb24c8b0da",
+   "does": "Once the feeling is answered, 'Show my score' button: records completed telemetry and calls onComplete(answers, false).",
+   "entry": "SwiftUI view-body evaluation; Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordCompleted()",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:onComplete → RecordView.preScoreCover applies answers and presents results"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.completedCount"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "step >= 1",
+     "effect": "shows button; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordCompleted()": "5dca8987b7d7563f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.skipThisTimeSection",
+   "hash": "98ac7028dcd74fff",
+   "does": "The skip link (skipThisTimeButton) only while the question is unanswered; after the answer 'Show my score' is the way on.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeButton"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "step == 0",
+     "effect": "link; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeButton": "02fe134c22356677"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.skipThisTimeButton",
+   "hash": "a37796ad88f8e4ea",
+   "does": "'Skip this time' link: records skipped telemetry and calls onComplete(answers, true) (no answer given).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordSkipped()",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:onComplete → RecordView.preScoreCover"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordSkipped()": "85de83b376a89ef9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func PreScorePromptView.advance()",
+   "hash": "977f3b7db4fb4973",
+   "does": "Animates step += 1 (ease-out 0.25 s).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptView.hapticMedium()",
+   "hash": "6935e522cc153828",
+   "does": "Fires a medium UIImpactFeedbackGenerator.",
+   "entry": null,
+   "calls": [
+    "ext:UIImpactFeedbackGenerator"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

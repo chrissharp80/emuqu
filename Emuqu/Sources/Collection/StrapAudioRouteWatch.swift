@@ -1,12 +1,14 @@
 import AVFoundation
 import Foundation
 
-/// Logs AVAudioSession route changes that happen while the strap is live.
+/// Logs AVAudioSession route changes that happen while the strap is linked
+/// or a session is buffering on it.
 ///
 /// Users report the strap dropping when another app activates AirPods:
 /// Bluetooth A2DP/HFP renegotiation can briefly preempt BLE on the shared
 /// radio. The disconnect auto-reconnects, so the only thing missing is proof
-/// of the correlation — every route change during a live stream prints the
+/// of the correlation — every route change while the strap is linked (its
+/// heart-rate feed runs whenever it is) or streaming prints the
 /// reason and the previous route, so "AirPods → strap drop" can be confirmed
 /// from a field log rather than guessed at.
 ///
@@ -38,13 +40,14 @@ enum StrapAudioRouteWatch {
         }
     }
 
-    /// Silent unless the strap is actually live — a route change with no
-    /// session running is just the phone being a phone.
+    /// Silent unless the strap is linked or a session is streaming — a route
+    /// change with no strap in play is just the phone being a phone. The
+    /// line says which of the two held.
     @MainActor
     private static func log(reasonRaw: UInt, previous prev: String, manager: PolarManager) {
         guard manager.isStreaming || manager.connectionState == .connected else { return }
         let curr = describeRoute(AVAudioSession.sharedInstance().currentRoute)
-        debugLog("[PolarManager] Audio route changed during streaming — reason=\(reasonName(reasonRaw)), previous=\(prev), current=\(curr) (will tolerate any transient BLE drop within reconnect window)")
+        debugLog("[PolarManager] Audio route changed with the strap in use (streaming=\(manager.isStreaming), linked=\(manager.connectionState == .connected)) — reason=\(reasonName(reasonRaw)), previous=\(prev), current=\(curr) (will tolerate any transient BLE drop within reconnect window)")
     }
 
     private static func reasonName(_ raw: UInt) -> String {

@@ -1,0 +1,105 @@
+{
+ "file": "EmuquTests/BreadcrumbRecorderProbeTests.swift",
+ "hash": "44c6757518d45b18",
+ "role": "Probe tests that BreadcrumbRecorder.shared (which builds a CLLocationManager and loads the persisted trail) can be constructed in the test host, reports a valid CLAuthorizationStatus, and has no active trail.",
+ "types": [
+  "BreadcrumbRecorderProbeTests: class — @MainActor XCTestCase probing the BreadcrumbRecorder singleton"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BreadcrumbRecorderProbeTests.testSharedRecorderIsConstructible()",
+   "hash": "9ac4f2e356a56e46",
+   "does": "Touches BreadcrumbRecorder.shared (forcing singleton init) and asserts it is non-nil.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.shared",
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertNotNil on a non-optional singleton reference is a tautology; the only thing actually tested is that init does not crash.",
+     "evidence": [
+      "EmuquTests/BreadcrumbRecorderProbeTests.swift:16"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "ff1740b151303993",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorderProbeTests.testAuthorizationStatusIsAKnownCase()",
+   "hash": "566aa8eccfd2dce9",
+   "does": "Asserts BreadcrumbRecorder.shared.authorizationStatus is one of the five CLAuthorizationStatus cases.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The five listed cases are every CLAuthorizationStatus case, so the assertion cannot fail for any value CoreLocation returns.",
+     "evidence": [
+      "EmuquTests/BreadcrumbRecorderProbeTests.swift:21"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "ff1740b151303993"
+   }
+  },
+  {
+   "key": "func BreadcrumbRecorderProbeTests.testActiveTrailIsNilBeforeAnyRecording()",
+   "hash": "07717776b9101b20",
+   "does": "Asserts BreadcrumbRecorder.shared.activeTrail is nil.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.shared",
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "BreadcrumbRecorder.init restores activeTrail from the on-disk breadcrumb store (Breadcrumbs/active.json) of the host app, so the test fails on any simulator/device where the app host previously recorded a trail; it shares persisted state with the app host rather than testing 'before any recording'.",
+     "evidence": [
+      "EmuquTests/BreadcrumbRecorderProbeTests.swift:26",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:102"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "ff1740b151303993",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722"
+   }
+  }
+ ],
+ "deps": {}
+}

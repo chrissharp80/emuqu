@@ -1,0 +1,95 @@
+{
+ "file": "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift",
+ "hash": "db1cefb1679f6bd7",
+ "role": "Main-actor wrapper around one UIApplication.beginBackgroundTask assertion that guarantees endBackgroundTask is called exactly once, either by the work's own end() or by the expiration handler; the handler holds the identifier token strongly, so the task is ended at expiry even if the owner dropped the assertion without end().",
+ "types": [
+  "BackgroundTaskAssertion: class (@MainActor final) — owns one BackgroundTaskToken",
+  "BackgroundTaskToken: private class (@MainActor final) — holds the UIBackgroundTaskIdentifier, shared with the expiration handler"
+ ],
+ "state": [
+  "token: BackgroundTaskToken (instance; also captured strongly by the expiration handler)",
+  "BackgroundTaskToken.identifier: UIBackgroundTaskIdentifier (starts .invalid)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "init BackgroundTaskAssertion(name:onExpire:)",
+   "hash": "326efaaf0be1fae6",
+   "does": "Begins a named UIKit background task, storing its identifier in the token; the expiration handler (main thread, assumed MainActor) holds the token strongly, logs a warning via debugLog, runs the caller's onExpire (e.g. MorningProcessingService sets skipSleepWait) and then ends the task through the token, whether or not the assertion object is still alive.",
+   "entry": null,
+   "calls": [
+    "ext:UIApplication.beginBackgroundTask(withName:expirationHandler:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "closure:onExpire supplied by MorningProcessingService.processOvernightData (sets skipSleepWait = true) or the default no-op from WorkoutRecorder stop / EmuquApp auto-archive",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundTaskToken.identifier"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test in EmuquTests references BackgroundTaskAssertion; the exactly-once end() contract (expiry then completion, or the reverse) that keeps iOS from killing the app is unverified.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:16",
+      "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:28"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()": "df6c76e6e0de16d4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BackgroundTaskAssertion.end()",
+   "hash": "cff70202f87e28f6",
+   "does": "Ends the background task through the token (no-op when already ended).",
+   "entry": "Called by the owner's `defer` (MorningProcessingService, WorkoutRecorder+Stop, EmuquApp.autoArchivePendingSession).",
+   "calls": [
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()"
+   ],
+   "reads": [
+    "mem:BackgroundTaskToken.identifier"
+   ],
+   "writes": [
+    "mem:BackgroundTaskToken.identifier"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()": "df6c76e6e0de16d4"
+   }
+  },
+  {
+   "key": "func BackgroundTaskToken.end()",
+   "hash": "f360469652e0b52f",
+   "does": "Ends the background task if one is held and resets the identifier to .invalid; a second call is a no-op.",
+   "entry": "Called by BackgroundTaskAssertion.end() and by the iOS expiration handler installed in BackgroundTaskAssertion.init.",
+   "calls": [
+    "ext:UIApplication.endBackgroundTask"
+   ],
+   "reads": [
+    "mem:BackgroundTaskToken.identifier"
+   ],
+   "writes": [
+    "mem:BackgroundTaskToken.identifier"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "identifier == .invalid (already ended, or beginBackgroundTask returned .invalid)",
+     "effect": "true: return without calling UIKit; false: call endBackgroundTask and set .invalid."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

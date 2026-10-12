@@ -1,0 +1,755 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift",
+ "hash": "abb8c142bd2be916",
+ "role": "The five-point 'How do you feel this morning?' prompt opened from the Dashboard feeling chip (not the pre-score prompt, which is PreScorePromptView), with optional Body/Mind tag chips for low feelings, a private wrapping FlowLayout for chips, the MorningFeelingDisplay emoji/label/colour lookup, and the compact display-only MorningFeelingBadge.",
+ "types": [
+  "MorningFeelingPrompt: struct (View) — feeling picker; 3-5 auto-commit after 1 s, 1-2 reveal tags and require Done",
+  "MorningFeelingPrompt.TagChipChrome: struct (ViewModifier, private) — selected/unselected chip background and border",
+  "FlowLayout: struct (Layout, private) — wraps chips onto new rows",
+  "MorningFeelingDisplay: enum — feeling → emoji/label/colour lookup used by prompt, badge and WorkoutFeelingPrompt",
+  "MorningFeelingBadge: struct (View) — display-only emoji + 'Felt <label>' badge"
+ ],
+ "state": [
+  "mem:MorningFeelingPrompt.selected (@State Int?)",
+  "mem:MorningFeelingPrompt.selectedTags (@State Set<MorningFeelingTag>)",
+  "mem:MorningFeelingPrompt.pendingCommit (@State DispatchWorkItem?)"
+ ],
+ "toplevel": "FlowLayout.spacing defaults to 6; MorningFeelingPrompt.existingTags defaults to []. MorningFeelingPrompt is constructed by DashboardMorningFeelingChip.swift:42 and StateSnapshotTests.swift:123.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "MorningFeelingDisplay is the prompt's and badge's mapping, but DashboardMorningFeelingChip keeps its own 1-5 emoji/label table (with 'Felt good' for 4 where MorningFeelingDisplay says 'Good'), so the dashboard chip and the prompt/badge can drift (handoff from fix batch b22).",
+   "evidence": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:308",
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift:21"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The 1-5 morning feeling is collected by two separate UIs: this prompt and PreScorePromptView (stored through RecordView.applyMorningFeelingAnswers), with separate value mappings.",
+   "evidence": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:15",
+    "Emuqu/Sources/Views/RecordView+Results.swift:100"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var MorningFeelingPrompt.feelings",
+   "hash": "0909c673d382db23",
+   "does": "Builds the five (value, emoji, label) tuples for feelings 1-5 from MorningFeelingDisplay on every read (follows in-app language switches).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "18b4003425849fee",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.showTags",
+   "hash": "56f348fbf1fa5cb1",
+   "does": "True when a feeling is selected and it is 1 or 2 (shows tag chips and the Done button).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:MorningFeelingPrompt.selected"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "guard selected != nil",
+     "effect": "nothing selected → false; else selected <= 2"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningFeelingPrompt.body",
+   "hash": "500c3b1dce134784",
+   "does": "Card with the title (promptTitle: new vs edit wording), the feeling scale, tag picker and Skip/Done actions; on appear preselects the existing feeling and tags; on disappear (including a swipe-down of the sheet) cancels any pending 1 s auto-commit so a dismissed prompt saves nothing.",
+   "entry": "SwiftUI View.body evaluation; .onAppear/.onDisappear closures run by SwiftUI",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.promptTitle",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingTagPicker",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingPromptActions"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningFeelingPrompt.selected",
+    "mem:MorningFeelingPrompt.selectedTags",
+    "mem:MorningFeelingPrompt.pendingCommit"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "existing feeling present (onAppear)",
+     "effect": "selected = existing; else no preselection"
+    },
+    {
+     "at": "+15",
+     "cond": "existingTags non-empty (onAppear)",
+     "effect": "selectedTags seeded; else empty set kept"
+    },
+    {
+     "at": "+19",
+     "cond": "view disappears",
+     "effect": "pending auto-commit cancelled (no-op when none)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingPromptActions": "d9abce7e9b94dcaf",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale": "d2432b6244dc9c12",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingTagPicker": "0ec287417ad96387",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.promptTitle": "84d4a41d3940ce0a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.promptTitle",
+   "hash": "58f63c11762b9bb6",
+   "does": "The prompt's semibold subheadline title: 'How do you feel this morning?' for a new answer, 'Change your feeling' when editing an existing one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "existing == nil",
+     "effect": "new answer → 'How do you feel this morning?'; editing → 'Change your feeling'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.feelingScale",
+   "hash": "d4ff84d434a001ff",
+   "does": "HStack of one feelingButton per feeling 1-5.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelings",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingButton(_:)": "7e82efb13b424707",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelings": "266c625cab1f7122"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.feelingButton(_:)",
+   "hash": "c9551cd7d7488a08",
+   "does": "Plain button that calls tapFeeling(value), labelled by feelingLabel, with accessibility label and isSelected trait when chosen.",
+   "entry": "Button action invoked by user tap",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selected == feeling.value",
+     "effect": "traits [.isButton, .isSelected]; else .isButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingLabel(_:)": "8b4707ece7ca7fc8",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)": "aeed680de005e329"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.feelingTagPicker",
+   "hash": "307fa1433a3f402c",
+   "does": "Shows tagSection with an opacity+move transition only when showTags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.tagSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showTags",
+     "effect": "feeling 1-2 → tag chips shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags": "6239a3ef55be16fd",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.tagSection": "f52b36b0e9ad7189"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.feelingPromptActions",
+   "hash": "77576082753088fb",
+   "does": "HStack of the Skip/Cancel and Done buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.skipFeelingButton",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.doneFeelingButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.doneFeelingButton": "208fc2d70c97e8f6",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.skipFeelingButton": "7f0506d262ba2089"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.skipFeelingButton",
+   "hash": "5228b74831dec232",
+   "does": "Button that cancels any pending auto-commit and calls onSkip; labelled Skip for a new answer or Cancel when editing.",
+   "entry": "Button tap",
+   "calls": [
+    "closure:onSkip set by DashboardMorningFeelingChip (dismisses the sheet)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "existing == nil",
+     "effect": "'Skip'; editing → 'Cancel' (existing value kept because nothing is committed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.doneFeelingButton",
+   "hash": "8d17839333f13f07",
+   "does": "Shows a Done button (calls commitExplicit) only when the tag picker is open.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.commitExplicit()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showTags",
+     "effect": "feeling 1-2 → Spacer + Done; feelings 3-5 rely on the auto-commit timer, no Done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.commitExplicit()": "55ccf92a03597c77",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags": "6239a3ef55be16fd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.feelingLabel(_:)",
+   "hash": "8d92881c92e43f4d",
+   "does": "Emoji (scaled 28pt) above the label, primary text colour and tinted background when selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selected == feeling.value (text colour)",
+     "effect": "textPrimary; else textTertiary"
+    },
+    {
+     "at": "+15",
+     "cond": "selected == feeling.value (background)",
+     "effect": "feeling colour at 15% opacity; else clear"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)": "42440404b74801a1",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.tagSection",
+   "hash": "02efb47b44ce3584",
+   "does": "Divider, Body and Mind chip rows filtered from MorningFeelingTag.allCases by cluster, and an 'Optional' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipRow(title:tags:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.cluster",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.cluster": "84f5f488ff069969",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipRow(title:tags:)": "321e3cbfe14adcd9",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "6117be36341144ca",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.chipRow(title:tags:)",
+   "hash": "e020a8fb0309c5f6",
+   "does": "Uppercased cluster title over a chipFlow of the tags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipFlow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipFlow(_:)": "2c9ced7704163b1a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.chipFlow(_:)",
+   "hash": "80ff248ac693f3fb",
+   "does": "FlowLayout(spacing: 6) containing one tagChip per tag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChip(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChip(_:)": "ef0ba79dd028ac40"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.tagChip(_:)",
+   "hash": "e1cabf0aab415b0f",
+   "does": "Plain button toggling the tag, labelled by tagChipLabel, with isSelected trait when on.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.toggle(_:isOn:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChipLabel(_:isOn:)"
+   ],
+   "reads": [
+    "mem:MorningFeelingPrompt.selectedTags"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isOn",
+     "effect": "adds .isSelected trait; else no extra trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChipLabel(_:isOn:)": "cef46172221f76e3",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.toggle(_:isOn:)": "69e2792a96f255d9"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.toggle(_:isOn:)",
+   "hash": "78c0c5afda3aa1b3",
+   "does": "Animated insert/remove of the tag in selectedTags.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:MorningFeelingPrompt.selectedTags"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isOn",
+     "effect": "remove tag; else insert tag"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MorningFeelingPrompt.tagChipLabel(_:isOn:)",
+   "hash": "594da8064d288cc4",
+   "does": "Chip label: tag emoji + localized label, padded, styled by TagChipChrome.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.emoji",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.localizedLabel",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.TagChipChrome.body(content:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isOn",
+     "effect": "label textPrimary; else textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.emoji": "4ecab369fbbb86f1",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.localizedLabel": "179605d421a5d05a",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.TagChipChrome.body(content:)": "cef594c083fc729d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.TagChipChrome.body(content:)",
+   "hash": "1b223dc22da35f63",
+   "does": "Applies chip background (primary 15% when on, sectionTint when off), a 14pt rounded border (primary 50% when on, clear when off) and corner radius.",
+   "entry": "ViewModifier.body called by SwiftUI via .modifier(TagChipChrome)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isOn (background)",
+     "effect": "primary.opacity(0.15); else AppTheme.sectionTint"
+    },
+    {
+     "at": "+5",
+     "cond": "isOn (border)",
+     "effect": "primary.opacity(0.5) stroke; else clear"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.tapFeeling(_:)",
+   "hash": "0f51e9153d3b5f62",
+   "does": "Selects the tapped feeling (clearing tags for 3-5), cancels any pending commit, and for 3-5 schedules onSelect(value, []) on the main queue after 1 s via a cancellable DispatchWorkItem (cancelled by re-tap, Skip/Cancel, Done, or the prompt disappearing); 1-2 wait for Done.",
+   "entry": null,
+   "calls": [
+    "closure:onSelect set by DashboardMorningFeelingChip (persists feeling + tags, closes sheet)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningFeelingPrompt.selected",
+    "mem:MorningFeelingPrompt.selectedTags",
+    "mem:MorningFeelingPrompt.pendingCommit"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "value >= 3 (inside animation)",
+     "effect": "clear selectedTags; else tags kept"
+    },
+    {
+     "at": "+10",
+     "cond": "value >= 3 (commit)",
+     "effect": "schedule 1 s auto-commit with no tags; 1-2 → no commit, tag section shown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "func MorningFeelingPrompt.commitExplicit()",
+   "hash": "d09aa772f198c258",
+   "does": "Cancels any pending commit and calls onSelect with the selected value and, for 1-2, the selected tags.",
+   "entry": null,
+   "calls": [
+    "closure:onSelect set by DashboardMorningFeelingChip"
+   ],
+   "reads": [
+    "mem:MorningFeelingPrompt.selected",
+    "mem:MorningFeelingPrompt.selectedTags"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "guard selected != nil",
+     "effect": "nothing selected → no-op"
+    },
+    {
+     "at": "+3",
+     "cond": "value <= 2",
+     "effect": "tags = Array(selectedTags); else []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FlowLayout.sizeThatFits(proposal:subviews:cache:)",
+   "hash": "529553d0743d782f",
+   "does": "Returns the flow layout's total size for the proposed width (infinite when unspecified).",
+   "entry": "SwiftUI Layout protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "proposal.width ?? .infinity",
+     "effect": "proposed width, else unbounded (single row)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)": "eafe472bebff040d"
+   }
+  },
+  {
+   "key": "func FlowLayout.placeSubviews(in:proposal:subviews:cache:)",
+   "hash": "33bb0be57faaea4e",
+   "does": "Computes frames for bounds.width and places each subview at bounds origin + frame origin with the frame size.",
+   "entry": "SwiftUI Layout protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each computed frame",
+     "effect": "place subview idx; zero subviews → nothing placed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)": "eafe472bebff040d"
+   }
+  },
+  {
+   "key": "func FlowLayout.layout(subviews:maxWidth:)",
+   "hash": "54a261d2e88ad4dc",
+   "does": "Greedy row wrap: measures each subview's ideal size, starts a new row when it would exceed maxWidth (unless at row start), and returns the bounding size and frames.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each subview",
+     "effect": "measure and place in current row"
+    },
+    {
+     "at": "+9",
+     "cond": "x + width > maxWidth AND x > 0",
+     "effect": "wrap to next row (y += rowHeight + spacing); else stay on row (an oversize first chip overflows)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MorningFeelingDisplay.emoji(for:)",
+   "hash": "e1c1f92538371a08",
+   "does": "Maps feeling 1-5 to emoji (weary, confused, neutral, smiling, fire); any other value → neutral.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case 1",
+     "effect": "U+1F629"
+    },
+    {
+     "at": "+3",
+     "cond": "case 2",
+     "effect": "U+1F615"
+    },
+    {
+     "at": "+4",
+     "cond": "case 3",
+     "effect": "U+1F610"
+    },
+    {
+     "at": "+5",
+     "cond": "case 4",
+     "effect": "U+1F60A"
+    },
+    {
+     "at": "+6",
+     "cond": "case 5",
+     "effect": "U+1F525"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "U+1F610 neutral for out-of-range"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MorningFeelingDisplay.label(for:)",
+   "hash": "d622281e3c602d6a",
+   "does": "Maps feeling 1-5 to localized Terrible/Poor/OK/Good/Great; other → OK.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case 1",
+     "effect": "Terrible"
+    },
+    {
+     "at": "+3",
+     "cond": "case 2",
+     "effect": "Poor"
+    },
+    {
+     "at": "+4",
+     "cond": "case 3",
+     "effect": "OK"
+    },
+    {
+     "at": "+5",
+     "cond": "case 4",
+     "effect": "Good"
+    },
+    {
+     "at": "+6",
+     "cond": "case 5",
+     "effect": "Great"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "OK"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MorningFeelingDisplay.color(for:)",
+   "hash": "d3d1bcef037c8a74",
+   "does": "Maps feeling to colour: 1 dustyRose, 2 terracotta, 3 softGold, 4-5 sage, other textSecondary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case 1",
+     "effect": "dustyRose"
+    },
+    {
+     "at": "+3",
+     "cond": "case 2",
+     "effect": "terracotta"
+    },
+    {
+     "at": "+4",
+     "cond": "case 3",
+     "effect": "softGold"
+    },
+    {
+     "at": "+5",
+     "cond": "case 4",
+     "effect": "sage"
+    },
+    {
+     "at": "+6",
+     "cond": "case 5",
+     "effect": "sage"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MorningFeelingBadge.body",
+   "hash": "cea1c6d1ee4031d5",
+   "does": "Display-only HStack: the feeling's emoji and 'Felt <label>' in caption sizes.",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "18b4003425849fee",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

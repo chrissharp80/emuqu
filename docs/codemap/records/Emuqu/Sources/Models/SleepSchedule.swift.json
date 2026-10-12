@@ -1,0 +1,301 @@
+{
+ "file": "Emuqu/Sources/Models/SleepSchedule.swift",
+ "hash": "e19f15f8373cbf79",
+ "role": "SleepSchedule value type (bedtime hour/minute + sleep hours) with all derived overnight/morning/daytime/nap window arithmetic relative to a reference date.",
+ "types": [
+  "SleepSchedule: struct — bedtime + sleep length with window helpers"
+ ],
+ "state": [],
+ "toplevel": "Struct declaration only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SleepSchedule.wakeHour",
+   "hash": "fa43a93730c30919",
+   "does": "Wake hour = ((bedtime minutes + Int(sleepHours×60)) / 60) mod 24.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepSchedule.wakeMinute",
+   "hash": "486ac5ccf7445224",
+   "does": "Wake minute = (bedtime minutes + Int(sleepHours×60)) mod 60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepSchedule.overnightWindowStart(relativeTo:)",
+   "hash": "cb5ea54f1c76b438",
+   "does": "Overnight window anchor: bedtime − 2 h on the wall clock (minutes since midnight minus 120, on the previous day when negative) on date's calendar day, moved back a day if after date, then forward a day if more than 18 h before date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "anchor minute negative (bedtime before 02:00)",
+     "effect": "anchor on the previous calendar day (?? dayStart if date arithmetic fails)"
+    },
+    {
+     "at": "+8",
+     "cond": "calendar date(bySettingHour:) nil (??)",
+     "effect": "uses anchorDay"
+    },
+    {
+     "at": "+9",
+     "cond": "start > date",
+     "effect": "start moved back one day (?? keeps start)"
+    },
+    {
+     "at": "+12",
+     "cond": "date − start > 18 h",
+     "effect": "start moved forward one day (can be after date; ?? keeps start)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepSchedule.overnightWindowEnd(relativeTo:)",
+   "hash": "f31cba80cb45a620",
+   "does": "Window end = first expected wake after overnightWindowStart(date) + 4.5 h.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
+   }
+  },
+  {
+   "key": "func SleepSchedule.morningCutoff(forNightStartingAt:)",
+   "hash": "f102e6c91eb0599d",
+   "does": "Morning cutoff for a night start = first wake after nightStart + 4 h.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3"
+   }
+  },
+  {
+   "key": "func SleepSchedule.firstWake(after:)",
+   "hash": "ebae641b74ff8c4e",
+   "does": "First expected wake time strictly after start (same day's wake if later, else next day's).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "date(bySettingHour:) nil (??)",
+     "effect": "dayStart"
+    },
+    {
+     "at": "+4",
+     "cond": "wake > start",
+     "effect": "returns wake; otherwise wake + 1 day (or wake if date arithmetic nil via ??)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)": "1744802e92b59604",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func SleepSchedule.morningCutoff(relativeTo:)",
+   "hash": "903581a67b96c08d",
+   "does": "Morning cutoff for the night date belongs to.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
+   }
+  },
+  {
+   "key": "func SleepSchedule.daytimeHRStart(relativeTo:)",
+   "hash": "fb524044df2f1cac",
+   "does": "Daytime HR window start = last wake before the night's window start + 4 h.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)": "1744802e92b59604"
+   }
+  },
+  {
+   "key": "func SleepSchedule.daytimeHREnd(relativeTo:)",
+   "hash": "4dfaceb5a5555da8",
+   "does": "Daytime HR window end = night's window start + 1 h (bedtime − 1 h).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
+   }
+  },
+  {
+   "key": "func SleepSchedule.wake(before:)",
+   "hash": "abbe16ccf30927ca",
+   "does": "Last expected wake time strictly before nightStart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "date(bySettingHour:) nil (??)",
+     "effect": "dayStart"
+    },
+    {
+     "at": "+4",
+     "cond": "wake < nightStart",
+     "effect": "returns wake; otherwise wake − 1 day (or wake if arithmetic nil via ??)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func SleepSchedule.daytimeNapWindow(relativeTo:)",
+   "hash": "132698071adff64d",
+   "does": "Nap window for the waking day before the night of date: from (last wake before window start) + 4.5 h to the night's window start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)": "1744802e92b59604"
+   }
+  },
+  {
+   "key": "func SleepSchedule.isInOvernightWindow(_:)",
+   "hash": "64521a9c05b531fe",
+   "does": "True when date lies within [overnightWindowStart(date), overnightWindowEnd(date)].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only production caller is Date.isInOvernightWindow(schedule:) (Extensions.swift:107), which itself has no callers; remaining callers are tests (UserSettingsTests.swift:117,127,138).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Extensions.swift:107",
+      "EmuquTests/UserSettingsTests.swift:117"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
+   }
+  },
+  {
+   "key": "func SleepSchedule.isMorningReading(endDate:)",
+   "hash": "e1ed494aa6b5d29a",
+   "does": "True when endDate is between its night's window start and that night's morning cutoff.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
+   }
+  },
+  {
+   "key": "func SleepSchedule.nightKey(for:)",
+   "hash": "f862a036e8b5415b",
+   "does": "Start of day of the first wake after the night's window start — the per-night baseline key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
+   }
+  }
+ ],
+ "deps": {}
+}

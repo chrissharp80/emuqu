@@ -81,6 +81,13 @@ final class SessionArchive: @unchecked Sendable {
     /// Set when `index.json` exists but could not be read at launch; the
     /// in-memory index is then incomplete. Same lock contract as `index`.
     var indexReadFailed = false
+    /// Set when `index.json` read but did not decode this launch (the bytes
+    /// were moved aside and the in-memory index started empty), so the index
+    /// does not list the sessions that file held. Same lock contract as `index`.
+    var indexDecodeFailed = false
+    /// The same for `deleted.json`: the in-memory tombstones are then only
+    /// the ones with a recorded deletion time, until the file reads.
+    var deletedIndexReadFailed = false
     let fileManager = FileManager.default
     let archiveLock = NSLock()
 
@@ -93,7 +100,7 @@ final class SessionArchive: @unchecked Sendable {
     /// `DataPurgeService.purgeAllUserData`.
     private(set) var totalReadAttempts: Int = 0
     private(set) var permissionDeniedReadFailures: Int = 0
-    /// True when permission-denied failures exceed 10 over the
+    /// True when permission-denied failures reach more than 10 over the
     /// app session AND the success rate is below 50%. The
     /// Troubleshooting card surfaces a banner only when this is true,
     /// so a one-off transient EPERM doesn't alarm the user.
@@ -103,7 +110,7 @@ final class SessionArchive: @unchecked Sendable {
     var hasReadHealthIssue: Bool {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        return permissionDeniedReadFailures >= 10
+        return permissionDeniedReadFailures > 10
             && Double(permissionDeniedReadFailures) / Double(max(1, totalReadAttempts)) > 0.5
     }
     /// Locked snapshot of both read-health counters as one pair. The
@@ -226,7 +233,7 @@ final class SessionArchive: @unchecked Sendable {
         } else {
             // Fallback to temporary directory (should never happen on iOS)
             archiveDirectory = fileManager.temporaryDirectory.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
-            debugLog("[Archive] WARNING: Using temporary directory as fallback")
+            debugLog("[Archive] WARNING: Using temporary directory as fallback — iOS may purge sessions written there", level: .error)
         }
         indexFile = archiveDirectory.appendingPathComponent("index.json")
         deletedIndexFile = archiveDirectory.appendingPathComponent("deleted.json")
@@ -271,13 +278,14 @@ final class SessionArchive: @unchecked Sendable {
         logTombstoneSummary()
     }
 
-    /// A launch read of `index.json` can fail while the file is locked; by
-    /// boot it usually reads, and the sessions it lists come back for this
-    /// launch rather than the next one.
+    /// A launch read of `index.json` or `deleted.json` can fail while the
+    /// file is locked; by boot it usually reads, and the sessions and
+    /// tombstones it lists come back for this launch rather than the next one.
     private func retryFailedIndexLoad() {
         archiveLock.lock()
         defer { archiveLock.unlock() }
         attempt("Archive.retryIndexLoad") { try mergeIndexThatFailedToLoad() }
+        attempt("Archive.retryDeletedIndexLoad") { try mergeDeletedIndexThatFailedToLoad() }
     }
 
     /// Deliberately quiet. A per-tombstone dump (53 entries in the
@@ -340,7 +348,9 @@ final class SessionArchive: @unchecked Sendable {
     }
 
     /// Includes the CloudKit sync state sidecars (`sync_state.json`,
-    /// `pending_uploads.json`, `quarantined_uploads.json`). They live in the same archive directory
+    /// `pending_uploads.json`, `quarantined_uploads.json`,
+    /// `local_only_sessions.json` — every file `CloudKitSyncState` writes).
+    /// They live in the same archive directory
     /// but aren't session files; without this list the reconciler tries
     /// to decode them as HRVSession on every cold launch and logs
     /// "skipping undecodable orphan" warnings forever.
@@ -350,7 +360,8 @@ final class SessionArchive: @unchecked Sendable {
             deletedIndexFile.lastPathComponent,
             "sync_state.json",
             "pending_uploads.json",
-            "quarantined_uploads.json"
+            "quarantined_uploads.json",
+            "local_only_sessions.json"
         ]
     }
 
@@ -583,7 +594,7 @@ final class SessionArchive: @unchecked Sendable {
         do {
             archiveLock.lock()
             defer { archiveLock.unlock() }
-            guard let entry = entryById(id) else { return nil }
+            guard let entry = store.entryById(id) else { return nil }
             fileURL = resolveFileURL(for: entry)
         }
         guard fileManager.fileExists(atPath: fileURL.path) else {

@@ -1,0 +1,623 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift",
+ "hash": "b079215f3be97a5f",
+ "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
+ "types": [
+  "AssistantMemoryNamespace: extension (struct declared in AppFactResolver+AssistantMemory.swift) — contacts + email-compose entries"
+ ],
+ "state": [
+  "static let assistantContactsAddDescription (AI tool description text)",
+  "static let assistantEmailComposeParameters ([ActionParam] subject/body/category/to/cc)",
+  "static let assistantEmailComposeDescription (says the draft is staged on the email bridge, which the root view observes)"
+ ],
+ "toplevel": "Three static string/array constants used as tool descriptions/parameters; no other top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AssistantMemoryNamespace.assistantContactsListEntry",
+   "hash": "72061d859c29b734",
+   "does": "Builds the fixed fact entry `assistant.contacts.list` (valueType List) whose resolver is resolveAssistantContactsList.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsList()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsList()": "717e1bb7aac7807a",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.resolveAssistantContactsList()",
+   "hash": "84fa3197037b5f7d",
+   "does": "Reads EmailContactStore.contacts on the main actor; returns .missing(notRecorded) when empty, otherwise a list of records {id,name,email,created_at ISO8601,notes?} sorted case-insensitively by name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
+    "ext:MainActor.assumeIsolated",
+    "ext:ISO8601DateFormatter"
+   ],
+   "reads": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "contact list is empty",
+     "effect": "returns .missing(.notRecorded, 'user has no saved email contacts'); otherwise builds the sorted list"
+    },
+    {
+     "at": "+15",
+     "cond": "contact has non-empty notes",
+     "effect": "adds 'notes' field to the record; otherwise the field is omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "a4d36bd886431daf"
+   }
+  },
+  {
+   "key": "var AssistantMemoryNamespace.assistantContactsAddEntry",
+   "hash": "93ccaf80166c429b",
+   "does": "Builds the action entry `assistant.contacts.add` with params name, email, notes (optional), user_quote; executes resolveAssistantContactsAdd.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)": "6829837e75f315ea",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)",
+   "hash": "6a6789123f4cd4c5",
+   "does": "Validates name/email, requires the user_quote to appear in the latest user chat message, then adds a new EmailContact to the persistent address book and returns {status:'added',id,name,email}; when the address book can't be read (add refused) returns contactsUnreadable() instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "args['name'] is nil",
+     "effect": "?? '' — name becomes empty string, then rejected by contactInputProblem"
+    },
+    {
+     "at": "+2",
+     "cond": "args['email'] is nil",
+     "effect": "?? '' — email becomes empty string, then rejected by contactInputProblem"
+    },
+    {
+     "at": "+3",
+     "cond": "contactInputProblem returns a problem",
+     "effect": "returns that .missing(.invalidParameter) value; otherwise continues"
+    },
+    {
+     "at": "+4",
+     "cond": "user_quote is found in the latest user message",
+     "effect": "continues to add; else returns userRequestRequired('add a contact') (.missing invalidParameter)"
+    },
+    {
+     "at": "+7",
+     "cond": "addContact returned nil (address book unreadable)",
+     "effect": "returns contactsUnreadable(); nothing added"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)": "0671020fca4c8fd3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)": "8e9c84f2207712e8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()": "2f6ca542e654d1ee",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.contactInputProblem(name:email:)",
+   "hash": "4d5629f462739ffd",
+   "does": "Returns .missing(.invalidParameter) explaining why a contact cannot be saved (empty name, empty email, email lacking '@' or '.'), or nil when usable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "name is empty",
+     "effect": "returns missing 'name is required'"
+    },
+    {
+     "at": "+2",
+     "cond": "email is empty",
+     "effect": "returns missing 'email is required'"
+    },
+    {
+     "at": "+3",
+     "cond": "email contains both '@' and '.'",
+     "effect": "returns nil (valid); otherwise returns missing 'email must look like an address'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantMemoryNamespace.contactsUnreadable()",
+   "hash": "b1ff71af258f2a01",
+   "does": "The .missing(notRecorded) answer for an address book that can't be read (phone not unlocked since a restart?): nothing was changed; ask the user to unlock and try again.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantMemoryNamespace.addContact(name:email:notes:)",
+   "hash": "a821cd53fd826b78",
+   "does": "Trims notes, builds an EmailContact (notes nil when empty/absent) and adds it to EmailContactStore on the main actor (which appends and enqueues a write of email_contacts.json); returns the contact, or nil when the store refused the add because the file can't be read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trimmed notes is nil or empty (?? true when rawNotes is nil)",
+     "effect": "notes stored as nil; otherwise trimmed notes stored"
+    },
+    {
+     "at": "+8",
+     "cond": "store.add returned false",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "033d18f749ecbcae",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "a4d36bd886431daf"
+   }
+  },
+  {
+   "key": "var AssistantMemoryNamespace.assistantContactsRemoveEntry",
+   "hash": "462e866155c7fc3c",
+   "does": "Builds the action entry `assistant.contacts.remove` (params name, user_quote) executing resolveAssistantContactsRemove.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)": "91f9d559a6d1375b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)",
+   "hash": "2b9e581b582999a6",
+   "does": "Requires a non-empty name and a user_quote present in the latest user message, looks up contacts by case-insensitive name; when exactly one matches, removes it from EmailContactStore (persisted) and returns {status:'removed',name,email}, or contactsUnreadable() when the store refused because the file can't be read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)",
+    "ext:MainActor.assumeIsolated",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()"
+   ],
+   "reads": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "name arg present and non-empty after trimming",
+     "effect": "continues; else returns missing invalidParameter 'name is required'"
+    },
+    {
+     "at": "+6",
+     "cond": "user_quote found in latest user message",
+     "effect": "continues; else returns userRequestRequired('remove a contact')"
+    },
+    {
+     "at": "+10",
+     "cond": "exactly one contact matches",
+     "effect": "removes it and returns the record; else returns ambiguousContact (0 → notRecorded, >1 → invalidParameter)"
+    },
+    {
+     "at": "+14",
+     "cond": "store.remove returned false (address book unreadable)",
+     "effect": "returns contactsUnreadable(); nothing removed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)": "5856b38840ca9407",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()": "2f6ca542e654d1ee",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "d1edfcafcc796ec8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "a4d36bd886431daf"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.ambiguousContact(name:matches:)",
+   "hash": "02cd65ebf6c8e435",
+   "does": "Maps a non-unique match count to a refusal: 0 matches → .missing(.notRecorded,'no contact named …'), >1 → .missing(.invalidParameter,'multiple contacts named …').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "matches > 1",
+     "effect": "returns invalidParameter asking which one; otherwise (0) returns notRecorded"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantMemoryNamespace.assistantEmailComposeEntry",
+   "hash": "dd846f116dc69d67",
+   "does": "Builds the action entry `assistant.email.compose` with the static subject/body/category/to/cc parameters, executing resolveAssistantEmailCompose.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "c8faa335578720c4",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)",
+   "hash": "66954effff137fd8",
+   "does": "Validates non-empty trimmed subject and body, then delegates to stagedEmail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "subject present and non-empty",
+     "effect": "continues; else returns missing invalidParameter 'subject is required'"
+    },
+    {
+     "at": "+6",
+     "cond": "body present and non-empty",
+     "effect": "calls stagedEmail; else returns missing invalidParameter 'body is required'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)": "bc5cc2fe7d754af7"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.stagedEmail(subject:body:args:)",
+   "hash": "78eedbcd69cd60dd",
+   "does": "Picks category ('recovery' only when arg lowercases to 'recovery', else 'training'), resolves to/cc names via the address book, refuses on unknown/ambiguous names, fills empty to/cc from category defaults, stages the draft on AssistantEmailBridge and returns a summary record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveContacts(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactResolutionFailure(_:_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)"
+   ],
+   "reads": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:UserSettings.default*EmailRecipient/CC"
+   ],
+   "writes": [
+    "mem:AssistantEmailBridge.pendingDraft"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "args['category'] is nil",
+     "effect": "?? 'training' — default category training"
+    },
+    {
+     "at": "+1",
+     "cond": "lowercased category == 'recovery'",
+     "effect": "category 'recovery'; any other value (including typos) silently becomes 'training'"
+    },
+    {
+     "at": "+4",
+     "cond": "contactResolutionFailure returns a failure",
+     "effect": "returns it (no draft staged); else continues"
+    },
+    {
+     "at": "+8",
+     "cond": "no 'to' addresses resolved from args",
+     "effect": "uses the category default 'to' (single address) or [] when default empty; else uses resolved addresses"
+    },
+    {
+     "at": "+9",
+     "cond": "defaults.to is empty",
+     "effect": "resolvedTo = [] — composer opens with no recipient; else [defaults.to]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "8dd6f78bcdd316ee",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactResolutionFailure(_:_:)": "f861dcb5273fe95e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "152b6775bb3c5d57",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveContacts(_:)": "e3eae52210f1d8eb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)": "c64908ea9cb06511",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)": "641f11b0a7c10372",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.emailDefaults(for:)",
+   "hash": "33fa5702e4ce6463",
+   "does": "Reads the settings snapshot and returns (to, cc) for the category: to = category recipient trimmed, else resolvedDefaultEmailRecipient (recovery → training → legacy); cc = the category CC split on ',', trimmed and stripped of empty entries (so a whitespace-only or comma-only CC counts as unset), else resolvedDefaultEmailCC, joined with ','.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (defaultRecoveryEmailRecipient, defaultTrainingEmailRecipient, defaultRecoveryEmailCC, defaultTrainingEmailCC, defaultEmailRecipient, defaultEmailCC)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "category == 'recovery'",
+     "effect": "reads defaultRecoveryEmailRecipient; else defaultTrainingEmailRecipient"
+    },
+    {
+     "at": "+2",
+     "cond": "selected recipient is nil",
+     "effect": "?? '' — primary empty"
+    },
+    {
+     "at": "+8",
+     "cond": "category == 'recovery'",
+     "effect": "reads defaultRecoveryEmailCC; else defaultTrainingEmailCC"
+    },
+    {
+     "at": "+8",
+     "cond": "selected CC is nil",
+     "effect": "?? '' — categoryCC empty"
+    },
+    {
+     "at": "+16",
+     "cond": "primary is empty",
+     "effect": "to = resolvedDefaultEmailRecipient ?? ''; else primary"
+    },
+    {
+     "at": "+17",
+     "cond": "parsed categoryCC is empty",
+     "effect": "cc = resolvedDefaultEmailCC joined with ','; else categoryCC"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "privacy",
+     "sev": "low",
+     "text": "The fallbacks mix categories: a training email with no training CC configured inherits the first non-empty CC of generic → RECOVERY → training (UserSettings.resolvedDefaultEmailCC), and a missing training recipient falls back to the recovery recipient; so a workout email can be pre-addressed/CC'd to the user's recovery (e.g. clinician) contacts. User still reviews in MFMailComposeViewController before sending.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:225",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:229",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:230",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:229",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:238"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same category-recipient-then-resolvedDefault precedence is reimplemented in FitnessPostSummaryView+Share (trainingMailRecipients/trainingMailCC) and MorningResultsView (reportRecipients/reportCCRecipients); WorkoutRecorder+Metrics.swift:325 uses a different order (training → recovery → generic, no empty check).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:219",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:256",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:263",
+      "Emuqu/Sources/Views/MorningResultsView.swift:477",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:325"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "9fa516b2dcf25514",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "1a3b52db4e9c1356",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.resolveContacts(_:)",
+   "hash": "04fd206d5492cf90",
+   "does": "Trims the raw to/cc argument (nil → '') and resolves it with EmailContactStore.resolveNames on the main actor into (resolved addresses, unknown names, ambiguous names); tokens containing '@' and '.' pass through as addresses.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "raw is nil",
+     "effect": "?? '' — empty string resolves to all-empty tuple"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "a4d36bd886431daf"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.contactResolutionFailure(_:_:)",
+   "hash": "7a1b9bed7985b4ec",
+   "does": "Combines to+cc resolutions and returns .missing(.invalidParameter) naming ambiguous names first, else unknown names, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "any ambiguous names",
+     "effect": "returns invalidParameter 'ambiguous contact name(s)…'"
+    },
+    {
+     "at": "+12",
+     "cond": "any unknown names",
+     "effect": "returns invalidParameter 'unknown contact name(s)…'; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantMemoryNamespace.ccRecipients(_:fallback:)",
+   "hash": "bb72e4b7151c0006",
+   "does": "Returns the resolved cc addresses if any, otherwise splits the category default CC string on ',' into trimmed non-empty addresses.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cc resolution produced addresses",
+     "effect": "returns them; else parses the fallback CSV"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)",
+   "hash": "043b7ebe478febea",
+   "does": "On the main actor, stages an AssistantEmailDraft(subject, body, recipients, ccRecipients) on AssistantEmailBridge, setting pendingDraft which the root view observes to present the mail composer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantEmailBridge",
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantEmailBridge.pendingDraft"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)": "accba99566f6e6c2",
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)": "0196e5ee14e14193",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantEmailBridge": "d420fad2b679bd13"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)",
+   "hash": "167ebdb781789995",
+   "does": "Builds the result record {status:'staged', subject, body_chars, category, recipient (joined or '(none — composer opens blank)'), cc_count, cc list}.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "resolvedTo is empty",
+     "effect": "recipient = '(none — composer opens blank)'; else comma-joined addresses"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -25,9 +25,14 @@ import os
 /// the next launch where the key is available. Confidentiality is restored
 /// without ever putting the recording at risk.
 ///
-/// Deliberately a plain `UserDefaults` list rather than a file: it must be
-/// readable at launch, it holds no health data — only UUIDs — and it must not
-/// itself depend on the encryption that is currently broken.
+/// Each list is kept twice: under a `UserDefaults` key and in a small JSON
+/// file written without data protection. It holds no health data — only
+/// UUIDs — and it must not itself depend on the encryption that is currently
+/// broken. The file is what makes it readable at that trigger: before the first
+/// unlock after a reboot the app's preferences cannot be read and
+/// `UserDefaults` reports nothing stored, so a list loaded from there alone
+/// would come back empty and the next write would replace the stored ids with
+/// only the new ones. The loaded list is the union of both copies.
 ///
 /// Archive sessions and raw RR backups are listed apart: each store's repair
 /// pass rewrites its own files, and an encrypted write in one store says
@@ -116,12 +121,13 @@ enum PendingEncryptionLedger {
         persistQueue.sync {}
     }
 
-    /// The cached list for `store`, loaded from `UserDefaults` the first time.
-    /// A read posts no change notification, so it is safe under a caller's lock.
+    /// The cached list for `store`, loaded the first time as the union of the
+    /// `UserDefaults` copy and the file copy. Neither read posts a change
+    /// notification, so it is safe under a caller's lock.
     private static func ids(_ store: Store, in lists: inout [Store: Set<UUID>]) -> Set<UUID> {
         if let cached = lists[store] { return cached }
         let raw = UserDefaults.standard.stringArray(forKey: store.rawValue) ?? []
-        let loaded = Set(raw.compactMap(UUID.init(uuidString:)))
+        let loaded = Set(raw.compactMap(UUID.init(uuidString:))).union(fileIDs(store))
         lists[store] = loaded
         return loaded
     }
@@ -129,11 +135,44 @@ enum PendingEncryptionLedger {
     private static func schedulePersist(_ store: Store) {
         persistQueue.async {
             let ids = cache.withLockUnchecked { $0[store] ?? [] }
-            if ids.isEmpty {
+            let list = ids.map(\.uuidString).sorted()
+            if list.isEmpty {
                 UserDefaults.standard.removeObject(forKey: store.rawValue)
             } else {
-                UserDefaults.standard.set(ids.map(\.uuidString).sorted(), forKey: store.rawValue)
+                UserDefaults.standard.set(list, forKey: store.rawValue)
             }
+            persistFile(list, for: store)
+        }
+    }
+
+    /// `Application Support/PendingEncryption/<key>.json`.
+    private static func fileURL(_ store: Store) -> URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("PendingEncryption", isDirectory: true)
+            .appendingPathComponent("\(store.rawValue).json")
+    }
+
+    private static func fileIDs(_ store: Store) -> Set<UUID> {
+        guard let url = fileURL(store), FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let raw = attempt("pendingEncryptionLedger.readFile") {
+            try JSONDecoder().decode([String].self, from: Data(contentsOf: url))
+        } ?? []
+        return Set(raw.compactMap(UUID.init(uuidString:)))
+    }
+
+    /// Without data protection, so the list can be read before the first
+    /// unlock; an empty list removes the file.
+    private static func persistFile(_ list: [String], for store: Store) {
+        guard let url = fileURL(store) else { return }
+        let fileManager = FileManager.default
+        guard !list.isEmpty else {
+            guard fileManager.fileExists(atPath: url.path) else { return }
+            attempt("pendingEncryptionLedger.removeFile") { try fileManager.removeItem(at: url) }
+            return
+        }
+        attempt("pendingEncryptionLedger.writeFile") {
+            try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(list).write(to: url, options: [.atomic, .noFileProtection])
         }
     }
 }

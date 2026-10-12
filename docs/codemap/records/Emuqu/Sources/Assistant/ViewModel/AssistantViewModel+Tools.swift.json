@@ -1,0 +1,833 @@
+{
+ "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift",
+ "hash": "086ef7d8d6bed054",
+ "role": "Extension of AssistantToolRunner: the provider tool-use loop (stream a round, buffer/scrub text, collect tool calls, resolve them via CompactToolRouter with an 8-call budget, feed results back), prompt-audit and usage telemetry, round-end text policy (speakable cursor / rewind / MetricsVerifier), stream-failure handling, provider fallback chain, and finishStream (which drains a queued send).",
+ "types": [
+  "AssistantToolRunner: extension — tool loop, fallback, finish",
+  "AssistantToolRunner.PendingToolCall: struct — one tool_use from a round",
+  "AssistantToolRunner.ToolLoopState: private struct — outbound, toolRounds, totalToolCalls, budgetExhausted",
+  "AssistantToolRunner.RoundContext: private struct — per-loop constants"
+ ],
+ "state": [
+  "static AssistantToolRunner.maxToolCallsPerTurn = 8 (also read by AppleToolDispatcher.swift:114)",
+  "uses mem:LLMRequestAudit (in-memory FIFO of 10), mem:LLMCacheTelemetry, mem:AssistantViewModel.pendingSendOnFinish/streamGeneration/isStreaming/streamTask/errorMessage/speakableTextCursor"
+ ],
+ "toplevel": "Static maxToolCallsPerTurn and nested structs only.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "None of the tool loop (runToolUseLoop, budget cut-off, fallback ordering, finishStream queue drain, handleStreamFailure) is referenced from EmuquTests; only the pure TurnRouter and truncateForSend have tests.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:53",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:521",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:655"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
+   "hash": "bcc6782086bbec6a",
+   "does": "Loops rounds (checking cancellation before each) until runOneRound reports done; on normal completion runs the Grok blank/announce substitution.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runOneRound(_:state:grokQuirks:)",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::init GrokQuirkPolicy(owner:provider:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "while true",
+     "effect": "repeat rounds; exits via return or thrown error"
+    },
+    {
+     "at": "+23",
+     "cond": "round reports done",
+     "effect": "Grok substitution and return; else next round"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runOneRound(_:state:grokQuirks:)": "6649050893840d93",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()": "567f4720dd4a33c9",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::init GrokQuirkPolicy(owner:provider:turnID:)": "3e04185ccc5b5278"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.runOneRound(_:state:grokQuirks:)",
+   "hash": "71b34e9a6d4f76cc",
+   "does": "Streams one round into a new StreamTextBuffer, applies the round-end text policy, then: stop if budget exhausted; if no tool calls, ask GrokQuirkPolicy for a nudge (append and continue) or stop; otherwise resolve the calls and continue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::init StreamTextBuffer(owner:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.consumeStreamRound(_:state:buffer:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordResolutions(_:factRegistry:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "budget already exhausted before this round",
+     "effect": "return true (post-budget one-shot pass)"
+    },
+    {
+     "at": "+12",
+     "cond": "no tool calls this round",
+     "effect": "check announce-without-call"
+    },
+    {
+     "at": "+13",
+     "cond": "no nudge returned",
+     "effect": "return true (done); else append nudge user turn to outbound and return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::init StreamTextBuffer(owner:turnID:)": "0e0fbb92bdd4857c",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)": "3c42e2449c8a5671",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.consumeStreamRound(_:state:buffer:)": "c7d595998da6bbc8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordResolutions(_:factRegistry:state:)": "b8c98acc1c135065",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)": "ed3f5aef6c5875d3"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.recordResolutions(_:factRegistry:state:)",
+   "hash": "302a4e329ced90d4",
+   "does": "Resolves the round's tool calls, appends the exchanges as a tool round, adds to totalToolCalls, marks budgetExhausted if over budget, returns false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "resolution over budget",
+     "effect": "budgetExhausted = true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "f507c29d9842412c"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.consumeStreamRound(_:state:buffer:)",
+   "hash": "fd48177b06bb8595",
+   "does": "Records the prompt audit, opens provider.send with outbound, live-state location block (renderLiveStateForCloud), system prompt, tools and prior tool rounds; drains the stream into this round's tool calls (drain); a provider error is recorded on the audit entry (recordAuditFailure, so the prompt-audit page shows the round as failed) and rethrown; force-flushes the buffer on every exit via defer; returns this round's tool calls.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordPromptAudit(provider:model:outbound:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
+    "dyn:AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:) → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.drain(_:round:state:auditID:buffer:into:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordAuditFailure(_:auditID:)"
+   ],
+   "reads": [
+    "mem:AssistantContext today/yesterday recovery, HRV, mean HR, live workout/location"
+   ],
+   "writes": [
+    "net:provider API (chat request)",
+    "mem:LLMRequestAudit.entries errorDescription (on a provider error, via recordAuditFailure)"
+   ],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "drain throws (stream error or cancellation)",
+     "effect": "recordAuditFailure, then rethrow (defer still flushes)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "7c3bb99541628fba",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)": "d08461b5890797a2",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.drain(_:round:state:auditID:buffer:into:)": "0ed59404eb8bbb07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordAuditFailure(_:auditID:)": "0b66fea9f7c811f9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordPromptAudit(provider:model:outbound:systemPrompt:tools:toolRounds:)": "74e9e7eda2eee532"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.drain(_:round:state:auditID:buffer:into:)",
+   "hash": "6da620026b71691e",
+   "does": "Consumes every event of one provider round's stream through handle (text into the buffer and audit, tool calls into thisRound, usage into telemetry), checking cancellation before each event and after the stream ends; throws on a stream error or cancellation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for try await event in stream",
+     "effect": "checkCancellation then handle; a stream error propagates"
+    },
+    {
+     "at": "+15",
+     "cond": "task cancelled after the stream ended",
+     "effect": "throws CancellationError"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "97ac1bb1b318c611"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.recordAuditFailure(_:auditID:)",
+   "hash": "68fc89ae81ed09a2",
+   "does": "Marks the round's prompt-audit entry as failed with the error's LocalizedError.errorDescription (else localizedDescription) via LLMRequestAudit.setError, unless the error is a CancellationError or the task is cancelled (a cancelled round is not a failure).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.setError(_:for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries errorDescription"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CancellationError or Task.isCancelled",
+     "effect": "return without recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.setError(_:for:)": "664b482413d9395a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "dd4275b8cd4159d3"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.recordPromptAudit(provider:model:outbound:systemPrompt:tools:toolRounds:)",
+   "hash": "9e76da07c13a8d10",
+   "does": "Records provider, model, system prompt, audit-encoded messages/tool rounds and tools into the in-memory LLM request audit; returns the audit id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.auditEncodeMessages(_:toolRounds:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.auditEncodeTools(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "7d4a9916a0cef544",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.auditEncodeMessages(_:toolRounds:)": "2601ad4d131b5591",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.auditEncodeTools(_:)": "ab0dfa7f3fe3f4a3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
+   "hash": "bb2830d1ec68a69c",
+   "does": "Dispatches one stream event: text → buffer + audit transcript; toolUse → appended unless budget exhausted or task cancelled; usage → recordUsage; done → nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.append(chunk:thisRoundIsEmpty:)",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.append(textDelta:to:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "case .textDelta",
+     "effect": "buffer.append and audit append"
+    },
+    {
+     "at": "+12",
+     "cond": "case .toolUse",
+     "effect": "collect tool call"
+    },
+    {
+     "at": "+13",
+     "cond": "budget exhausted OR task cancelled",
+     "effect": "drop the tool call"
+    },
+    {
+     "at": "+15",
+     "cond": "case .usage",
+     "effect": "recordUsage"
+    },
+    {
+     "at": "+20",
+     "cond": "case .done",
+     "effect": "no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.append(textDelta:to:)": "e52fecc6d6b2f8bc",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.append(chunk:thisRoundIsEmpty:)": "23d96088bc5a6714",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)": "4104a3ed8563b698",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)",
+   "hash": "47c7254c40f18328",
+   "does": "Computes cache hit ratio = cached/(input+cached+cacheCreate), logs it, records counters in LLMCacheTelemetry and sets usage on the audit entry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.setUsage(_:for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMCacheTelemetry",
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "totalProcessed > 0 ?:",
+     "effect": "ratio else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "985f1c3e8c95f8e0",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.setUsage(_:for:)": "9b35e7dd335d8169",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)",
+   "hash": "3610d7423079e920",
+   "does": "Text-only or post-budget rounds advance the speakable cursor to the end; tool rounds rewind the round's text (and pull the speakable cursor back with it); then runs the MetricsVerifier live-workout and app-state checks (verifyAppStateNumbers) on the text that stays.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.advanceSpeakableCursorToCurrentEnd()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.speakableTextCursor",
+    "mem:AssistantViewModel.turns"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no tool calls OR budget exhausted",
+     "effect": "advance speakable cursor; else rewind pre-tool text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.advanceSpeakableCursorToCurrentEnd()": "43ee143b55cd6817",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "3b89eaf1c36dbcaf",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "b7262a7902e72917"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.verifyAppStateNumbers(turnID:)",
+   "hash": "c809944ba05a2816",
+   "does": "Checks the live turn text's live-workout claims (HR, power, α1) against the broker's snapshot (MetricsVerifier.verify(_:againstLive:); none while no workout records) and applies those corrections, then runs MetricsVerifier.verifyAppStateClaims on that text; with any discrepancy from either pass logs them, records corrections, and replaces the turn text with the corrected text and saves.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.formatForLog(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns",
+    "mem:LiveWorkoutBroker snapshot (live HR/power/α1)"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "file:conversation.json (ConversationStore, App Group)",
+    "mem:MetricsVerifier corrections"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "turn gone",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "no live discrepancy (correctedText nil)",
+     "effect": "app-state pass runs on the original text"
+    },
+    {
+     "at": "+7",
+     "cond": "no discrepancies from either pass",
+     "effect": "return"
+    },
+    {
+     "at": "+10",
+     "cond": "app-state pass produced no corrected text",
+     "effect": "saves the live-corrected text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4932de40589c71c4",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.formatForLog(_:)": "1d94fecdcc609742",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "3cdfceb288af8a7e",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)": "6938d86f4a8afae9",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "917b731e60c489ef",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)",
+   "hash": "35ac5eb75fb271e1",
+   "does": "Checks cancellation, computes the calls left in the per-turn budget (8 minus prior calls, floored at 0), and builds a ToolExchange per pending call (cancel check between calls): calls within the budget resolve, calls past it (the 9th onward) get the budget-exceeded envelope. Reports overBudget when the round asked for more than was left.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each pending call",
+     "effect": "cancel check, resolve (or budget envelope when its position is past the budget left), append exchange"
+    },
+    {
+     "at": "+18",
+     "cond": "round larger than the budget left",
+     "effect": "overBudget true."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/VOICE_AND_TOOL_USE.md describes the budget result as {\"status\":\"missing\",\"reason\":\"tool budget exceeded\"}; the code emits reason rateLimited with detail \"tool budget exceeded for this turn\".",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:234",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:448"
+     ],
+     "found": "batch b08 fix (remaining part of an earlier finding)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)",
+   "hash": "50b80bad102129d9",
+   "does": "Returns a rate-limited missing envelope when over budget, an internal-error missing envelope without a registry, else resolves through CompactToolRouter and returns the result's tool JSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON"
+   ],
+   "reads": [
+    "archive/hk/net via fact resolvers (CompactToolRouter → FactResolverRegistry)"
+   ],
+   "writes": [
+    "net:web search/geo/actions via action tools"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "overBudget",
+     "effect": "missing(.rateLimited, \"tool budget exceeded for this turn\")"
+    },
+    {
+     "at": "+10",
+     "cond": "factRegistry nil",
+     "effect": "missing(.internalError, \"no resolver registered\")"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON": "01e0921b265d1ba5"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.handleStreamFailure(error:turnID:)",
+   "hash": "c24e9ca0353360ce",
+   "does": "Sets errorMessage from the error (LocalizedError description or localizedDescription), removes the turn if it is an empty assistant turn, and saves.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.errorMessage",
+    "mem:AssistantViewModel.turns",
+    "file:conversation.json (ConversationStore, App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? no LocalizedError description",
+     "effect": "error.localizedDescription"
+    },
+    {
+     "at": "+2",
+     "cond": "turn exists, is assistant and text empty",
+     "effect": "remove it; partial text otherwise kept"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "e9f79b449cb7a7c9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)",
+   "hash": "ca3847503a20231c",
+   "does": "Re-stamps the live turn's providerID/modelID to the provider that answered and saves.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "file:conversation.json (ConversationStore, App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "turn gone",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.discardUnspokenPartialText(turnID:)",
+   "hash": "fc243e1bc6dbf37b",
+   "does": "Cuts the live turn's text back to the speakable cursor (0 if never advanced) before a fallback re-runs; does not save.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.speakableTextCursor"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "turn gone",
+     "effect": "return"
+    },
+    {
+     "at": "+2",
+     "cond": "?? cursor missing",
+     "effect": "0 → text emptied"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.defaultModel(of:)",
+   "hash": "15b604e11864fcde",
+   "does": "Returns the provider's default model, else its first model, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? no default",
+     "effect": "first model"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantToolRunner.orderedFallbackProviders(after:)",
+   "hash": "d2503611584531e7",
+   "does": "Lists other available, enabled, consented non-Apple providers with their default model (registry order), then Apple last if available and not the primary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.defaultModel(of:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.allProviders",
+    "kc:provider API keys (isAvailable)",
+    "mem:ProviderConsentTracker.acknowledgedProviders",
+    "mem:FeatureFlags provider*Enabled"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for provider where not primary, not Apple, available, enabled, consented",
+     "effect": "consider it"
+    },
+    {
+     "at": "+6",
+     "cond": "has a model",
+     "effect": "append"
+    },
+    {
+     "at": "+8",
+     "cond": "Apple available, primary not Apple, Apple has a model",
+     "effect": "append Apple last"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.defaultModel(of:)": "630552ad8dd6b73d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.tryFallbacks(_:outbound:tools:factRegistry:turnID:voiceMode:)",
+   "hash": "b948cd619e1fa5ab",
+   "does": "Tries each fallback in order; returns true on the first that handled (answered or cancelled), false if all failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each fallback",
+     "effect": "runFallback"
+    },
+    {
+     "at": "+13",
+     "cond": "handled",
+     "effect": "return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "b848d0eeb85b0ef4"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
+   "hash": "6982d214140b5042",
+   "does": "Composes a fallback system prompt, discards unspoken partial text, runs the tool loop on the fallback with the history re-cut to the fallback's own token budget (fallbackOutbound; tools/registry only if non-Apple and tools exist), re-stamps the badge on success; cancellation counts as handled; on any other error logs, cuts the failed fallback's own partial text back to what voice spoke, and returns false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "supportsTools ?: (tools)",
+     "effect": "tools else []"
+    },
+    {
+     "at": "+18",
+     "cond": "supportsTools ?: (registry)",
+     "effect": "factRegistry else nil"
+    },
+    {
+     "at": "+22",
+     "cond": "catch CancellationError",
+     "effect": "return true (treated as resolved)"
+    },
+    {
+     "at": "+24",
+     "cond": "catch other error",
+     "effect": "log, discard the fallback's unspoken text, return false (error not surfaced here)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)": "452579fdfef5ffd7",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)": "3397f13d522d67dc",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)": "2609130408df7962",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)": "fa6ab12113db8695",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "acefcc79910f23a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)",
+   "hash": "6f45ce5282a5d453",
+   "does": "The history before the reserved assistant turn, truncated to the fallback provider's own token budget (truncateForSend .kept); the primary's outbound when the reserved turn is gone.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reserved turn gone",
+     "effect": "return primaryOutbound."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)",
+   "hash": "d5b9728c594ed7fe",
+   "does": "Gets the fallback context render and composes the system prompt through AssistantTurnRouter.composeSystemPromptForTurn with toolMode = supportsTools (the same recent-user-messages pass as the main dispatch).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackContextRender(provider:supportsTools:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)": "5f00fb5e8f0bd6d5",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackContextRender(provider:supportsTools:)": "13c2899ec4ee84b8"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.fallbackContextRender(provider:supportsTools:)",
+   "hash": "9041bedaf1473ef8",
+   "does": "Returns '' for tool-capable fallbacks; otherwise the compact render, including ambient location only for Apple or during a live workout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)"
+   ],
+   "reads": [
+    "mem:AssistantContext (live workout, location)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "supportsTools",
+     "effect": "return \"\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81b3769a876d3fed",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.finishStream(generation:)",
+   "hash": "9d7c285a4ca9deb8",
+   "does": "If the generation is current: clears isStreaming/streamTask, and if a send was queued mid-stream, clears it and calls owner.send with it (which may dispatch a new turn immediately). Stale generations only log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.streamGeneration",
+    "mem:AssistantViewModel.pendingSendOnFinish"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.isStreaming",
+    "mem:AssistantViewModel.streamTask",
+    "mem:AssistantViewModel.pendingSendOnFinish"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "generation stale",
+     "effect": "log and return"
+    },
+    {
+     "at": "+12",
+     "cond": "a queued send exists",
+     "effect": "clear and re-send it (send result ignored)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -116,9 +116,12 @@ extension MorningDetailCards {
         }
     }
 
+    /// Reads `displaySession`, like the quality badge beside it, so a reload
+    /// after re-analysis or a sleep refresh is honoured.
     private var dateAndQualitySubtitle: some View {
-        HStack(spacing: 8) {
-            Text(session.endDate ?? session.startDate, style: .date)
+        let shown = vm.displaySession
+        return HStack(spacing: 8) {
+            Text(shown.endDate ?? shown.startDate, style: .date)
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
             Text(String(localized: "\u{00B7}", bundle: LanguageManager.appBundle))
@@ -168,10 +171,11 @@ extension MorningDetailCards {
     /// The merged split-night segments, or nil when this wasn't a split night.
     private var normalizedSplitNightSegments: [LinkedSegmentInfo]? {
         guard let linked = linkedSegments, sleepWasActuallySplit else { return nil }
+        let shown = vm.displaySession
         return SessionArchive.normalizedSplitNightSegments(
-            currentSessionId: session.id,
-            currentStartDate: session.startDate,
-            currentEndDate: session.endDate ?? session.startDate,
+            currentSessionId: shown.id,
+            currentStartDate: shown.startDate,
+            currentEndDate: shown.endDate ?? shown.startDate,
             linkedSegments: linked.filter { !removedSegmentIds.contains($0.id) }
         )
     }
@@ -193,11 +197,16 @@ extension MorningDetailCards {
     /// Reads from `displaySession` (not `session`) so the re-analyze +
     /// sleep-refresh archive observer's reload is honoured — same routing as
     /// `compositeRecoveryScore`.
+    ///
+    /// The advice load is the one `vm.adviceLoadLevel` reads for the recovery
+    /// card above it (live for today, the frozen context when the live cache is
+    /// cold), so the two cards cannot contradict each other.
     var trainingReadinessCard: some View {
-        TrainingReadinessCard(
+        let context = vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext
+        return TrainingReadinessCard(
             recoveryScore: vm.compositeRecoveryScore,
-            dayTrimp: 0,
-            trainingContext: vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext,
+            trainingContext: context,
+            adviceLoad: TrainingAdviceGate.Load.preferring(live: vm.adviceLiveLoad, frozen: context),
             frozenReadiness: vm.displaySession.frozenReadiness
         )
     }
@@ -235,12 +244,13 @@ extension MorningDetailCards {
     /// segments. Uses HealthKit's raw segment list as-is — if the Watch
     /// reported one continuous block, we show one. No gap-based
     /// re-derivation. Falls back to the session's stored sleep segments
-    /// (frozen at acceptance) when the live snapshot isn't in hand.
+    /// (frozen at acceptance) when the live snapshot isn't in hand, read from
+    /// `displaySession` so a sleep refresh or re-analysis reload is honoured.
     var sleepWasActuallySplit: Bool {
         if let hk = vm.healthKitSleep, hk.segments.count > 1 {
             return true
         }
-        if let stored = session.sleepSegments, stored.count > 1 {
+        if let stored = vm.displaySession.sleepSegments, stored.count > 1 {
             return true
         }
         return false
@@ -271,7 +281,7 @@ extension MorningDetailCards {
     /// One segment's clock range, with an unlink control on the linked ones
     /// (never on the session being viewed).
     private func segmentRow(_ segment: LinkedSegmentInfo, index idx: Int) -> some View {
-        let timeStyle: Date.FormatStyle = .dateTime.hour().minute()
+        let timeStyle: Date.FormatStyle = .dateTime.hour().minute().locale(LanguageManager.appLocale)
         return HStack(spacing: 8) {
             Text(String(localized: "Segment \(idx + 1)", bundle: LanguageManager.appBundle))
                 .font(.caption2)
@@ -455,20 +465,22 @@ extension MorningDetailCards {
     /// The `ScoreVerdict` ladder Sleep detail grades with, so the label and
     /// colour here match the screen this card opens.
     func sleepVerdict(_ sleep: SleepData) -> ScoreVerdict {
-        ScoreVerdict(score: Double(sleepScoreForLabel(sleep)))
+        ScoreVerdict(score: sleepScoreForLabel(sleep))
     }
 
     /// The same sleep score the recovery score uses
     /// (`RecoveryScoreCalculator.calculateSleepScore`), so the label can't
-    /// disagree with the score.
-    func sleepScoreForLabel(_ sleep: SleepData) -> Int {
+    /// disagree with the score. Unrounded, as Sleep detail passes it:
+    /// `ScoreVerdict` rounds, so truncating here read 74.6 as "Fair" on this
+    /// card and "Good" on the screen it opens.
+    func sleepScoreForLabel(_ sleep: SleepData) -> Double {
         let settings = AppDependencies.current.app.settingsManager.settings
         let score = RecoveryScoreCalculator.calculateSleepScore(
             sleepData: sleep,
             typicalSleepHours: settings.typicalSleepHours,
             userAge: settings.age
         )
-        return Int(score ?? 0)
+        return score ?? 0
     }
 
     // MARK: - Data Source Summary Card

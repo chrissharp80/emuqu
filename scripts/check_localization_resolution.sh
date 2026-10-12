@@ -114,191 +114,35 @@ if not keys:
     sys.stderr.write("check_localization_resolution: catalogue has no strings.\n")
     sys.exit(2)
 
-INTERP = "\x00INTERP\x00"
+sys.dont_write_bytecode = True
+sys.path.insert(0, "scripts/lib")
+from localization_extract import INTERP, candidate_keys, key_pattern, localized_literals
 
-
-def scan_literal(text, i):
-    """text[i] is the opening quote. Return (body, index_after_closing_quote).
-
-    Swift string interpolation nests arbitrarily — `"a \\(f(x, "b")) c"` is one
-    literal containing another. A flat regex stops at the inner quote and
-    reports the truncated fragment as a missing key — a naive version of this
-    check produces hundreds of false positives that way. Walking the literal
-    with a paren counter is the only way to get this right.
-    """
-    i += 1
-    out = []
-    while i < len(text):
-        ch = text[i]
-        if ch == "\\":
-            if i + 1 < len(text) and text[i + 1] == "(":
-                j, depth = i + 2, 1
-                while j < len(text) and depth:
-                    if text[j] == '"':
-                        _, j = scan_literal(text, j)
-                        continue
-                    if text[j] == "(":
-                        depth += 1
-                    elif text[j] == ")":
-                        depth -= 1
-                    j += 1
-                out.append(INTERP)
-                i = j
-                continue
-            out.append(text[i:i + 2])
-            i += 2
-            continue
-        if ch == '"':
-            return "".join(out), i + 1
-        out.append(ch)
-        i += 1
-    return "".join(out), i
-
-
-UNICODE_ESCAPE = re.compile(r"\\u\{([0-9A-Fa-f]+)\}")
-
-
-def unescape(s):
-    s = UNICODE_ESCAPE.sub(lambda m: chr(int(m.group(1), 16)), s)
-    return (s.replace('\\"', '"')
-             .replace("\\n", "\n")
-             .replace("\\t", "\t")
-             .replace("\\'", "'")
-             .replace("\\\\", "\\"))
-
-
-def candidate_keys(raw):
-    """Both plausible extractions of one literal.
-
-    Xcode doubles a literal `%` when it writes the key, because the key doubles
-    as a format string. But a developer who hand-authored `"%.1f min"` as a
-    template meant that percent literally. Accept either rather than guess.
-    """
-    body = unescape(raw)
-    return {
-        body.replace("%", "%%").replace(INTERP, "%@"),
-        body.replace(INTERP, "%@"),
-    }
-
-
-SPECIFIER = r"%(?:\d+\$)?(?:@|lld|ld|d|u|\.\d+f|f|s)"
-# `String(localized:)` is not the only lookup. SwiftUI's `Text("...")` resolves
-# the same way and fails the same way, and it is the form most easily retyped
-# by hand during a refactor — which is how a P0 string drifts from its key.
-# Every SwiftUI form that takes a `LocalizedStringKey` is a catalogue lookup —
-# `Button("…")`, `Section("…")`, `.navigationTitle("…")`, `.alert("…")`,
-# `.accessibilityLabel("…")`, `Toggle`, `TextField`, `Picker`, `Label` — not
-# only `Text(` followed by `bundle:`. A `Text(` without `bundle:` is NOT a plain
-# string: it resolves through `.environment(\.locale, …)` against `Bundle.main`
-# rather than through an explicit bundle argument, and that is the call form
-# the codebase most commonly writes UI copy in. A pattern that stops at `Text(`
-# with `bundle:` leaves all of them outside the gate's field of view.
+# The extractor is shared with check_localization_orphans.sh, so the two
+# directions agree on what a localized literal is. It reads multi-line
+# `"""` literals and `NSLocalizedString(` as well as `String(localized:)`, and
+# every SwiftUI form that takes a `LocalizedStringKey`: `Button("…")`,
+# `Section("…")`, `.navigationTitle("…")`, `.alert("…")`,
+# `.accessibilityLabel("…")`, `Toggle`, `TextField`, `Picker`, `Label`. A
+# `Text(` without `bundle:` is NOT a plain string: it resolves through
+# `.environment(\.locale, …)` against `Bundle.main`, and that is the call form
+# the codebase most commonly writes UI copy in.
 #
 # This header claims no catch count on purpose. A gate header that overstates
 # what it caught is the same defect the header above it describes, one level
 # up — the prose and the code disagreeing, with only the prose being read. The
 # script prints the number of call sites scanned on every run, and anyone can
 # check that.
-QUOTE = chr(34)
-
-
-def skip_literal_at(text, start):
-    """Whether the literal beginning at `start` is NOT a LocalizedStringKey.
-
-    Two shapes, both genuinely untranslatable rather than merely untranslated:
-
-      * A subscript key. In Text(payload[k] as? String ?? fallback) the k is a
-        dictionary lookup, not copy.
-      * The right-hand side of a nil-coalescing operator. Text(optional ?? lit)
-        resolves to the Text(String) overload, which does NOT localize, so the
-        literal has no catalogue key by construction and never gets one.
-
-    Both are recognised by what precedes the opening quote, because neither
-    this script nor any regex can do Swift type inference.
-    """
-    j = start - 1
-    while j >= 0 and text[j] in " \t\n":
-        j -= 1
-    if j < 0:
-        return False
-    if text[j] == "[":
-        return True
-    return j >= 1 and text[j] == "?" and text[j - 1] == "?"
-
-
-def first_argument_literals(text, i):
-    """String literals in the FIRST argument of a call, paren already consumed.
-
-    An extractor that only looks at a literal sitting IMMEDIATELY after the
-    paren gets nothing at all from a call whose first argument is an
-    EXPRESSION, and live, shipping keys are then counted as orphans: the
-    sleep-target picker option in SettingsView+Pages, written as
-    Text(min < 60 ? a : b), and both halves of the sleep-editor delta badge in
-    SleepTimelineEditorView.
-
-    Two deliberate limits, because widening this the wrong way marks keys as
-    requested that nothing actually localizes, which HIDES real orphans:
-
-      * First argument only — stop at the first top-level comma. That is where
-        the LocalizedStringKey goes. Label(title, systemImage: symbol) must
-        contribute the title and never the SF Symbol name.
-      * Depth 1 only. A literal nested inside another call within that
-        argument belongs to that call, not to this one.
-    """
-    depth, out = 1, []
-    while i < len(text) and depth:
-        ch = text[i]
-        if ch == QUOTE:
-            start = i
-            body, i = scan_literal(text, i)
-            if depth == 1 and not skip_literal_at(text, start):
-                out.append(body)
-            continue
-        if ch == "," and depth == 1:
-            break
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth -= 1
-        i += 1
-    return out
-
-
-SWIFTUI_IMPLICIT = (
-    "Text", "Button", "Label", "Toggle", "TextField", "Picker", "Section",
-)
-SWIFTUI_MODIFIERS = (
-    "navigationTitle", "navigationBarTitle", "alert", "confirmationDialog",
-    "accessibilityLabel", "accessibilityHint",
-    "value",
-)
-CALL = re.compile(
-    r"String\(\s*localized:\s*"
-    r"|AttributedString\(\s*localized:\s*"
-    r"|LocalizedStringKey\(\s*"
-    r"|\b(?:" + "|".join(SWIFTUI_IMPLICIT) + r")\(\s*"
-    r"|\.(?:" + "|".join(SWIFTUI_MODIFIERS) + r")\(\s*"
-)
 
 literals = []
 for path in sorted(p for d in scan_dirs for p in pathlib.Path(d).rglob("*.swift")):
     text = path.read_text(encoding="utf-8", errors="ignore")
-    for match in CALL.finditer(text):
-        i = match.end()
-        # Text(verbatim:) is the explicit opt OUT of localization; it has no
-        # catalogue key and must not be asked to resolve to one.
-        if text.startswith("verbatim:", i):
+    for line, body in localized_literals(text):
+        # A literal with no letters in it is punctuation or a format shell
+        # ("%@ · %@", "—"), never a translatable phrase.
+        if not re.search(r"[A-Za-z]{2,}", body.replace(INTERP, "")):
             continue
-        if i < len(text) and text[i] == QUOTE:
-            bodies = [scan_literal(text, i)[0]]
-        else:
-            bodies = first_argument_literals(text, i)
-        for body in bodies:
-            # A literal with no letters in it is punctuation or a format shell
-            # ("%@ · %@", "—"), never a translatable phrase.
-            if not re.search(r"[A-Za-z]{2,}", re.sub(r"\x00INTERP\x00", "", body)):
-                continue
-            literals.append((str(path), text.count("\n", 0, i) + 1, body))
+        literals.append((str(path), line, body))
 
 unresolved = []
 for path, line, raw in literals:
@@ -307,8 +151,7 @@ for path, line, raw in literals:
         continue
     matched = False
     for candidate in candidates:
-        pattern = re.escape(candidate).replace(re.escape("%@"), SPECIFIER)
-        rx = re.compile("^" + pattern + "$", re.S)
+        rx = key_pattern(candidate)
         if any(rx.match(k) for k in keys):
             matched = True
             break

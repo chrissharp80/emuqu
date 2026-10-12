@@ -1,0 +1,1130 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift",
+ "hash": "8633f31c73deb510",
+ "role": "Push half of CloudKit session sync: batch selection with exponential backoff, record preparation (HealthKit strip, compress, encrypt, temp CKAsset), conflict/zone/prep-failure handling, zone management, live-backup forwarders and the timeout/no-progress watchdog helpers used by the full sync.",
+ "types": [
+  "CloudSyncError: enum — LocalizedError with single case encryptionUnavailable (cloud key missing; fail closed)",
+  "CloudUploadExclusion: enum — Error thrown for sessions read whole out of Apple Health (never uploaded)",
+  "CloudKitSyncManager: extension — push pipeline, zone management, asset building, error helpers, watchdog",
+  "CloudKitSyncManager.PreparedUpload: struct — Sendable wrapper around the CKRecord ready to save"
+ ],
+ "state": [
+  "mem:CloudKitSyncManager.pushBatchLimit (static let 25)",
+  "mem:CloudKitSyncManager.maxBackoffCycles (static let 32)",
+  "mem:CloudKitSyncManager.pushCycleCounter (private static var, MainActor, in-memory only, reset each launch)",
+  "mem:CloudKitSyncManager.maxBackoffExponent (static let 6)",
+  "file:<tmp>/ck_<sessionId>_<8hex>.gz (CKAsset temp file, completeFileProtectionUntilFirstUserAuthentication, removed by cleanupTempAsset)",
+  "ck:HRVSession record fields written: sessionId, startDate, isDeleted=0, modifiedAt (via CloudKitSessionFreshness.stampRecord), sessionData (CKAsset)"
+ ],
+ "toplevel": "Declares the two error enums and the static push tuning constants; pushCycleCounter starts at 0 per process and advances on every push cycle that reaches the batch. PreparedUpload is declared Sendable and holds a CKRecord. Comments note the failure counts behind the backoff are in memory only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CloudSyncError.errorDescription",
+   "hash": "beabbac7e2f20b35",
+   "does": "Returns the localized Settings message for CloudSyncError.encryptionUnavailable: the encryption key is unavailable and data is never uploaded unencrypted.",
+   "entry": "LocalizedError.errorDescription witness, read by Foundation when error.localizedDescription is taken (settings sync and live-backup error paths)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .encryptionUnavailable (only case)",
+     "effect": "returns the localized 'encryption key is unavailable' string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.pushPendingSessions()",
+   "hash": "8cf0cc8232fbe777",
+   "does": "Runs one push cycle: clears lastPushErrorMessage; if uploads are allowed and the schema is not flagged, takes up to 25 pending ids (pendingPushBatch), advances pushCycleCounter (also when the whole batch is deferred, so backoff windows move on), prepares each off-main and saves it, noting sync progress after every id whatever its outcome, stopping early on schema failure, task cancellation or a bail from pushOne (zone recreation failed or vanished again after this cycle's one recreation); then writes sync_state.json and pending_uploads.json with the async saves.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pendingPushBatch()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUpload(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pushOne(_:sessionId:zoneNotFound:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.schemaUnavailable",
+    "mem:UserSettings.iCloudSyncEnabled",
+    "mem:UserSettings.hasCompletedOnboarding",
+    "mem:CloudKitSyncManager.pushCycleCounter"
+   ],
+   "writes": [
+    "mem:CloudKitSyncManager.lastPushErrorMessage",
+    "mem:CloudKitSyncManager.pushCycleCounter",
+    "mem:CloudKitSyncManager.lastSyncProgressAt",
+    "file:sync_state.json",
+    "file:pending_uploads.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cloudUploadsAllowed false (sync off / onboarding unfinished) or schemaUnavailable",
+     "effect": "return without pushing; pending stays queued"
+    },
+    {
+     "at": "+5",
+     "cond": "batch is empty (nothing pending, or every pending id deferred)",
+     "effect": "return after advancing the counter; nothing saved"
+    },
+    {
+     "at": "+7",
+     "cond": "for each id in the batch",
+     "effect": "prepare and push it; progress noted at the end of each turn (defer)"
+    },
+    {
+     "at": "+8",
+     "cond": "schemaUnavailable became true or the task was cancelled (watchdog)",
+     "effect": "break out of the loop; still saves state"
+    },
+    {
+     "at": "+10",
+     "cond": "prepareUpload returned nil (gone, local-only, prep failure)",
+     "effect": "continue to next id"
+    },
+    {
+     "at": "+11",
+     "cond": "pushOne returned true",
+     "effect": "break out of loop; otherwise continue"
+    },
+    {
+     "at": "+17",
+     "cond": "zoneNotFoundEncountered",
+     "effect": "log an info line that the zone was recreated this cycle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pendingPushBatch()": "f829306f0ed7e7c7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUpload(_:)": "a27613d682448165",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pushOne(_:sessionId:zoneNotFound:)": "335b3fd2380c5cf0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "0d538f934e3bb295",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "733c8572e147ffba",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "705d909e0a0aa689",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.prepareUpload(_:)",
+   "hash": "29f275c501efe871",
+   "does": "Prepares one session off-main via prepareUploadOffMain; returns the PreparedUpload, or nil after dropping a vanished session from the queue (markDeleted), keeping a HealthKit-sourced one on-device, or classifying a prep failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.keepOnDevice(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handlePrepFailure(_:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadFailureCounts"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive.retrieve returned nil (session no longer in the archive)",
+     "effect": "log, state.markDeleted(id), return nil; else return prepared"
+    },
+    {
+     "at": "+11",
+     "cond": "catch CloudUploadExclusion (session read whole from Apple Health)",
+     "effect": "await keepOnDevice, return nil"
+    },
+    {
+     "at": "+14",
+     "cond": "catch any other error (archive/encode/encrypt failure)",
+     "effect": "await handlePrepFailure, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handlePrepFailure(_:sessionId:)": "480c0a967ba82f44",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.keepOnDevice(_:)": "084365a5194db3a7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "70eb0ae5c67fb428",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "6392ca5f0e9c18b2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.pushOne(_:sessionId:zoneNotFound:)",
+   "hash": "195a8b0d77b48248",
+   "does": "Saves one prepared record to the private DB; on success marks it uploaded and clears any trash-restore mark (progress is noted by the caller). Routes serverRecordChanged to resolveConflict, zoneNotFound/userDeletedZone to handleZoneGone with the cycle's recreated-once flag, schema errors to flagSchemaUnavailable (returns true), other errors to markFailed. Always removes the temp asset file.",
+   "entry": null,
+   "calls": [
+    "ext:CKDatabase.save(CKRecord)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handleZoneGone(_:sessionId:recreatedThisCycle:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)"
+   ],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [
+    "ck:HRVSession record",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadFailureCounts",
+    "ud:cloudkit.restoredFromTrash",
+    "mem:CloudKitSyncManager.schemaUnavailable",
+    "mem:CloudKitSyncManager.syncState"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "CKError .serverRecordChanged",
+     "effect": "return resolveConflict's result (always false)"
+    },
+    {
+     "at": "+10",
+     "cond": "CKError .zoneNotFound or .userDeletedZone",
+     "effect": "return handleZoneGone's result (true when recreation failed or the zone was already recreated this cycle)"
+    },
+    {
+     "at": "+12",
+     "cond": "any other error",
+     "effect": "checks schema error below"
+    },
+    {
+     "at": "+13",
+     "cond": "isPermanentSchemaError(error)",
+     "effect": "flagSchemaUnavailable, return true (stop cycle); else markFailed + noteSaveFailure, return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "749903fda9a37fe1",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handleZoneGone(_:sessionId:recreatedThisCycle:)": "698f3db5ba1fba1c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)": "1f01cc0b3a7f8e4d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "0c7a2d7f90ef31a3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.pendingPushBatch()",
+   "hash": "b7ed90a4fdf29c0f",
+   "does": "Builds this cycle's batch: all archive entry ids plus pending ids, minus uploaded, quarantined and local-only ids, minus those still in backoff, truncated to 25 (Set iteration order, not oldest-first).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.shouldDeferForBackoff(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.quarantinedSessionIds",
+    "mem:CloudKitSyncState.localOnlySessionIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "candidate set is empty",
+     "effect": "return []"
+    },
+    {
+     "at": "+11",
+     "cond": "more than 25 candidates (before backoff filtering)",
+     "effect": "log that only the first 25 are processed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.shouldDeferForBackoff(_:)": "89f802733fc9680c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedSessionIds": "3bbfb43f5d0f85f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.shouldDeferForBackoff(_:)",
+   "hash": "f76043acc8bbdb75",
+   "does": "Returns true when a session with failures should sit out this cycle: period = min(2^min(failCount,6), 32), offset = stableRetryBucket % period, defer unless (pushCycleCounter + offset) % period == 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadFailureCounts",
+    "mem:CloudKitSyncManager.pushCycleCounter"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? — no failure count recorded",
+     "effect": "failCount defaults to 0"
+    },
+    {
+     "at": "+2",
+     "cond": "failCount == 0",
+     "effect": "return false (never deferred); else compute period/offset test"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "CloudRetryProgressTests re-implements the backoff expression in a private helper (defers(bucket:failCount:cycle:)) instead of calling shouldDeferForBackoff or driving pushPendingSessions, so the production function and the counter-advance condition in pushPendingSessions are not exercised; the all-deferred stall is invisible to the tests.",
+     "evidence": [
+      "EmuquTests/CloudRetryProgressTests.swift:33",
+      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:208",
+      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:95"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "4e02b72514715785"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)",
+   "hash": "de937153cada70d3",
+   "does": "Handles a serverRecordChanged for the batch push and, through resolveDirectConflict, the direct upload: without a server record marks the session failed; if the server copy is a tombstone and this device did not restore it from Trash, applies the deletion locally; otherwise copies local fields onto the server record (unless the server copy is newer, in which case overwrite marks it uploaded), adds the restore marker if replacing a tombstone, and re-saves (success: uploaded, restore mark cleared). Always returns false; persisting state is the caller's.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.noteConflictUnresolved(_:reason:error:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.applyDeletionMetDuringUpload(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.markIfReplacingTombstone(_:sessionId:)",
+    "ext:CKDatabase.save(CKRecord)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)"
+   ],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash",
+    "ck:HRVSession server record isDeleted/modifiedAt"
+   ],
+   "writes": [
+    "ck:HRVSession record",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error carries no serverRecord",
+     "effect": "noteConflictUnresolved (markFailed), return false"
+    },
+    {
+     "at": "+7",
+     "cond": "?? — server isDeleted is not an Int64",
+     "effect": "treated as 0 (live)"
+    },
+    {
+     "at": "+7",
+     "cond": "server record isDeleted == 1 and session not restored from Trash on this device",
+     "effect": "pull.applyDeletionMetDuringUpload (deletes locally), return false"
+    },
+    {
+     "at": "+12",
+     "cond": "CloudKitSessionFreshness.overwrite returns false (server copy edited more recently)",
+     "effect": "return false; overwrite already marked it uploaded so the pull imports the newer copy"
+    },
+    {
+     "at": "+18",
+     "cond": "re-save of the merged server record throws",
+     "effect": "noteConflictUnresolved with the error (markFailed), return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b6249d4493a56c98",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.applyDeletionMetDuringUpload(_:)": "493c9efa99a04154",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.noteConflictUnresolved(_:reason:error:)": "8ac6e284a43e1e59",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "0ef9731b94a58d22",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "15c730e038134d0a",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.markIfReplacingTombstone(_:sessionId:)": "e2bc068eb36824eb"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.noteConflictUnresolved(_:reason:error:)",
+   "hash": "3f5bc34cdcafe87e",
+   "does": "Marks a conflicted session failed (stays pending with backoff), feeds the error to CloudKitSessionFreshness.noteSaveFailure when given, and logs the reason.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadFailureCounts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an error was passed",
+     "effect": "noteSaveFailure(error) (may disable the modifiedAt field for this launch); else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "749903fda9a37fe1",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.handlePrepFailure(_:sessionId:)",
+   "hash": "099a7a66f1ab3d0b",
+   "does": "Classifies a prep failure: non-archive or transient archive errors mark the session failed (retry with backoff), and a CloudSyncError (encryption key unavailable) is also kept as lastPushErrorMessage so the full sync ends as an error; a permanent archive error goes to hashRepair: repaired → failure count cleared, notNow (unreadable now, key unreachable, index not saved) → markFailed, undecodable (or newerSchemaVersion) → quarantined and quarantined_uploads.json saved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.ArchiveError.isPermanentUploadFailure",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.hashRepair(for:sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.clearFailureCount(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markQuarantined(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueueAsync()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadFailureCounts",
+    "mem:CloudKitSyncState.quarantinedSessionIds",
+    "mem:CloudKitSyncManager.lastPushErrorMessage",
+    "file:quarantined_uploads.json",
+    "archive:repairSessionHashIfDecodable (rewrites the index hash)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is not a SessionArchive.ArchiveError, or isPermanentUploadFailure is false",
+     "effect": "markFailed (+ lastPushErrorMessage when it is a CloudSyncError) + log, return"
+    },
+    {
+     "at": "+10",
+     "cond": "hashRepair .repaired",
+     "effect": "clearFailureCount so it retries next cycle"
+    },
+    {
+     "at": "+14",
+     "cond": "hashRepair .notNow",
+     "effect": "markFailed (retry with backoff)"
+    },
+    {
+     "at": "+16",
+     "cond": "hashRepair .undecodable",
+     "effect": "markQuarantined, saveQuarantineQueueAsync, log 'will not retry'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.ArchiveError.isPermanentUploadFailure": "4e8ed54357a377a7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.hashRepair(for:sessionId:)": "9b7f3fc70efc5d3d",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.clearFailureCount(_:)": "26ae1a7a84cdbbe4",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markQuarantined(_:)": "926ecf41832b4369",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueueAsync()": "69a5ae7c0f40f414",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.hashRepair(for:sessionId:)",
+   "hash": "f62a3088c6ace551",
+   "does": "For a .hashMismatch, the result of SessionArchive.repairSessionHashIfDecodable; any other permanent archive error (.newerSchemaVersion) is .undecodable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairSessionHashIfDecodable(sessionId:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not .hashMismatch",
+     "effect": ".undecodable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairSessionHashIfDecodable(sessionId:)": "70765a5b104ecdfe"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.keepOnDevice(_:)",
+   "hash": "af250113e2739e6f",
+   "does": "Keeps a HealthKit-sourced session on this device: if it was uploaded or pending, deletes its CKRecord outright (no tombstone); on success or when no copy exists, marks it local-only and saves local_only_sessions.json; on other delete failures marks it failed and returns.",
+   "entry": null,
+   "calls": [
+    "ext:CKDatabase.deleteRecord(withID:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds"
+   ],
+   "writes": [
+    "ck:HRVSession record (deleted)",
+    "mem:CloudKitSyncState.localOnlySessionIds",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "file:local_only_sessions.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session is in uploaded or pending set (may be in iCloud)",
+     "effect": "attempt record delete; else go straight to markLocalOnly"
+    },
+    {
+     "at": "+5",
+     "cond": "delete fails with unknownItem or zoneNotFound",
+     "effect": "log 'no iCloud copy', fall through to markLocalOnly"
+    },
+    {
+     "at": "+7",
+     "cond": "delete fails with any other error",
+     "effect": "markFailed, log, return (retried next cycle)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "059454eaf3747ade",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "79852356d3ddbfe8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.handleZoneGone(_:sessionId:recreatedThisCycle:)",
+   "hash": "e9fd604e3701ff6b",
+   "does": "Zone gone server-side: when this cycle already recreated it, marks the session failed and returns true (bail); otherwise records the recreation, recreates the zone (failure → markFailed, return true) and retries this session's save once (retryAfterZoneRecreation), returning false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.retryAfterZoneRecreation(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:zone HRVSessions",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.uploadFailureCounts",
+    "ud:UserDefaultsKeys.cloudKitZoneCreated"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recreatedThisCycle already true",
+     "effect": "markFailed, return true"
+    },
+    {
+     "at": "+8",
+     "cond": "recreateZoneAfterNotFound false",
+     "effect": "markFailed, return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()": "74172d1b0c2f1bdc",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.retryAfterZoneRecreation(_:)": "844fe4ca61966804",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.retryAfterZoneRecreation(_:)",
+   "hash": "5dc5cb0350a29bc9",
+   "does": "Re-prepares the session and saves it into the recreated zone; on success marks it uploaded and clears any trash-restore mark (as pushOne does); on failure marks it failed and logs. Removes the temp asset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)",
+    "ext:CKDatabase.save(CKRecord)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "ck:HRVSession record",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session no longer in the archive",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "prep or save throws",
+     "effect": "markFailed, log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "70eb0ae5c67fb428",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.stableRetryBucket(for:)",
+   "hash": "b651d87850fea902",
+   "does": "Returns a stable per-UUID integer from the first three bytes of the UUID (b0 | b1<<8 | b2<<16), used as backoff jitter that does not reshuffle across launches (the failure counts themselves are in memory only).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncManager.prepareUploadOffMain(sessionId:)",
+   "hash": "eb0868fc364da4e6",
+   "does": "Runs archive.retrieve + buildSessionRecord in a detached utility task; returns nil when the archive has no such session, throws on retrieval/encode/encrypt/HealthKit-exclusion errors.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "file:<tmp>/ck_*.gz"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "archive.retrieve returned nil",
+     "effect": "return nil; else build and wrap the record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "3e719c97348423df"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
+   "hash": "8014793bea1049d8",
+   "does": "Builds the HRVSession CKRecord (recordName = session UUID in zone HRVSessions) with sessionId, startDate, isDeleted=0, modifiedAt stamp and the encrypted sessionData asset; throws CloudUploadExclusion.healthKitSourced for sessions read whole from Apple Health.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/ck_*.gz"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CloudSessionPayload.isHealthKitSourced(session)",
+     "effect": "throw CloudUploadExclusion.healthKitSourced; else build record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)": "9441f89220415055",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)": "77a238b106a51a26",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.sessionAsset(for:)",
+   "hash": "c27eb82cfe8bc5e2",
+   "does": "Returns a CKAsset backed by a protected temp file containing the compressed, encrypted, HealthKit-stripped session payload.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.writeAssetFile(_:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/ck_*.gz"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)": "08261537f980ada3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.writeAssetFile(_:sessionId:)": "aa4f26cbb995d48e"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.compressedPayload(for:)",
+   "hash": "39d3603e2114c6a7",
+   "does": "Strips the session via CloudSessionPayload.uploadable, JSON-encodes it (ISO-8601 dates, sorted keys), compresses it and encrypts it with the cloud key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)": "1ec8fa5af24b07ab",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.encryptedForCloud(_:)",
+   "hash": "d4577d8d26a28973",
+   "does": "Encrypts the compressed payload with CloudPayloadCodec (iCloud-Keychain synchronizable key); throws CloudSyncError.encryptionUnavailable when no usable key exists (no plaintext fallback).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [
+    "kc:CloudPayloadCodec cloud key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "CloudPayloadCodec.hasUsableKey is false",
+     "effect": "throw encryptionUnavailable; else return encoded ciphertext"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.writeAssetFile(_:sessionId:)",
+   "hash": "ad67c257b661dd36",
+   "does": "Writes the payload to tmp/ck_<uuid>_<8 random>.gz with completeFileProtectionUntilFirstUserAuthentication and returns the URL.",
+   "entry": null,
+   "calls": [
+    "ext:Data.write(to:options:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/ck_*.gz"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.ensureZoneExists()",
+   "hash": "374dea8d967531bd",
+   "does": "Creates the HRVSessions zone once: skips when zoneCreated (UserDefaults) is true; otherwise saves the zone and sets zoneCreated; on a serverRejectedRequest fetches the zone and sets zoneCreated only when it exists (a failed fetch throws); other errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated",
+    "ext:CKDatabase.save(CKRecordZone)",
+    "ext:CKDatabase.recordZone(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ck:zone HRVSessions"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "zoneCreated already true",
+     "effect": "return without any network call"
+    },
+    {
+     "at": "+7",
+     "cond": "save throws CKError .serverRejectedRequest",
+     "effect": "fetch the zone: exists → zoneCreated = true; fetch throws → error propagates (not marked created). Other save errors rethrown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "81ef19bfa09eb971",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.recreateZoneAfterNotFound()",
+   "hash": "2872bb8637208576",
+   "does": "Resets zoneCreated to false and calls ensureZoneExists; returns true on success, false (logged) on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ck:zone HRVSessions"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "ensureZoneExists throws",
+     "effect": "log and return false; else log and return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "ebb1292d51647262",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "81ef19bfa09eb971",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.cleanupTempAsset(for:)",
+   "hash": "d2880b73efc23b01",
+   "does": "Removes the temp file behind the record's sessionData CKAsset, if present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.removeTempFileIfNeeded(at:context:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/ck_*.gz (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "record has no sessionData CKAsset or the asset has no fileURL",
+     "effect": "return without doing anything"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.removeTempFileIfNeeded(at:context:)": "bc1fdbb44b2820da"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.uploadLiveBackup(sessionId:points:deviceId:force:)",
+   "hash": "82d0858b61502d17",
+   "does": "Forwards a live RR backup upload to CloudKitLiveBackupManager.upload.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.upload(sessionId:points:deviceId:force:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:live backup records (via CloudKitLiveBackupManager)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.upload(sessionId:points:deviceId:force:)": "24b012e8d360738a",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "9ab516cbd4eeaa74"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.deleteLiveBackup(sessionId:)",
+   "hash": "2b453251c064bfa6",
+   "does": "Forwards deletion of a live backup to CloudKitLiveBackupManager.delete.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:live backup records (via CloudKitLiveBackupManager)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)": "5c52c3f18a11852f",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "9ab516cbd4eeaa74"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.fetchLiveBackups()",
+   "hash": "c61641be7c1c6780",
+   "does": "Forwards to CloudKitLiveBackupManager.fetchAll and returns the live-backup summaries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.fetchAll()",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)"
+   ],
+   "reads": [
+    "ck:live backup records (via CloudKitLiveBackupManager)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.fetchAll()": "9c0ab6002155b4fd",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "9ab516cbd4eeaa74"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.removeTempFileIfNeeded(at:context:)",
+   "hash": "41ae9a7aba7d714f",
+   "does": "Deletes a file, ignoring 'no such file' and logging other errors.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.removeItem",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<given url> (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error is NSCocoaErrorDomain NSFileNoSuchFileError",
+     "effect": "ignore silently"
+    },
+    {
+     "at": "+6",
+     "cond": "any other removal error",
+     "effect": "debug-log it; file may remain in tmp"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.cloudKitErrorMessage(_:)",
+   "hash": "16080bc59b403c6f",
+   "does": "Maps an error to a user-facing sync message: non-CKErrors use localizedDescription; network errors, quotaExceeded, notAuthenticated and requestRateLimited (with retry-after) map to CloudSyncMessages; others use the CKError's localizedDescription.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is not a CKError",
+     "effect": "return error.localizedDescription (e.g. SyncTimeoutError text)"
+    },
+    {
+     "at": "+3",
+     "cond": "case .networkFailure / .networkUnavailable",
+     "effect": "CloudSyncMessages.noInternet"
+    },
+    {
+     "at": "+4",
+     "cond": "case .quotaExceeded",
+     "effect": "CloudSyncMessages.storageFull"
+    },
+    {
+     "at": "+5",
+     "cond": "case .notAuthenticated",
+     "effect": "CloudSyncMessages.notSignedIn"
+    },
+    {
+     "at": "+6",
+     "cond": "case .requestRateLimited",
+     "effect": "CloudSyncMessages.rateLimited with CKErrorRetryAfterKey as Double (nil → plain 'Rate limited')"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "ckError.localizedDescription"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)": "fbcb1b00aa9383f1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet": "0bed695ddfb9513e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "db52f2cb12d576d4",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull": "6e4b6f9cc8971c41"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.withTimeoutResult(seconds:operation:)",
+   "hash": "c18d32d28a0dba0c",
+   "does": "Races an async throwing operation against a timeout via runWithTimeout; returns .success, .failure(error), or .failure(SyncTimeoutError.timedOut) when the timer wins. Used by the remote delete (CloudDeletionCoordinator.performDeleteAllRemoteData).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "?? — runWithTimeout returned nil (timer fired first)",
+     "effect": "fallback .failure(SyncTimeoutError.timedOut)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "d7a85e38dc532d26",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "e108c0fc62a423a7",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.withProgressWatchdog(stuckAfter:operation:)",
+   "hash": "34b9706e09f170a6",
+   "does": "Runs the operation in an unstructured Task and a poller Task; resumes with the operation's Result, or with .failure(SyncTimeoutError.stalled) once lastSyncProgressAt has been stale for stuckAfter seconds, then cancels (but does not await) the operation task.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.lastSyncProgressAt"
+   ],
+   "writes": [
+    "mem:CloudKitSyncManager.lastSyncProgressAt"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "?? — gate delivered nil",
+     "effect": "fallback .failure(stalled); unreachable in practice because both resume calls pass a non-nil Result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "1da9d4e53b559769",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)": "c8167a1ed16654b4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "e108c0fc62a423a7",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.captured(_:)",
+   "hash": "20375fc26b0485ea",
+   "does": "Awaits the throwing operation and folds the result or thrown error into a Result.",
+   "entry": null,
+   "calls": [
+    "closure:operation passed by withTimeoutResult / withProgressWatchdog"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "operation throws",
+     "effect": "return .failure(error); else .success(value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)",
+   "hash": "cf582407ab4ff7f3",
+   "does": "Polls every 5 s until cancelled or the gate is resolved; returns as soon as lastSyncProgressAt is older than stuckAfter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::var FirstResultGate.isResolved",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.lastSyncProgressAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loop while not cancelled and gate unresolved",
+     "effect": "sleep 5 s each iteration; when the operation finished, returns within ≤5 s (caller's resume then no-ops)"
+    },
+    {
+     "at": "+3",
+     "cond": "time since lastSyncProgressAt > stuckAfter",
+     "effect": "return (caller fails the sync as stalled); else keep polling"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::var FirstResultGate.isResolved": "0692e8606c01a8b3",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  }
+ ],
+ "deps": {}
+}

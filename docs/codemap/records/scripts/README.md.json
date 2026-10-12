@@ -1,0 +1,437 @@
+{
+ "file": "scripts/README.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Human documentation for scripts/: describes selected CI/quality scripts and the add_swift_file.py pbxproj helper.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only; no executable content. Sections are recorded as doc-section units.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "README lists add_swift_file.py supported folders without Emuqu/Sources/Views/MorningResults and Views/Utilities (the script docstring lists them; they resolve via the basename regex fallback, not the explicit map), and its Troubleshooting says paths must start with Emuqu/Sources/ although EmuquTests paths are supported.",
+   "evidence": [
+    "scripts/README.md:167",
+    "scripts/README.md:207",
+    "scripts/add_swift_file.py:28",
+    "scripts/add_swift_file.py:83"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "§ Scripts",
+   "hash": "ecba49d84fa75fda",
+   "does": "no behavioural claim: title 'Scripts' and one-line intro.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts",
+   "hash": "e0c61f0c559ae1c3",
+   "does": "no behavioural claim: heading grouping the quality/CI script descriptions.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `select_simulator_destination.sh`",
+   "hash": "24bb4fa550667662",
+   "does": "Claims select_simulator_destination.sh selects the first usable iOS Simulator destination for the Emuqu scheme; run_tests_with_coverage.sh calls it with SCHEME and PROJECT when DESTINATION is unset (run_tests_with_coverage.sh:54). The script has no listed units.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `run_tests_with_coverage.sh`",
+   "hash": "29c1d9a8129afdd0",
+   "does": "Claims run_tests_with_coverage.sh runs tests with coverage and evaluates the coverage gate, with env defaults SCHEME=Emuqu, PROJECT=Emuqu.xcodeproj, RESULT_BUNDLE=build/TestResults.xcresult, MIN_COVERAGE optional and only able to raise the overall floor (check_coverage.sh floor() takes the max; a missing committed floor file is an error), DESTINATION override, MAX_TEST_WORKERS=3. Verified: run_tests_with_coverage.sh sets those defaults and calls check_coverage.sh with or without MIN_COVERAGE.",
+   "entry": null,
+   "calls": [
+    "scripts/run_tests_with_coverage.sh::fn run_tests"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "8c6a5ab43a9ab7d3"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_coverage.sh`",
+   "hash": "8b6e07dbf910d246",
+   "does": "Claims check_coverage.sh checks app line coverage from an .xcresult and fails below threshold. Code enforces three floors (overall, logic ex-Views, Views-only), not one.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_budget_monotonicity.sh`",
+   "hash": "5f5932967901fac0",
+   "does": "Claims check_budget_monotonicity.sh fails any diff that loosens a .ci/*.txt value against the baseline (ceiling up, min_* floor down, numeric budget deleted or no longer a number), accepts whole or decimal values, lists non-numeric baseline files (scoring_constants_hash.txt) as not compared, requires a `budget-raise-ok: .ci/<file>.txt <why>` trailer for a legitimate loosening, and needs fetch-depth 0. Matches the code.",
+   "entry": null,
+   "calls": [
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
+    "scripts/check_budget_monotonicity.sh::fn loosens",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened",
+    "scripts/check_budget_monotonicity.sh::fn budget_files"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_uitest_fresh_install.sh`",
+   "hash": "2bc646194ec3beba",
+   "does": "Claims check_uitest_fresh_install.sh requires every UI-test suite to launch with -UITests-FreshInstall (via the UITestLaunch harness). Script outside this chunk confirms the grep at check_uitest_fresh_install.sh:53; it has no listed units.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_test_skip_budget.sh`",
+   "hash": "d16bd5bad8bf11f8",
+   "does": "Claims check_test_skip_budget.sh counts XCTSkip/XCTSkipUnless call sites against .ci/test_skip_budget.txt and ratchets toward zero.",
+   "entry": null,
+   "calls": [
+    "scripts/check_test_skip_budget.sh::fn read_budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_test_skip_budget.sh::fn read_budget": "7dd19adee99bb3e4"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_localization_bundle.sh`",
+   "hash": "d7cbef05df5c415a",
+   "does": "Claims check_localization_bundle.sh requires every String(localized:)/NSLocalizedString to name a bundle other than Bundle.main (LanguageManager.appBundle or a bundle derived from it). Matches the script: a `bundle:` argument is required and `bundle: .main` / `Bundle.main` is rejected (check_localization_bundle.sh main_bundle regex).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_fixed_font_budget.sh`",
+   "hash": "399176d44ea93273",
+   "does": "Claims check_fixed_font_budget.sh counts raw .font(.system(size:)) in the view layer against .ci/fixed_font_budget.txt. Code counts only numeric-literal sizes across all of Emuqu/ (not only views) and also enforces a separate watch budget.",
+   "entry": null,
+   "calls": [
+    "scripts/check_fixed_font_budget.sh::fn measure"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "README says the gate counts raw .font(.system(size:)) 'in the view layer'; the script scans all of Emuqu/ (SOURCE_ROOT default 'Emuqu', including EmuquApp.swift) plus a separate watch budget, and counts only numeric-literal sizes.",
+     "evidence": [
+      "scripts/README.md:85",
+      "scripts/check_fixed_font_budget.sh:34",
+      "scripts/check_fixed_font_budget.sh:46",
+      "scripts/check_fixed_font_budget.sh:84"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "scripts/check_fixed_font_budget.sh::fn measure": "4d1a1fa1b937bd36"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_strict_concurrency_enabled.sh`",
+   "hash": "c55307e04dd2c4b2",
+   "does": "Claims check_strict_concurrency_enabled.sh proves Swift 6 mode, SWIFT_STRICT_CONCURRENCY = complete and warnings-as-errors in every configuration. Script greps SWIFT_VERSION/SWIFT_STRICT_CONCURRENCY/SWIFT_TREAT_WARNINGS_AS_ERRORS counts (check_strict_concurrency_enabled.sh:32-35).",
+   "entry": null,
+   "calls": [
+    "scripts/check_strict_concurrency_enabled.sh::fn fail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_thread_sanitizer.sh`",
+   "hash": "46143d8165c8edda",
+   "does": "Claims check_thread_sanitizer.sh runs the unit suite under TSan, fails on any race, is its own CI job and is not in `make ci`. Makefile ci target (Makefile:272) indeed omits thread-sanitizer; ci.yml runs it only when scope != gates. Script has no listed units.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `remove_swift_file.py`",
+   "hash": "fd728ed2071b9050",
+   "does": "Claims remove_swift_file.py strips the four pbxproj entries for a file and deletes it from disk with --delete. remove_swift_file.py:83-104 parses --delete.",
+   "entry": null,
+   "calls": [
+    "scripts/remove_swift_file.py::def remove_file",
+    "scripts/remove_swift_file.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/remove_swift_file.py::def main": "2c24f98a8082aa60",
+    "scripts/remove_swift_file.py::def remove_file": "4e2dbdd7ddd1390c"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `install-git-hooks.sh`",
+   "hash": "4a3e228a2e24bd59",
+   "does": "Claims install-git-hooks.sh configures repository-local hooks (.githooks). Script sets `git config core.hooksPath .githooks`; no listed units.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py",
+   "hash": "6ba2677651561ebe",
+   "does": "Claims add_swift_file.py adds a new Swift file to Emuqu.xcodeproj.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Purpose",
+   "hash": "249ad4307f19feb2",
+   "does": "Claims the script creates PBXFileReference, PBXBuildFile, PBXGroup child and PBXSourcesBuildPhase entries. Matches add_file_to_project.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def add_file_to_project"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Usage",
+   "hash": "c17d2c783aad1690",
+   "does": "Claims usage `python3 scripts/add_swift_file.py <relative_path_to_swift_file>`; main enforces exactly one argument.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Example",
+   "hash": "1bd3f24c5232c008",
+   "does": "Examples adding files to Collection, Models, Views; all three folders are in the explicit group map.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def find_group_id_for_path"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Supported Folders",
+   "hash": "20894ead6d2f45aa",
+   "does": "Lists supported folder paths. The explicit map covers them; README omits Views/MorningResults and Views/Utilities (resolved by regex fallback) and EmuquUITests (target mapped but no group id).",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def find_group_id_for_path",
+    "scripts/add_swift_file.py::def target_for_path"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Folder list differs from the script's docstring (which adds Views/MorningResults and Views/Utilities) and from the explicit path_to_group map.",
+     "evidence": [
+      "scripts/README.md:174",
+      "scripts/add_swift_file.py:28",
+      "scripts/add_swift_file.py:83"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28",
+    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > How It Works",
+   "hash": "f22f1eefcbd06adc",
+   "does": "Claims: unique IDs avoiding collisions, file reference, build file, group assignment by folder path, and Sources build phase entry. Code matches; the Sources phase is resolved per target via target_for_path/find_sources_build_phase_id.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def generate_unique_id",
+    "scripts/add_swift_file.py::def extract_all_ids",
+    "scripts/add_swift_file.py::def find_group_id_for_path",
+    "scripts/add_swift_file.py::def target_for_path",
+    "scripts/add_swift_file.py::def find_sources_build_phase_id",
+    "scripts/add_swift_file.py::def add_file_to_project"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "README (and the docstring) says generated IDs are 'unique hexadecimal IDs'; generate_unique_id builds them from prefixes A1/EF/UC/P2/CK/RF/OB, so most contain non-hex letters (U, P, K, R, O).",
+     "evidence": [
+      "scripts/README.md:187",
+      "scripts/add_swift_file.py:60",
+      "scripts/add_swift_file.py:63"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439",
+    "scripts/add_swift_file.py::def extract_all_ids": "b99bbb150d460717",
+    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28",
+    "scripts/add_swift_file.py::def find_sources_build_phase_id": "cc3150dfd21b1519",
+    "scripts/add_swift_file.py::def generate_unique_id": "4ece1b9e975d9603",
+    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Notes",
+   "hash": "3ec41149a98b2b2a",
+   "does": "Claims the file need not exist (main only warns), .swift suffix is validated, and a group error means the path is not in the supported list. Matches main.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Troubleshooting",
+   "hash": "f5fa8d8a9c24794c",
+   "does": "Troubleshooting: 'Could not find group for path' and 'Could not find project file' error messages exist in add_file_to_project and main. Says paths must start with Emuqu/Sources/ although EmuquTests paths are supported.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def add_file_to_project",
+    "scripts/add_swift_file.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439",
+    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+   }
+  },
+  {
+   "key": "§ Scripts > add_swift_file.py > Safety",
+   "hash": "6ffc6d8698b9b7f3",
+   "does": "Claims the script only modifies project.pbxproj, generates unique IDs, does not delete or modify existing entries, and can be safely re-run.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def add_file_to_project"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "'Can be safely re-run' is false: add_file_to_project never checks whether the file is already registered, so a re-run inserts duplicate PBXFileReference/PBXBuildFile/Sources rows ('Multiple commands produce').",
+     "evidence": [
+      "scripts/README.md:224",
+      "scripts/add_swift_file.py:180"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439"
+   }
+  }
+ ],
+ "deps": {}
+}

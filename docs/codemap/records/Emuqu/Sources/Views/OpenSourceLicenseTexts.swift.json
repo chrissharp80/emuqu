@@ -1,0 +1,47 @@
+{
+ "file": "Emuqu/Sources/Views/OpenSourceLicenseTexts.swift",
+ "hash": "d580177fca406e9c",
+ "role": "Holds the verbatim license, NOTICE and trademark texts for every shipped third-party component (Apache-2.0 + Runtime Library Exception, MIT, swift-crypto/swift-asn1 NOTICE, Protocol Buffers BSD-3, Polar SDK License, trademarks) and the LicenseTextView that displays one of them.",
+ "types": [
+  "OpenSourceLicenseTexts: enum — namespace of static license strings and the `documents` list shown under Acknowledgements → License texts",
+  "OpenSourceLicenseTexts.Document: struct (Identifiable) — title + full text of one license row",
+  "LicenseTextView: struct (View) — scrollable, selectable monospaced display of one Document"
+ ],
+ "state": [
+  "mem:OpenSourceLicenseTexts.documents (static let, 7 Documents, line 27)",
+  "mem:OpenSourceLicenseTexts.apacheUsers/apache2/runtimeLibraryException/mitUsers/mit/swiftCryptoNotice/swiftASN1Notice (static let strings, lines 38-407)",
+  "mem:OpenSourceLicenseTexts.protobufBSDUsers/protobufBSD/polarSDKUsers/polarSDKLicense/trademarks (static let strings in extension, lines 413-799)"
+ ],
+ "toplevel": "`documents` (line 27) is a static array of 7 Documents built by concatenating the static strings: Apache = apacheUsers+apache2+runtimeLibraryException; MIT = mitUsers+mit; swift-crypto NOTICE; swift-asn1 NOTICE; BSD-3 (Protocol Buffers) = protobufBSDUsers+protobufBSD; Polar SDK License = polarSDKUsers+polarSDKLicense; Trademarks. The user lists name swift-transformers, swift-jinja, swift-crypto, swift-asn1, swift-protobuf, swift-collections, swift-argument-parser (Apache), WhisperKit, Whisper base.en, yyjson, Zip (MIT), polar-ble-sdk (Polar) — this covers all 11 pins in Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved. Versions quoted for NOTICE files (swift-crypto 4.5.0, swift-asn1 1.7.0) match Package.resolved. The file contains no logic; read by AcknowledgementsView.licenseTextsSection (PrivacyPolicyView.swift:611) and OpenSourceLicenseTextsTests.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OpenSourceLicenseTexts.Document.id",
+   "hash": "2d0e89b22c320b75",
+   "does": "Returns the Document's title as its Identifiable id.",
+   "entry": "Identifiable conformance used by ForEach(OpenSourceLicenseTexts.documents) at PrivacyPolicyView.swift:611",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LicenseTextView.body",
+   "hash": "7fb13ecee9da3a10",
+   "does": "Renders the document's text verbatim (untranslated) in a ScrollView with footnote monospaced font, text selection enabled, theme background, and the document title (verbatim) as an inline navigation title.",
+   "entry": "SwiftUI body; pushed by AcknowledgementsView.licenseTextRow NavigationLink (PrivacyPolicyView.swift:621)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  }
+ ],
+ "deps": {}
+}

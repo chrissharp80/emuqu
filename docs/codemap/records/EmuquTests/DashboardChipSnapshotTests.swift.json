@@ -1,0 +1,774 @@
+{
+ "file": "EmuquTests/DashboardChipSnapshotTests.swift",
+ "hash": "1f6bbae08a8b3df7",
+ "role": "Snapshot tests for ContributorChip (HRV/sleep/vitals/load variants and loading/noData/buildingBaseline/locked/compact states) and BreathingMandalaView, plus a layout test that four chips fit a 375pt iPhone row.",
+ "types": [
+  "DashboardChipSnapshotTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "hosted() injects a real RRCollector() whose convenience init resolves AppDependencies.current singletons (settings, archive, HealthKitManager) and builds a PolarManager, so each snapshot test constructs app-host collection objects that share global state with the running app host.",
+   "evidence": [
+    "EmuquTests/DashboardChipSnapshotTests.swift:17",
+    "Emuqu/Sources/Collection/RRCollector.swift:644"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DashboardChipSnapshotTests.hosted(_:)",
+   "hash": "c817f9f364e9a427",
+   "does": "Wraps a view with a fresh RRCollector() and SettingsManager.shared in the environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.chip(_:)",
+   "hash": "083a24f7991168ce",
+   "does": "Pins the chip to 88pt width and hosts it.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testFourChipsFitTheNarrowestIPhone()",
+   "hash": "6410dc4df871d0e3",
+   "does": "Lays out four chips (HRV, sleep, vitals elevated, load building) in an 8pt-spaced HStack and asserts the fitted width ≤ 375 − 36 = 339pt.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testHRVChipRenders()",
+   "hash": "59f7b8359d79141e",
+   "does": "Renders the HRV chip '45 ms' trend up at 88pt and asserts it matches reference 'chip-hrv' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testSleepChipRenders()",
+   "hash": "c36db0afa61ed6b1",
+   "does": "Renders the sleep chip 6h 40m / 95% at 88pt and asserts it matches reference 'chip-sleep' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testVitalsChipRenders()",
+   "hash": "ca50b4ec30304782",
+   "does": "Renders the vitals chip status normal 14.2 br/min at 88pt and asserts it matches reference 'chip-vitals' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testVitalsChipElevatedRenders()",
+   "hash": "1a3c12d7b7b51459",
+   "does": "Renders the vitals chip status elevated 17.8 br/min at 88pt and asserts it matches reference 'chip-vitals-elevated' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testLoadChipRenders()",
+   "hash": "f009065d65812141",
+   "does": "Renders the load chip verdict building, 'CTL 55 · ramp 4.2' at 88pt and asserts it matches reference 'chip-load' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testLoadChipHighStrainRenders()",
+   "hash": "849cac21b89ea134",
+   "does": "Renders the load chip verdict highStrain 'TSB -28' at 88pt and asserts it matches reference 'chip-load-high-strain' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testChipLoadingRenders()",
+   "hash": "043858f829af19b2",
+   "does": "Renders the HRV chip in .loading state at 88pt and asserts it matches reference 'chip-loading' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testChipNoDataRenders()",
+   "hash": "c4d961dd1e7b96b5",
+   "does": "Renders the HRV chip in .noData state at 88pt and asserts it matches reference 'chip-no-data' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testChipBuildingBaselineRenders()",
+   "hash": "2e69ad37d4861e01",
+   "does": "Renders the HRV chip in .buildingBaseline state at 88pt and asserts it matches reference 'chip-building-baseline' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testChipLockedRenders()",
+   "hash": "5fd8481d9a3e8d3a",
+   "does": "Renders the HRV chip in .locked state at 88pt and asserts it matches reference 'chip-locked' (fails when recording or blank).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testChipCompactRenders()",
+   "hash": "c9f69170cee4bdb9",
+   "does": "Renders an HRV chip '45 ms' trend down with compact: true and compares to 'chip-compact'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "compact already defaults to true, so this 'compact' snapshot is the default layout with a down trend; the non-compact (86pt, 3-up) layout is never snapshotted.",
+     "evidence": [
+      "EmuquTests/DashboardChipSnapshotTests.swift:131",
+      "Emuqu/Sources/Views/ContributorChip.swift:71"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.body": "212dfeaecb6791a3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.chip(_:)": "9267c23b45fc102c",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DashboardChipSnapshotTests.testBreathingMandalaRenders()",
+   "hash": "71b6de11be766b1e",
+   "does": "Renders BreathingMandalaView(cycleDuration 5.5, isAnimating false) at the default size and compares to 'breathing-mandala'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.body",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)": "6d46a6e800b53847",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.body": "d81d2d8ddeb4c1aa",
+    "EmuquTests/DashboardChipSnapshotTests.swift::func DashboardChipSnapshotTests.hosted(_:)": "e8f2d2eb908671a2",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

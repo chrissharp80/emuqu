@@ -1,0 +1,994 @@
+{
+ "file": "Emuqu/Sources/Views/RecordingStatusViews.swift",
+ "hash": "478f705642a81fb6",
+ "role": "Record-tab status cards: the observing wrapper for the Polar device info panel, the overnight-streaming status card, the on-device (offline / crash-recovery) recording card, and the device info panel itself (battery, battery provenance, firmware, memory, last connected).",
+ "types": [
+  "DeviceInfoPanelObserving: struct View — reads PolarManager observable props and forwards them into DeviceInfoPanelView",
+  "OvernightStreamingStatus: struct View — live overnight streaming card (elapsed, beat count, BPM, strap-backup line)",
+  "OvernightStreamingStatus.StrapBackup: enum — notRequested/starting/recording state of the H10 internal backup recording",
+  "DeviceRecordingStatus: struct View — card for an offline recording held on the strap, with elapsed time when a persisted start time exists",
+  "DeviceInfoPanelView: struct View — device/battery/firmware/memory/connected rows"
+ ],
+ "state": [],
+ "toplevel": "No globals. Default property values: OvernightStreamingStatus.strapBackup = .notRequested, sessionStartTime = nil; DeviceInfoPanelView.hoursRecordedSinceChange = 0, isBatteryReadingStale = false. A trailing doc comment at the end of DeviceInfoPanelView describes the battery provenance row but is attached to nothing.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "DeviceInfoPanelView's estimatedBatteryLifeRow renders a 'battery left' estimate (specRecordingHours * battery%) for Verity Sense, while PolarDeviceType.specRecordingHours' doc says the spec hours are only used to flag staleness, 'not to render a battery left gauge' (doc in PolarManager.swift needs updating; handoff).",
+   "evidence": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift:345",
+    "Emuqu/Sources/Collection/PolarManager.swift:55-67"
+   ],
+   "found": "fix batch b24"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DeviceInfoPanelObserving.body",
+   "hash": "c964333a49cb9b30",
+   "does": "Builds DeviceInfoPanelView from PolarManager's connectedDeviceType, batteryLevel, batteryLastChangedAt, hoursRecordedSinceBatteryChanged, connectedDeviceType?.specRecordingHours, isBatteryReadingStale, firmwareVersion, hasStoredExercise, storedExerciseDate, lastConnectedTime; observation of PolarManager (@Observable) re-renders it when those change.",
+   "entry": "SwiftUI body; instantiated by ConnectionPanelViews.swift:319 and snapshot test UncoveredScreenSnapshotTests.swift:128",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.batteryLastChangedAt",
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+    "mem:PolarManager.isBatteryReadingStale",
+    "mem:PolarManager.firmwareVersion",
+    "mem:PolarManager.hasStoredExercise",
+    "mem:PolarManager.storedExerciseDate",
+    "mem:PolarManager.lastConnectedTime"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "813c1b348abb10af",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.body",
+   "hash": "5f39fe826a8028f0",
+   "does": "Vertical card: recordingSection, liveStatsOrWaiting, strapBackupLine, then two fixed captions ('Bluetooth keeps the recording running while your phone is locked...' and 'Tap I'm Up when you're ready to analyze.') on a tinted rounded background.",
+   "entry": "SwiftUI body; instantiated by RecordView+Panels.swift:76 when streamingLifecycle.isOvernightStreaming, and by UncoveredScreenSnapshotTests.swift:118",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.recordingSection",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsOrWaiting",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.strapBackupLine",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Card tells the user to tap 'I'm Up' (the real button, RecordView+Panels.swift:314) but the User's Manual says the instruction reads \"Tap 'Get Reading'\".",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordingStatusViews.swift:50",
+      "docs/USERS_MANUAL.md:325",
+      "Emuqu/Sources/Views/RecordView+Panels.swift:314"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsOrWaiting": "aa8e81d200928484",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.recordingSection": "3172b14d52addd92",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.strapBackupLine": "817b74eba8429577",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.totalBeats",
+   "hash": "f18bb6d4990fe77e",
+   "does": "Returns streamingLifecycle.pausedBeatCount + polarManager.streamedRRCount (beats before a pause plus beats streamed since).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.pausedBeatCount",
+    "mem:PolarManager.streamedRRCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "56176d78ce5cfd35"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.liveStatsOrWaiting",
+   "hash": "579a5b8389f422f7",
+   "does": "Shows waitingForFirstBeat while no beats have arrived, otherwise liveStatsRow.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.waitingForFirstBeat",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "totalBeats == 0",
+     "effect": "true: waiting placeholder (spinner + device-specific text); false: live stats row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsRow": "4f836aaacc8c66bc",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "69713ffbb5534649",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.waitingForFirstBeat": "5e4f9a47e861c1ab"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.strapBackupLine",
+   "hash": "22e1e9970efd56aa",
+   "does": "Renders the H10 backup recording line per strapBackup state.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "strapBackup == .notRequested",
+     "effect": "renders EmptyView"
+    },
+    {
+     "at": "+5",
+     "cond": "strapBackup == .starting",
+     "effect": "'Strap backup: starting...' caption with internaldrive icon, secondary colour"
+    },
+    {
+     "at": "+9",
+     "cond": "strapBackup == .recording",
+     "effect": "'Strap backup: recording' caption with internaldrive.fill icon, sage colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.waitingForFirstBeat",
+   "hash": "423162421bfbcea6",
+   "does": "Spinner row plus explanatory caption shown before the first beat; text differs for Verity Sense (batched data, 15-30 s) vs strap (first heartbeat a few seconds after connect).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "connected device is Verity Sense",
+     "effect": "true: 'Waiting for Verity Sense data...'; false: 'Waiting for the strap's first heartbeat...'"
+    },
+    {
+     "at": "+13",
+     "cond": "connected device is Verity Sense",
+     "effect": "true: batching explanation (15-30 seconds); false: 'The strap starts sending beats a few seconds after it connects.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.liveStatsRow",
+   "hash": "7e4f6af40cf7803e",
+   "does": "HStack of three stat columns: Elapsed (elapsedColumn), Heartbeats (totalBeats), BPM column.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.elapsedColumn",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.bpmColumn",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "d91d9379c0db978e",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.bpmColumn": "2b2eccdf7e32339e",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.elapsedColumn": "41abc96debc929f4",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "69713ffbb5534649"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.bpmColumn",
+   "hash": "5cb04d87fa90c421",
+   "does": "BPM stat column showing polarManager.currentHeartRate as a localized string, or '—' when nil, so the card does not reflow when the first HR arrives.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.currentHeartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentHeartRate ?? '—'",
+     "effect": "nil heart rate (no HR sample yet) shows the em-dash placeholder; otherwise the bpm number"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "d91d9379c0db978e"
+   }
+  },
+  {
+   "key": "func OvernightStreamingStatus.statColumn(value:label:color:)",
+   "hash": "64c3f11ef7a57bfa",
+   "does": "Builds a VStack of a large monospaced coloured value text over a caption label.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.recordingSection",
+   "hash": "73f29abb9f48e0f6",
+   "does": "Moon icon + 'Recording...' header row.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var OvernightStreamingStatus.elapsedColumn",
+   "hash": "3a244c1ed90d9e5d",
+   "does": "Elapsed stat column inside a 1 s periodic TimelineView, so it ticks on its own clock.",
+   "entry": "SwiftUI evaluates it as part of the parent view body; TimelineView re-renders every second",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.formattedElapsed(now:)",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.formattedElapsed(now:)": "8049d154f9769733",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "d91d9379c0db978e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func OvernightStreamingStatus.formattedElapsed(now:)",
+   "hash": "84b38d35d997753f",
+   "does": "Wall-clock seconds since sessionStartTime (falls back to the 1 Hz tick counter streamingElapsedSeconds when no start time), formatted MM:SS under an hour and H:MM:SS after.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.streamingElapsedSeconds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionStartTime != nil",
+     "effect": "true: now - start (>= 0); false: tick counter"
+    },
+    {
+     "at": "+5",
+     "cond": "hours > 0",
+     "effect": "false: MM:SS; true: H:MM:SS"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "User's Manual says overnight elapsed time is shown in HH:MM:SS format; code shows MM:SS until the first hour and H:MM:SS (unpadded hour) after.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:321",
+      "Emuqu/Sources/Views/RecordingStatusViews.swift:180"
+     ],
+     "found": "fix batch b24"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2"
+   }
+  },
+  {
+   "key": "var DeviceRecordingStatus.body",
+   "hash": "891e494656b9d450",
+   "does": "Card with recordingOnDeviceSection and deviceRecordingGuidance on tinted rounded background.",
+   "entry": "SwiftUI body; instantiated by RecordView+Panels.swift:65 when deviceStatus.isRecordingOnDevice, not overnight streaming, and no fetch in progress; also UncoveredScreenSnapshotTests.swift:105",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.recordingOnDeviceSection",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.deviceRecordingGuidance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.deviceRecordingGuidance": "24bddab3ecec4567",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.recordingOnDeviceSection": "d789bfd794c4dee9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var DeviceRecordingStatus.deviceRecordingGuidance",
+   "hash": "cc0668e09a120592",
+   "does": "Chooses the app-recording guidance (elapsed from the persisted start + retrieve instruction) when a persisted recording start time exists, which every app-started recording has, crash or not; otherwise the guidance for a strap recording with no app state (go to sleep, retrieve later).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.crashRecoveryGuidance",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.freshStartGuidance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "persistedStartTime != nil",
+     "effect": "true: elapsed readout + 'Tap Wake Up - Get Results'; false: 'Go to sleep... you can close the app' guidance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.crashRecoveryGuidance": "5156de0636881eea",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.freshStartGuidance": "bea8ce1b14f81049"
+   }
+  },
+  {
+   "key": "var DeviceRecordingStatus.crashRecoveryGuidance",
+   "hash": "2cfa9dadca18bab9",
+   "does": "Elapsed readout followed by 'Tap 'Wake Up - Get Results' to retrieve your data.' caption.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.elapsedReadout",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.elapsedReadout": "e2ec71ba18855476",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+   }
+  },
+  {
+   "key": "var DeviceRecordingStatus.freshStartGuidance",
+   "hash": "bbaafe588b687483",
+   "does": "Two captions: 'Go to sleep. <device displayName or 'Device'> stores data internally — you can close the app.' and 'Open the app to retrieve your reading.'",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deviceStatus.connectedDeviceType?.displayName ?? 'Device'",
+     "effect": "nil device type (not connected / unknown) uses the localized word 'Device'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DeviceRecordingStatus.recordingOnDeviceSection",
+   "hash": "5e6b97b94289dca3",
+   "does": "Moon icon + 'Recording on device...' header row.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var DeviceRecordingStatus.elapsedReadout",
+   "hash": "2e57fe4b675c06d9",
+   "does": "TimelineView ticking every 60 s rendering elapsedColumn(now: context.date).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body; TimelineView re-invokes the closure every minute",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.elapsedColumn(now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.elapsedColumn(now:)": "802889b2e834f0ad"
+   }
+  },
+  {
+   "key": "func DeviceRecordingStatus.elapsedColumn(now:)",
+   "hash": "52f6e7668bb5767f",
+   "does": "Single Elapsed stat column showing formattedElapsed(now:).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.formattedElapsed(now:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.formattedElapsed(now:)": "44a57edb2168cfb9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func DeviceRecordingStatus.formattedElapsed(now:)",
+   "hash": "9cc3f538d58486af",
+   "does": "Minutes since persistedStartTime (clamped >= 0) formatted as 'N min' below 60 minutes, else hours+minutes via LocalizedDuration.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "persistedStartTime map ?? 0",
+     "effect": "nil start time yields 0 seconds (only reachable via crashRecoveryGuidance which requires non-nil, so the fallback is unused in practice)"
+    },
+    {
+     "at": "+3",
+     "cond": "minutes < 60",
+     "effect": "true: LocalizedDuration.minutes; false: LocalizedDuration.hoursMinutes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.body",
+   "hash": "0d03776ea761a079",
+   "does": "Device info card: Device row (displayName or 'Unknown', icon or heart.fill), batteryRows, estimatedBatteryLifeRow, firmwareRow, memorySessionStoredSection, connectedSection.",
+   "entry": "SwiftUI body; built by DeviceInfoPanelObserving (RecordingStatusViews.swift:11)",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryRows",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.estimatedBatteryLifeRow",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.firmwareRow",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.memorySessionStoredSection",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.connectedSection",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "deviceType?.displayName ?? 'Unknown'",
+     "effect": "no device type shows 'Unknown'"
+    },
+    {
+     "at": "+5",
+     "cond": "deviceType?.icon ?? 'heart.fill'",
+     "effect": "no device type uses heart.fill icon"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "8d5598d32ee06a05",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryRows": "3e60f4004619055c",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.connectedSection": "ac15825e75bbef4b",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.estimatedBatteryLifeRow": "593f753d25b2da05",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.firmwareRow": "5957790b8de06b8b",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.memorySessionStoredSection": "cd8c2bd11175d3b8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.batteryRows",
+   "hash": "e2ae147ffb9d9760",
+   "does": "When batteryLevel is known, shows battery row and the provenance row; otherwise nothing.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryInfoRow(level:)",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "batteryLevel != nil",
+     "effect": "true: battery row + provenance; false: no battery rows at all"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryInfoRow(level:)": "4540c938f253986d",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceRow": "651a3ab29cb6e400"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.estimatedBatteryLifeRow",
+   "hash": "c3406b0bf2430310",
+   "does": "For Verity Sense with a known, non-stale battery level and a spec runtime, shows 'Est. Battery Life ~N hours' = specRecordingHours * battery / 100.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deviceType == .veritySense && !isBatteryReadingStale && batteryLevel != nil && specRecordingHours != nil",
+     "effect": "true: estimated-life row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.firmwareRow",
+   "hash": "8aadb0ef61b8f411",
+   "does": "Shows 'Firmware' row when firmwareVersion is non-nil.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "firmwareVersion != nil",
+     "effect": "true: firmware row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.batteryProvenanceRow",
+   "hash": "6824ad2e0cdc618d",
+   "does": "Indented provenance row (clock or warning icon + provenance text) shown when any hours were recorded since the last battery change or a change time is known.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hoursRecordedSinceChange > 0 || batteryLastChangedAt != nil",
+     "effect": "true: row rendered; false: nothing"
+    },
+    {
+     "at": "+4",
+     "cond": "isBatteryReadingStale",
+     "effect": "true: exclamationmark.triangle.fill icon; false: clock icon"
+    },
+    {
+     "at": "+5",
+     "cond": "isBatteryReadingStale",
+     "effect": "true: warning colour; false: tertiary text colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceText": "efd06053c801c4eb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.batteryProvenanceText",
+   "hash": "6603d6686ec93f95",
+   "does": "VStack of the recorded-since-update summary (warning colour when stale), last-reported-change label and stale advice.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.recordedSinceUpdateSummary",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.lastReportedChangeLabel",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdvice"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isBatteryReadingStale",
+     "effect": "true: warning colour; false: secondary colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.lastReportedChangeLabel": "700a68a4b0c9473b",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.recordedSinceUpdateSummary": "e2500ae8fb6b50af",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdvice": "527f8ec8259cbbb1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.recordedSinceUpdateSummary",
+   "hash": "36d99cd43b340cbd",
+   "does": "Text summary: 'Reading is fresh' under 0.1 h; else '<duration> recorded since update', plus '(~P% of strap capacity)' when spec hours are known and > 0. Duration is minutes under 1 h, else hours with one decimal in the app locale.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hoursRecordedSinceChange < 0.1",
+     "effect": "true: returns 'Reading is fresh'; false: continues"
+    },
+    {
+     "at": "+5",
+     "cond": "h < 1",
+     "effect": "true: LocalizedDuration.minutes(rounded h*60); false: Measurement hours abbreviated with 1 fraction digit"
+    },
+    {
+     "at": "+11",
+     "cond": "specRecordingHours non-nil and > 0",
+     "effect": "false: returns text without a percentage; true: appends ~Int(h/spec*100)% of strap capacity"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.lastReportedChangeLabel",
+   "hash": "6e168f36109e9858",
+   "does": "When batteryLastChangedAt is set, shows 'Strap last reported a change <relative> ago'.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "batteryLastChangedAt != nil",
+     "effect": "true: caption; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.staleBatteryAdvice",
+   "hash": "ea54a867301cf5cd",
+   "does": "When the battery reading is stale, shows the advice text in warning colour.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdviceText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isBatteryReadingStale",
+     "effect": "true: advice caption; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdviceText": "43fa16325eeb96fc"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.staleBatteryAdviceText",
+   "hash": "ff7875a6b5e41985",
+   "does": "Returns 'Charge it soon' advice for Verity Sense, 'Replace the cell soon' for anything else (H10 or nil device type).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deviceType == .veritySense",
+     "effect": "true: charge advice; false: replace-cell advice"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.memorySessionStoredSection",
+   "hash": "fb7a45d3c2bfa03c",
+   "does": "For H10 or Verity Sense: shows storedSessionRow if a stored exercise exists, else 'Memory: Empty (ready)'. Nothing for unknown device.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionRow",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deviceType is .h10 or .veritySense",
+     "effect": "false (nil): no memory section"
+    },
+    {
+     "at": "+3",
+     "cond": "hasStoredExercise",
+     "effect": "true: orange 'Memory: Session Stored' row; false: sage 'Empty (ready)' row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionRow": "4951173f7bac3460"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.storedSessionRow",
+   "hash": "fbed5db3073c8c68",
+   "does": "Orange internaldrive.fill row 'Memory: Session Stored' with the stored session's relative date.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionDateLabel",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionDateLabel": "83191ba11091467b"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.storedSessionDateLabel",
+   "hash": "c0f1ca3098552201",
+   "does": "Relative-date text of storedExerciseDate when non-nil.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storedExerciseDate != nil",
+     "effect": "true: relative date text (live-updating); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DeviceInfoPanelView.connectedSection",
+   "hash": "0bdd8d8e2dcbf512",
+   "does": "When lastConnectedTime is set, row 'Connected' with the self-updating relative phrase (connectedAgoText).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.connectedAgoText(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastConnectedTime != nil",
+     "effect": "true: row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.connectedAgoText(_:)": "cb4c8302120294db",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func DeviceInfoPanelView.connectedAgoText(_:)",
+   "hash": "cc846c934643a68b",
+   "does": "TimelineView ticking every 60 s that renders relativeAgo(lastTime, now: context.date), so the phrase does not freeze at the render.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.relativeAgo(_:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.relativeAgo(_:now:)": "4e89285b5bd287c8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func DeviceInfoPanelView.relativeAgo(_:now:)",
+   "hash": "2cedba7938a968b2",
+   "does": "Short-style RelativeDateTimeFormatter phrase in the app locale for date relative to now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)",
+   "hash": "b266415b3cae8af6",
+   "does": "HStack row: tertiary icon, caption label, spacer, medium-weight value in valueColor (default textPrimary).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "valueColor ?? AppTheme.textPrimary",
+     "effect": "nil valueColor uses textPrimary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func DeviceInfoPanelView.batteryInfoRow(level:)",
+   "hash": "63a2e4b3e714bd46",
+   "does": "Battery row: clamps level to 0...100, variable-fill battery SF Symbol, percent formatted in app locale, coloured by batteryColor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryColor(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryColor(_:)": "27f9c72ecd236901",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func DeviceInfoPanelView.batteryColor(_:)",
+   "hash": "0e8f5c667f4ff8f3",
+   "does": "Maps level to alert (<10), warning (<20) or sage colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "level < 10",
+     "effect": "true: AppTheme.alert"
+    },
+    {
+     "at": "+2",
+     "cond": "level < 20",
+     "effect": "true: AppTheme.warning; false: AppTheme.sage"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -20,23 +20,7 @@ final class APIKeyStore: Sendable {
 
     /// Returns the stored key for a provider, or nil if none.
     func key(for provider: ProviderID) -> String? {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
-            kSecAttrAccount: provider.rawValue,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let key = String(data: data, encoding: .utf8),
-              !key.isEmpty
-        else {
-            return nil
-        }
-        return key
+        secret(account: provider.rawValue)
     }
 
     /// True when a key exists for this provider.
@@ -46,19 +30,136 @@ final class APIKeyStore: Sendable {
 
     /// Stores or replaces the key for a provider.
     /// Empty/whitespace strings are treated as a delete.
+    @discardableResult
+    func setKey(_ key: String?, for provider: ProviderID) -> Bool {
+        setSecret(key, account: provider.rawValue)
+    }
+
+    /// Removes the key for a provider.
+    @discardableResult
+    func removeKey(for provider: ProviderID) -> Bool {
+        removeSecret(account: provider.rawValue)
+    }
+
+    /// Removes every stored key for every known provider and every service.
+    ///
+    /// Returns whether EVERY deletion succeeded. Used by "Delete All My Data",
+    /// which reports the outcome to the user.
+    ///
+    /// Each result must be checked, not discarded with `_ = removeKey(...)`,
+    /// and `DataPurgeService` must not hardcode `keychainCleared: true`:
+    /// otherwise a Keychain failure — the item locked by device state, an OS
+    /// error — is reported to the user as "AI provider keys: removed" while
+    /// the key is still on the device. Telling someone their
+    /// credentials are gone when they are not is the worst direction for this
+    /// to be wrong in.
+    ///
+    /// Every key is attempted even after one fails: a partial wipe should
+    /// remove as much as it can, and the caller needs to know it was partial,
+    /// not stop at the first problem. Service keys are walked through
+    /// `ServiceKeyID.allCases`, so a new service key is wiped too.
+    @discardableResult
+    func removeAllKeys() -> Bool {
+        var allSucceeded = true
+        for provider in ProviderID.allCases where !removeKey(for: provider) {
+            debugLog("[APIKeyStore] failed to remove key for \(provider.rawValue)", level: .error)
+            allSucceeded = false
+        }
+        for service in ServiceKeyID.allCases where !removeServiceKey(for: service) {
+            debugLog("[APIKeyStore] failed to remove the \(service.rawValue) service key", level: .error)
+            allSucceeded = false
+        }
+        return allSucceeded
+    }
+
+    /// Convenience for showing the user a masked preview of their saved key
+    /// (e.g., "•••••wxyz": the last four characters only) without exposing
+    /// the full secret.
+    func maskedPreview(for provider: ProviderID) -> String? {
+        Self.masked(key(for: provider))
+    }
+
+    /// Whether web search has a route: a Tavily key, or the Claude key that
+    /// Anthropic's server-side search rides. Whether a search can run right
+    /// now also depends on the provider answering (`web.available`).
+    var hasWebSearchRoute: Bool {
+        hasServiceKey(for: .tavilyWebSearch) || hasKey(for: .anthropic)
+    }
+
+    // MARK: - Non-AI service keys (web search, etc.)
+    //
+    // Some integrations need their own API key without being an AI provider.
+    // Tavily (web search) is the first example. Stored in the same keychain
+    // service but under a distinct account namespace so they don't collide
+    // with AI provider keys (which are keyed by `ProviderID.rawValue`).
+    //
+    // Adding a new service key = one new case in `ServiceKeyID`; the
+    // accessors below and `removeAllKeys` take any case.
+
+    enum ServiceKeyID: String, CaseIterable {
+        /// Tavily search API — used by the web-search action in the
+        /// fact catalog. https://tavily.com (free tier 1000 searches/mo).
+        case tavilyWebSearch = "service.tavily_web_search"
+    }
+
+    func serviceKey(for service: ServiceKeyID) -> String? {
+        secret(account: service.rawValue)
+    }
+
+    func hasServiceKey(for service: ServiceKeyID) -> Bool {
+        serviceKey(for: service) != nil
+    }
+
+    @discardableResult
+    func setServiceKey(_ key: String?, for service: ServiceKeyID) -> Bool {
+        setSecret(key, account: service.rawValue)
+    }
+
+    @discardableResult
+    func removeServiceKey(for service: ServiceKeyID) -> Bool {
+        removeSecret(account: service.rawValue)
+    }
+
+    func maskedServicePreview(for service: ServiceKeyID) -> String? {
+        Self.masked(serviceKey(for: service))
+    }
+
+    // MARK: - Keychain items, by account
+
+    /// The item stored under `account`, or nil when there is none or it is
+    /// empty.
+    private func secret(account: String) -> String? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: Self.service,
+            kSecAttrAccount: account,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne
+        ]
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let key = String(data: data, encoding: .utf8),
+              !key.isEmpty
+        else { return nil }
+        return key
+    }
+
+    /// Stores or replaces the item under `account`. Empty/whitespace strings
+    /// are treated as a delete.
     ///
     /// Tries an update first and falls back to an insert, which is the only
     /// way to distinguish "replace an existing key" from "store a new one"
     /// through the Keychain's C API.
-    @discardableResult
-    func setKey(_ key: String?, for provider: ProviderID) -> Bool {
+    private func setSecret(_ key: String?, account: String) -> Bool {
         let trimmed = key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if trimmed.isEmpty { return removeKey(for: provider) }
+        if trimmed.isEmpty { return removeSecret(account: account) }
         guard let data = trimmed.data(using: .utf8) else { return false }
         let baseQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: Self.service,
-            kSecAttrAccount: provider.rawValue
+            kSecAttrAccount: account
         ]
         let attributes: [CFString: Any] = [
             kSecValueData: data,
@@ -79,141 +180,22 @@ final class APIKeyStore: Sendable {
         return SecItemAdd(addQuery as CFDictionary, nil) == errSecSuccess
     }
 
-    /// Removes the key for a provider.
-    @discardableResult
-    func removeKey(for provider: ProviderID) -> Bool {
+    /// Deletes the item under `account`; true when it is gone (or never was).
+    private func removeSecret(account: String) -> Bool {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: Self.service,
-            kSecAttrAccount: provider.rawValue
+            kSecAttrAccount: account
         ]
         let status = SecItemDelete(query as CFDictionary)
         return status == errSecSuccess || status == errSecItemNotFound
     }
 
-    /// Removes every stored key for every known provider.
-    ///
-    /// Returns whether EVERY deletion succeeded. Used by "Delete All My Data",
-    /// which reports the outcome to the user.
-    ///
-    /// Each result must be checked, not discarded with `_ = removeKey(...)`,
-    /// and `DataPurgeService` must not hardcode `keychainCleared: true`:
-    /// otherwise a Keychain failure — the item locked by device state, an OS
-    /// error — is reported to the user as "AI provider keys: removed" while
-    /// the key is still on the device. Telling someone their
-    /// credentials are gone when they are not is the worst direction for this
-    /// to be wrong in.
-    ///
-    /// Every provider is attempted even after one fails: a partial wipe should
-    /// remove as much as it can, and the caller needs to know it was partial,
-    /// not stop at the first problem.
-    @discardableResult
-    func removeAllKeys() -> Bool {
-        var allSucceeded = true
-        for provider in ProviderID.allCases where !removeKey(for: provider) {
-            debugLog("[APIKeyStore] failed to remove key for \(provider.rawValue)", level: .error)
-            allSucceeded = false
-        }
-        if !removeServiceKey(for: .tavilyWebSearch) {
-            debugLog("[APIKeyStore] failed to remove the web-search service key", level: .error)
-            allSucceeded = false
-        }
-        return allSucceeded
-    }
-
-    /// Whether web search has a route: a Tavily key, or the Claude key that
-    /// Anthropic's server-side search rides. Whether a search can run right
-    /// now also depends on the provider answering (`web.available`).
-    var hasWebSearchRoute: Bool {
-        hasServiceKey(for: .tavilyWebSearch) || hasKey(for: .anthropic)
-    }
-
-    // MARK: - Non-AI service keys (web search, etc.)
-    //
-    // Some integrations need their own API key without being an AI provider.
-    // Tavily (web search) is the first example. Stored in the same keychain
-    // service but under a distinct account namespace so they don't collide
-    // with AI provider keys (which are keyed by `ProviderID.rawValue`).
-    //
-    // Adding a new service key = one new case in `ServiceKeyID` + one
-    // optional accessor pair below.
-
-    enum ServiceKeyID: String, CaseIterable {
-        /// Tavily search API — used by the web-search action in the
-        /// fact catalog. https://tavily.com (free tier 1000 searches/mo).
-        case tavilyWebSearch = "service.tavily_web_search"
-    }
-
-    func serviceKey(for service: ServiceKeyID) -> String? {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
-            kSecAttrAccount: service.rawValue,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let key = String(data: data, encoding: .utf8),
-              !key.isEmpty
-        else { return nil }
-        return key
-    }
-
-    func hasServiceKey(for service: ServiceKeyID) -> Bool {
-        serviceKey(for: service) != nil
-    }
-
-    @discardableResult
-    func setServiceKey(_ key: String?, for service: ServiceKeyID) -> Bool {
-        let trimmed = key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if trimmed.isEmpty { return removeServiceKey(for: service) }
-        guard let data = trimmed.data(using: .utf8) else { return false }
-        let baseQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
-            kSecAttrAccount: service.rawValue
-        ]
-        let attributes: [CFString: Any] = [
-            kSecValueData: data,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        ]
-        let updateStatus = SecItemUpdate(baseQuery as CFDictionary, attributes as CFDictionary)
-        if updateStatus == errSecSuccess { return true }
-        if updateStatus == errSecItemNotFound {
-            var addQuery = baseQuery
-            for (k, v) in attributes { addQuery[k] = v }
-            return SecItemAdd(addQuery as CFDictionary, nil) == errSecSuccess
-        }
-        return false
-    }
-
-    @discardableResult
-    func removeServiceKey(for service: ServiceKeyID) -> Bool {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
-            kSecAttrAccount: service.rawValue
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess || status == errSecItemNotFound
-    }
-
-    func maskedServicePreview(for service: ServiceKeyID) -> String? {
-        guard let key = serviceKey(for: service) else { return nil }
+    /// "•••••wxyz" (the last four characters) for a key longer than 8, all
+    /// bullets for a shorter one, nil for none.
+    private static func masked(_ key: String?) -> String? {
+        guard let key else { return nil }
         guard key.count > 8 else { return String(repeating: "•", count: max(key.count, 4)) }
         return "•••••\(key.suffix(4))"
-    }
-
-    /// Convenience for showing the user a masked preview of their saved key
-    /// (e.g., "•••••wxyz": the last four characters only) without exposing
-    /// the full secret.
-    func maskedPreview(for provider: ProviderID) -> String? {
-        guard let key = key(for: provider) else { return nil }
-        guard key.count > 8 else { return String(repeating: "•", count: max(key.count, 4)) }
-        let suffix = key.suffix(4)
-        return "•••••\(suffix)"
     }
 }

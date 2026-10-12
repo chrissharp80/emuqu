@@ -1,0 +1,108 @@
+{
+ "file": "Tools/validation/fetch_physionet.py",
+ "hash": "3308d1735996750f",
+ "role": "CLI that downloads named PhysioNet files from the open-data S3 mirror with retries and short-read / S3-XML-error detection.",
+ "types": [],
+ "state": [
+  "BASE = 'https://physionet-open.s3.amazonaws.com' (line 16)",
+  "file:<outdir>/<name> and <name>.part temp file"
+ ],
+ "toplevel": "Calls main() when run as a script (line 59).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Docstring says 'With no files, fetches RECORDS and then <rec>.hea/.atr/... per --ext list', but main() only iterates the file names given on the command line; with no names it downloads nothing and there is no --ext option.",
+   "evidence": [
+    "Tools/validation/fetch_physionet.py:8",
+    "Tools/validation/fetch_physionet.py:50"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def fetch",
+   "hash": "c0498442d254e396",
+   "does": "Downloads https://physionet-open.s3.amazonaws.com/<db>/<ver>/<name> to <outdir>/<name> via a .part file, up to 40 attempts with sleep min(2+i,15) s between; returns the destination path, or raises RuntimeError with the last error.",
+   "entry": null,
+   "calls": [
+    "ext:urllib.request.urlopen",
+    "ext:os.replace",
+    "ext:time.sleep"
+   ],
+   "reads": [
+    "net:physionet-open.s3.amazonaws.com",
+    "file:<outdir>/<name>"
+   ],
+   "writes": [
+    "file:<outdir>/<name>",
+    "file:<outdir>/<name>.part"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "destination exists with size > 0",
+     "effect": "returns the existing file without any validation. The script itself never leaves a truncated dest (it writes <name>.part and os.replace()s only after the Content-Length / S3-XML checks, lines 27-42), but a non-empty file placed there by anything else, or one downloaded when the server sent no Content-Length, is trusted as-is"
+    },
+    {
+     "at": "+7",
+     "cond": "for each attempt i < tries",
+     "effect": "try download"
+    },
+    {
+     "at": "+12",
+     "cond": "while chunk read",
+     "effect": "streams 1 MiB chunks to the .part file"
+    },
+    {
+     "at": "+14",
+     "cond": "read returned empty bytes",
+     "effect": "breaks the read loop"
+    },
+    {
+     "at": "+18",
+     "cond": "Content-Length present and file size differs",
+     "effect": "raises IOError -> caught -> retry"
+    },
+    {
+     "at": "+22",
+     "cond": "file starts with '<?xml' and contains '<Error>' in first 400 bytes",
+     "effect": "raises IOError (S3 error body) -> retry; else renames .part to dest and returns"
+    },
+    {
+     "at": "+26",
+     "cond": "any Exception during the attempt",
+     "effect": "records it, sleeps, retries; after all tries raises RuntimeError"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "5f593a78a5c8f9fc",
+   "does": "CLI entry: argv = db, version, outdir, then file names; fetches each name and prints path and size.",
+   "entry": "python3 -I fetch_physionet.py <db> <ver> <outdir> [file ...]",
+   "calls": [
+    "Tools/validation/fetch_physionet.py::def fetch"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each file name argument",
+     "effect": "fetch and print; no names => no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/fetch_physionet.py::def fetch": "a04c2095b14e4db8"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/validation/fetch_physionet.py::def main": "abb23336efab6f67"
+ }
+}

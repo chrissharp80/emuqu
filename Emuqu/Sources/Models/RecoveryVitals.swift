@@ -63,7 +63,8 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
     /// every screen and report that flags low SpO2 reads this.
     static let concerningSpO2Below: Double = 95.0
 
-    /// Is SpO2 concerning? (below `concerningSpO2Below`)
+    /// Is SpO2 concerning? (average below `concerningSpO2Below`;
+    /// `oxygenSaturationMin` is not consulted)
     var isSpO2Concerning: Bool {
         guard let spo2 = oxygenSaturation else { return false }
         return spo2 < Self.concerningSpO2Below

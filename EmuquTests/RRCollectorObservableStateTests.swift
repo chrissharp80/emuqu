@@ -16,8 +16,22 @@ final class RRCollectorObservableStateTests: XCTestCase {
     /// and a stored property would be constructed before that runs — handing the
     /// collector the very state the test just asked to be rid of. Deferring to
     /// first use inside the test body keeps the original ordering.
-    lazy var collector = RRCollector()
+    ///
+    /// Wired like the app's own collector, except that the archive and the
+    /// baseline tracker live in this test's temporary directory instead of the
+    /// host app's App Group container. The settings manager is still the
+    /// host's: `SettingsManager` cannot be made a second time, so the ANS tests
+    /// restore what they change.
+    lazy var collector = RRCollector(
+        polarManager: PolarManager(),
+        healthKit: AppDependencies.current.collection.healthKitManager,
+        archive: SessionArchive(directory: storageDirectory),
+        baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json"))
+    )
     var cancellables: Set<AnyCancellable> = []
+
+    nonisolated private let storageDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("RRCollectorObservableState-\(UUID().uuidString)", isDirectory: true)
 
     private func clearPersistedState() {
         PersistedRecordingState.clear()
@@ -30,6 +44,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         try await super.setUp()
         clearPersistedState()
         cancellables = []
+        try FileManager.default.createDirectory(at: storageDirectory, withIntermediateDirectories: true)
     }
 
     override func tearDown() async throws {
@@ -38,6 +53,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             try? collector.archive.delete(session.id)
         }
         clearPersistedState()
+        try FileManager.default.removeItem(at: storageDirectory)
         try await super.tearDown()
     }
 

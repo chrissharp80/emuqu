@@ -13,7 +13,7 @@ private struct PoincareGeometry {
         let allRR = pairs.flatMap { [$0.0, $0.1] }
         let minRR = allRR.min() ?? 600
         let maxRR = allRR.max() ?? 1200
-        let padding = max(maxRR - minRR, 100) * 0.15
+        let padding = max(maxRR - minRR, 100) * poincarePaddingFraction
         plotMin = minRR - padding
         plotMax = maxRR + padding
         plotSize = min(size.width, size.height)
@@ -56,25 +56,14 @@ struct PoincarePlotView: View {
         drawBeatPoints(&context, plot, pairs: pairs)
     }
 
-    /// Consecutive RR pairs inside the analysis window, artifact beats excluded.
-    ///
-    /// Guard the range. A short/empty rrSeries (a 5-min quick
-    /// reading) or a degenerate window makes `windowEnd` small, so
-    /// `windowStart ..< (windowEnd - 1)` becomes e.g. `0 ..< -1` → "Range
-    /// requires lowerBound <= upperBound" trap. Sibling views (Tachogram / HR
-    /// axis) already guard this; the Poincaré loop didn't.
+    /// Consecutive RR pairs inside the analysis window, artifact beats
+    /// excluded (`poincareBeatPairs`). Empty when there is no series or the
+    /// window holds fewer than two beats.
     private func beatPairs() -> [(Double, Double)] {
-        guard let series = session.rrSeries else { return [] }
-        let flags = session.artifactFlags ?? []
-        let windowStart = result.windowStart
-        let windowEnd = min(result.windowEnd, series.points.count)
-        guard windowStart >= 0, windowEnd > windowStart + 1 else { return [] }
-        return (windowStart ..< (windowEnd - 1)).compactMap { i in
-            let isArtifact1 = i < flags.count ? flags[i].isArtifact : false
-            let isArtifact2 = (i + 1) < flags.count ? flags[i + 1].isArtifact : false
-            guard !isArtifact1, !isArtifact2 else { return nil }
-            return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
-        }
+        guard let series = session.rrSeries,
+              let window = clampedAnalysisWindow(series: series, result: result)
+        else { return [] }
+        return poincareBeatPairs(series: series, flags: session.artifactFlags, window: window)
     }
 
     private func drawPlotBackground(_ context: inout GraphicsContext, _ plot: PoincareGeometry) {
@@ -134,78 +123,21 @@ struct TachogramView: View {
     let session: HRVSession
     let result: HRVAnalysisResult
 
-    @State private var touchLocation: CGPoint?
-    @State private var isDragging = false
-
-    private let xAxisHeight: CGFloat = 20
-
     var body: some View {
-        GeometryReader { geo in
-            chartStack(geo)
-                .contentShape(Rectangle())
-                .gesture(touchGesture)
-        }
+        ScrubbableWindowChart(
+            session: session,
+            result: result,
+            unit: String(localized: "ms", bundle: LanguageManager.appBundle),
+            tint: AppTheme.primary,
+            valueAt: { rrAtLocation($0, size: $1) },
+            chart: { chartCanvas(size: $0) }
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "Tachogram showing RR interval variability over time. RMSSD: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) milliseconds, mean heart rate: \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.meanHR)) beats per minute", bundle: LanguageManager.appBundle))
     }
 
-    private func chartStack(_ geo: GeometryProxy) -> some View {
-        let chartHeight = geo.size.height - xAxisHeight
-        return ZStack {
-            VStack(spacing: 0) {
-                chartCanvas(size: CGSize(width: geo.size.width, height: chartHeight))
-                    .frame(height: chartHeight)
-
-                xAxisLabels(width: geo.size.width)
-                    .frame(height: xAxisHeight)
-            }
-            touchOverlay(geo, chartHeight: chartHeight)
-        }
-    }
-
-    /// Crosshair and readout under the user's finger while dragging.
-    @ViewBuilder
-    private func touchOverlay(_ geo: GeometryProxy, chartHeight: CGFloat) -> some View {
-        if let touch = touchLocation, isDragging {
-            Rectangle()
-                .fill(Color.white.opacity(0.8))
-                .frame(width: 1, height: chartHeight)
-                .position(x: touch.x, y: chartHeight / 2)
-
-            if let (rr, time) = rrAtLocation(touch.x, size: CGSize(width: geo.size.width, height: chartHeight)) {
-                ChartTooltip(value: String(format: "%.0f", locale: LanguageManager.appLocale, rr), unit: String(localized: "ms", bundle: LanguageManager.appBundle), time: time, color: AppTheme.primary)
-                    .position(x: tooltipX(touch.x, width: geo.size.width), y: 30)
-            }
-        }
-    }
-
-    /// A brief hold starts scrubbing, so a swipe that starts on the chart
-    /// still scrolls the page instead of being swallowed by the drag.
-    private var touchGesture: some Gesture {
-        LongPressGesture(minimumDuration: 0.15)
-            .sequenced(before: DragGesture(minimumDistance: 0))
-            .onChanged { value in
-                guard case .second(true, let drag?) = value else { return }
-                touchLocation = drag.location
-                isDragging = true
-            }
-            .onEnded { _ in
-                isDragging = false
-                touchLocation = nil
-            }
-    }
-
-    private func xAxisLabels(width: CGFloat) -> some View {
-        ChartXAxisLabels(session: session, result: result, width: width)
-    }
-
-    private func tooltipX(_ x: CGFloat, width: CGFloat) -> CGFloat {
-        let padding: CGFloat = 50
-        if x < padding { return padding }
-        if x > width - padding { return width - padding }
-        return x
-    }
-
+    /// The RR of the beat under the finger; an artifact beat is shown with
+    /// its "(artifact)" label, as the trace draws it.
     private func rrAtLocation(_ x: CGFloat, size: CGSize) -> (Double, String)? {
         guard let hit = beatAtLocation(x, size: size, session: session, result: result) else { return nil }
         return (Double(hit.point.rr_ms), hit.timeString)
@@ -340,81 +272,25 @@ struct HeartRateChartView: View {
     let session: HRVSession
     let result: HRVAnalysisResult
 
-    @State private var touchLocation: CGPoint?
-    @State private var isDragging = false
-
-    private let xAxisHeight: CGFloat = 20
-
     var body: some View {
-        GeometryReader { geo in
-            chartStack(geo)
-                .contentShape(Rectangle())
-                .gesture(touchGesture)
-        }
+        ScrubbableWindowChart(
+            session: session,
+            result: result,
+            unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
+            tint: AppTheme.terracotta,
+            valueAt: { hrAtLocation($0, size: $1) },
+            chart: { chartCanvas(size: $0) }
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "Heart rate chart showing rate over time. Mean: \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.meanHR)) beats per minute, range: \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.minHR)) to \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.maxHR))", bundle: LanguageManager.appBundle))
     }
 
-    private func chartStack(_ geo: GeometryProxy) -> some View {
-        let chartHeight = geo.size.height - xAxisHeight
-        return ZStack {
-            VStack(spacing: 0) {
-                chartCanvas(size: CGSize(width: geo.size.width, height: chartHeight))
-                    .frame(height: chartHeight)
-
-                xAxisLabels(width: geo.size.width)
-                    .frame(height: xAxisHeight)
-            }
-            touchOverlay(geo, chartHeight: chartHeight)
-        }
-    }
-
-    /// Crosshair and readout under the user's finger while dragging.
-    @ViewBuilder
-    private func touchOverlay(_ geo: GeometryProxy, chartHeight: CGFloat) -> some View {
-        if let touch = touchLocation, isDragging {
-            Rectangle()
-                .fill(Color.white.opacity(0.8))
-                .frame(width: 1, height: chartHeight)
-                .position(x: touch.x, y: chartHeight / 2)
-
-            if let (hr, time) = hrAtLocation(touch.x, size: CGSize(width: geo.size.width, height: chartHeight)) {
-                ChartTooltip(value: String(format: "%.0f", locale: LanguageManager.appLocale, hr), unit: String(localized: "bpm", bundle: LanguageManager.appBundle), time: time, color: AppTheme.terracotta)
-                    .position(x: tooltipX(touch.x, width: geo.size.width), y: 30)
-            }
-        }
-    }
-
-    /// A brief hold starts scrubbing, so a swipe that starts on the chart
-    /// still scrolls the page instead of being swallowed by the drag.
-    private var touchGesture: some Gesture {
-        LongPressGesture(minimumDuration: 0.15)
-            .sequenced(before: DragGesture(minimumDistance: 0))
-            .onChanged { value in
-                guard case .second(true, let drag?) = value else { return }
-                touchLocation = drag.location
-                isDragging = true
-            }
-            .onEnded { _ in
-                isDragging = false
-                touchLocation = nil
-            }
-    }
-
-    private func xAxisLabels(width: CGFloat) -> some View {
-        ChartXAxisLabels(session: session, result: result, width: width)
-    }
-
-    private func tooltipX(_ x: CGFloat, width: CGFloat) -> CGFloat {
-        let padding: CGFloat = 50
-        if x < padding { return padding }
-        if x > width - padding { return width - padding }
-        return x
-    }
-
+    /// The bpm of the beat under the finger. Nil on an artifact beat or a
+    /// zero interval: the trace leaves those out because an interpolated RR
+    /// is a fabricated bpm, so the readout does not invent one either.
     private func hrAtLocation(_ x: CGFloat, size: CGSize) -> (Double, String)? {
         guard let hit = beatAtLocation(x, size: size, session: session, result: result),
-              hit.point.rr_ms > 0 else { return nil }
+              !hit.isArtifact, hit.point.rr_ms > 0 else { return nil }
         return (60000.0 / Double(hit.point.rr_ms), hit.timeString)
     }
 
@@ -480,29 +356,51 @@ struct HeartRateChartView: View {
 //
 // The RR tachogram and the HR chart draw the same analysis window from the
 // same beat stream; only the y-value transform and the tint differ. These
-// helpers hold the parts that were duplicated verbatim between the two.
+// helpers, and `ScrubbableWindowChart` below, hold the parts the two share.
 
-/// The analysis window, clamped to what the series actually contains.
+/// The analysis window, clamped to what the series actually contains: a
+/// negative start is raised to 0 and the end lowered to the beat count, so
+/// every index in the range is a valid `points` index. Nil when empty.
 func clampedAnalysisWindow(series: RRSeries, result: HRVAnalysisResult) -> Range<Int>? {
-    let start = result.windowStart
+    let start = max(result.windowStart, 0)
     let end = min(result.windowEnd, series.points.count)
     return end > start ? start ..< end : nil
 }
 
-/// The beat under a touch point, plus a formatted wall-clock label that says
-/// so when the beat was flagged as an artifact.
-func beatAtLocation(_ x: CGFloat, size: CGSize, session: HRVSession, result: HRVAnalysisResult) -> (point: RRPoint, timeString: String)? {
-    guard let series = session.rrSeries,
+/// Padding around the Poincaré cloud, as a share of its RR span (at least
+/// 100 ms), so no dot touches the frame.
+let poincarePaddingFraction = 0.15
+
+/// Consecutive RR pairs `(RRn, RRn+1)` inside `window`, dropping a pair when
+/// either beat is flagged as an artifact. A beat with no flag (nil or short
+/// `flags`, as merged and streamed sessions leave them) counts as clean.
+/// `window` must lie inside `series.points` (see `clampedAnalysisWindow`).
+func poincareBeatPairs(series: RRSeries, flags: [ArtifactFlags]?, window: Range<Int>) -> [(Double, Double)] {
+    guard window.count > 1 else { return [] }
+    let flags = flags ?? []
+    let isArtifact: (Int) -> Bool = { $0 < flags.count ? flags[$0].isArtifact : false }
+    return (window.lowerBound ..< (window.upperBound - 1)).compactMap { i in
+        guard !isArtifact(i), !isArtifact(i + 1) else { return nil }
+        return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
+    }
+}
+
+/// The beat under a touch point, whether it is flagged as an artifact, and a
+/// formatted wall-clock label that says so when it is. Beat i is drawn at
+/// `i * width / (count - 1)`, so the touch maps to the nearest drawn beat and
+/// a touch at the right edge selects the last one.
+func beatAtLocation(_ x: CGFloat, size: CGSize, session: HRVSession, result: HRVAnalysisResult) -> (point: RRPoint, timeString: String, isArtifact: Bool)? {
+    guard size.width > 0, let series = session.rrSeries,
           let window = clampedAnalysisWindow(series: series, result: result)
     else { return nil }
-    let targetIndex = window.lowerBound + Int((x / size.width) * CGFloat(window.count))
-    guard window.contains(targetIndex) else { return nil }
+    let fraction = min(max(x / size.width, 0), 1)
+    let targetIndex = window.lowerBound + Int((fraction * CGFloat(window.count - 1)).rounded())
     let flags = session.artifactFlags ?? []
     let isArtifact = targetIndex < flags.count ? flags[targetIndex].isArtifact : false
     let point = series.points[targetIndex]
     let actualTime = series.wallClockTime(forTMs: point.t_ms)
     let suffix = isArtifact ? " " + String(localized: "(artifact)", bundle: LanguageManager.appBundle) : ""
-    return (point, actualTime.formatted(.dateTime.hour().minute().second().locale(LanguageManager.appLocale)) + suffix)
+    return (point, actualTime.formatted(.dateTime.hour().minute().second().locale(LanguageManager.appLocale)) + suffix, isArtifact)
 }
 
 /// Evenly spaced wall-clock tick labels across the analysis window.
@@ -545,6 +443,86 @@ func tracePaths(points: [CGPoint], height: CGFloat, closingX: CGFloat) -> (line:
         fill.closeSubpath()
     }
     return (line, fill)
+}
+
+/// The frame the tachogram and the heart-rate chart share: the chart over the
+/// window's time axis, and a hold-then-drag scrub that shows a crosshair and
+/// the value under the finger. Only the unit, the tint, the chart and the
+/// value lookup differ between the two.
+private struct ScrubbableWindowChart<Chart: View>: View {
+    let session: HRVSession
+    let result: HRVAnalysisResult
+    let unit: String
+    let tint: Color
+    /// The value and time label at an x position in a chart of the given size.
+    let valueAt: (CGFloat, CGSize) -> (Double, String)?
+    let chart: (CGSize) -> Chart
+
+    @State private var touchLocation: CGPoint?
+    @State private var isDragging = false
+
+    private let xAxisHeight: CGFloat = 20
+
+    var body: some View {
+        GeometryReader { geo in
+            chartStack(geo)
+                .contentShape(Rectangle())
+                .gesture(touchGesture)
+        }
+    }
+
+    private func chartStack(_ geo: GeometryProxy) -> some View {
+        let chartHeight = geo.size.height - xAxisHeight
+        return ZStack {
+            VStack(spacing: 0) {
+                chart(CGSize(width: geo.size.width, height: chartHeight))
+                    .frame(height: chartHeight)
+                ChartXAxisLabels(session: session, result: result, width: geo.size.width)
+                    .frame(height: xAxisHeight)
+            }
+            touchOverlay(geo, chartHeight: chartHeight)
+        }
+    }
+
+    /// Crosshair and readout under the user's finger while dragging.
+    @ViewBuilder
+    private func touchOverlay(_ geo: GeometryProxy, chartHeight: CGFloat) -> some View {
+        if let touch = touchLocation, isDragging {
+            Rectangle()
+                .fill(Color.white.opacity(0.8))
+                .frame(width: 1, height: chartHeight)
+                .position(x: touch.x, y: chartHeight / 2)
+
+            if let (value, time) = valueAt(touch.x, CGSize(width: geo.size.width, height: chartHeight)) {
+                ChartTooltip(value: String(format: "%.0f", locale: LanguageManager.appLocale, value), unit: unit, time: time, color: tint)
+                    .position(x: tooltipX(touch.x, width: geo.size.width), y: 30)
+            }
+        }
+    }
+
+    /// A brief hold starts scrubbing, so a swipe that starts on the chart
+    /// still scrolls the page instead of being swallowed by the drag.
+    private var touchGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.15)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { value in
+                guard case .second(true, let drag?) = value else { return }
+                touchLocation = drag.location
+                isDragging = true
+            }
+            .onEnded { _ in
+                isDragging = false
+                touchLocation = nil
+            }
+    }
+
+    /// Keeps the tooltip 50 pt clear of either edge.
+    private func tooltipX(_ x: CGFloat, width: CGFloat) -> CGFloat {
+        let padding: CGFloat = 50
+        if x < padding { return padding }
+        if x > width - padding { return width - padding }
+        return x
+    }
 }
 
 /// The x-axis time labels shared by the tachogram and the heart-rate chart.

@@ -1,0 +1,410 @@
+{
+ "file": "EmuquTests/SessionMergeClockTests.swift",
+ "hash": "9bf18aadafae2c35",
+ "role": "Tests that SessionMerger merges two recordings of one night onto ONE clock (t_ms shifted by the start difference) rather than interleaving them, re-counts sleep bounds and analysis window when an earlier recording is imported, aligns duplicate copies of one recording, classifies intervals by merge gap, and that copy(of:startDate:) carries every stored HRVSession field.",
+ "types": [
+  "SessionMergeClockTests: class — XCTestCase for SessionMerger clock handling",
+  "MergeClockFixture: enum — deterministic RR recordings (+20/−5/−20/+5 ms cycle), sessions, analysis window, RMSSD and too-soon-beat counters"
+ ],
+ "state": [
+  "mem:SessionMergeClockTests.night (fixed Date 1_790_000_000)",
+  "mem:MergeClockFixture.cycle ([20,-5,-20,5])"
+ ],
+ "toplevel": "MergeClockFixture is an internal (non-private) enum at file scope; its private static let cycle drives beat variation.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionMergeClockTests.testTwoRecordingsOfOneSleepAreMergedOnOneClock()",
+   "hash": "84027b71efc8085e",
+   "does": "Merges a 120-min 850 ms recording starting 5 h 50 min after a 90-min 1000 ms one and asserts every beat is kept, no beat lands <300 ms after another, RMSSD < 30, the later recording starts at t_ms 21,000,000, start/series start stay at night, series id is the session id, and endDate is the later end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.rmssd(_:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "existing has no rrSeries",
+     "effect": "?? 0 point count"
+    },
+    {
+     "at": "+5",
+     "cond": "imported has no rrSeries",
+     "effect": "?? 0 point count"
+    },
+    {
+     "at": "+9",
+     "cond": "merged session has no rrSeries",
+     "effect": "?? [] gives empty points; count assertion then fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)": "9eaac86c75ed552d",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)": "a675809f922ff668",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "0d78e3029c4bc90e",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)": "71a47181c6f0e83d",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)": "472fc0ecac85f98c",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)": "0b4ba5d8a419cdca",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)": "2f0076417612e369",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)": "5b85acaa3eeb3192",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)": "f8013ded4f91b271",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)": "4247f625bd78ac61",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)": "4570d63a9b01003c",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)": "53ea2742ad077749",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.rmssd(_:)": "e733084e8955c7cc",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)": "49c3b5fa4ceedef6",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)": "b2fbe70d57d7207a"
+   }
+  },
+  {
+   "key": "func SessionMergeClockTests.testAnEarlierImportMovesTheMergedStartBackAndRecountsItsTimes()",
+   "hash": "cba5966dbc5a76e7",
+   "does": "Imports the EARLIER recording into a later one (both with analysis and sleep bounds) and asserts the id is kept, startDate moves to night, sleepStartMs is the earlier's 600,000, sleepEndMs is the later's re-counted 21,000,000+7,140,000, the analysis window index shifts by the imported beat count and windowStartMs by 21,000,000, and no beats are too soon.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.analysis(of:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.reindexed(_:from:onto:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.mergedIndex(of:in:onto:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "imported has no rrSeries",
+     "effect": "?? 0 imported count"
+    },
+    {
+     "at": "+21",
+     "cond": "merged session has no rrSeries",
+     "effect": "?? [] (beatsTooSoon of empty is 0, so that assertion would pass vacuously)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)": "9eaac86c75ed552d",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)": "a675809f922ff668",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.mergedIndex(of:in:onto:)": "1074e172afb55f36",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "0d78e3029c4bc90e",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.reindexed(_:from:onto:)": "d03a6aa9ee2a5b06",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)": "7047e557a7b4fab0",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)": "71a47181c6f0e83d",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)": "472fc0ecac85f98c",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)": "0b4ba5d8a419cdca",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)": "2f0076417612e369",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)": "5b85acaa3eeb3192",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)": "f8013ded4f91b271",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)": "4247f625bd78ac61",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)": "4570d63a9b01003c",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.analysis(of:)": "2d5a4aaf4221e245",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)": "53ea2742ad077749",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)": "49c3b5fa4ceedef6",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)": "b2fbe70d57d7207a"
+   }
+  },
+  {
+   "key": "func SessionMergeClockTests.testTwoCopiesOfOneRecordingAreAlignedNotDoubled()",
+   "hash": "21a2bdf26e73da36",
+   "does": "Builds a 30-min streamed recording with wall-clock stamps and a device copy missing its first 5 s, merges them and asserts the count is device + lead beats, the first device (non-wall-clock) beat is at the lead offset, no too-soon beats, start stays at night.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "merged session has no rrSeries",
+     "effect": "?? [] gives empty points; count assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)": "9eaac86c75ed552d",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)": "a675809f922ff668",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "0d78e3029c4bc90e",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)": "71a47181c6f0e83d",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)": "472fc0ecac85f98c",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)": "0b4ba5d8a419cdca",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)": "2f0076417612e369",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)": "5b85acaa3eeb3192",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)": "f8013ded4f91b271",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)": "4247f625bd78ac61",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)": "4570d63a9b01003c",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)": "53ea2742ad077749",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)": "b2fbe70d57d7207a"
+   }
+  },
+  {
+   "key": "func SessionMergeClockTests.testTheMergeGapDecidesBetweenOneSleepAndTwo()",
+   "hash": "9922955dff2cedee",
+   "does": "Asserts SessionMerger.relation classifies intervals 4 h 40 min apart as .separate, 4 h 20 min apart as .sameSleep, an overlapping copy as .sameRecording, and 4 h 20 min with a 1 h gap as .separate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.relation(of:to:mergeGap:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "08fd193c19fa98a7",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)": "ed84ed5b604c4027",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.relation(of:to:mergeGap:)": "dd9ce2e90beb21a0",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)": "9d0a68e89de1e721"
+   }
+  },
+  {
+   "key": "func SessionMergeClockTests.testTheStartDateCopyCarriesEveryStoredField()",
+   "hash": "c82c367b4d9734c1",
+   "does": "Asserts the reflected stored-property count of HRVSession equals SessionMerger.copiedSessionFieldCount (39).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Compares Mirror child count with a hand-maintained constant, not with what copy(of:startDate:) actually copies; adding a field and bumping the constant to 40 passes without adding the field to copy(of:)/copyDerivedFields, so the merge would still drop it.",
+     "evidence": [
+      "EmuquTests/SessionMergeClockTests.swift:110",
+      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:103",
+      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:107"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)": "49c3b5fa4ceedef6"
+   }
+  },
+  {
+   "key": "func MergeClockFixture.points(minutes:meanRR:wallClock:)",
+   "hash": "5b582c553e3385fd",
+   "does": "Generates RR points for `minutes` at meanRR plus the 4-step cycle, t_ms cumulative, optional wallClockMs equal to t_ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "elapsed < minutes*60,000",
+     "effect": "appends one beat and advances elapsed by its RR; loop ends past the duration"
+    },
+    {
+     "at": "+5",
+     "cond": "wallClock is true",
+     "effect": "wallClockMs = elapsed; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)",
+   "hash": "f681e7ba518abe52",
+   "does": "Builds a complete session from generated points, optionally attaching an analysis over beats 100..<300.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.analysis(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "withAnalysis and the session has an rrSeries",
+     "effect": "sets analysisResult = analysis(of:) (may be nil); otherwise no analysis"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.analysis(of:)": "2d5a4aaf4221e245",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:points:source:sessionType:)": "b2fbe70d57d7207a"
+   }
+  },
+  {
+   "key": "func MergeClockFixture.session(start:points:source:sessionType:)",
+   "hash": "e1edea826d4e51f3",
+   "does": "Builds a complete HRVSession with an RRSeries of the given points, endDate start + last beat end, and an optional DataSourceSummary naming the source.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "points is empty",
+     "effect": "?? 0 duration (endDate = start)"
+    },
+    {
+     "at": "+4",
+     "cond": "source is nil",
+     "effect": "dataSourceSummary nil; else a summary with streamingBeats/totalBeats = count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d"
+   }
+  },
+  {
+   "key": "func MergeClockFixture.analysis(of:)",
+   "hash": "748e75ac70880527",
+   "does": "Computes time-domain metrics over beats 100..<300 with all-clean flags and wraps them in an HRVAnalysisResult with window ms from the series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "series has <=300 points or computeTimeDomain returns nil",
+     "effect": "returns nil; otherwise the result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func MergeClockFixture.rmssd(_:)",
+   "hash": "fd13260020ebc801",
+   "does": "Returns RMSSD of successive rr_ms differences (0 for <2 points).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 points",
+     "effect": "returns 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d"
+   }
+  },
+  {
+   "key": "func MergeClockFixture.beatsTooSoon(_:)",
+   "hash": "b4a7cef4e10a147e",
+   "does": "Counts successive beats whose t_ms differ by less than 300 ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.points(minutes:meanRR:wallClock:)": "f2085d7d9cf3d76d"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -55,7 +55,7 @@ struct ScoreBreakdownCard: View {
         case .neutral: String(localized: "neutral", bundle: LanguageManager.appBundle)
         case .negative: String(localized: "negative", bundle: LanguageManager.appBundle)
         }
-        let weight = Int((factor.weight * 100).rounded())
+        let weight = Self.weightPercent(factor)
         let detail = factor.displayDetail(temperatureUnit: temperatureUnit)
         return String(localized: "\(label): \(score) out of 100, \(impact) impact, weight \(weight) percent. \(detail)", bundle: LanguageManager.appBundle)
     }
@@ -74,10 +74,17 @@ struct ScoreBreakdownCard: View {
             Text("\(RecoveryScoreCalculator.displayScore(factor.score))")
                 .font(.subheadline.weight(.semibold).monospacedDigit())
                 .foregroundColor(factorColor(factor.impact))
-            Text("\u{00D7} \(Int(factor.weight * 100))%")
+            Text("\u{00D7} \(Self.weightPercent(factor))%")
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
+    }
+
+    /// A factor's weight as the whole percent shown on screen and read by
+    /// VoiceOver: rounded, not truncated, the way the recovery-score detail
+    /// screen rounds it, so one factor never shows two weights.
+    static func weightPercent(_ factor: RecoveryScoreCalculator.ScoreFactor) -> Int {
+        Int((factor.weight * 100).rounded())
     }
 
     private func factorBar(_ factor: RecoveryScoreCalculator.ScoreFactor) -> some View {

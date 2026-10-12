@@ -1,0 +1,66 @@
+{
+ "file": "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift",
+ "hash": "6e4e2f411f012a53",
+ "role": "UserDefaults-backed 30-day last-known-good wrist temperature baseline cache used when HealthKit is unreachable for today's reading; a key-only wrapper over BaselineSnapshot's shared read/write helpers.",
+ "types": [
+  "WristTemperatureBaselineCache: enum — static read/write/clear"
+ ],
+ "state": [
+  "ud:WristTemperatureBaselineCache.v1 (standard suite; JSON BaselineSnapshot)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WristTemperatureBaselineCache.read()",
+   "hash": "a3bcf3160994e5bf",
+   "does": "Returns the cached wrist temperature baseline snapshot (<= BaselineSnapshot.maxAgeSeconds, 30 days, old) via BaselineSnapshot.read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)"
+   ],
+   "reads": [
+    "ud:WristTemperatureBaselineCache.v1"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)": "0749ce964dc8aba9"
+   }
+  },
+  {
+   "key": "func WristTemperatureBaselineCache.write(value:)",
+   "hash": "cd94b661d7ddf79e",
+   "does": "Stores value as the wrist temperature baseline snapshot (stamped now) via BaselineSnapshot.write under WristTemperatureBaselineCache.v1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.write(_:key:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:WristTemperatureBaselineCache.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.write(_:key:)": "a0489637bc597df3"
+   }
+  },
+  {
+   "key": "func WristTemperatureBaselineCache.clear()",
+   "hash": "c6fb1bf52bd8739e",
+   "does": "Removes WristTemperatureBaselineCache.v1. Called by DataPurgeService.swift:702.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:WristTemperatureBaselineCache.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

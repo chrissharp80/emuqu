@@ -1,0 +1,172 @@
+{
+ "file": "Emuqu/Sources/Services/PreScorePromptTelemetry.swift",
+ "hash": "8937e454fe3990d3",
+ "role": "Local-only UserDefaults counters (shown/completed/skipped) for the pre-score subjective prompt, surfaced as a one-line summary in Diagnostics; each record call counts on from the stored value.",
+ "types": [
+  "PreScorePromptTelemetry: final class (@Observable, @MainActor) — counters for the pre-score prompt"
+ ],
+ "state": [
+  "mem:PreScorePromptTelemetry.shared",
+  "ud:preScorePrompt.telemetry.shownCount",
+  "ud:preScorePrompt.telemetry.completedCount",
+  "ud:preScorePrompt.telemetry.skippedCount",
+  "ud:preScorePrompt.telemetry.firstSeen (legacy, written by earlier builds; only removed by reset)",
+  "mem:PreScorePromptTelemetry.shownCount/completedCount/skippedCount"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "init PreScorePromptTelemetry(defaults:)",
+   "hash": "39dd1ac34956722e",
+   "does": "Loads the three counters from the given UserDefaults (standard by default).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.completedCount",
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptTelemetry.recordShown()",
+   "hash": "567c9d88c829b38e",
+   "does": "Sets shownCount to the stored shownCount + 1 and persists it, so a sweep of the key is not undone by a stale in-memory total. Called from PreScorePromptView .task.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.shownCount"
+   ],
+   "writes": [
+    "ud:preScorePrompt.telemetry.shownCount"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Delete All My Data sweeps the preScorePrompt.telemetry.* keys but never calls reset(), so Diagnostics keeps showing the old in-memory counts until the next record call (which now counts on from the swept, zero value). DataPurgeService should call reset() (handed off).",
+     "evidence": [
+      "Emuqu/Sources/Services/DataPurgeService.swift:328",
+      "Emuqu/Sources/Services/DataPurgeService.swift:696"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptTelemetry.recordCompleted()",
+   "hash": "0c09e4f783e38c1b",
+   "does": "Sets completedCount to the stored completedCount + 1 and persists it (Show my score with ≥1 answer).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.completedCount"
+   ],
+   "writes": [
+    "ud:preScorePrompt.telemetry.completedCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptTelemetry.recordSkipped()",
+   "hash": "457a72a5d384cc41",
+   "does": "Sets skippedCount to the stored skippedCount + 1 and persists it (Skip / dismiss with no answers).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
+   "writes": [
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PreScorePromptTelemetry.completionRate",
+   "hash": "05beedbb4baa3c61",
+   "does": "completed/shown as Double; nil when never shown.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shownCount == 0",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PreScorePromptTelemetry.diagnosticsSummary",
+   "hash": "abd2bfeb7e7de851",
+   "does": "One-line Diagnostics string: 'not yet shown' when shown is 0, else completed/shown with rounded percent and skipped count (unlocalized English).",
+   "entry": "SwiftUI: read by SettingsPages+Diagnostics preScoreTelemetrySection",
+   "calls": [
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.completionRate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shownCount == 0",
+     "effect": "returns 'Pre-score prompt: not yet shown.'"
+    },
+    {
+     "at": "+4",
+     "cond": "completionRate nil",
+     "effect": "uses 0 (unreachable here because shownCount > 0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "diagnosticsSummary is hard-coded English shown via Text(verbatim:) in Diagnostics, while the sibling ValidationTelemetry.diagnosticsSummary localizes its labels and docs/LOCALIZATION.md requires every user-facing string to go through String(localized:bundle:).",
+     "evidence": [
+      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:71",
+      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:75",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:302",
+      "Emuqu/Sources/Services/ValidationTelemetry.swift:99",
+      "docs/LOCALIZATION.md:68"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.completionRate": "8a44644805255592"
+   }
+  },
+  {
+   "key": "func PreScorePromptTelemetry.reset()",
+   "hash": "f02f4e4f830e51fd",
+   "does": "Zeroes the three counters and removes their keys plus the legacy firstSeen key. Wired to Diagnostics reset button.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.completedCount",
+    "ud:preScorePrompt.telemetry.skippedCount",
+    "ud:preScorePrompt.telemetry.firstSeen"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

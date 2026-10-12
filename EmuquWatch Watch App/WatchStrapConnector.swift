@@ -25,8 +25,10 @@ import WatchConnectivity
 //   • Single CBCentralManager per process (`shared`). watchOS allows
 //     multiple but you'd just be paying double the radio cost.
 //   • Last-paired peripheral identifier persists in UserDefaults so
-//     the Watch reconnects automatically on app launch — the user
-//     pairs once, then it just works.
+//     the Watch reconnects it on app launch — only while auto-reconnect
+//     is on (legacy mode, where the wrist owns the strap). In
+//     display-only mode, the default, the iPhone owns the strap and the
+//     saved one is left alone.
 //   • Live HR + RR are pushed via WCSession back to iOS as
 //     `watchStrapSample` messages so the iPhone-side recorder can
 //     fold them in as a fallback when its own BLE path is empty.
@@ -36,7 +38,9 @@ import WatchConnectivity
 //   • BLE in watchOS background is intentionally left to the system —
 //     we don't ask for `bluetooth-central` background mode. Discovery
 //     scans run only while the pairing screen is open (it stops them on
-//     disappear). Continuous background BLE on the wrist is a battery
+//     disappear, and a scan still waiting for the radio is dropped with
+//     it) and never in the background (`appDidEnterBackground`).
+//     Continuous background BLE on the wrist is a battery
 //     sink the user will notice; the live channel runs while the app is
 //     foreground or during an active workout (workout-processing
 //     background mode).
@@ -100,8 +104,6 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     /// pairing screen creates it otherwise.
     private lazy var central = CBCentralManager(delegate: self, queue: nil)
     private var connectedPeripheral: CBPeripheral?
-    private var hrCharacteristic: CBCharacteristic?
-    private var batteryCharacteristic: CBCharacteristic?
 
     // Standard Bluetooth GATT UUIDs.
     // https://www.bluetooth.com/specifications/assigned-numbers/
@@ -129,6 +131,11 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     /// scan.
     private let savedPeripheralKey = "WatchStrapConnector.savedPeripheralIdentifier"
 
+    /// The saved strap's identifier, mirrored from `savedPeripheralKey` so a
+    /// view reading `hasSavedStrap` re-renders when a strap is saved or
+    /// forgotten. Written only through `rememberStrap` and `forgetSavedStrap`.
+    @Published private var savedStrapIdentifier: String?
+
     /// Whether a saved strap may be reconnected automatically (on launch,
     /// when Bluetooth comes up, after a drop). Off while the iPhone owns the
     /// strap (display-only mode, the default until the phone says otherwise),
@@ -149,12 +156,13 @@ final class WatchStrapConnector: NSObject, ObservableObject {
 
     override private init() {
         super.init()
+        savedStrapIdentifier = UserDefaults.standard.string(forKey: savedPeripheralKey)
         // `nil` queue == main. We're @MainActor so the delegate
         // callbacks line up without an extra hop. A paired strap is
         // reconnected as soon as the radio comes up, so its manager starts
         // now; without one, launching the app is no reason to ask for
         // Bluetooth.
-        if UserDefaults.standard.string(forKey: savedPeripheralKey) != nil {
+        if savedStrapIdentifier != nil {
             _ = central
         }
     }
@@ -170,16 +178,18 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     /// Clears the list and moves to a visibly active state first, whatever the
     /// radio is doing: a tap that changes nothing on screen reads as a tap that
     /// did not register. If Bluetooth is not ready the scan is deferred and
-    /// resumed from `centralManagerDidUpdateState`.
+    /// resumed from `centralManagerDidUpdateState`. A strap already connected
+    /// is left as it is, with no scan: the screen shows the live link, and
+    /// "Searching…" over a streaming strap would say the opposite.
     func startScanning() {
         discovered = []
-        guard central.state == .poweredOn else {
-            log.info("[WatchStrap] startScanning: BT state=\(self.stateString(self.central.state)) — deferring scan, will retry when poweredOn")
-            connectionState = mapBluetoothState(central.state)
-            pendingScanRequest = true
+        guard central.state == .poweredOn else { return deferScan() }
+        pendingScanRequest = false
+        let resting = restingState()
+        if case .connected = resting {
+            connectionState = resting
             return
         }
-        pendingScanRequest = false
         if autoReconnectEnabled, let known = savedPeripheral() {
             log.info("[WatchStrap] startScanning: reusing saved peripheral \(known.identifier.uuidString)")
             connect(to: known)
@@ -189,12 +199,31 @@ final class WatchStrapConnector: NSObject, ObservableObject {
         beginDiscovery()
     }
 
+    /// Bluetooth is not ready: show why, and run the scan once it is
+    /// (`radioCameUp`).
+    private func deferScan() {
+        log.info("[WatchStrap] startScanning: BT state=\(self.stateString(self.central.state)) — deferring scan, will retry when poweredOn")
+        connectionState = mapBluetoothState(central.state)
+        pendingScanRequest = true
+    }
+
     /// The strap this Watch paired with last, if the system still knows it.
     private func savedPeripheral() -> CBPeripheral? {
-        guard let savedID = UserDefaults.standard.string(forKey: savedPeripheralKey),
-              let uuid = UUID(uuidString: savedID)
-        else { return nil }
+        guard let savedID = savedStrapIdentifier, let uuid = UUID(uuidString: savedID) else { return nil }
         return central.retrievePeripherals(withIdentifiers: [uuid]).first
+    }
+
+    /// What the header says when no scan is running: the live link, a connect
+    /// still pending, or idle.
+    private func restingState() -> ConnectionState {
+        guard let peripheral = connectedPeripheral else { return .idle }
+        let name = peripheral.name ?? Self.genericSensorName
+        switch peripheral.state {
+        case .connected: return .connected(deviceName: name)
+        case .connecting: return .connecting(deviceName: name)
+        case .disconnected, .disconnecting: return .idle
+        @unknown default: return .idle
+        }
     }
 
     /// Scans with NO service filter, deliberately.
@@ -218,9 +247,24 @@ final class WatchStrapConnector: NSObject, ObservableObject {
         )
     }
 
+    /// Ends discovery (the pairing screen went away), and drops a scan still
+    /// waiting for Bluetooth so none starts later with no screen to stop it.
+    /// The header goes back to the link's own state, not to idle over a
+    /// connected strap.
     func stopScanning() {
+        pendingScanRequest = false
         if central.isScanning { central.stopScan() }
-        if case .scanning = connectionState { connectionState = .idle }
+        if case .scanning = connectionState { connectionState = restingState() }
+    }
+
+    /// The Watch app left the foreground: no discovery scan runs in the
+    /// background, and none waits for the radio. Touches the Bluetooth
+    /// manager only when a scan is running, so it never raises the Bluetooth
+    /// permission prompt for a user who never opened the pairing screen.
+    func appDidEnterBackground() {
+        pendingScanRequest = false
+        guard case .scanning = connectionState else { return }
+        stopScanning()
     }
 
     /// Connect to a specific peripheral, typically the one the user
@@ -249,8 +293,20 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     }
 
     /// True when a strap has been paired and not forgotten, connected or not.
+    /// Published through `savedStrapIdentifier`, so the Start screen's pairing
+    /// row appears and disappears as a strap is saved or forgotten.
     var hasSavedStrap: Bool {
-        UserDefaults.standard.string(forKey: savedPeripheralKey) != nil
+        savedStrapIdentifier != nil
+    }
+
+    private func rememberStrap(_ id: UUID) {
+        UserDefaults.standard.set(id.uuidString, forKey: savedPeripheralKey)
+        savedStrapIdentifier = id.uuidString
+    }
+
+    private func forgetSavedStrap() {
+        UserDefaults.standard.removeObject(forKey: savedPeripheralKey)
+        savedStrapIdentifier = nil
     }
 
     /// Refresh from the pairing screen: always a discovery scan, even with a
@@ -279,7 +335,7 @@ final class WatchStrapConnector: NSObject, ObservableObject {
         guard enabled != autoReconnectEnabled else { return }
         autoReconnectEnabled = enabled
         if enabled {
-            if hasSavedStrap, central.state == .poweredOn { radioCameUp(central) }
+            if hasSavedStrap, central.state == .poweredOn { radioCameUp() }
         } else {
             disconnect()
         }
@@ -296,19 +352,25 @@ final class WatchStrapConnector: NSObject, ObservableObject {
 
     /// Drop the current connection AND clear the saved-peripheral
     /// preference so we don't auto-reconnect on next launch. Used by
-    /// the "Forget Strap" button.
+    /// the "Forget Strap" button, which also shows beside a running
+    /// discovery scan: that scan carries on (the user is likely looking for
+    /// another strap), and the header keeps saying so.
     func disconnectAndForget() {
-        UserDefaults.standard.removeObject(forKey: savedPeripheralKey)
+        forgetSavedStrap()
         if let p = connectedPeripheral {
             central.cancelPeripheralConnection(p)
         }
         connectedPeripheral = nil
-        hrCharacteristic = nil
-        batteryCharacteristic = nil
+        clearLiveReadings()
+        if connectionState != .scanning { connectionState = .idle }
+    }
+
+    /// The last strap's readings, which must not be shown as a newly
+    /// connected strap's.
+    private func clearLiveReadings() {
         liveHeartRate = nil
         lastRRMillis = []
         batteryPercent = nil
-        connectionState = .idle
     }
 
     /// Disconnect but preserve the saved-peripheral preference so the
@@ -343,67 +405,6 @@ final class WatchStrapConnector: NSObject, ObservableObject {
         @unknown default: return "default"
         }
     }
-
-    /// Parse a Heart Rate Measurement (characteristic 2A37) packet per
-    /// the Bluetooth GATT spec. Returns the HR plus any RR intervals
-    /// present in the same notification (in milliseconds), or nil for a
-    /// packet that carries no real beat: a sensor that reports contact and
-    /// has lost it, or an HR of 0. Shown, either would read as a live "0".
-    ///
-    /// Layout
-    ///   • byte 0  : flags
-    ///       bit 0 : HR value format       (0 = uint8, 1 = uint16)
-    ///       bit 1 : Sensor contact detected
-    ///       bit 2 : Sensor contact supported
-    ///       bit 4 : RR-Interval Bit       (0 = no RR, 1 = RR follows)
-    ///   • bytes 1–N: HR value             (1 or 2 bytes per flag bit 0)
-    ///   • optional: Energy Expended       (2 bytes if flag bit 3 set)
-    ///   • optional: RR-Intervals          (2 bytes each, little-endian,
-    ///                                     1/1024 second units)
-    /// Pure parser — no actor isolation so the nonisolated
-    /// CBPeripheralDelegate callback can call it without hopping.
-    nonisolated static func parseHeartRateMeasurement(_ data: Data) -> (hr: Int, rrMillis: [Double])? {
-        guard let flags = data.first, !Self.lostContact(flags) else { return nil }
-        var cursor = 1
-        guard let hrValue = Self.readHeartRate(data, cursor: &cursor, wide: flags & 0b0000_0001 != 0),
-              hrValue > 0 else {
-            return nil
-        }
-        if flags & 0b0000_1000 != 0 {
-            cursor += 2 // energy expended, unused
-            guard data.count >= cursor else { return (hrValue, []) }
-        }
-        guard flags & 0b0001_0000 != 0 else { return (hrValue, []) }
-        return (hrValue, Self.readRRIntervals(data, from: cursor))
-    }
-
-    /// Contact is supported (bit 2) but not detected (bit 1).
-    nonisolated private static func lostContact(_ flags: UInt8) -> Bool {
-        flags & 0b0000_0100 != 0 && flags & 0b0000_0010 == 0
-    }
-
-    nonisolated private static func readHeartRate(_ data: Data, cursor: inout Int, wide: Bool) -> Int? {
-        let width = wide ? 2 : 1
-        guard data.count >= cursor + width else { return nil }
-        let value = wide
-            ? Int(data[cursor]) | (Int(data[cursor + 1]) << 8)
-            : Int(data[cursor])
-        cursor += width
-        return value
-    }
-
-    /// 16-bit little-endian, in units of 1/1024 s — hence the 1000/1024
-    /// conversion to milliseconds.
-    nonisolated private static func readRRIntervals(_ data: Data, from start: Int) -> [Double] {
-        var cursor = start
-        var rrMillis: [Double] = []
-        while cursor + 1 < data.count {
-            let raw = Int(data[cursor]) | (Int(data[cursor + 1]) << 8)
-            rrMillis.append(Double(raw) * 1000.0 / 1024.0)
-            cursor += 2
-        }
-        return rrMillis
-    }
 }
 
 // MARK: - CBCentralManagerDelegate
@@ -412,10 +413,12 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         let state = central.state
         Task { @MainActor in
-            self.connectionState = self.mapBluetoothState(state)
+            // Powered on, the header keeps a live or pending link's state
+            // rather than reading idle over it.
+            self.connectionState = state == .poweredOn ? self.restingState() : self.mapBluetoothState(state)
             self.log.info("[WatchStrap] central state changed → \(self.stateString(state))")
             guard state == .poweredOn else { return }
-            self.radioCameUp(central)
+            self.radioCameUp()
         }
     }
 
@@ -424,8 +427,8 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
     /// radio was ready so their tap is not a no-op. Covers a cold launch and
     /// a Control-Centre Bluetooth toggle.
     @MainActor
-    private func radioCameUp(_ central: CBCentralManager) {
-        if autoReconnectEnabled, let known = savedPeripheral(from: central) {
+    private func radioCameUp() {
+        if autoReconnectEnabled, let known = savedPeripheral() {
             log.info("[WatchStrap] BT poweredOn — auto-reconnecting to \(known.identifier.uuidString)")
             connect(to: known)
             return
@@ -433,13 +436,6 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
         guard pendingScanRequest else { return }
         log.info("[WatchStrap] BT poweredOn — running deferred scan request")
         startScanning()
-    }
-
-    @MainActor
-    private func savedPeripheral(from central: CBCentralManager) -> CBPeripheral? {
-        guard let saved = UserDefaults.standard.string(forKey: savedPeripheralKey),
-              let uuid = UUID(uuidString: saved) else { return nil }
-        return central.retrievePeripherals(withIdentifiers: [uuid]).first
     }
 
     nonisolated func centralManager(
@@ -514,7 +510,7 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
             return
         }
         log.info("[WatchStrap] connected \(id.uuidString) (\(name))")
-        UserDefaults.standard.set(id.uuidString, forKey: savedPeripheralKey)
+        rememberStrap(id)
         connectionState = .connected(deviceName: name)
         // Discover the two services we use. Specifying the array
         // (instead of nil) keeps the discovery payload tiny — the
@@ -551,14 +547,15 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
     /// when the user has moved on to a discovery scan (`rescan` cancels the
     /// pending link) or auto-reconnect is off. A strap this connector already
     /// let go of (replaced, forgotten, or cancelled by a rescan) is ignored:
-    /// its disconnect says nothing about the current link.
+    /// its disconnect says nothing about the current link. The dropped
+    /// strap's last readings are cleared, so a reconnect — or another strap —
+    /// does not show them as its own.
     @MainActor
     private func handleDisconnect(_ peripheral: CBPeripheral, central: CBCentralManager, detail: String?) {
         log.info("[WatchStrap] disconnected: \(detail ?? "no error")")
         guard connectedPeripheral?.identifier == peripheral.identifier else { return }
-        hrCharacteristic = nil
-        batteryCharacteristic = nil
         connectedPeripheral = nil
+        clearLiveReadings()
         guard connectionState != .scanning else { return }
         connectionState = .disconnected(reason: detail)
         guard autoReconnectEnabled, hasSavedStrap else { return }
@@ -572,15 +569,30 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
 
 extension WatchStrapConnector: CBPeripheralDelegate {
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        guard error == nil, let services = peripheral.services else { return }
-        let hrSvc = services.first { $0.uuid == Self.heartRateServiceUUID }
-        let batSvc = services.first { $0.uuid == Self.batteryServiceUUID }
-        if let hrSvc {
-            peripheral.discoverCharacteristics([Self.heartRateMeasurementUUID], for: hrSvc)
+        let services = peripheral.services ?? []
+        guard error == nil, let hrSvc = services.first(where: { $0.uuid == Self.heartRateServiceUUID }) else {
+            let reason = error?.localizedDescription
+            Task { @MainActor in self.noHeartRateService(peripheral, reason: reason) }
+            return
         }
-        if let batSvc {
+        peripheral.discoverCharacteristics([Self.heartRateMeasurementUUID], for: hrSvc)
+        if let batSvc = services.first(where: { $0.uuid == Self.batteryServiceUUID }) {
             peripheral.discoverCharacteristics([Self.batteryLevelUUID], for: batSvc)
         }
+    }
+
+    /// The strap connected but will give no heart rate: service discovery
+    /// failed (`reason`), or it has no Heart Rate Service. Left alone it would
+    /// show as a connected strap that never streams. The link is dropped and
+    /// the header says why; a device with no Heart Rate Service is also
+    /// forgotten, so it is not reconnected on the next launch.
+    @MainActor
+    private func noHeartRateService(_ peripheral: CBPeripheral, reason: String?) {
+        guard connectedPeripheral?.identifier == peripheral.identifier else { return }
+        connectedPeripheral = nil
+        central.cancelPeripheralConnection(peripheral)
+        if reason == nil, savedStrapIdentifier == peripheral.identifier.uuidString { forgetSavedStrap() }
+        connectionState = .disconnected(reason: reason ?? String(localized: "No heart rate from strap"))
     }
 
     nonisolated func peripheral(
@@ -596,10 +608,8 @@ extension WatchStrapConnector: CBPeripheralDelegate {
     nonisolated private func subscribe(_ peripheral: CBPeripheral, to char: CBCharacteristic) {
         switch char.uuid {
         case Self.heartRateMeasurementUUID:
-            Task { @MainActor in self.hrCharacteristic = char }
             peripheral.setNotifyValue(true, for: char)
         case Self.batteryLevelUUID:
-            Task { @MainActor in self.batteryCharacteristic = char }
             peripheral.readValue(for: char)
             peripheral.setNotifyValue(true, for: char)
         default:
@@ -613,13 +623,22 @@ extension WatchStrapConnector: CBPeripheralDelegate {
         error: Error?
     ) {
         guard error == nil, let data = characteristic.value else { return }
+        let id = peripheral.identifier
         if characteristic.uuid == Self.heartRateMeasurementUUID {
-            guard let parsed = WatchStrapConnector.parseHeartRateMeasurement(data) else { return }
-            Task { @MainActor in self.publishBeat(hr: parsed.hr, rrMillis: parsed.rrMillis) }
+            guard let measurement = WatchMessageDecoding.strapMeasurement(data) else { return }
+            Task { @MainActor in self.publishBeat(measurement, from: id) }
         } else if characteristic.uuid == Self.batteryLevelUUID {
             guard let byte = data.first else { return }
-            Task { @MainActor in self.batteryPercent = Int(byte) }
+            Task { @MainActor in self.noteBattery(Int(byte), from: id) }
         }
+    }
+
+    /// Only the current strap's battery: a value already queued from a strap
+    /// just replaced or forgotten is dropped.
+    @MainActor
+    private func noteBattery(_ percent: Int, from id: UUID) {
+        guard connectedPeripheral?.identifier == id else { return }
+        batteryPercent = percent
     }
 }
 
@@ -640,14 +659,19 @@ extension WatchStrapConnector {
         self.sessionManager = sessionManager
     }
 
-    /// One beat from the strap: to this app's UI, to the phone-facing session
-    /// mirror, and on to the iPhone.
+    /// One notification from the strap: to this app's UI, to the phone-facing
+    /// session mirror (only a real beat), and on to the iPhone. A notification
+    /// already queued from a strap just replaced or forgotten is dropped, so it
+    /// cannot re-show or forward that strap's beat. A packet with no real beat
+    /// (lost contact, rate 0) clears the shown rate rather than leaving the
+    /// last one up as live.
     @MainActor
-    private func publishBeat(hr: Int, rrMillis: [Double]) {
-        liveHeartRate = hr
-        lastRRMillis = rrMillis
-        publishToWatchSession(hr: hr, rrMillis: rrMillis)
-        forwardSampleToiPhone(hr: hr, rrMillis: rrMillis)
+    private func publishBeat(_ measurement: WatchMessageDecoding.StrapMeasurement, from id: UUID) {
+        guard connectedPeripheral?.identifier == id else { return }
+        liveHeartRate = measurement.heartRate
+        lastRRMillis = measurement.rrMillis
+        if let hr = measurement.heartRate { publishToWatchSession(hr: hr, rrMillis: measurement.rrMillis) }
+        forwardSampleToiPhone(hr: measurement.heartRate, rrMillis: measurement.rrMillis)
     }
 
     /// Forward the sample to the paired iPhone over WCSession so the
@@ -660,18 +684,18 @@ extension WatchStrapConnector {
     /// hour of beats arrived later looking fresh — a stale heart rate shown
     /// as live, and old intervals mixed into the next workout. A beat the
     /// phone cannot take now is dropped.
+    ///
+    /// `hr` is left out when the packet carried no real beat; its intervals
+    /// still go, as the iPhone's own strap path keeps them. A packet with
+    /// neither is not sent.
     @MainActor
-    private func forwardSampleToiPhone(hr: Int, rrMillis: [Double]) {
-        guard WCSession.isSupported() else { return }
+    private func forwardSampleToiPhone(hr: Int?, rrMillis: [Double]) {
+        guard WCSession.isSupported(), hr != nil || !rrMillis.isEmpty else { return }
         let session = WCSession.default
         guard session.activationState == .activated, session.isReachable else { return }
 
-        let payload: [String: any Sendable] = [
-            "type": "watchStrapSample",
-            "hr": hr,
-            "rrMillis": rrMillis,
-            "ts": Date().timeIntervalSince1970
-        ]
+        var payload: [String: any Sendable] = ["type": "watchStrapSample", "rrMillis": rrMillis, "ts": Date().timeIntervalSince1970]
+        if let hr { payload["hr"] = hr }
         // `@Sendable`: WatchConnectivity calls the error handler on its own
         // queue, and a main-actor-isolated closure asserts main at entry.
         session.sendMessage(payload, replyHandler: nil) { @Sendable error in

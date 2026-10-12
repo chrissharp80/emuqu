@@ -1,0 +1,521 @@
+{
+ "file": "EmuquTests/DeterministicIntentTests.swift",
+ "hash": "0bbd129e8b388296",
+ "role": "XCTest suite for DeterministicIntent (voice fast-path regex answers): utterances that must match a pattern (recovery, RHR, HRV, sleep, last workout, trained recently), utterances that must fall through to the LLM (medical speculation, advice, tool requests, web, historical depth, conversational edge cases, bare 'heart rate'), tryMatch nil contracts, and DST-safe dayStart in America/New_York.",
+ "types": [
+  "DeterministicIntentTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "anyPatternMatches re-implements the private DeterministicIntent.normalize (lowercase, trim whitespace, trim '.?!,') and matches() instead of calling them, so the precision tests exercise a copy of the normalisation; a change to production normalize would not be seen by these tests.",
+   "evidence": [
+    "EmuquTests/DeterministicIntentTests.swift:42",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:430",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:423"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DeterministicIntentTests.emptyContext()",
+   "hash": "fc60c34bea2118ae",
+   "does": "Builds a MatchContext with now = Date(), the real SessionArchive.shared and default UserSettings().",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.anyPatternMatches(_:)",
+   "hash": "5ad3455ac3900de3",
+   "does": "Normalises the utterance (lowercase, trim whitespace, trim .?!, at the edges) and returns true when any compiled trigger regex of any DeterministicIntent pattern matches.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each pattern",
+     "effect": "checks its compiled triggers"
+    },
+    {
+     "at": "+6",
+     "cond": "for each regex",
+     "effect": "tests firstMatch"
+    },
+    {
+     "at": "+8",
+     "cond": "regex matches",
+     "effect": "true: return true; false: continue; after all: return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testRecoveryScoreVariantsMatch()",
+   "hash": "743579bc7e87e00e",
+   "does": "Asserts 'what's my recovery score', 'recovery score', 'how am I doing today', 'recovery' match a pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testRHRVariantsMatch()",
+   "hash": "131265d3b8807de9",
+   "does": "Asserts resting heart rate, 'rhr' and 'how's my resting pulse today' match.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testBareHeartRateIsNotAnsweredWithRestingRate()",
+   "hash": "955813ffe6f34e61",
+   "does": "Asserts bare 'what's my heart rate' and 'how's my pulse' do not match (live HR goes to the model).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testHRVVariantsMatch()",
+   "hash": "eaa9c0fb8d4bba5a",
+   "does": "Asserts 'what's my hrv', 'rmssd', 'hrv today' match.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testSleepVariantsMatch()",
+   "hash": "fac17f36afc3ebec",
+   "does": "Asserts four sleep phrasings including bare 'sleep' match.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testLastWorkoutVariantsMatch()",
+   "hash": "4c5943ab39557374",
+   "does": "Asserts three last-workout phrasings match.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testTrainedRecentlyVariantsMatch()",
+   "hash": "33000dd7cf9c8ced",
+   "does": "Asserts 'did I train yesterday', 'did I run today', 'any workouts yesterday' match.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testMedicalSpeculationDoesNotMatch()",
+   "hash": "9a5ad5eb56231d57",
+   "does": "Asserts five medical-speculation utterances (lifespan, AFib, dying, dangerous HR, 'a problem') match no pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testAdviceQueriesDoNotMatch()",
+   "hash": "51631116869cf577",
+   "does": "Asserts five advice/what-if utterances match no pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testToolRequestsDoNotMatch()",
+   "hash": "667409eede1b2be2",
+   "does": "Asserts four tool requests (email, lead me back, save route, web search) match no pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testWebQueriesDoNotMatch()",
+   "hash": "8bc385ea05368c8a",
+   "does": "Asserts three web/news queries match no pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testHistoricalDepthQueriesDoNotMatch()",
+   "hash": "6116ae7bbc6019e3",
+   "does": "Asserts three historical-comparison/trend queries match no pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testEdgeCasesDoNotFalseTrigger()",
+   "hash": "2b7c7db911ef66fe",
+   "does": "Asserts four conversational sentences containing recovery/HRV/sleep/last words match no pattern.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "707ca9e1ff6bf442"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testTryMatchReturnsNilWhenArchiveEmpty()",
+   "hash": "1323eb79ebbee03e",
+   "does": "Calls tryMatch('what's my recovery score') against the real shared archive and asserts the result is nil or non-empty.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.shared",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'returns nil when archive empty' but accepts either nil or any non-empty answer, so it asserts only that the call does not crash; it also reads the app host's real SessionArchive.shared, so the outcome depends on whatever data the simulator holds.",
+     "evidence": [
+      "EmuquTests/DeterministicIntentTests.swift:163",
+      "EmuquTests/DeterministicIntentTests.swift:34"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "77a1eda622a4fe77",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "b1c043197a492fd5",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)": "30b0039a7f4b7999",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()": "45f6c8cc5d6f0c73"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testTryMatchReturnsNilForUnmatchedUtterance()",
+   "hash": "aba865768e8d9f33",
+   "does": "Asserts tryMatch returns nil for an unmatched periodization request.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "77a1eda622a4fe77",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "b1c043197a492fd5",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()": "45f6c8cc5d6f0c73"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.newYorkCalendar()",
+   "hash": "906b85097ea3e455",
+   "does": "Returns a Gregorian calendar in TestTimeZone.newYork.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DeterministicIntentTests.date(_:_:_:_:_:_:)",
+   "hash": "f3d3bbc23eab84df",
+   "does": "Builds a Date from y/m/d h:min in the given calendar, XCTUnwrap-failing when it cannot.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DeterministicIntentTests.testYesterdayCrossingSpringForwardResolvesToPreviousDay()",
+   "hash": "f995dde6c6db8cfa",
+   "does": "In New York at 2026-03-09 00:30 asserts dayStart(isYesterday: true) is 2026-03-08, and that the legacy now−86400 approach lands on 03-07.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "c301b14ed244493c",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)": "506b15ae791301f3",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()": "90eccc03aa1c905f"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testYesterdayCrossingFallBackResolvesToPreviousDay()",
+   "hash": "2bb9cffa490a2c56",
+   "does": "At 2026-11-02 00:30 New York asserts yesterday resolves to 11-01.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The fall-back case does not discriminate the regression: from 2026-11-02 00:30 EST, now−86400 s is 2026-11-01 01:30 EDT, which is also 01 Nov, so the legacy fixed-86400 implementation passes this test too. Only the spring-forward test guards the bug.",
+     "evidence": [
+      "EmuquTests/DeterministicIntentTests.swift:219",
+      "EmuquTests/DeterministicIntentTests.swift:225",
+      "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:455"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "c301b14ed244493c",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)": "506b15ae791301f3",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()": "90eccc03aa1c905f"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testTodayResolvesToStartOfDayAcrossTransition()",
+   "hash": "b108a2c453f3cdf6",
+   "does": "At 2026-03-09 00:30 asserts dayStart(isYesterday: false) is 03-09 at hour 0.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "c301b14ed244493c",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)": "506b15ae791301f3",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()": "90eccc03aa1c905f"
+   }
+  },
+  {
+   "key": "func DeterministicIntentTests.testYesterdayOnOrdinaryDayIsUnchanged()",
+   "hash": "c5796f689579a467",
+   "does": "At 2026-06-15 09:00 asserts yesterday is 06-14.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "c301b14ed244493c",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.date(_:_:_:_:_:_:)": "506b15ae791301f3",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.newYorkCalendar()": "90eccc03aa1c905f"
+   }
+  }
+ ],
+ "deps": {}
+}

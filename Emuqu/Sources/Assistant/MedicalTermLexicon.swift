@@ -148,18 +148,18 @@ enum MedicalTermLexicon {
         latin: [
             "atrial\\s+flutter", "heart\\s+block", "bradycardias?", "tachycardias?",
             "myocardial\\s+infarction", "heart\\s+attack", "cardiac\\s+(?:arrest|event)",
-            "ischemi[ac]", "isch[ae]emia", "angina", "hypertension", "hypotension",
+            "isch(?:a?e)mi[ac]", "angina", "hypertension", "hypotension",
             "flutter\\s+auriculaire", "bloc\\s+auriculo[- ]ventriculaire", "bradycardie", "tachycardie",
             "infarctus", "crise\\s+cardiaque", "hypertension\\s+art[ée]rielle",   // fr
             "aleteo\\s+auricular", "bloqueo\\s+card[íi]aco", "bradicardia", "taquicardia",
             "infarto", "ataque\\s+card[íi]aco", "hipertensi[óo]n", "hipotensi[óo]n", // es, pt-BR, it
             "vorhofflattern", "herzblock", "bradykardie", "tachykardie",
             "herzinfarkt", "herzstillstand", "bluthochdruck",                      // de
-            "boezemflutter", "hartblok", "bradycardie", "tachycardie",
+            "boezemflutter", "hartblok",              // bradycardie, tachycardie: as fr
             "hartaanval", "hartstilstand", "hoge\\s+bloeddruk",                    // nl
             "atrieflagren", "atrieflutter", "hjerteblok", "bradykardi", "takykardi",
             "hjerteanfald", "hjerteinfarkt", "hjertestop", "hjertestans",           // da, nb
-            "f[öo]rmaksfladder", "hj[äa]rtblock", "bradykardi", "takykardi",
+            "f[öo]rmaksfladder", "hj[äa]rtblock",     // bradykardi, takykardi: as da, nb
             "hj[äa]rtinfarkt", "hj[äa]rtstopp",                                     // sv
             "eteislepatus", "sydänkatkos", "bradykardia", "takykardia",
             "syd[äa]ninfarkti", "syd[äa]npys[äa]hdys",                              // fi
@@ -264,7 +264,7 @@ enum MedicalTermLexicon {
             "irregular\\s+(?:heart\\s*)?(?:beat|rhythm|pulse)",
             "heart\\s+(?:is\\s+)?beating\\s+irregularly?",
             "skipped?\\s+beats?", "palpitations?",
-            "palpitations?", "battements?\\s+irr[ée]guliers?", "rythme\\s+cardiaque\\s+irr[ée]gulier", // fr
+            "battements?\\s+irr[ée]guliers?", "rythme\\s+cardiaque\\s+irr[ée]gulier", // fr
             "palpitaciones", "latidos?\\s+irregulares?",       // es
             "palpita[çc][õo]es", "batimentos?\\s+irregulares?", // pt-BR
             "palpitazioni", "battito\\s+irregolare",           // it
@@ -290,6 +290,7 @@ enum MedicalTermLexicon {
             // Diagnostics") in seventeen locales, and without these the guard
             // deflects the assistant explaining how to send a support log.
             "diagnos(?:e|is|es|ed|ing)(?!\\w)(?!\\s+(?:log|logs|data|tool|tools|bundle))",
+            "undiagnosed",
             "diagnostiqu(?:er|é|ée)",
             "diagnostic(?!s?\\s+(?:log|logs|data|tool|tools|bundle))",   // fr
             "diagn[óo]stic[oa]s?(?!\\s+(?:del\\s+archivo|do\\s+arquivo|de\\s+sistema))",
@@ -314,7 +315,7 @@ enum MedicalTermLexicon {
     static let cure = Concept(
         id: "cure",
         latin: [
-            "cures?", "cured",
+            "cur(?:e|es|ed|ing)", "curative",
             "gu[ée]rir", "gu[ée]rison",               // fr
             // Not a bare `"cura"`: Italian "prenditi cura" is "take care",
             // and a bare match deflected ordinary coaching. The cure sense is
@@ -369,7 +370,7 @@ enum MedicalTermLexicon {
     static let prescription = Concept(
         id: "prescription",
         latin: [
-            "prescriptions?", "prescribe[ds]?",
+            "prescriptions?", "prescrib(?:e|es|ed|ing)",
             "ordonnance", "prescrire",                // fr
             "receta\\s+m[ée]dica", "prescripci[óo]n", // es
             "prescri[çc][ãa]o", "receita\\s+m[ée]dica", // pt-BR
@@ -471,11 +472,10 @@ enum MedicalTermLexicon {
     static let pathology = Concept(
         id: "pathology",
         latin: [
-            "pathology", "pathologies",
+            "patholog(?:y|ies|ical|ically)",
             "pathologie",                              // fr, de, nl
-            "patolog[ií]a", "patologia",               // es, pt-BR, it
+            "patolog[ií]a", "patologia",               // es, pt-BR, it, fi (loan)
             "patologi",                                // da, nb, sv
-            "patologia",                               // fi (loan)
             "meinafr[æa][ðd]i",                        // is
             "патология"                                // ru
         ],
@@ -542,7 +542,7 @@ extension MedicalTermLexicon {
     static let breathlessness = Concept(
         id: "breathlessness",
         latin: [
-            "shortness\\s+of\\s+breath", "can'?t\\s+breathe",
+            "shortness\\s+of\\s+breath", "can['’]?t\\s+breathe",
             "(?:difficulty|trouble)\\s+breathing", "struggling\\s+to\\s+breathe",
             "essoufflement", "difficult[ée]\\s+[àa]\\s+respirer",  // fr
             "dificultad\\s+para\\s+respirar", "falta\\s+de\\s+aire", // es
@@ -564,8 +564,11 @@ extension MedicalTermLexicon {
         latin: [
             // Not `"fainting"` only: "I fainted" and "I feel faint" are the
             // two ways anyone actually reports this, and must not go straight
-            // to a cloud provider.
-            "faint(?:s|ed|ing)?", "syncope", "passed?\\s+out", "blacked?\\s+out",
+            // to a cloud provider. Bare "faint" is also an adjective ("a faint
+            // HR trace"), so the adjective only counts after a feeling verb.
+            "faint(?:s|ed|ing|ness)",
+            "(?:feel|feels|feeling|felt|going\\s+to|about\\s+to)\\s+(?:\\w+\\s+){0,2}faint",
+            "syncope", "passed?\\s+out", "blacked?\\s+out",
             "[ée]vanouissement",                       // fr
             "desmay(?:o|os|arse|é|ó)",                  // es
             "desmai(?:o|os|ei|ou)",                     // pt-BR
@@ -614,14 +617,14 @@ extension MedicalTermLexicon {
         latin: [
             "dangerous", "life[- ]threatening", "in\\s+danger",
             "should\\s+i\\s+(?:be\\s+)?(?:worried|concerned)",
-            "dangereu(?:x|se)", "mettre\\s+ma\\s+vie\\s+en\\s+danger", "dois[- ]je\\s+m'inqui[ée]ter", // fr
+            "dangereu(?:x|se)", "mettre\\s+ma\\s+vie\\s+en\\s+danger", "dois[- ]je\\s+m['’]inqui[ée]ter", // fr
             "peligros[oa]", "deber[íi]a\\s+preocuparme",              // es
             "perigos[oa]", "devo\\s+me\\s+preocupar",               // pt-BR
             "pericolos[oa]", "devo\\s+preoccuparmi",                  // it
             "gef[äa]hrlich", "lebensbedrohlich", "sollte\\s+ich\\s+mir\\s+sorgen", // de
             "gevaarlijk", "levensbedreigend", "moet\\s+ik\\s+me\\s+zorgen",        // nl
             "farlig(?:t)?", "livstruende", "skal\\s+jeg\\s+v[æa]re\\s+bekymret",   // da, nb
-            "farligt", "livshotande", "ska\\s+jag\\s+vara\\s+orolig",              // sv
+            "livshotande", "ska\\s+jag\\s+vara\\s+orolig",              // sv
             "vaarallinen", "hengenvaarallinen", "pit[äa]isik[öo]\\s+minun\\s+huolestua", // fi
             "h[æa]ttulegt", "l[íi]fsh[æa]ttulegt",                     // is
             "опасно", "опасн[ыа][йе]", "угрожает\\s+жизни", "стоит\\s+ли\\s+беспокоиться" // ru
@@ -694,7 +697,7 @@ extension MedicalTermLexicon {
         id: "symptom-of-disease",
         latin: [
             "symptoms?\\s+of\\s+(?:a\\s+|an\\s+)?(?:disease|illness|condition)",
-            "sympt[ôo]mes?\\s+d'une\\s+maladie",       // fr
+            "sympt[ôo]mes?\\s+d['’]une\\s+maladie",    // fr
             "s[íi]ntomas?\\s+de\\s+una\\s+enfermedad", // es
             "sintomas?\\s+de\\s+uma\\s+doen[çc]a",     // pt-BR
             "sintomi\\s+di\\s+una\\s+malattia",        // it
@@ -933,8 +936,8 @@ extension MedicalTermLexicon {
         id: "physiological-certainty",
         latin: [
             "something\\s+significant\\s+is\\s+going\\s+on",
-            "you\\s+(?:are|'re)\\s+(?:definitely|clearly|certainly)",
-            "il\\s+se\\s+passe\\s+quelque\\s+chose\\s+d'important",
+            "you(?:\\s+are|\\s*['’]re)\\s+(?:definitely|clearly|certainly)",
+            "il\\s+se\\s+passe\\s+quelque\\s+chose\\s+d['’]important",
             "vous\\s+[êe]tes\\s+(?:clairement|certainement|assur[ée]ment)",                  // fr
             "algo\\s+importante\\s+est[áa]\\s+(?:pasando|ocurriendo)",
             "est[áa]s\\s+(?:claramente|definitivamente|sin\\s+duda)",                        // es

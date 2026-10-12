@@ -1,0 +1,30 @@
+{
+ "file": ".githooks/pre-commit",
+ "hash": "1238271d0d2acf56",
+ "role": "Git pre-commit hook (activated by `make setup-hooks` → scripts/install-git-hooks.sh setting core.hooksPath=.githooks). Blocks a commit on SwiftLint errors, on a SwiftLint run that did not complete, or on missing SwiftLint; reports SwiftLint warning count and staged-file SwiftFormat drift advisory only; blocks a commit while any code-map record is missing or stale, or while the code-map tooling is not installed.",
+ "types": [],
+ "state": [
+  "file:.ci/swiftlint_warning_budget.txt (read, advisory)",
+  "file:$TMPDIR/emuqu-pre-commit-swiftlint.XXXXXX (SwiftLint stderr, removed on exit)"
+ ],
+ "toplevel": "set -euo pipefail. (1) If `swiftlint` is not on PATH → fail() with install instructions for the portable SwiftLint 0.65.1 zip, the version ci.yml pins (commit blocked). (2) Creates a temp file for SwiftLint's stderr (mktemp failure → fail()), with an EXIT trap removing it. Runs `swiftlint lint --config .swiftlint.yml --quiet` capturing stdout and its exit status; greps stdout lines containing \": error:\". If the status is neither 0 nor 2, or is 2 with no error lines, prints the captured stderr and fail() saying SwiftLint did not complete (blocked). If error lines exist → prints them and fail() (blocked). (3) Counts \": warning:\" lines; reads .ci/swiftlint_warning_budget.txt (falls back to \"?\" if unreadable); if the count is not \"0\", prints \"N warnings (budget B), 0 errors\" — never blocks on warnings. (4) If `swiftformat` is on PATH: lists staged .swift files (git diff --cached --diff-filter=ACM); if any, runs `swiftformat --lint` over them NUL-separated; a non-zero exit only prints a \"not blocking\" note. If swiftformat is missing, prints a skip note. (5) If .venv-codemap/bin/python is not executable → fail() telling the developer to run `make codemap-setup` (commit blocked). Otherwise runs scripts/check_codemap.sh with that interpreter; a non-zero exit (problems listed by the check) → fail() pointing to docs/codemap/README.md (commit blocked). The check reads the working tree, not only the staged content, so unstaged edits to code or records also count. Writes nothing in the repository. Bypass: git commit --no-verify. Assumes SwiftLint's exit codes: 0 = no error-severity violation, 2 = error-severity violations.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn fail",
+   "hash": "93e9f35120699836",
+   "does": "Prints a blank line, \"pre-commit: <message>\", and a blank line to stderr, then exits 1, aborting the commit.",
+   "entry": "Called by the hook body when swiftlint is missing (line 39) or reports errors (line 58); the hook itself is run by git before each commit.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  ".githooks/pre-commit::fn fail": "c9514843e832b1c2",
+  "scripts/check_codemap.sh::": "7556633b3058e90d"
+ }
+}

@@ -1,0 +1,257 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift",
+ "hash": "1f22ea04ebc4f1d2",
+ "role": "Strategy that, for non-good readings, reports a weekday pattern when tonight's weekday historically averages >15% lower RMSSD than other weekdays and RMSSD is below 'good'.",
+ "types": [
+  "PatternCauseDetector: class (CauseDetectionStrategy)",
+  "DayOfWeekImpact: private struct",
+  "WeekdayPatternCopy: private enum — per-weekday localized title/explanation"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PatternCauseDetector.detectCauses(in:)",
+   "hash": "dbf2b9dd546a9177",
+   "does": "Returns [] for good readings, else the day-of-week pattern causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectDayOfWeekPattern(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "good or excellent reading",
+     "effect": "returns [] (unreachable via CauseDetector)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectDayOfWeekPattern(in:)": "629ed7ee67d3ff9d"
+   }
+  },
+  {
+   "key": "func PatternCauseDetector.detectDayOfWeekPattern(in:)",
+   "hash": "0547dad0871dcb7e",
+   "does": "Adds a weekday-pattern cause (low, 0.3) when impact > 15%, today is the low day and RMSSD < rmssdGood.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.calculateDayOfWeekImpact(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func WeekdayPatternCopy.title(weekday:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func WeekdayPatternCopy.explanation(weekday:percent:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no impact computable",
+     "effect": "returns []"
+    },
+    {
+     "at": "+9",
+     "cond": "impact > 0.15 and low day and rmssd < good",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.calculateDayOfWeekImpact(in:)": "279fc75aab6e8ba2",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func WeekdayPatternCopy.explanation(weekday:percent:)": "0dfdf2ccd61b0a10",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func WeekdayPatternCopy.title(weekday:)": "74acec09e212124e",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.weekday(_:)": "f8160b5134e17d9d"
+   }
+  },
+  {
+   "key": "func PatternCauseDetector.calculateDayOfWeekImpact(in:)",
+   "hash": "fffad4fb799ffb34",
+   "does": "Using >= 14 reliable overnight sessions, groups RMSSD by the weekday of the morning each night ends on (morningWeekday: start + 12 h); needs >= 3 weekdays with >= 2 readings and >= 2 readings on tonight's morning weekday; impact = (overall − today)/overall.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.rmssdByWeekday(_:calendar:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 14 sessions",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "fewer than 3 weekdays with >= 2 readings",
+     "effect": "nil"
+    },
+    {
+     "at": "+10",
+     "cond": "tonight's weekday has < 2 readings",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)": "b4d0b8a019e91697",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.rmssdByWeekday(_:calendar:)": "afd718fca03fdc7b",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "func PatternCauseDetector.morningWeekday(of:calendar:)",
+   "hash": "597b9302b25ac93b",
+   "does": "Calendar weekday (1 = Sunday) of session.startDate + 12 h: the morning a night ends on, so recordings begun just before or just after midnight file under the same weekday.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PatternCauseDetector.rmssdByWeekday(_:calendar:)",
+   "hash": "2abcce59cd67e6e1",
+   "does": "Maps each session with an RMSSD to the weekday bucket of the morning it ends on (morningWeekday).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each session",
+     "effect": "loops"
+    },
+    {
+     "at": "+3",
+     "cond": "session.rmssd nil",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)": "b4d0b8a019e91697",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a"
+   }
+  },
+  {
+   "key": "func WeekdayPatternCopy.title(weekday:)",
+   "hash": "521821e0fe0cee10",
+   "does": "Localized '<Weekday> Pattern' title for weekday 1..7 (1 = Sunday).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "1",
+     "effect": "Sunday"
+    },
+    {
+     "at": "+3",
+     "cond": "2",
+     "effect": "Monday"
+    },
+    {
+     "at": "+4",
+     "cond": "3",
+     "effect": "Tuesday"
+    },
+    {
+     "at": "+5",
+     "cond": "4",
+     "effect": "Wednesday"
+    },
+    {
+     "at": "+6",
+     "cond": "5",
+     "effect": "Thursday"
+    },
+    {
+     "at": "+7",
+     "cond": "6",
+     "effect": "Friday"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "Saturday (any other value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func WeekdayPatternCopy.explanation(weekday:percent:)",
+   "hash": "91d90d0bed3ddc7c",
+   "does": "Localized explanation 'HRV tends to be N% lower on <weekday>s'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "1",
+     "effect": "Sundays"
+    },
+    {
+     "at": "+3",
+     "cond": "2",
+     "effect": "Mondays"
+    },
+    {
+     "at": "+4",
+     "cond": "3",
+     "effect": "Tuesdays"
+    },
+    {
+     "at": "+5",
+     "cond": "4",
+     "effect": "Wednesdays"
+    },
+    {
+     "at": "+6",
+     "cond": "5",
+     "effect": "Thursdays"
+    },
+    {
+     "at": "+7",
+     "cond": "6",
+     "effect": "Fridays"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "Saturdays"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  }
+ ],
+ "deps": {}
+}

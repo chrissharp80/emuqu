@@ -1,0 +1,53 @@
+{
+ "file": "scripts/check_sbom_drift.sh",
+ "hash": "27218f7ccae5b802",
+ "role": "CI guard (make sbom-guard; ci.yml 'SBOM drift' step; gates.yml) that the hand-maintained `packages` array in AcknowledgementsView (PrivacyPolicyView.swift) mirrors the SPM Package.resolved pins one-to-one with equal versions.",
+ "types": [],
+ "state": [
+  "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved (read)",
+  "file:Emuqu/Sources/Views/PrivacyPolicyView.swift (read)"
+ ],
+ "toplevel": "cd to repo root; exit 2 if Package.resolved or PrivacyPolicyView.swift missing. Embedded python: loads pins (exit 2 on OSError/JSONDecodeError), maps identity.lower() -> state.version (pins with empty identity skipped; branch/revision pins get version ''). Regex `Pkg\\(\\s*name:\\s*\"..\"\\s*,\\s*version:\\s*\"..\"` over the Swift source, keys lowercased; zero matches -> exit 2 ('view shape changed'). Computes missing (resolved-declared), extra (declared-resolved), mismatched (both present and resolved version non-empty and differs; a revision-only pin is never version-checked). Prints a FAIL block per non-empty set and exits 1; else prints 'clean' with pin count and exits 0. Verified at 8d32097: 11 pins, 11 Pkg entries, all versions equal. Only the iOS project's Package.resolved is read; the regex scans the whole file so a Pkg(...) literal anywhere else in PrivacyPolicyView.swift would also count. The units listed for lines 93/100/107 are `print()` calls inside the heredoc, not functions.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn print",
+   "hash": "0b5d379cc351dff4",
+   "does": "Not a function: a Python `print()` statement (blank line after the 'missing' list) inside the embedded heredoc that the inventory misidentified as a shell function `print`. It emits an empty line to stdout when that FAIL block was printed.",
+   "entry": "executed inline by the heredoc python when its enclosing `if` block runs",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn print #2",
+   "hash": "904ba35e411a73e5",
+   "does": "Not a function: a Python `print()` statement (blank line after the 'extra' list) inside the embedded heredoc that the inventory misidentified as a shell function `print`. It emits an empty line to stdout when that FAIL block was printed.",
+   "entry": "executed inline by the heredoc python when its enclosing `if` block runs",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn print #3",
+   "hash": "f852eb29532e4b6c",
+   "does": "Not a function: a Python `print()` statement (blank line after the 'mismatched' list) inside the embedded heredoc that the inventory misidentified as a shell function `print`. It emits an empty line to stdout when that FAIL block was printed.",
+   "entry": "executed inline by the heredoc python when its enclosing `if` block runs",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_sbom_drift.sh::fn print #3": "84fa9d5921d27fbf"
+ }
+}

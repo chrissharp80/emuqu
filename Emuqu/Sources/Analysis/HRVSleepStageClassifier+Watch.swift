@@ -30,7 +30,9 @@ extension HRVSleepStageClassifier {
     /// One interval per run of same-stage, back-to-back windows. Windows
     /// dropped for too few beats (a strap dropout) leave a gap, and the gap
     /// ends the interval at the last window's end: stretching the stage
-    /// across it would count the dropout as sleep.
+    /// across it would count the dropout as sleep. Every interval is tagged
+    /// `.hrvDerived`: these stages were inferred from beat intervals, not
+    /// read from the Watch.
     static func buildIntervals(
         windows: [FeatureWindow],
         stages: [HealthKitManager.SleepStage]
@@ -42,13 +44,13 @@ extension HRVSleepStageClassifier {
         for i in 1 ..< windows.count
         where stages[i] != currentStage || windows[i].startDate > windows[i - 1].endDate {
             intervals.append(HealthKitManager.SleepStageInterval(
-                stage: currentStage, start: segmentStart, end: windows[i - 1].endDate
+                stage: currentStage, start: segmentStart, end: windows[i - 1].endDate, provenance: .hrvDerived
             ))
             currentStage = stages[i]
             segmentStart = windows[i].startDate
         }
         intervals.append(HealthKitManager.SleepStageInterval(
-            stage: currentStage, start: segmentStart, end: windows[windows.count - 1].endDate
+            stage: currentStage, start: segmentStart, end: windows[windows.count - 1].endDate, provenance: .hrvDerived
         ))
         return intervals
     }
@@ -214,6 +216,9 @@ extension HRVSleepStageClassifier {
     }
 
     /// Decide the augmented stage for a single epoch based on Watch classification and HRV scores.
+    /// REM → Deep reads the REM evidence before the first-hour suppression
+    /// (`remEvidence`): a forced 0 is not "strong opposing evidence" against
+    /// the Watch's REM.
     static func decideAugmentedStage(
         watch: HealthKitManager.SleepStage,
         score: WindowScores
@@ -232,7 +237,7 @@ extension HRVSleepStageClassifier {
             }
             return watch
         case .rem:
-            if score.deepScore > augmentCrossStageThreshold, score.remScore < augmentCrossStageRejectThreshold {
+            if score.deepScore > augmentCrossStageThreshold, (score.remEvidence ?? score.remScore) < augmentCrossStageRejectThreshold {
                 return .deep
             }
             return watch
@@ -273,6 +278,8 @@ extension HRVSleepStageClassifier {
 
     /// The Watch stage covering most of `window`, or nil when no Watch
     /// interval overlaps it, so augmentation leaves an uncovered epoch alone.
+    /// An exact tie goes to the stage listed first in `tieOrder`, so the
+    /// pick does not depend on dictionary order.
     static func dominantStage(
         in window: FeatureWindow,
         watchIntervals: [HealthKitManager.SleepStageInterval]
@@ -283,6 +290,15 @@ extension HRVSleepStageClassifier {
             guard overlap > 0 else { continue }
             stageDuration[interval.stage, default: 0] += overlap
         }
-        return stageDuration.max(by: { $0.value < $1.value })?.key
+        return stageDuration.max(by: { lhs, rhs in
+            lhs.value != rhs.value ? lhs.value < rhs.value : tieRank(lhs.key) > tieRank(rhs.key)
+        })?.key
+    }
+
+    /// Order for breaking an exact duration tie in `dominantStage`.
+    static let tieOrder: [HealthKitManager.SleepStage] = [.deep, .rem, .core, .unspecified, .awake]
+
+    static func tieRank(_ stage: HealthKitManager.SleepStage) -> Int {
+        tieOrder.firstIndex(of: stage) ?? tieOrder.count
     }
 }

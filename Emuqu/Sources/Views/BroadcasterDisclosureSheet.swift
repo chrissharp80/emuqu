@@ -10,8 +10,9 @@
 //  purpose string already covers all three BLE roles (HR consumer +
 //  Stryd consumer + outbound broadcaster). What it can't convey is the
 //  *direction shift* — from "your sensors connect to your phone" to
-//  "your phone is now broadcasting your HR and power outbound to any
-//  app on your local network that scans for it". The user accepts that
+//  "your phone is now advertising your HR and power over Bluetooth to any
+//  nearby app that scans for it" (BLE, within Bluetooth range — not the local
+//  network). The user accepts that
 //  shift here, once.
 //
 

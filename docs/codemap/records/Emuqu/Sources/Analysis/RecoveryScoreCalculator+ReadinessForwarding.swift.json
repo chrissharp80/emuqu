@@ -1,0 +1,78 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift",
+ "hash": "b20b49596e1284c1",
+ "role": "Forwarders from RecoveryScoreCalculator to ReadinessScoring plus the WorkoutLoad typealias.",
+ "types": [
+  "RecoveryScoreCalculator: extension — readiness forwarders; typealias WorkoutLoad = ReadinessScoring.WorkoutLoad"
+ ],
+ "state": [],
+ "toplevel": "typealias WorkoutLoad.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+   "hash": "87b1adcff37110ae",
+   "does": "Forwards to ReadinessScoring.calculateReadiness. Called by LiveReadiness.readiness, ReanalysisService, TrainingReadinessCard and many tests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.dampenedACWRPenalty(acr:ctl:recoveryScore:)",
+   "hash": "427072a887e7d843",
+   "does": "Forwards to ReadinessScoring.dampenedACWRPenalty; only tests call it (ScoringCharacterizationTests).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.applyFreshnessBonus(_:morningATL:atl:)",
+   "hash": "ff6ce3aa13c77516",
+   "does": "Forwards to ReadinessScoring.applyFreshnessBonus; only tests call it (ScoringCharacterizationTests).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.readinessLabel(for:)",
+   "hash": "6f9e767f2ea35e7f",
+   "does": "Forwards to ReadinessScoring.readinessLabel(for:). Called by AnalysisSummaryGenerator+Steps.swift:427 and tests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
+   }
+  }
+ ],
+ "deps": {}
+}

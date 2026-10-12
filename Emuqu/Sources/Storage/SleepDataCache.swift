@@ -38,8 +38,9 @@ enum SleepDataCache {
         let calendar = Calendar.current
         // Sleep is keyed by the morning the user woke up. A recording that
         // started the previous evening (e.g. 22:30) belongs to the next day's
-        // sleep night — match by the morning AFTER recordingStart if before
-        // local 4 AM, otherwise the recording's own morning.
+        // sleep night: a recording starting 16:00–23:59 maps to the NEXT
+        // day's morning, one starting 00:00–15:59 to its own day's morning
+        // (`morningKey`).
         let target = morningKey(for: recordingStart, calendar: calendar)
         guard let store = loadStore() else { return nil }
         // Allow a ±1 day tolerance to handle late-night vs early-morning

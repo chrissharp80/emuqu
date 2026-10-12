@@ -1,0 +1,178 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift",
+ "hash": "437ba9d073ada49e",
+ "role": "HealthKitManager extension forwarding the training/workout queries that have callers (workout route, passive distance, extended workouts, heart-rate anchors, training metrics and load) and two pure workout-merging statics to TrainingHealthQueries. Queries only TrainingHealthQueries itself uses are not forwarded.",
+ "types": [
+  "HealthKitManager: extension — training forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HealthKitManager.training",
+   "hash": "0e9b853c92516c65",
+   "does": "Computed property building a fresh TrainingHealthQueries(manager: self) on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.deduplicateWorkouts(_:)",
+   "hash": "0bd4eb714dbdd278",
+   "does": "Static forwarder to TrainingHealthQueries.deduplicateWorkouts; only callers are WorkoutDeduplicationTests (production calls the TrainingHealthQueries static directly).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b"
+   }
+  },
+  {
+   "key": "func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)",
+   "hash": "fe09668b5a6bff0d",
+   "does": "Static forwarder to TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:); called by TrainingMetricsCache.swift:517.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "4e23a88ccff23cef"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchWorkoutRoute(from:to:)",
+   "hash": "fea5587737394990",
+   "does": "Forwards fetchWorkoutRoute(from:to:) to TrainingHealthQueries; called by RRCollector+BackupRecovery:235 to recover a GPS track from the Watch's route.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutRoute(from:to:)"
+   ],
+   "reads": [
+    "hk:workoutRoute"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutRoute(from:to:)": "6d4648e34bf5e1f4"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchPassiveDistanceMeters(from:to:)",
+   "hash": "54b66b200c425f4c",
+   "does": "Forwards fetchPassiveDistanceMeters(from:to:) to TrainingHealthQueries; called by RRCollector+BackupRecovery.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchPassiveDistanceMeters(from:to:)"
+   ],
+   "reads": [
+    "hk:distanceWalkingRunning"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchPassiveDistanceMeters(from:to:)": "098f478dc217aaac"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchWorkoutsExtended(days:relativeTo:)",
+   "hash": "7dc07674afd92f9f",
+   "does": "Forwards fetchWorkoutsExtended(days:relativeTo:) to TrainingHealthQueries; called by TrainingMetricsCache.swift:373.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtended(days:relativeTo:)"
+   ],
+   "reads": [
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtended(days:relativeTo:)": "e4d6f625296bd29e"
+   }
+  },
+  {
+   "key": "func HealthKitManager.trainingHeartRateAnchors()",
+   "hash": "e7117fa38298938f",
+   "does": "Forwards trainingHeartRateAnchors() to TrainingHealthQueries (Apple resting HR else setting; user max HR); called by TrainingMetricsCache.swift:374.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()"
+   ],
+   "reads": [
+    "hk:restingHeartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2"
+   }
+  },
+  {
+   "key": "func HealthKitManager.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)",
+   "hash": "7a96397ec0f03f4f",
+   "does": "Forwards calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:) to TrainingHealthQueries; called by TrainingMetricsCache:375 and the protocol bridge HealthKitServiceProtocol.swift:177.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)"
+   ],
+   "reads": [
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)": "957d5965c00b1d86"
+   }
+  },
+  {
+   "key": "func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)",
+   "hash": "c6bb3962f2cb40ef",
+   "does": "Forwards calculateTrainingLoad(days:forMorningReading:relativeTo:) to TrainingHealthQueries; called by the protocol bridge (HealthKitServiceProtocol.swift:168) and WorkoutRecorder+Lifecycle:501.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingLoad(days:forMorningReading:relativeTo:)"
+   ],
+   "reads": [
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "edb62d94693332c5"
+   }
+  }
+ ],
+ "deps": {}
+}

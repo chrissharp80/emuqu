@@ -1,0 +1,450 @@
+{
+ "file": "EmuquTests/SleepMergingPipelineTests.swift",
+ "hash": "845b24f175cec7fd",
+ "role": "XCTest suite for SleepMergingPipeline primitives (clipIntervals, splitByGaps, accumulateStageMinutes, buildSegmentFromIntervals, splitStageIntervals) and processForRecording's inverted/zero-length recording guard.",
+ "types": [
+  "SleepMergingPipelineTests: class — XCTestCase for SleepMergingPipeline"
+ ],
+ "state": [
+  "baseDate: Date(timeIntervalSince1970: 1_700_000_000)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+   "hash": "bfb46ce55df03c10",
+   "does": "Builds a HealthKitManager.SleepStageInterval of the given stage from start lasting durationMinutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.date(minutesAfter:)",
+   "hash": "7a07fd93837d94c3",
+   "does": "Returns baseDate + minutesAfter minutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testClipIntervals_clipsToWindow()",
+   "hash": "17c7d631f2acc071",
+   "does": "Clips deep 0–60, core 60–120, REM 120–180 to window 30–90 and asserts two intervals remain: deep 30 min and core 30 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testClipIntervals_emptyInput()",
+   "hash": "e98324891375e1cb",
+   "does": "Asserts clipIntervals of an empty array is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testClipIntervals_noOverlap()",
+   "hash": "ca54d799cd991942",
+   "does": "Asserts an interval 0–30 clipped to 60–120 yields nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testSplitByGaps_noGaps()",
+   "hash": "e58a198e4506b100",
+   "does": "Asserts three contiguous 30-min items with a 1h gap threshold form one group of 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "235fae4df305c05b",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testSplitByGaps_withLargeGap()",
+   "hash": "f065e113eee35b44",
+   "does": "Asserts items separated by 90 minutes with a 1h threshold split into two groups of 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "235fae4df305c05b",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testSplitByGaps_emptyInput()",
+   "hash": "f1cbffc7a49f8f53",
+   "does": "Asserts splitByGaps of no items returns no groups.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "235fae4df305c05b"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testSplitByGaps_singleItem()",
+   "hash": "df25983305dfa6c2",
+   "does": "Asserts a single item yields one group of one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "235fae4df305c05b",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testAccumulateStageMinutes_empty()",
+   "hash": "b06c257469f2a119",
+   "does": "Asserts accumulateStageMinutes([]) has deep/rem/core/awake/totalSleep all 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testAccumulateStageMinutes_allStages()",
+   "hash": "4a6217eb9cc202c9",
+   "does": "Accumulates deep 60, REM 30, core 120, awake 15, unspecified 45 and asserts each bucket, hasDetailed true, detailedSleep 210 and totalSleep 255 (unspecified counted as sleep, awake excluded).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.hasDetailed",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.detailedSleep",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.detailedSleep": "b24bf22797a19a2d",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.hasDetailed": "58d2883748188e25",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testEditorAndNightTotalsAgreeOnFractionalMinuteStages()",
+   "hash": "7d7cfbf23e0142fb",
+   "does": "Builds 8 back-to-back intervals of fractional-minute lengths cycling core/deep/REM and asserts accumulateStageMinutes.totalSleep equals SleepResolver.totalMinutes, and that 1,850 s rounds to 31 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each (index, seconds) in lengths",
+     "effect": "appends an interval of that length with stage index%3, advancing start; runs 8 times"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testBuildSegmentFromIntervals_validInput()",
+   "hash": "89ab503cc212886d",
+   "does": "Asserts buildSegmentFromIntervals over deep 60/core 120/REM 30 gives start 0, end 210, total 210 and deep 60, REM 30, core 120.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testBuildSegmentFromIntervals_emptyInput()",
+   "hash": "a925015d3f6b181d",
+   "does": "Asserts buildSegmentFromIntervals([]) is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testBuildSegmentFromIntervals_singleInterval()",
+   "hash": "d6b047b21b269518",
+   "does": "Asserts a single 90-min deep interval gives a non-nil segment with total 90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testBuildSegmentFromIntervals_stagedZeroIsZeroNotNil()",
+   "hash": "c3f43fe4dff6c929",
+   "does": "Asserts a core+REM segment reports deep 0 (not nil) and REM 30, and an unspecified-only segment reports nil deep and REM.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testBuildSegmentFromIntervals_coreOnlyIsUnstagedLikeTheNight()",
+   "hash": "49c7d750249df6fc",
+   "does": "Asserts a core-only segment reports nil deep and REM (treated as unstaged) with total 120.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testSplitStageIntervals_byGap()",
+   "hash": "df09b7a1ba035ef7",
+   "does": "Asserts splitStageIntervals with a 1h gap splits deep/core (0–120) and deep (240–300) into groups of 2 and 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervals(_:gap:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervals(_:gap:)": "bce265cee4d70355",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "0076be1613c99411"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.watchCore(fromMinute:toMinute:)",
+   "hash": "20fc1e5e8a81ced8",
+   "does": "Builds an HKCategorySample of sleepAnalysis asleepCore between the given minutes after baseDate.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "ext:HealthKit.HKCategorySample"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.config()",
+   "hash": "bbdfd17d9d269d53",
+   "does": "Builds a SleepMergingConfig with window −120..600 min, 60-min awake split, enhanceWithRR false.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testProcessForRecording_endBeforeStart_keepsTheWatchNight()",
+   "hash": "37b113f4b2ae3a70",
+   "does": "Runs processForRecording with a 0–420 core Watch sample and recordingEnd (5) before recordingStart (10); asserts no trap and nightSleepMinutes > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.watchCore(fromMinute:toMinute:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.config()",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "0b68c4da01c72cb7",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.config()": "199cdcff7c060519",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.watchCore(fromMinute:toMinute:)": "0df55c319f427593"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testProcessForRecording_zeroLengthRecording_keepsTheWatchNight()",
+   "hash": "1418c07329656bc6",
+   "does": "Runs processForRecording with a zero-length recording (start == end == 10) and asserts nightSleepMinutes > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.watchCore(fromMinute:toMinute:)",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.config()",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "0b68c4da01c72cb7",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.config()": "199cdcff7c060519",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "7173effa085ddaba",
+    "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.watchCore(fromMinute:toMinute:)": "0df55c319f427593"
+   }
+  }
+ ],
+ "deps": {}
+}

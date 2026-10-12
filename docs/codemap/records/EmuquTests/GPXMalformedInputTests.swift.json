@@ -1,0 +1,239 @@
+{
+ "file": "EmuquTests/GPXMalformedInputTests.swift",
+ "hash": "e6b82487c4fdf491",
+ "role": "@MainActor XCTest suite ensuring malformed GPX values (nan/inf/1e400/out-of-domain) are rejected by GPXImporter validators and parse(), and that WorkoutAnalyzer.encodePolyline does not trap on non-finite coordinates/altitudes.",
+ "types": [
+  "GPXMalformedInputTests: class — @MainActor XCTestCase for GPX validation and polyline encoding"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func GPXMalformedInputTests.gpx(lat:lon:ele:)",
+   "hash": "09d8dd080de719c4",
+   "does": "Test helper: builds a 2-point GPX 1.1 document whose first trkpt uses the given lat/lon/ele strings and second is a valid London point.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXMalformedInputTests.testNonFiniteElevationIsRejectedRatherThanCarried()",
+   "hash": "d38244b167d9561e",
+   "does": "Asserts nan/NaN/inf/-inf/1e400/-1e400 elevations parse as Double but fail isValidElevation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each text",
+     "effect": "checks elevation"
+    },
+    {
+     "at": "+2",
+     "cond": "Double(text) parses",
+     "effect": "nil parse also yields nil (passes); parsed value must fail validation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "7da1afba5649d309"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testNonFiniteCoordinatesAreRejected()",
+   "hash": "cef584b4e631a856",
+   "does": "Asserts nan/inf/-inf/1e400 parse as Double and fail both isValidLatitude and isValidLongitude.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each text",
+     "effect": "checks coordinate validators"
+    },
+    {
+     "at": "+2",
+     "cond": "Double(text) parses",
+     "effect": "false: XCTFail and continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testOutOfDomainCoordinatesAreRejected()",
+   "hash": "bf485a09d7ba26fb",
+   "does": "Asserts ±91 latitude and ±181 longitude are rejected; 90 latitude and -180 longitude accepted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testOrdinaryValuesStillPass()",
+   "hash": "ce422d53dbd91b56",
+   "does": "Asserts ordinary lat/lon and elevations 0, -420, 8849 pass validation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "7da1afba5649d309",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testPolylineEncoderSurvivesNonFiniteAltitudes()",
+   "hash": "bfe4702f961472cb",
+   "does": "Builds one track whose altitudes run through every ordered pair of NaN, ±infinity, ±greatestFiniteMagnitude and 0 (so the encoder takes deltas between values clamped in opposite directions, and from the first point against zero) and asserts encodePolyline returns non-nil (does not trap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "ae5d06ec36600f9f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "4ea5deebee96fecb",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testPolylineEncoderSurvivesNonFiniteCoordinates()",
+   "hash": "e6293042a81de4d4",
+   "does": "For NaN and ±infinity lat/lon asserts encodePolyline of a one-point track returns non-nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each value",
+     "effect": "encodes one-point track"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testValidTrackStillEncodes()",
+   "hash": "c82175dd84e20160",
+   "does": "Asserts a valid 5-point track encodes to non-empty data.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc says valid tracks must 'encode to the same thing they always did' but only non-emptiness is asserted; no golden polyline string.",
+     "evidence": [
+      "EmuquTests/GPXMalformedInputTests.swift:97",
+      "EmuquTests/GPXMalformedInputTests.swift:106"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testMalformedTrackpointIsDroppedAndTheFileStillImports()",
+   "hash": "e19e55f3c45a769d",
+   "does": "For lat ∈ {nan, inf, 1e400, 999} parses the GPX and asserts every remaining trackpoint has finite in-domain latitude and the track encodes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each bad latitude",
+     "effect": "parse + assertions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
+    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "338cd29ece511912"
+   }
+  },
+  {
+   "key": "func GPXMalformedInputTests.testMalformedElevationDropsTheElevationNotThePoint()",
+   "hash": "b378d1c1952c763a",
+   "does": "Parses a GPX with ele 'nan' and asserts the track is non-empty, all altitudes finite, and it encodes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
+    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "338cd29ece511912"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,31 @@
+{
+ "file": "scripts/check_no_developer_endpoint.sh",
+ "hash": "466c6842def413f4",
+ "role": "CI gate: every http(s) host literal in app/watch Swift must be on a reviewed allowlist; no analytics/crash SDK names in pbxproj/Package.resolved; no Zip import/unzip call and no Polar firmware-update API (CVE-2023-39135 reachability).",
+ "types": [],
+ "state": [
+  "dir:Emuqu",
+  "dir:EmuquWatch Watch App",
+  "file:Emuqu.xcodeproj/project.pbxproj",
+  "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+ ],
+ "toplevel": "cd to repo root. Python: ALLOWED host set; over every line (comments included) of every Swift file under Emuqu (whole app target) and the watch app (a missing root -> exit 2) collects hosts from `http(s)://host` literals and from bare host strings `.host = \"x\"` / `host: \"x\"`; unknown hosts -> exit 1. Hosts a user types at runtime are out of scope by design (header). Then grep BANNED SDK names in project.pbxproj and Package.resolved (count != 0 -> exit 1). Then grep `^import Zip$` / Zip.unzipFile etc. (hit -> exit 1) and updateFirmware/firmwareUpdate/PolarFirmwareUpdate (hit -> exit 1). Wired: gates.yml (no-phone-home), ci.yml, Makefile.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn print",
+   "hash": "2ce44850545bd152",
+   "does": "Not a shell function: a Python `print()` statement (blank line) inside the embedded host-allowlist Python, after the unknown-host listing; misdetected by the inventory as a shell function.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_no_developer_endpoint.sh::fn print": "334d02a4a5842dfa"
+ }
+}

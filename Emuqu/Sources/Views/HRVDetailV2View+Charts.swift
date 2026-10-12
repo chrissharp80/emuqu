@@ -186,37 +186,20 @@ extension HRVDetailV2View {
         let sd2: Double
     }
 
-    /// Compute (cx, cy, sd1, sd2) for the Poincaré ellipse overlay.
-    /// SD1 measures perpendicular spread to the line of identity
-    /// (short-term variability ≈ RMSSD/√2). SD2 measures along-axis
-    /// spread (long-term variability ≈ √(2·SDNN² − RMSSD²/2)).
+    /// (cx, cy, sd1, sd2) for the Poincaré ellipse overlay. SD1 (spread
+    /// perpendicular to the line of identity) and SD2 (spread along it) are
+    /// the analysis result's own `nonlinear.sd1` / `sd2` — the figures the
+    /// Nonlinear tab shows — so the ellipse drawn matches the numbers on the
+    /// same screen; only the centre comes from the plotted pairs. Nil with
+    /// fewer than 4 pairs or without a positive SD1 and SD2.
     func computePoincareStats(pairs: [PoincarePair]) -> PoincareStats? {
-        guard pairs.count >= 4 else { return nil }
-        let xs = pairs.map { Double($0.x) }
-        let ys = pairs.map { Double($0.y) }
+        let sd1 = result.nonlinear.sd1
+        let sd2 = result.nonlinear.sd2
+        guard pairs.count >= 4, sd1 > 0, sd2 > 0 else { return nil }
         let n = Double(pairs.count)
-        let cx = xs.reduce(0, +) / n
-        let cy = ys.reduce(0, +) / n
-        let spread = Self.rotatedSpread(xs: xs, ys: ys, cx: cx, cy: cy)
-        return PoincareStats(centerX: cx, centerY: cy, sd1: spread.sd1, sd2: spread.sd2)
-    }
-
-    /// Rotate each point by -45° so the ellipse axes align with x/y, then take
-    /// the SD along each axis. SD1 → "y" axis after rotation, SD2 → "x" axis
-    /// after rotation. Standard Poincaré analysis; Brennan et al. 2001.
-    private static func rotatedSpread(xs: [Double], ys: [Double], cx: Double, cy: Double) -> (sd1: Double, sd2: Double) {
-        var sumU2 = 0.0, sumV2 = 0.0
-        for i in xs.indices {
-            let dx = xs[i] - cx
-            let dy = ys[i] - cy
-            // u = along the line of identity (x = y); v = perpendicular to it.
-            let u = (dx + dy) / sqrt(2)
-            let v = (dy - dx) / sqrt(2)
-            sumU2 += u * u
-            sumV2 += v * v
-        }
-        let n = Double(xs.count)
-        return (sqrt(sumV2 / n), sqrt(sumU2 / n))
+        let cx = pairs.reduce(0.0) { $0 + Double($1.x) } / n
+        let cy = pairs.reduce(0.0) { $0 + Double($1.y) } / n
+        return PoincareStats(centerX: cx, centerY: cy, sd1: sd1, sd2: sd2)
     }
 
     /// 64-point polyline tracing the rotated SD1/SD2 ellipse, centered
@@ -451,7 +434,10 @@ extension HRVDetailV2View {
     var engineRoomSection: some View {
         EngineRoomDisclosure(
             title: String(localized: "Advanced metrics", bundle: LanguageManager.appBundle),
-            memoryKey: "engineRoom.hrvDetail.\(session.id.uuidString)"
+            // One key for the screen, not one per session: the 30-day
+            // "keep it expanded" memory applies to every night, and viewing
+            // sessions no longer adds a UserDefaults key each.
+            memoryKey: "engineRoom.hrvDetail"
         ) {
             engineRoomBody
             .padding(14)
@@ -662,9 +648,11 @@ extension HRVDetailV2View {
         )
     }
 
+    /// Same font as `RecoveryScoreDetailView.sectionHeading`, so headings
+    /// scale alike on both detail screens.
     func sectionHeading(_ text: String) -> some View {
         Text(verbatim: text)
-            .font(.system(size: dt13, weight: .semibold))
+            .scaledFont(size: 13, weight: .semibold)
             .detailSectionHeadingStyle()
     }
 }

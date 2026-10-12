@@ -1,0 +1,254 @@
+{
+ "file": "EmuquTests/RouteClimbDetectionTests.swift",
+ "hash": "5ff2b92ba7f9fb21",
+ "role": "Tests Route.risingRuns (climb segmentation used for 'climb ahead' coaching cues) and Route.smooth (centred moving average).",
+ "types": [
+  "RouteClimbDetectionTests: class (@MainActor) — XCTestCase for Route climb helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RouteClimbDetectionTests.testFlatShelfDoesNotSplitAClimb()",
+   "hash": "4e218c9998bc0df7",
+   "does": "Builds a 21-sample profile rising 3.5 m/step with a 3-sample flat shelf at indices 9-11 and asserts risingRuns returns one run 0...20 (zero deltas do not close a run).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for i in 0..<21",
+     "effect": "appends one altitude per index"
+    },
+    {
+     "at": "+6",
+     "cond": "i in 9...11",
+     "effect": "appends the previous value (flat shelf); else appends previous+3.5"
+    },
+    {
+     "at": "+7",
+     "cond": "alt is empty (i == 0)",
+     "effect": "?? 0 starts the profile at 0+3.5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testUnbrokenClimbIsOneRun()",
+   "hash": "d060b654d4aa6db3",
+   "does": "Asserts a strictly rising 10-sample profile is one run 0...9.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testDescentClosesTheRun()",
+   "hash": "7612582d65c20906",
+   "does": "Asserts [0,10,20,30,20,10,0] yields one run ending at the summit index 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testTwoHillsAreTwoRuns()",
+   "hash": "fe386201fba0b13d",
+   "does": "Asserts two separated rises give two runs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testEntirelyFlatHasNoRuns()",
+   "hash": "41db77d9450db2bf",
+   "does": "Asserts an entirely flat profile has no runs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testMonotonicDescentHasNoRuns()",
+   "hash": "38e068cc041a4b45",
+   "does": "Asserts a monotonic descent has no runs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testSingleSampleHasNoRuns()",
+   "hash": "488f775dbf05caf4",
+   "does": "Asserts a single sample has no runs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testEmptyInputHasNoRuns()",
+   "hash": "90c5e14f4dc14bd6",
+   "does": "Asserts empty input has no runs (no 1..<0 trap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testClimbRunningToTheEndIsClosed()",
+   "hash": "6afc216c86c961f5",
+   "does": "Asserts a climb still rising at the last sample is closed at index 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testSmoothingAveragesOverTheWindow()",
+   "hash": "7b0bdb880e190244",
+   "does": "Asserts window-3 smoothing pulls a 100 spike below 100 and lifts its neighbour above 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testSmoothingPreservesLength()",
+   "hash": "3058b02e4200dff1",
+   "does": "Asserts smooth preserves array length.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testSmoothingKeepsEndpoints()",
+   "hash": "ae6c8b233866b155",
+   "does": "Asserts smooth leaves the first and last samples unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testWindowLargerThanInputIsReturnedUnchanged()",
+   "hash": "6868ab772c97f1b2",
+   "does": "Asserts a window larger than the input returns the input unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
+  },
+  {
+   "key": "func RouteClimbDetectionTests.testWindowOfOneIsANoOp()",
+   "hash": "9200f71d15f5a1a4",
+   "does": "Asserts window 1 returns the input unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,221 @@
+{
+ "file": "EmuquTests/CloudCodecCompatibilityTests.swift",
+ "hash": "e029aef0be8d8ee7",
+ "role": "Backward-compatibility tests that CloudPayloadCodec.decode reads all three cloud payload formats (EMQC current, FR from EncryptionManager, plain pass-through), keeps them distinguishable, and throws on tampered recognised payloads.",
+ "types": [
+  "CloudCodecCompatibilityTests: class — XCTestCase over CloudPayloadCodec framing history"
+ ],
+ "state": [
+  "CloudCodecCompatibilityTests.payload: fixed plaintext Data"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Header says fixtures 'come from the actual writers, not from a hand-rolled imitation', but plainFixture is a hand-written UTF-8 string that is not zlib-compressed data; it only proves non-FR/non-EMQC bytes pass through unchanged.",
+   "evidence": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift:12",
+    "EmuquTests/CloudCodecCompatibilityTests.swift:36"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "FR fixtures are written with EncryptionManager.shared but decode opens them with AppDependencies.current.storage.encryptionManager, which is EncryptionManager.shared only when no test has installed an override; both encode paths also create real Keychain items (archive key, synchronizable cloud key) in the test host's keychain.",
+   "evidence": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift:42",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift:172",
+    "Emuqu/Sources/Utilities/AppDependencies.swift:757"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var CloudCodecCompatibilityTests.plainFixture",
+   "hash": "fd1a5a90580a2e35",
+   "does": "Returns the fixed bytes 'zlib-compressed-bytes-from-an-old-build' standing in for a pre-encryption record.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.frFixture()",
+   "hash": "11afeb972120124d",
+   "does": "Encrypts the payload with EncryptionManager.shared.encrypt, producing an FR-framed record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key"
+   ],
+   "writes": [
+    "kc:session-encryption-key"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.emqcFixture()",
+   "hash": "526b7f631d238973",
+   "does": "Encodes the payload with CloudPayloadCodec.encode, producing an EMQC-framed record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.testCurrentFormatDecodes()",
+   "hash": "15400cd67622824b",
+   "does": "Asserts decode(EMQC fixture) returns the original payload.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "f57c51f0ab7ae1f5"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.testPreviousEncryptedFormatDecodes()",
+   "hash": "14acfb7dccc24da2",
+   "does": "Asserts the FR fixture starts with 0x46 0x52 and that decode returns the original payload.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "8d65fa36e36d4343"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.testPreEncryptionFormatPassesThrough()",
+   "hash": "d3b2ad4f5ca25a4f",
+   "does": "Asserts decode returns the plain fixture bytes unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture": "08c1e3cdf7c8fe15"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.testEachFormatIsIdentifiedByItsOwnFraming()",
+   "hash": "f3d200e7e1c77a8d",
+   "does": "Asserts the EMQC fixture begins with CloudPayloadCodec.magic, the FR fixture does not, and the plain fixture does not begin with 'FR'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "f57c51f0ab7ae1f5",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "8d65fa36e36d4343",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture": "08c1e3cdf7c8fe15"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.testATamperedCurrentPayloadIsAnErrorNotALegacyGuess()",
+   "hash": "f9dbc1695af33c3c",
+   "does": "Flips the last byte of an EMQC fixture and asserts decode throws.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "f57c51f0ab7ae1f5"
+   }
+  },
+  {
+   "key": "func CloudCodecCompatibilityTests.testATamperedPreviousPayloadIsAnErrorNotALegacyGuess()",
+   "hash": "1c69985b86aa4b1d",
+   "does": "Flips the last byte of an FR fixture and asserts decode throws.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "8d65fa36e36d4343"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -401,31 +401,20 @@ final class TrendAnalysisTests: XCTestCase {
         XCTAssertNil(result)
     }
 
+    /// The nap carries a full analysis result, so only the session-type
+    /// filter can keep it out (a nap without a result would be dropped by the
+    /// missing-result rule instead, and prove nothing about naps).
     func testAnalyzeExcludesNapSessions() throws {
         var sessions = (0 ..< 5).map { createMockSession(daysAgo: $0) }
-        // Add a nap session (should be excluded from trends)
-        let napSession = HRVSession(
-            id: UUID(),
-            startDate: Date(),
-            endDate: Date().addingTimeInterval(3600),
-            state: .complete,
-            sessionType: .nap,
-            rrSeries: nil,
-            analysisResult: nil,
-            artifactFlags: nil,
-            recoveryScore: nil,
-            tags: [],
-            notes: nil,
-            importedMetrics: nil,
-            deviceProvenance: nil,
-            sleepStartMs: nil,
-            sleepEndMs: nil
-        )
+        var napSession = createMockSession(daysAgo: 0, rmssd: 20)
+        napSession.sessionType = .nap
+        XCTAssertNotNil(napSession.analysisResult)
         sessions.append(napSession)
 
         let result = TrendAnalyzer.analyze(sessions: sessions)
         XCTAssertNotNil(result)
         XCTAssertEqual(try XCTUnwrap(result?.dataPoints.count), 5, "Nap sessions should be excluded")
+        XCTAssertFalse(try XCTUnwrap(result?.dataPoints.contains { $0.id == napSession.id }), "The nap reached the trend")
     }
 
     func testAnalyzeExcludesSessionsWithoutResults() throws {

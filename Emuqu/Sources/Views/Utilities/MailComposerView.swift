@@ -1,5 +1,6 @@
 import MessageUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// SwiftUI wrapper for MFMailComposeViewController.
 ///
@@ -25,10 +26,14 @@ struct MailComposerView: UIViewControllerRepresentable {
     /// cancelled). Used by the AI email path to clear the staged
     /// draft on `AssistantEmailBridge`.
     var onDismiss: (() -> Void)?
+    /// Called, after `onDismiss`, with what went wrong when the attachment
+    /// could not be read (the composer is not opened) or Mail reports the
+    /// send failed. Both are logged whether or not a caller listens.
+    var onFailure: ((String) -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(dismiss: dismiss, onDismiss: onDismiss)
+        Coordinator(dismiss: dismiss, onDismiss: onDismiss, onFailure: onFailure)
     }
 
     func makeUIViewController(context: Context) -> UIViewController {
@@ -43,7 +48,13 @@ struct MailComposerView: UIViewControllerRepresentable {
         let composer = MFMailComposeViewController()
         composer.mailComposeDelegate = context.coordinator
         fill(composer)
-        attach(to: composer)
+        do {
+            try attach(to: composer)
+        } catch {
+            // A report email without the report: close instead of opening it.
+            debugLog("[MailComposerView] Attachment unreadable, composer not opened: \(error.localizedDescription)", level: .error)
+            return closeOnNextRunLoop(failure: error.localizedDescription)
+        }
         return composer
     }
 
@@ -57,13 +68,34 @@ struct MailComposerView: UIViewControllerRepresentable {
         }
     }
 
-    private func attach(to composer: MFMailComposeViewController) {
-        guard let attachmentURL, let data = try? Data(contentsOf: attachmentURL) else { return }
+    /// Attaches `attachmentURL`, if any, typed by its extension. Throws when
+    /// the file cannot be read.
+    private func attach(to composer: MFMailComposeViewController) throws {
+        guard let attachmentURL else { return }
+        let data = try Data(contentsOf: attachmentURL)
         composer.addAttachmentData(
             data,
-            mimeType: "application/pdf",
+            mimeType: Self.mimeType(of: attachmentURL),
             fileName: attachmentURL.lastPathComponent
         )
+    }
+
+    /// The MIME type for the file's extension (`application/pdf` for the
+    /// reports); generic binary when the extension names no type, since the
+    /// assistant's attachment is not constrained to PDF.
+    static func mimeType(of url: URL) -> String {
+        UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+    }
+
+    /// A blank controller that closes the sheet on the next runloop, then
+    /// tells the caller (`onDismiss`, and `onFailure` when there is a failure).
+    private func closeOnNextRunLoop(failure: String?) -> UIViewController {
+        DispatchQueue.main.async { [dismiss, onDismiss, onFailure] in
+            dismiss()
+            onDismiss?()
+            if let failure { onFailure?(failure) }
+        }
+        return UIViewController()
     }
 
     private func shareSheetFallback() -> UIViewController {
@@ -73,11 +105,7 @@ struct MailComposerView: UIViewControllerRepresentable {
         guard !items.isEmpty else {
             // Nothing to hand off — dismiss on the next runloop and notify the
             // caller so any staged draft is cleared.
-            DispatchQueue.main.async { [dismiss, onDismiss] in
-                dismiss()
-                onDismiss?()
-            }
-            return UIViewController()
+            return closeOnNextRunLoop(failure: nil)
         }
         let activity = UIActivityViewController(activityItems: items, applicationActivities: nil)
         activity.completionWithItemsHandler = { [dismiss, onDismiss] _, _, _, _ in
@@ -116,15 +144,23 @@ struct MailComposerView: UIViewControllerRepresentable {
     final class Coordinator: NSObject, @preconcurrency MFMailComposeViewControllerDelegate {
         let dismiss: DismissAction
         let onDismiss: (() -> Void)?
+        let onFailure: ((String) -> Void)?
 
-        init(dismiss: DismissAction, onDismiss: (() -> Void)?) {
+        init(dismiss: DismissAction, onDismiss: (() -> Void)?, onFailure: ((String) -> Void)?) {
             self.dismiss = dismiss
             self.onDismiss = onDismiss
+            self.onFailure = onFailure
         }
 
-        func mailComposeController(_: MFMailComposeViewController, didFinishWith _: MFMailComposeResult, error _: Error?) {
+        /// Closes the composer. A failed send is logged and reported through
+        /// `onFailure` instead of closing exactly like a sent one.
+        func mailComposeController(_: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
             dismiss()
             onDismiss?()
+            guard result == .failed else { return }
+            let message = error?.localizedDescription ?? String(localized: "Email failed", bundle: LanguageManager.appBundle)
+            debugLog("[MailComposerView] Mail reported the send failed: \(message)", level: .error)
+            onFailure?(message)
         }
     }
 }

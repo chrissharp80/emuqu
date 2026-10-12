@@ -1,0 +1,95 @@
+{
+ "file": "Emuqu/Sources/Views/MorningPreviewCards.swift",
+ "hash": "37b39fa2ee96cf45",
+ "role": "Static view builders for the read-only half of the record-screen morning preview card: date header, RMSSD/Readiness/HR metric cards and the card background.",
+ "types": [
+  "MorningPreviewCards: enum (@MainActor) — namespace of static preview builders used by RecordView+Results.swift:11-18 and RecordView+Panels.swift:514"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningPreviewCards.header(_:)",
+   "hash": "69bfda9fd93c7dce",
+   "does": "Builds an HStack with the localized 'Analysis Ready' title, the session start date and a waveform icon.",
+   "entry": "Called from RecordView+Results.swift:11 inside a SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MorningPreviewCards.metrics(_:)",
+   "hash": "6642f47c14c0cb37",
+   "does": "Builds three metric cards: RMSSD (ms, %.0f), the optional readiness card, and mean HR (bpm, %.0f), formatted with the app locale.",
+   "entry": "Called from RecordView+Results.swift:12 and RecordView+Panels.swift:514 inside SwiftUI bodies",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.readiness(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.readiness(_:)": "62dd70c3da751da0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func MorningPreviewCards.readiness(_:)",
+   "hash": "27ba33ce56d26483",
+   "does": "Adds a Readiness /10 MetricPreviewCard coloured by AppTheme.readinessColor when the analysis has ansMetrics.readinessScore; omits the card otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.readinessColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.ansMetrics?.readinessScore present",
+     "effect": "present → card with %.1f value; absent → nothing rendered (not a zero)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.readinessColor(_:)": "bd63378b5c317b1a"
+   }
+  },
+  {
+   "key": "var MorningPreviewCards.background",
+   "hash": "a776e7fe0cad735d",
+   "does": "Rounded-rectangle secondary grouped background with a 2pt primary-gradient stroke.",
+   "entry": "Used as .background in RecordView+Results.swift:18",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

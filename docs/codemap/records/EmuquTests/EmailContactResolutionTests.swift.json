@@ -1,0 +1,470 @@
+{
+ "file": "EmuquTests/EmailContactResolutionTests.swift",
+ "hash": "39344183617d27db",
+ "role": "XCTest suite for EmailContactStore.resolveNames (comma-separated names → recipient addresses for emailed health reports): exact/case-insensitive/whitespace-trimmed matches, unknown names reported, duplicate names reported ambiguous, literal addresses passed through, empty entries dropped, multiple recipients.",
+ "types": [
+  "EmailContactResolutionTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [
+  "file:<tmp>/emuqu-contacts-<function>-<UUID>.json per store() call (removed by a teardown block)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func EmailContactResolutionTests.store(_:function:)",
+   "hash": "fe6a7713509421ee",
+   "does": "Creates an EmailContactStore on a unique temp JSON file (teardown block deletes it, try?) and adds each (name, email) pair.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each (name, email)",
+     "effect": "adds an EmailContact (enqueues a save)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "EmailContactStore.add enqueues the save on LatestWinsFileWriter's background queue (queue.async), and the teardown block deletes the file with try? without waiting for that queue, so the write can land after the removal and leave an emuqu-contacts-*.json file behind in the temp directory.",
+     "evidence": [
+      "EmuquTests/EmailContactResolutionTests.swift:30",
+      "EmuquTests/EmailContactResolutionTests.swift:33",
+      "Emuqu/Sources/Models/SavedRoute.swift:360"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testSingleKnownNameResolves()",
+   "hash": "14fba9850e0e593d",
+   "does": "One contact 'Ada Testcase': asserts resolveNames returns its address and no unknown/ambiguous.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testMatchingIsCaseInsensitive()",
+   "hash": "1265be81a26b05fd",
+   "does": "Asserts lowercase 'grace hopperton' resolves to 'Grace Hopperton''s address.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testSurroundingWhitespaceIsIgnored()",
+   "hash": "261f2f29f5911223",
+   "does": "Asserts a name padded with spaces resolves.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testUnknownNameIsReportedNotResolved()",
+   "hash": "eb5fa77b080ed771",
+   "does": "Asserts an unknown name yields no address and is listed in unknown.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testUnknownNamesDoNotBlockKnownOnes()",
+   "hash": "db0d56125504aecd",
+   "does": "Asserts 'Real Recipient, Ghost Person' resolves the known one and reports the ghost unknown.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testDuplicateNamesAreAmbiguousNotResolved()",
+   "hash": "3d03dd3b7dffcb58",
+   "does": "Two contacts with the same name: asserts nothing resolves and the name is reported ambiguous.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testLiteralEmailPassesThrough()",
+   "hash": "bbf0dbbe30fd0d1d",
+   "does": "Empty book: asserts 'someone@example.com' passes through as resolved.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testStringWithoutADotIsNotTreatedAsAnAddress()",
+   "hash": "d64df303f86d646b",
+   "does": "Asserts '@home' (no dot) is not treated as an address and is reported unknown.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testEmptyInputResolvesToNothing()",
+   "hash": "f0380564c4ce7de9",
+   "does": "Asserts empty input yields empty resolved/unknown/ambiguous.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testEmptyEntriesAreDroppedNotTreatedAsNames()",
+   "hash": "6a2a15aad7d1ce8c",
+   "does": "Asserts 'Solo Contact, , ,' resolves one address and reports no unknown names.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  },
+  {
+   "key": "func EmailContactResolutionTests.testMultipleRecipientsAllResolve()",
+   "hash": "7ea314b231c04027",
+   "does": "Asserts two known names both resolve (as a set).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+   }
+  }
+ ],
+ "deps": {}
+}

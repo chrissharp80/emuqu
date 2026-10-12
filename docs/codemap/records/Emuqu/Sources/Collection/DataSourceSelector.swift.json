@@ -1,0 +1,486 @@
+{
+ "file": "Emuqu/Sources/Collection/DataSourceSelector.swift",
+ "hash": "8037ecfe0fbd6930",
+ "role": "Chooses between BLE-streamed and strap-internal RR series (≥120 beats each to be valid), building a composite that adds the streaming beats the internal series does not cover (inside its gaps >2 s beyond expected RR, or before/after its span), and provides time-aligned merge helpers reused by SessionMerger. Both series must already be on the session's clock (callers use StrapRecording.points(onClockOf:)); internal t_ms and streaming wallClockMs are compared directly.",
+ "types": [
+  "DataSourceSelector: enum (namespace) — source selection and RR merging",
+  "DataSourceSelector.SelectionResult: struct — chosen points, description, composite flag",
+  "DataSourceComparison: private struct — beat diff, percent diff, composite decision",
+  "GapInfo: private struct — gap start/end ms and index"
+ ],
+ "state": [
+  "static minimumValidBeats = 120",
+  "static compositeThresholdPercent = 5.0",
+  "static duplicateToleranceMs = 50"
+ ],
+ "toplevel": "No top-level code beyond constants.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DataSourceSelector.SelectionResult.normalizedSource",
+   "hash": "ee47a554297da1f9",
+   "does": "Returns 'composite' when isComposite, 'streaming' when the description contains 'streaming', else 'internal'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isComposite",
+     "effect": "returns 'composite'"
+    },
+    {
+     "at": "+2",
+     "cond": "description contains 'streaming'",
+     "effect": "returns 'streaming'; otherwise 'internal'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+   "hash": "353522060a184378",
+   "does": "Selects the RR source: valid internal (≥120 beats) goes to selectWithInternalAvailable; else valid streaming is used ('streaming (internal failed)'); else logs and returns nil. Called by overnight gather/streaming, device recording, backup recovery, morning merge, workout recovery and workout device backup.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "internalPoints nil",
+     "effect": "treated as 0 beats (invalid)"
+    },
+    {
+     "at": "+8",
+     "cond": "internal present and ≥120 beats",
+     "effect": "delegates to selectWithInternalAvailable; else continues"
+    },
+    {
+     "at": "+15",
+     "cond": "streaming has <120 beats",
+     "effect": "logs both failed and returns nil; otherwise returns streaming"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+   "hash": "ed5c86aa72d693b8",
+   "does": "Logs both-sources-failed with beat counts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "internalPoints nil",
+     "effect": "logs 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+   "hash": "b58c1afa28042d41",
+   "does": "With valid internal: uses internal if streaming invalid; otherwise compares counts and uses internal unless internal has >5% fewer beats than streaming, in which case tries a composite.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "streaming invalid",
+     "effect": "returns internal"
+    },
+    {
+     "at": "+19",
+     "cond": "comparison says no composite (internal ≥ streaming, or diff ≤5%)",
+     "effect": "returns internal; otherwise compositeOrStreaming"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "5ca3df1bbcf5a16d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
+   "hash": "1c7b9b497437ab62",
+   "does": "Builds RRSeries for both and tries createComposite; returns the composite ('composite (internal + streaming gap-fill)') or, if nil, the streaming points ('streaming (composite failed)').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "composite built",
+     "effect": "returns composite; else returns streaming"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "35e33e42bf8d43d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.compareDataSources(internalCount:streamingCount:)",
+   "hash": "6de3ab109d56a5dd",
+   "does": "Computes absolute beat difference, percent of the larger count, and shouldCreateComposite = internal < streaming AND percent > 5.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+   "hash": "04093f14043cd06d",
+   "does": "Returns nil for empty series or when no internal gap can be filled from streaming; otherwise finds the internal gaps once and merges internal with every streaming beat it does not cover — inside a gap or before its first / after its last beat (uncoveredBeats) — logging how many were added.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "either series empty",
+     "effect": "logs and returns nil"
+    },
+    {
+     "at": "+11",
+     "cond": "fillableGapSummary nil (no gaps or none fillable)",
+     "effect": "returns nil → caller uses streaming"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "fcd55efaf0b5f3f6",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)",
+   "hash": "0e33c1c9efbbf489",
+   "does": "Merges streaming into internal keeping only the streaming beats internal does not cover (uncoveredBeats with internal's gaps): outside the internal span or inside an internal gap; with empty internal, everything. Requires both on one clock. Used by SessionMerger (SessionMerger.swift:179,182).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+   "hash": "4aa963da316c5f37",
+   "does": "Filters streaming beats (by wallClockMs, else t_ms) to those internal does not cover: outside [first.t_ms, last.endMs] or inside one of the given gaps (inclusive); all of them when internal is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "internal empty",
+     "effect": "returns all streaming beats"
+    },
+    {
+     "at": "+4",
+     "cond": "beat outside the internal span",
+     "effect": "kept; inside it, kept only when in a gap"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+   "hash": "78206dfba1afc0ce",
+   "does": "Given the internal gaps, counts the fillable ones; nil when there are no gaps or none contains a streaming beat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no gaps",
+     "effect": "logs, returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "no gap fillable",
+     "effect": "logs, returns nil; otherwise returns counts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "f8a8aec34cd64667",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.findGaps(in:)",
+   "hash": "128f5b9adabe77c6",
+   "does": "Lists gaps where the next beat starts more than prev.rr_ms + 2000 ms after the previous beat's end (t_ms + rr).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "≤1 point",
+     "effect": "returns []"
+    },
+    {
+     "at": "+4",
+     "cond": "loop over consecutive pairs",
+     "effect": "each pair examined"
+    },
+    {
+     "at": "+9",
+     "cond": "gap exceeds expected RR + 2000 ms",
+     "effect": "appends GapInfo(prev end, curr start)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
+   "hash": "fc02b8b89eff3f23",
+   "does": "For each gap counts streaming beats (streamTime: wallClockMs or t_ms) inside it; returns gaps with ≥1 beat and total beats, logging each.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each gap",
+     "effect": "iterates"
+    },
+    {
+     "at": "+8",
+     "cond": "no streaming beat in gap",
+     "effect": "skips gap"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.mergePoints(internal:streaming:)",
+   "hash": "ea44d50537be06c9",
+   "does": "Two-pointer merge of internal and streaming beats ordered by internal t_ms vs streaming wallClockMs, rebasing streaming t_ms to wallClockMs and skipping cross-source beats within 50 ms. Used by createComposite and directly by SessionMerger (SessionMerger.swift:185,187).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "either list has remaining beats",
+     "effect": "loop continues"
+    },
+    {
+     "at": "+5",
+     "cond": "internal exhausted",
+     "effect": "appends rebased streaming"
+    },
+    {
+     "at": "+8",
+     "cond": "streaming exhausted",
+     "effect": "appends internal; else takeEarlier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+   "hash": "5660de316ade9eee",
+   "does": "Appends whichever head beat is earlier (ties go to internal) and then skips the other source's beats within 50 ms of it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "internal time ≤ streaming time",
+     "effect": "appends internal and skips streaming duplicates; else appends rebased streaming and skips internal duplicates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.streamTime(_:)",
+   "hash": "b4597d2726abda78",
+   "does": "Streaming beat time = wallClockMs, or t_ms when nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "wallClockMs nil",
+     "effect": "falls back to t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.rebased(_:)",
+   "hash": "592ee74b6f68ba48",
+   "does": "Returns a copy of the streaming point with t_ms set to wallClockMs (or unchanged when nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wallClockMs nil",
+     "effect": "keeps t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+   "hash": "b6e015fe42f6c1f9",
+   "does": "Advances the streaming index past every beat within 50 ms of the given internal time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "next streaming beat within tolerance",
+     "effect": "skips it; stops at first beat outside"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.skipInternalDuplicates(of:in:from:)",
+   "hash": "8f2a7dcc84980fe2",
+   "does": "Advances the internal index past every beat within 50 ms of the given streaming time.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "next internal beat within tolerance",
+     "effect": "skips it; stops at first beat outside"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

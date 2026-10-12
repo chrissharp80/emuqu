@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 // The archive's internals. The underscored and private helpers assume the
 // caller already holds `archive.archiveLock`; the public entry points further
@@ -13,7 +14,7 @@ extension ArchiveStore {
     @discardableResult
     func _archive(_ session: HRVSession, skipSameNightMerge: Bool = false) throws -> SessionArchiveEntry {
         try guardWritable(session)
-        let session = preservingRRSeries(session)
+        let session = try preservingRRSeries(session)
         if let handled = try sameNightMerge(of: session, skipSameNightMerge: skipSameNightMerge) {
             return handled
         }
@@ -69,7 +70,13 @@ extension ArchiveStore {
     /// is a stale HASH with perfectly decodable bytes, so fall
     /// back to the hash-agnostic reader; the write below then
     /// heals the archive.index hash too.
-    private func preservingRRSeries(_ session: HRVSession) -> HRVSession {
+    ///
+    /// When neither reader can open the file, the write goes ahead only if
+    /// the stored bytes were read and decrypted and still did not decode:
+    /// that file is corrupt, and the beats in it are gone already. A read or
+    /// decrypt failure (file locked, encryption key unreachable) throws
+    /// instead, so the intact beats are not overwritten by a beat-less copy.
+    private func preservingRRSeries(_ session: HRVSession) throws -> HRVSession {
         guard session.rrSeries == nil, archive.index.contains(where: { $0.sessionId == session.id }) else {
             return session
         }
@@ -82,9 +89,27 @@ extension ArchiveStore {
         case .noBeatsStored:
             break
         case .unreadable:
-            debugLog("[Archive] ⚠️ rrSeries splice FAILED for \(session.id.uuidString.prefix(8)) — existing file unreadable by hash-checked AND raw readers; re-archiving without beat data (it was already unrecoverable on disk)", level: .error)
+            if let readError = storedBytesError(for: session.id) {
+                debugLog("[Archive] rrSeries splice: stored file for \(session.id.uuidString.prefix(8)) cannot be read or decrypted now (\(readError)); not re-archiving over its beats", level: .error)
+                throw readError
+            }
+            debugLog("[Archive] ⚠️ rrSeries splice FAILED for \(session.id.uuidString.prefix(8)) — existing file read and decrypted but does not decode; re-archiving without beat data (it was already unrecoverable on disk)", level: .error)
         }
         return session
+    }
+
+    /// The error reading or decrypting the stored file's bytes, or nil when
+    /// they come back as plaintext (or there is no file to protect).
+    private func storedBytesError(for id: UUID) -> Error? {
+        guard let entry = archive.index.first(where: { $0.sessionId == id }) else { return nil }
+        let fileURL = archive.resolveFileURL(for: entry)
+        guard archive.fileManager.fileExists(atPath: fileURL.path) else { return nil }
+        do {
+            _ = try Self.plaintextBytes(try Data(contentsOf: fileURL), id: id)
+            return nil
+        } catch {
+            return error
+        }
     }
 
     /// What the stored copy of a session actually turned out to hold.
@@ -146,7 +171,8 @@ extension ArchiveStore {
     /// can appear to "vanish" if it gets folded into an older placeholder-style
     /// entry. Surfacing it in the log lets us confirm the cause from a trace.
     /// A archive.retrieve failure on the existing same-night session (transient
-    /// decrypt/decode failure, say) must NOT fall through to the standalone
+    /// decrypt/decode failure, or an entry the id lookup no longer finds)
+    /// must NOT fall through to the standalone
     /// write — that would create the exact same-night duplicate this exists to
     /// prevent. It throws instead. Returning the existing entry reported the
     /// new night as archived while its beats went nowhere: every caller then
@@ -165,7 +191,9 @@ extension ArchiveStore {
         else { return nil }
         debugLog("[Archive] sameNightMerge: folding new session \(session.id.uuidString.prefix(8)) (start=\(session.startDate), score=\(session.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) into existing \(existing.sessionId.uuidString.prefix(8)) (date=\(existing.date), score=\(existing.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) — new UUID will be discarded", level: .warning)
         do {
-            guard var existingSession = try _retrieve(existing.sessionId) else { return nil }
+            guard var existingSession = try _retrieve(existing.sessionId) else {
+                throw SessionArchive.ArchiveError.fileNotFound
+            }
             _ = archive.mergeSessionData(from: session, into: &existingSession)
             // Re-archive the merged existing session (this is a re-archive, won't recurse)
             return try _archive(existingSession)
@@ -203,22 +231,36 @@ extension ArchiveStore {
     private func writeAndIndex(_ session: HRVSession) throws -> SessionArchiveEntry {
         let fileName = "\(session.id.uuidString).json"
         let filePath = archive.archiveDirectory.appendingPathComponent(fileName)
-        let (data, hashString, writeOptions) = try encodedForDisk(session)
+        let (data, hashString, format) = try encodedForDisk(session)
         // Snapshot pre-write state so we can roll back on failure.
         let preIndex = archive.index
-        let preFileExisted = archive.fileManager.fileExists(atPath: filePath.path)
-        let preFileData: Data? = preFileExisted ? try Data(contentsOf: filePath) : nil
-        try data.write(to: filePath, options: writeOptions)
+        let prior = try PriorFile(at: filePath, id: session.id, fileManager: archive.fileManager)
+        try writeArchiveBytes(data, to: filePath, format: format, sessionID: session.id)
         let entry = SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
         archive.index.removeAll { $0.sessionId == session.id }
         archive.index.append(entry)
         do {
             try archive.saveIndex()
         } catch {
-            rollBackWrite(to: preIndex, filePath: filePath, previousData: preFileData, existed: preFileExisted)
+            rollBackWrite(to: preIndex, filePath: filePath, prior: prior, id: session.id)
             throw error
         }
         return entry
+    }
+
+    /// The file a write replaces, kept so a failed index save can put it back
+    /// as it was: its bytes, and whether it was plaintext queued for
+    /// re-encryption (which decides its protection class and ledger entry).
+    struct PriorFile {
+        let data: Data?
+        let existed: Bool
+        let wasPendingEncryption: Bool
+
+        init(at url: URL, id: UUID, fileManager: FileManager) throws {
+            existed = fileManager.fileExists(atPath: url.path)
+            data = existed ? try Data(contentsOf: url) : nil
+            wasPendingEncryption = PendingEncryptionLedger.pending.contains(id)
+        }
     }
 
     /// Encode session via the shared write encoder. `sortedKeys` keeps
@@ -232,12 +274,16 @@ extension ArchiveStore {
     /// Hash is over the bytes-as-written so the existing integrity
     /// contract still works on read for both formats, and is computed
     /// from the encoded bytes (avoids re-reading from disk).
-    private func encodedForDisk(_ session: HRVSession) throws -> (Data, String, Data.WritingOptions) {
+    private func encodedForDisk(
+        _ session: HRVSession
+    ) throws -> (Data, String, SessionArchive.SessionFileCodec.DiskFormat) {
         let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.sessionEncoder)
-        return (result.bytes, result.hash, archiveWriteOptions(for: result.format, sessionID: session.id))
+        return (result.bytes, result.hash, result.format)
     }
 
-    /// Restore the pre-write state after a failed archive.index save.
+    /// Restore the pre-write state after a failed archive.index save. Caller
+    /// holds archive.archiveLock (`writeAndIndex`, and the relink migration's
+    /// `relinkUnderLock`).
     ///
     /// `archive.saveIndex()` nils the derived caches before persisting; on a failed
     /// save we restore `archive.index` but must also drop those caches so a stale
@@ -245,17 +291,25 @@ extension ArchiveStore {
     /// entry. If the file rollback itself fails, the on-disk archive.index is left
     /// mid-write while the in-memory one has been restored — the one
     /// divergence in this file a later read cannot detect, so it must be loud.
-    private func rollBackWrite(
-        to preIndex: [SessionArchiveEntry], filePath: URL, previousData: Data?, existed: Bool
+    ///
+    /// The previous bytes go back with the protection class and ledger entry
+    /// they had: plaintext awaiting re-encryption keeps `.completeFileProtection`
+    /// and stays queued. When there was no file before, the new one is removed
+    /// and its ledger entry cleared.
+    func rollBackWrite(
+        to preIndex: [SessionArchiveEntry], filePath: URL, prior: PriorFile, id: UUID
     ) {
         archive.index = preIndex
         archive.sortedEntriesCache = nil
         archive.sessionIdLookup = nil
-        if let previous = previousData {
+        if let previous = prior.data {
+            let format: SessionArchive.SessionFileCodec.DiskFormat =
+                prior.wasPendingEncryption ? .plaintextPendingEncryption : .encrypted
             attempt("archive.index.rollbackWrite") {
-                try previous.write(to: filePath, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                try writeArchiveBytes(previous, to: filePath, format: format, sessionID: id)
             }
-        } else if !existed {
+        } else if !prior.existed {
+            PendingEncryptionLedger.clear(id)
             attempt("archive.index.rollbackRemove") {
                 try archive.fileManager.removeItem(at: filePath)
             }
@@ -697,17 +751,9 @@ extension ArchiveStore {
         return archive.deletedSessionIds
     }
 
-    /// Remove a session from the deleted list (for trash restore)
+    /// Remove a session from the deleted list: a trash restore, or a lost
+    /// session the user forgets (`SessionArchive.forgetDeletedSession`)
     func unmarkAsDeleted(_ id: UUID) throws {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        archive.deletedSessionIds.remove(id)
-        Self.forgetDeletionTime(id)
-        try archive.saveDeletedIndex()
-    }
-
-    /// Permanently forget a deleted session (removes from deleted tracking)
-    func forgetDeletedSession(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         archive.deletedSessionIds.remove(id)
@@ -736,8 +782,15 @@ extension ArchiveStore {
     private static let deletionTimesKey = "archive.deletionTimes"
 
     func deletionTime(of id: UUID) -> Date? {
-        (UserDefaults.standard.dictionary(forKey: Self.deletionTimesKey)?[id.uuidString] as? Double)
-            .map(Date.init(timeIntervalSince1970:))
+        switch Self.unsavedDeletionTimes.withLockUnchecked({ $0[id] }) {
+        case .some(.recorded(let time)):
+            return Date(timeIntervalSince1970: time)
+        case .some(.forgotten):
+            return nil
+        case .none:
+            return (UserDefaults.standard.dictionary(forKey: Self.deletionTimesKey)?[id.uuidString] as? Double)
+                .map(Date.init(timeIntervalSince1970:))
+        }
     }
 
     /// Every session this device recorded a deletion time for: what survives
@@ -752,20 +805,43 @@ extension ArchiveStore {
     /// through their own serial queue, in order, outside the lock.
     private static let deletionTimesQueue = DispatchQueue(label: "archive.deletionTimes")
 
+    /// A change queued on `deletionTimesQueue` that has not reached
+    /// `UserDefaults` yet.
+    private enum UnsavedDeletionTime: Equatable, Sendable {
+        case recorded(TimeInterval)
+        case forgotten
+    }
+
+    /// The queued changes, read first by `deletionTime(of:)` so a deletion
+    /// recorded a moment ago is seen at once (iCloud sync checks it right
+    /// after a delete). An entry leaves once its write has landed, so a later
+    /// sweep of `UserDefaults` is not undone from here.
+    private static let unsavedDeletionTimes = OSAllocatedUnfairLock<[UUID: UnsavedDeletionTime]>(initialState: [:])
+
     static func recordDeletionTime(_ id: UUID) {
-        let time = Date().timeIntervalSince1970
-        deletionTimesQueue.async {
-            var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]
-            times[id.uuidString] = time
-            UserDefaults.standard.set(times, forKey: deletionTimesKey)
-        }
+        stageDeletionTime(.recorded(Date().timeIntervalSince1970), for: id)
     }
 
     private static func forgetDeletionTime(_ id: UUID) {
-        deletionTimesQueue.async {
-            guard var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) else { return }
-            times.removeValue(forKey: id.uuidString)
-            UserDefaults.standard.set(times, forKey: deletionTimesKey)
+        stageDeletionTime(.forgotten, for: id)
+    }
+
+    private static func stageDeletionTime(_ change: UnsavedDeletionTime, for id: UUID) {
+        unsavedDeletionTimes.withLockUnchecked { $0[id] = change }
+        deletionTimesQueue.async { persistDeletionTime(change, for: id) }
+    }
+
+    /// Runs on `deletionTimesQueue`. The queued entry is dropped only if no
+    /// newer change for the same id was staged meanwhile.
+    private static func persistDeletionTime(_ change: UnsavedDeletionTime, for id: UUID) {
+        var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]
+        switch change {
+        case .recorded(let time): times[id.uuidString] = time
+        case .forgotten: times.removeValue(forKey: id.uuidString)
+        }
+        UserDefaults.standard.set(times, forKey: deletionTimesKey)
+        unsavedDeletionTimes.withLockUnchecked { unsaved in
+            if unsaved[id] == change { unsaved.removeValue(forKey: id) }
         }
     }
 
@@ -796,8 +872,9 @@ extension ArchiveStore {
         var updatedIds: [UUID] = []
     }
 
-    /// Batch archive multiple sessions efficiently
-    /// Writes all sessions first, then updates the archive.index once
+    /// Batch archive multiple sessions efficiently.
+    /// Each new session joins the in-memory index as its file is written, and
+    /// the index is saved once at the end.
     /// - Parameter sessions: Array of sessions to archive
     /// - Returns: How many sessions were written, new and updated together
     @discardableResult
@@ -810,24 +887,34 @@ extension ArchiveStore {
                 try archiveOne(session, into: &outcome)
             }
         } catch {
-            indexPartialBatch(outcome.newEntries)
+            savePartialBatch(outcome.newEntries)
             throw error
         }
         if !outcome.newEntries.isEmpty {
-            archive.index.append(contentsOf: outcome.newEntries)
             try archive.saveIndex()
         }
         postBatchChangeNotifications(outcome)
         return outcome.newEntries.count + outcome.updatedIds.count
     }
 
-    /// Files already written for a failed batch are indexed before the error
-    /// goes up — a disk that filled halfway through an import otherwise left
-    /// them on disk with nothing pointing at them.
-    private func indexPartialBatch(_ newEntries: [SessionArchiveEntry]) {
+    /// Files already written for a failed batch are in the in-memory index;
+    /// it is saved before the error goes up — a disk that filled halfway
+    /// through an import otherwise left them on disk with nothing pointing at
+    /// them.
+    private func savePartialBatch(_ newEntries: [SessionArchiveEntry]) {
         guard !newEntries.isEmpty else { return }
-        archive.index.append(contentsOf: newEntries)
         _ = attempt("Archive.saveIndexAfterFailedBatch") { try archive.saveIndex() }
+    }
+
+    /// A batch-written entry joins the in-memory index at once, so a later
+    /// session in the same batch finds it: a copy of it or a segment of the
+    /// same sleep then merges into it as `_archive` would merge it. The
+    /// derived caches are dropped, as `saveIndex` would drop them.
+    private func indexBatchEntry(_ entry: SessionArchiveEntry, into outcome: inout BatchOutcome) {
+        archive.index.append(entry)
+        archive.sortedEntriesCache = nil
+        archive.sessionIdLookup = nil
+        outcome.newEntries.append(entry)
     }
 
     /// One session's turn through the batch: skip tombstones and duplicates,
@@ -839,7 +926,8 @@ extension ArchiveStore {
     ///
     /// The merge decision is `_archive`'s (`mergeTarget`): a copy of the same
     /// recording, of the same type, merges; so does an overnight segment of
-    /// the same sleep within the user's merge gap. Two readings that do not
+    /// the same sleep within the user's merge gap — including one written
+    /// earlier in this batch. Two readings that do not
     /// overlap and are not one sleep are both kept, however close.
     private func archiveOne(_ session: HRVSession, into outcome: inout BatchOutcome) throws {
         if archive.deletedSessionIds.contains(session.id) {
@@ -849,30 +937,35 @@ extension ArchiveStore {
         // Skip exact duplicates by ID
         if archive.index.contains(where: { $0.sessionId == session.id }) { return }
         if let existingEntry = mergeTarget(for: session, sameSleepGap: sameSleepGap(for: session)) {
-            mergeIntoExisting(session, entry: existingEntry, outcome: &outcome)
+            try mergeIntoExisting(session, entry: existingEntry, outcome: &outcome)
             return
         }
-        // A copy of a recording written earlier in this batch
+        // A copy of a recording written earlier in this batch that the merge
+        // rule does not pair with it (linked either way)
         if outcome.newEntries.contains(where: { Self.isCopy($0, of: session) }) {
             return
         }
-        outcome.newEntries.append(try writeBatchSession(session))
+        indexBatchEntry(try writeBatchSession(session), into: &outcome)
     }
 
     /// Load the existing copy or same-sleep segment and fold the incoming one
-    /// into it. A read failure is logged and the incoming session dropped for this
-    /// pass rather than written as a near-duplicate.
+    /// into it. A read or write failure ends the batch with that error, as a
+    /// failed write of a new session does: the incoming session is not written
+    /// as a near-duplicate, and the caller learns it was not saved.
     private func mergeIntoExisting(
         _ session: HRVSession, entry: SessionArchiveEntry, outcome: inout BatchOutcome
-    ) {
+    ) throws {
         do {
-            guard var existingSession = try _retrieve(entry.sessionId) else { return }
+            guard var existingSession = try _retrieve(entry.sessionId) else {
+                throw SessionArchive.ArchiveError.fileNotFound
+            }
             // Update with any new/better data from import
             guard archive.mergeSessionData(from: session, into: &existingSession) else { return }
             try _archive(existingSession)
             outcome.updatedIds.append(existingSession.id)
         } catch {
-            debugLog("[Archive] Failed to update existing session: \(error)")
+            debugLog("[Archive] archiveBatch: could not merge \(session.id.uuidString.prefix(8)) into \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+            throw error
         }
     }
 
@@ -897,9 +990,8 @@ extension ArchiveStore {
         let fileName = "\(session.id.uuidString).json"
         let filePath = archive.archiveDirectory.appendingPathComponent(fileName)
         let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder)
-        let (data, hashString) = (result.bytes, result.hash)
-        try data.write(to: filePath, options: archiveWriteOptions(for: result.format, sessionID: session.id))
-        return SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
+        try writeArchiveBytes(result.bytes, to: filePath, format: result.format, sessionID: session.id)
+        return SessionArchiveEntry.make(from: session, hash: result.hash, filePath: fileName)
     }
 
     /// Same propagation as `archive(_:)`. Batch archiving (import

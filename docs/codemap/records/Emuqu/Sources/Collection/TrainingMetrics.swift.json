@@ -1,0 +1,194 @@
+{
+ "file": "Emuqu/Sources/Collection/TrainingMetrics.swift",
+ "hash": "a560fc4940965129",
+ "role": "Codable ATL/CTL/TSB metrics snapshot (persisted by TrainingMetricsCache) and the five ACWR bands with localized labels.",
+ "types": [
+  "TrainingMetrics: struct (Codable) — PMC snapshot + VO2",
+  "ACWRBand: enum — acute:chronic ratio bands"
+ ],
+ "state": [
+  "mem:TrainingMetrics.empty (const)"
+ ],
+ "toplevel": "Codable conformance synthesized for TrainingMetrics (used by TrainingMetricsCache persistence).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TrainingMetrics.acuteChronicRatio",
+   "hash": "54f3be2b89be8ee1",
+   "does": "ATL/CTL ratio.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ctl <= 0",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ACWRBand(ratio:)",
+   "hash": "3fae49e084e56c97",
+   "does": "Band from ratio: <0.8 below, <=1.0 maintenance, <=1.3 in range, <=1.5 above, else sharp increase.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ratio < 0.8",
+     "effect": "belowUsual"
+    },
+    {
+     "at": "+3",
+     "cond": "ratio <= 1.0",
+     "effect": "maintenance"
+    },
+    {
+     "at": "+5",
+     "cond": "ratio <= 1.3",
+     "effect": "inRange"
+    },
+    {
+     "at": "+7",
+     "cond": "ratio <= 1.5",
+     "effect": "aboveUsual; else sharpIncrease"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ACWRBand.rangeText",
+   "hash": "2a3a5a711b8a05e5",
+   "does": "Localized range text per band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".belowUsual",
+     "effect": "'< 0.8'"
+    },
+    {
+     "at": "+4",
+     "cond": ".maintenance",
+     "effect": "'0.8 - 1.0'"
+    },
+    {
+     "at": "+5",
+     "cond": ".inRange",
+     "effect": "'1.0 - 1.3'"
+    },
+    {
+     "at": "+6",
+     "cond": ".aboveUsual",
+     "effect": "'1.3 - 1.5'"
+    },
+    {
+     "at": "+7",
+     "cond": ".sharpIncrease",
+     "effect": "'> 1.5'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ACWRBand.label",
+   "hash": "8a430e2a479a747c",
+   "does": "Localized label per band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".belowUsual",
+     "effect": "Below your usual"
+    },
+    {
+     "at": "+4",
+     "cond": ".maintenance",
+     "effect": "Maintenance"
+    },
+    {
+     "at": "+5",
+     "cond": ".inRange",
+     "effect": "In range"
+    },
+    {
+     "at": "+6",
+     "cond": ".aboveUsual",
+     "effect": "Above your usual"
+    },
+    {
+     "at": "+7",
+     "cond": ".sharpIncrease",
+     "effect": "Sharp increase"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ACWRBand.detail",
+   "hash": "6f37130497492fc1",
+   "does": "Localized one-line detail per band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".belowUsual",
+     "effect": "lower than base"
+    },
+    {
+     "at": "+4",
+     "cond": ".maintenance",
+     "effect": "maintaining"
+    },
+    {
+     "at": "+5",
+     "cond": ".inRange",
+     "effect": "building sustainably"
+    },
+    {
+     "at": "+6",
+     "cond": ".aboveUsual",
+     "effect": "heavier load"
+    },
+    {
+     "at": "+7",
+     "cond": ".sharpIncrease",
+     "effect": "jumping fast"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

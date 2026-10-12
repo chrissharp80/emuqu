@@ -115,16 +115,20 @@ extension RecordView {
     /// Gated on
     /// `settings.keepScreenOnDuringRecording` (default OFF per user request:
     /// respects iOS auto-lock by default).
+    ///
+    /// `stopSession` throws only before the download starts (strap not
+    /// connected) and does not record that error itself, so it is set here
+    /// for the alert and the Retry card's reason.
+    @MainActor
     private func stopInternalRecording() async {
-        let keepAwake = AppDependencies.current.app.settingsManager.settings.shouldKeepScreenOnDuringRecording
-        await MainActor.run { Self.applyKeepAwake(keepAwake, disabled: true) }
-        defer { Task { @MainActor in Self.applyKeepAwake(keepAwake, disabled: false) } }
-        do {
-            let session = try await collector.stopSession()
-            await MainActor.run { applyStopOutcome(session, navigateOnSuccess: true) }
-        } catch {
-            // Error surfaced via sessionState.lastError.
-            await MainActor.run { fetchFailed = true }
+        await RecordingKeepAwake.during {
+            do {
+                let session = try await collector.stopSession()
+                applyStopOutcome(session, navigateOnSuccess: true)
+            } catch {
+                sessionState.lastError = error
+                fetchFailed = true
+            }
         }
     }
 
@@ -143,24 +147,21 @@ extension RecordView {
     }
 
     /// The keep-awake is gated on user preference (default off).
-    /// On failure `fetchFailed` stays true so the user can retry again.
-    private func performRetryFetch() async {
-        let keepAwake = AppDependencies.current.app.settingsManager.settings.shouldKeepScreenOnDuringRecording
-        await MainActor.run {
-            Self.applyKeepAwake(keepAwake, disabled: true)
-            isRetrying = true
-        }
-        defer { Task { @MainActor in Self.applyKeepAwake(keepAwake, disabled: false) } }
-        let session = try? await collector.retryFetchRecording()
-        await MainActor.run { finishRetry(session) }
-    }
-
-    /// Only touches the idle timer when the user opted in, so a workout that
-    /// legitimately holds it disabled isn't cleared by an opt-out session.
+    /// On failure `fetchFailed` stays true so the user can retry again. A
+    /// retry that cannot start (strap disconnected between tap and call)
+    /// throws without recording why, so the error is set here.
     @MainActor
-    private static func applyKeepAwake(_ keepAwake: Bool, disabled: Bool) {
-        guard keepAwake else { return }
-        UIApplication.shared.isIdleTimerDisabled = disabled
+    private func performRetryFetch() async {
+        isRetrying = true
+        await RecordingKeepAwake.during {
+            do {
+                let session = try await collector.retryFetchRecording()
+                finishRetry(session)
+            } catch {
+                sessionState.lastError = error
+                finishRetry(nil)
+            }
+        }
     }
 
     @MainActor
@@ -180,16 +181,21 @@ extension RecordView {
         }
     }
 
-    /// Tags and notes picked during the capture are written once the session
-    /// exists. Notes alone are saved too.
+    /// A quick reading is archived as it stops, so its tags and notes
+    /// (picked before or during the capture) are written then, through the
+    /// same `persistTagsAndNotes` as every other save, morning tag included.
+    /// A failed reading is not archived and gets none.
     func stopStreaming() {
         Task {
             let session = await collector.stopStreamingSession()
-            guard let session, !selectedTags.isEmpty || !sessionNotes.isEmpty else { return }
-            await writeTagsToArchive(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
+            guard let session, session.state == .complete else { return }
+            await persistTagsAndNotes(for: session)
         }
     }
 
+    /// Save for a reading awaiting acceptance, from the Save button, the
+    /// morning sheet's Done and Continue to Dashboard alike: tags and notes,
+    /// acceptance, then the picker returns to no selection.
     func acceptSession() {
         Task {
             if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
@@ -201,6 +207,7 @@ extension RecordView {
             await MainActor.run {
                 selectedTags.removeAll()
                 sessionNotes = ""
+                selectedSessionType = nil
             }
         }
     }
@@ -249,6 +256,26 @@ extension RecordView {
     }
 }
 
+/// Keeps the screen on around a strap download when the user opted in
+/// (`keepScreenOnDuringRecording`, default off). Only touches the idle timer
+/// when they did, so a workout that legitimately holds it disabled isn't
+/// cleared by an opt-out session. Shared by Stop, Retry and Recover.
+enum RecordingKeepAwake {
+    @MainActor
+    static func during(_ work: () async -> Void) async {
+        let keepAwake = AppDependencies.current.app.settingsManager.settings.shouldKeepScreenOnDuringRecording
+        apply(keepAwake, disabled: true)
+        await work()
+        apply(keepAwake, disabled: false)
+    }
+
+    @MainActor
+    private static func apply(_ keepAwake: Bool, disabled: Bool) {
+        guard keepAwake else { return }
+        UIApplication.shared.isIdleTimerDisabled = disabled
+    }
+}
+
 /// Review + trim a just-recovered crash workout before keeping it. A crash
 /// can leave the strap recording long after the workout ends, so the
 /// auto-trim is only a best guess — this lets the user drag the end back to
@@ -272,6 +299,11 @@ struct RecoveredWorkoutReviewCard: View {
     }
 
     var maxMinutes: Double { max(2, (review.durationSec / 60).rounded()) }
+
+    /// Minutes the save keeps. The slider can sit past a recording shorter
+    /// than 90 s (its range is at least 1...2), so the summary reads the
+    /// chosen end rather than the slider.
+    var keptMinutes: Int { Int(max(1, (chosenEndSec / 60).rounded())) }
 
     /// The slider moves in whole minutes, so its starting value is the
     /// duration rounded. At or past that value the end is the recording's
@@ -321,7 +353,7 @@ struct RecoveredWorkoutReviewCard: View {
     }
 
     private var summaryLine: some View {
-        Text(String(localized: "\(review.sport) · \(Int(endMinutes)) min\(distanceText) · avg HR \(review.avgHR)", bundle: LanguageManager.appBundle))
+        Text(String(localized: "\(review.sport) · \(keptMinutes) min\(distanceText) · avg HR \(review.avgHR)", bundle: LanguageManager.appBundle))
             .font(.caption)
             .foregroundColor(AppTheme.textSecondary)
     }

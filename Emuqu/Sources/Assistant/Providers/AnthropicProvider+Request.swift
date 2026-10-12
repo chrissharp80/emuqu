@@ -36,11 +36,8 @@ extension AnthropicProvider {
     /// uncached, because it carries system-level guidance (corrections,
     /// the live-workout marker) as well as data.
     static func cacheAwareSystemBlocks(_ systemPrompt: String) -> [RequestBody.SystemBlock] {
-        let marker = AssistantSystemPrompt.Composed.cacheSplitMarker
-        let parts = systemPrompt.components(separatedBy: marker)
-        let stable = parts.first ?? systemPrompt
-        let variable = parts.count > 1 ? parts.dropFirst().joined(separator: marker) : ""
-        return makeSystemBlocks(stable: stable, variable: variable)
+        let split = ProviderHTTP.splitOnCacheMarker(systemPrompt)
+        return makeSystemBlocks(stable: split.stable, variable: split.variable)
     }
 
     /// Cache the tool catalog with the 1-hour
@@ -66,9 +63,14 @@ extension AnthropicProvider {
     /// action tool's once-per-turn rule, since Anthropic bills them
     /// as a separate line item — and skip the same sites Tavily's
     /// searches exclude.
+    ///
+    /// A send with no tools (the summarizer, fact extraction, a voice
+    /// interjection) gets no declarations at all, the server search
+    /// included: those sends are not meant to search, and a billed search
+    /// would also run into their short collect timeouts.
     static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.ToolDecl]? {
+        guard !tools.isEmpty else { return nil }
         let webSearchOn = AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch
-        guard !tools.isEmpty || webSearchOn else { return nil }
         let customTools = webSearchOn ? tools.filter { $0.name != serverWebSearchToolName } : tools
         var combined: [RequestBody.ToolDecl] = customTools.map { tool in
             .custom(name: tool.name, description: tool.description, schema: tool.inputSchema, cache: nil)
@@ -123,7 +125,9 @@ extension AnthropicProvider {
     ///   content_block_start { index, content_block: { type:"tool_use", id, name }}
     ///   content_block_delta { index, delta: { type:"input_json_delta", partial_json } } x N
     ///   content_block_stop { index }
-    /// We track open blocks by index and emit .toolUse on stop.
+    /// We track open blocks by index and emit .toolUse on stop. A stream that
+    /// ends before `message_stop` was cut: it is reported as a dropped
+    /// connection, not delivered as a complete reply.
     static func consumeSSE(
         _ bytes: URLSession.AsyncBytes,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
@@ -145,5 +149,6 @@ extension AnthropicProvider {
             guard !payload.isEmpty, let data = payload.data(using: .utf8) else { continue }
             try handle(eventName: lastEventName, data: data, state: &state, continuation: continuation)
         }
+        guard state.messageStopped else { throw URLError(.networkConnectionLost) }
     }
 }

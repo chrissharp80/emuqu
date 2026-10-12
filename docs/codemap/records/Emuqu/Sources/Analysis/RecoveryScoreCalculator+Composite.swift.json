@@ -1,0 +1,52 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift",
+ "hash": "e01231502ba24f45",
+ "role": "RecoveryScoreCalculator display helpers for a composite score: displayScore (raw 0-100 → shown Int, delegating to ScoreVerdict.safeDisplayScore) and toTenScale (0-100 → stored 0-10). The composite itself comes from calculateWithBreakdown; the former calculate(...) entry points were removed once nothing called them.",
+ "types": [
+  "RecoveryScoreCalculator: extension — display helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreCalculator.displayScore(_:)",
+   "hash": "47929168cd4727b6",
+   "does": "Raw 0-100 score → the Int a person sees, by delegating to ScoreVerdict.safeDisplayScore (clamp to 0...100, non-finite → 0, rounded). Calculator-side name for the one clamp, used by score views, PDF and assistant facts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The clamp now lives only in ScoreVerdict.safeDisplayScore (displayScore delegates), but DeterministicIntent still renders factor scores with a raw Int(factor.score.rounded()), which traps on a non-finite value.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:265"
+     ],
+     "found": "second read; narrowed when displayScore was made to delegate"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.toTenScale(_:)",
+   "hash": "896f901388353c7f",
+   "does": "Divides a 0-100 score by 10 for storage in session.recoveryScore (no clamp).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

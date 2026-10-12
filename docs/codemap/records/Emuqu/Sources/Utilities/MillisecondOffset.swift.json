@@ -1,0 +1,79 @@
+{
+ "file": "Emuqu/Sources/Utilities/MillisecondOffset.swift",
+ "hash": "4c0392075fae4b88",
+ "role": "Safe, rounding conversion of date intervals to Int64 milliseconds, rejecting NaN/infinite/±100-year values.",
+ "types": [
+  "MillisecondOffset: enum — interval→ms conversion"
+ ],
+ "state": [
+  "static representableLimitMs = 100 years in ms"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MillisecondOffset.between(_:and:)",
+   "hash": "a8cb43ca3925bc65",
+   "does": "Rounded ms between two dates, nil if unrepresentable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func MillisecondOffset.between(_:and:fallback:)",
+   "hash": "325e94c5c9307904",
+   "does": "Rounded ms between two dates; when unrepresentable, logs a warning-level debugLog naming the fallback and returns the caller's fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "representable",
+     "effect": "returns the rounded ms"
+    },
+    {
+     "at": "+2",
+     "cond": "unrepresentable",
+     "effect": "logs a warning ('[MillisecondOffset] interval not representable … using fallback') and returns fallback (callers pass 0, e.g. SessionMerger.swift:295)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
+   }
+  },
+  {
+   "key": "func MillisecondOffset.milliseconds(from:)",
+   "hash": "31e463c785b85476",
+   "does": "seconds*1000 rounded to Int64 when within ±100 years, else nil (NaN fails both comparisons).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "outside limit or NaN",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

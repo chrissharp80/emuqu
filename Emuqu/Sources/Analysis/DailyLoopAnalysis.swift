@@ -73,30 +73,42 @@ struct DailyLoopAnalysis {
     /// is absorption; fall back to `.absorbing` (positive, but
     /// reframed as "let the work land" rather than "go again").
     var loopState: LoopState {
-        // Without a z-score both above/below flags read false, which would
-        // otherwise fall through to `.sustainable` with no HRV data at all.
-        guard workoutSession != nil, hrvZScore != nil else { return .undetermined }
-        switch (isRecoveryAboveBaseline, isRecoveryBelowBaseline, workoutIntensity) {
-        case (true, false, .easy):
+        // No z-score means no HRV data to call recovery from; a workout with
+        // no α1 and no heart rate has no intensity to call (its `.easy` is a
+        // fallback, not a reading). Either way the loop cannot be called.
+        guard workoutSession != nil, hasIntensitySignal, let band = recoveryBand else { return .undetermined }
+        switch (band, workoutIntensity) {
+        case (.above, .easy):
             // The single regression class the cumulative-load guard exists for.
             return isCumulativelyLoaded ? .absorbing : .underloading
-        case (true, false, .moderate), (true, false, .hard):
+        case (.above, .moderate), (.above, .hard):
             return .absorbing
-        case (false, false, _):
+        case (.within, _):
             return .sustainable
-        case (false, true, .easy):
+        case (.below, .easy):
             return .backedOff
-        case (false, true, .moderate), (false, true, .hard):
+        case (.below, .moderate), (.below, .hard):
             return .highStrain
-        default:
-            return .undetermined
         }
     }
 
+    /// Today's HRV against the ±0.5 SD Smallest Worthwhile Change band.
+    private enum RecoveryBand { case above, within, below }
+
+    /// Nil without a z-score (no reading or under three baseline nights).
+    private var recoveryBand: RecoveryBand? {
+        guard let z = hrvZScore else { return nil }
+        if z >= Self.swcSDMultiple { return .above }
+        return z <= -Self.swcSDMultiple ? .below : .within
+    }
+
     /// Cumulative-load guard. Reading from the workout's training snapshot keeps
-    /// this purely value-typed (no actor hop). The −5 TSB / 1.3 ACWR thresholds
-    /// match the values the Tomorrow line uses to nudge an easy/rest day, so the
-    /// verdict and the recommendation can't disagree.
+    /// this purely value-typed (no actor hop). TSB −5 is the cut the Tomorrow
+    /// line's absorbing branch uses to prescribe easy/rest; ACWR 1.3 is the
+    /// lower edge of `ACWRBand.aboveUsual`. The Tomorrow line's own ACWR
+    /// override starts higher, at 1.5 (`sharpIncrease`); between 1.3 and 1.5
+    /// the state is `.absorbing` and its easy-day line already says to hold
+    /// off on a quality session, so the two still agree.
     private var isCumulativelyLoaded: Bool {
         let snap = workoutSession?.trainingSnapshot
         if let tsb = snap?.tsb, tsb <= -5 { return true }
@@ -110,8 +122,7 @@ struct DailyLoopAnalysis {
         case .absorbing:
             absorbingVerdict
         case .underloading:
-            (String(localized: "Underloading — room to push", bundle: LanguageManager.appBundle),
-             String(localized: "HRV came in above baseline and today's session was easy. Body's primed for a quality session if your plan calls for one.", bundle: LanguageManager.appBundle))
+            underloadingVerdict
         case .sustainable:
             (String(localized: "Sustainable rhythm", bundle: LanguageManager.appBundle),
              String(localized: "Recovery and load are in balance. Body's keeping up with the training stimulus — keep going.", bundle: LanguageManager.appBundle))
@@ -141,6 +152,19 @@ struct DailyLoopAnalysis {
         return (label, String(localized: "HRV came in above baseline because the body needed it — your acute load is still elevated against your fitness. Today's easy session was the right call. Let the past work land before adding more.", bundle: LanguageManager.appBundle))
     }
 
+    /// `.underloading` invites a quality session only when the advice gate
+    /// is clear. When the gate holds the push, the hero says the load is
+    /// still being absorbed and gives the gate's reason instead.
+    private var underloadingVerdict: (label: String, blurb: String) {
+        guard loadAllowsPush else {
+            let reason = TrainingAdviceGate.assess(adviceLoad).reasonLine(bundle: LanguageManager.appBundle)
+            return (String(localized: "Absorbing the load", bundle: LanguageManager.appBundle),
+                    reason ?? String(localized: "You had the budget for more. Not a problem — recovery is still recovery — but your recent training load says to keep the next session at normal effort rather than going hard.", bundle: LanguageManager.appBundle))
+        }
+        return (String(localized: "Underloading — room to push", bundle: LanguageManager.appBundle),
+                String(localized: "HRV came in above baseline and today's session was easy. Body's primed for a quality session if your plan calls for one.", bundle: LanguageManager.appBundle))
+    }
+
     /// Color-bucket for tinting the hero / badge / accents. Caller maps
     /// to the platform-specific color value (UIColor for PDF, Color for
     /// SwiftUI). Three buckets keep the visual vocabulary tight.
@@ -157,7 +181,9 @@ struct DailyLoopAnalysis {
     // MARK: Workout intensity
 
     /// α1 + peak HR fused classification, mirroring the verdict logic in
-    /// WorkoutPDFReport.
+    /// WorkoutPDFReport. Without metadata, or without α1 and heart rate,
+    /// this falls back to `.easy`; `hasIntensitySignal` says whether it was
+    /// measured, and the loop and the paragraph only use it when it was.
     var workoutIntensity: IntensityClass {
         guard let meta = workoutSession?.workoutMetadata else { return .easy }
         let alphas = (meta.samples ?? []).compactMap(\.alpha1)
@@ -169,6 +195,13 @@ struct DailyLoopAnalysis {
         if pctMax >= 0.85 { return .hard }
         if pctMax >= 0.70 { return .moderate }
         return .easy
+    }
+
+    /// Whether the workout carries anything to classify intensity from: an
+    /// α1 sample, or a heart-rate sample with a usable max HR.
+    var hasIntensitySignal: Bool {
+        guard let samples = workoutSession?.workoutMetadata?.samples else { return false }
+        return samples.contains { $0.alpha1 != nil || ($0.heartRate != nil && userMaxHR > 0) }
     }
 
     // MARK: Recovery vs baseline
@@ -244,13 +277,11 @@ struct DailyLoopAnalysis {
     }
 
     var isRecoveryAboveBaseline: Bool {
-        guard let z = hrvZScore else { return false }
-        return z >= Self.swcSDMultiple
+        recoveryBand == .above
     }
 
     var isRecoveryBelowBaseline: Bool {
-        guard let z = hrvZScore else { return false }
-        return z <= -Self.swcSDMultiple
+        recoveryBand == .below
     }
 
     /// HRV delta as a percentage versus the geometric baseline — positive =
@@ -270,13 +301,15 @@ struct DailyLoopAnalysis {
     /// today's training output and explains why the combination
     /// matters. Drawn in the PDF's "THE LOOP" section.
     var loopParagraph: String {
-        [hrvOpening, workoutLine, loopExplanation].joined(separator: " ")
+        [hrvOpening, workoutLine, loopExplanation].compactMap { $0 }.joined(separator: " ")
     }
 
     /// What the day's session was, as a whole sentence so it translates. The
     /// load figure is left out when the workout recorded none, rather than
-    /// claiming a load of 0.
-    private var workoutLine: String {
+    /// claiming a load of 0. Nil when the intensity was not measured, rather
+    /// than calling an unclassified session easy.
+    private var workoutLine: String? {
+        guard hasIntensitySignal else { return nil }
         guard let load = workoutLoad else {
             switch workoutIntensity {
             case .easy: return String(localized: "Today's session was easy and aerobic.", bundle: LanguageManager.appBundle)
@@ -388,7 +421,8 @@ struct DailyLoopAnalysis {
     }
 
     private func underloadingAction(tsb: Double?) -> String {
-        if let tsb, tsb > 5, loadAllowsPush {
+        guard loadAllowsPush else { return heldLoadAction }
+        if let tsb, tsb > 5 {
             let tsbText = Self.signed(tsb)
             return String(localized: "TSB is \(tsbText) and recovery is strong — open window for intervals or a long aerobic session.", bundle: LanguageManager.appBundle)
         }
@@ -397,11 +431,22 @@ struct DailyLoopAnalysis {
 
     private func absorbingAction(tsb: Double?) -> String {
         guard workoutIntensity == .easy else {
+            guard loadAllowsPush else { return heldLoadAction }
             return String(localized: "Quality session tomorrow if planned, or easy 30-45 min Z2 — both are sustainable from here.", bundle: LanguageManager.appBundle)
         }
         if let tsb, tsb <= -5 {
             let tsbText = Self.signed(tsb)
             return String(localized: "TSB is \(tsbText) — body's still digesting recent load. Easy 30-45 min Z2 or rest tomorrow; save the next quality session for when TSB climbs back toward zero.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Easy aerobic or rest tomorrow — the recent load is still being absorbed. Hold off on a quality session until acute load eases.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Tomorrow's line when the advice gate holds the push: an easy day when
+    /// it asks for an easier session (`.easier`), normal training without a
+    /// hard day when it only holds the push (`.holdPush`).
+    private var heldLoadAction: String {
+        guard TrainingAdviceGate.level(adviceLoad) == .easier else {
+            return String(localized: "Normal training is on the table — listen to how the warm-up feels.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Easy aerobic or rest tomorrow — the recent load is still being absorbed. Hold off on a quality session until acute load eases.", bundle: LanguageManager.appBundle)
     }

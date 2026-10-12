@@ -1,0 +1,441 @@
+{
+ "file": "EmuquTests/ViewSnapshotTests.swift",
+ "hash": "f668e40eeddebc62",
+ "role": "Snapshot and logic tests for the cards extracted from FitnessPostSummaryView: ThresholdCards (LT1 estimate, crossings, derived metrics, HR zones), Alpha1ReportCards, and WorkoutStatsCards charts/elevation plus their display strings, over a deterministic 40-minute run fixture anchored at 2021-06-01.",
+ "types": [
+  "ViewSnapshotTests: class (@MainActor XCTestCase) — card snapshot + derived-string tests"
+ ],
+ "state": [
+  "mem:ViewSnapshotTests.anchor — fixed Date(timeIntervalSince1970: 1_622_534_400)"
+ ],
+ "toplevel": "anchor is a stored fixture date (1 June 2021 08:00 UTC).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ViewSnapshotTests.setUp()",
+   "hash": "9b9cc9e3152046aa",
+   "does": "Per-test setup: super.setUp then useDefaultSettings (SettingsManager.shared on UserSettings() defaults, restored at teardown).",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.shared.settings",
+    "file:settings JSON (SettingsManager.save via didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()": "757ca3e9f00039f6"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.makeSamples(count:)",
+   "hash": "1c9a5eac16161dbd",
+   "does": "Fixture: `count` (default 240) WorkoutSamples every 10 s with closed-form HR 120→160, distance t*45 m, pace 300→260 s/km, cadence ~168±3, altitude 100→160 m, alpha1 1.15→0.55, METs 8→12, power 220→280 W.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.makeSession()",
+   "hash": "7870f31f3f357ffe",
+   "does": "Fixture: a complete 40-minute .workout HRVSession at the anchor with run WorkoutMetadata carrying makeSamples(), 10.8 km, +60/-12 m elevation.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testAlpha1LT1EstimateCardRenders()",
+   "hash": "52e5fcd6fe4bbefb",
+   "does": "Asserts ThresholdCards.alpha1LT1EstimateCard for the fixture session matches 'thresholds-lt1-estimate'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "17c23a272557ae16",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "df033a3e5a600785",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testAlpha1CrossingsCardRenders()",
+   "hash": "e49709134a8ba2b0",
+   "does": "Asserts ThresholdCards.alpha1CrossingsCard matches 'thresholds-crossings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1CrossingsCard",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)": "1256f2aea963f9de",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "ef9c79e9211736ad",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1CrossingsCard": "dcd8ee1f8edc6097",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testDerivedMetricsCardRenders()",
+   "hash": "aea1456d5f678f89",
+   "does": "Asserts ThresholdCards.derivedMetricsCard matches 'thresholds-derived-metrics'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.derivedMetricsCard",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)": "10171a0c6657e0f3",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.derivedMetricsCard": "04890e42eec7e9b9",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testHRZoneDistributionCardRenders()",
+   "hash": "fa4d2b187371ecd6",
+   "does": "Asserts ThresholdCards.hrZoneDistributionCard matches 'thresholds-hr-zones'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.hrZoneDistributionCard",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)": "09a2884ba4c224ba",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.hrZoneDistributionCard": "0ef9458616189307",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testDerivedMetricsAreEmptyWithoutSamples()",
+   "hash": "f680f8451295f675",
+   "does": "Asserts derivedMetricRows(samples: []) is empty for a complete 10-minute run session with no samples and no distance/elevation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)": "10171a0c6657e0f3"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testDerivedMetricsArePresentWithSamples()",
+   "hash": "31cd9c94599a8a5e",
+   "does": "Asserts derivedMetricRows(samples: makeSamples()) for the fixture session is non-empty (guards the fixture).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)": "10171a0c6657e0f3",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testAlpha1ReportCardRenders()",
+   "hash": "cd6118c391edbd2a",
+   "does": "Asserts Alpha1ReportCards.alpha1ReportCard matches 'alpha1-report'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1ReportCard",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1ReportBody(samples:alphaPoints:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1ReportBody(samples:alphaPoints:)": "02973f43d26b2282",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1ReportCard": "c56277b51e71656b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.makeStats()",
+   "hash": "64e90f43399cddb2",
+   "does": "Fixture: WorkoutStatsCards over the fixture session, SettingsManager.shared and an empty track.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSession()": "9dc938a8fcf7e09d"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testHRChartCardRenders()",
+   "hash": "1ee951327abe3915",
+   "does": "Asserts hrChartCard(samples:) matches 'stats-hr-chart'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChart(points:samples:userMax:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChart(points:samples:userMax:)": "fe1fada5893114cf",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)": "6b36d64529625f43",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()": "175f4743b7c0aed5"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testPaceChartCardRenders()",
+   "hash": "e0251a4e484c6576",
+   "does": "Asserts paceChartCard(samples:) matches 'stats-pace-chart'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)": "b0b75811f890bbb3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)": "41eb0dbe9b128005",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()": "175f4743b7c0aed5"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testPowerChartCardRenders()",
+   "hash": "43098fdb2cea5581",
+   "does": "Asserts powerChartCard(samples:) matches 'stats-power-chart'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)": "4d3ba94df157777f",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()": "175f4743b7c0aed5"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testCadenceChartCardRenders()",
+   "hash": "269f63f89d4319e7",
+   "does": "Asserts cadenceChartCard(samples:) matches 'stats-cadence-chart'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.filterCadence(_:sport:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)": "48ce4195a33a013a",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.filterCadence(_:sport:)": "cf495c86e89edea8",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()": "175f4743b7c0aed5"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testElevationCardRenders()",
+   "hash": "a7f8a657d2cc40ed",
+   "does": "Asserts elevationCard matches 'stats-elevation'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or missing; run fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard": "3e37ec66bdd7e829",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()": "175f4743b7c0aed5"
+   }
+  },
+  {
+   "key": "func ViewSnapshotTests.testDerivedDisplayStrings()",
+   "hash": "10cd529209063375",
+   "does": "With English pinned, asserts avgPaceDisplay is non-nil, peakHRDisplay == '<max HR> bpm', avgCadenceDisplay == '<rounded mean cadence> spm', and formatDuration gives '40:00', '1:02:05', '0:59'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgPaceDisplay",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.peakHRDisplay",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgCadenceDisplay",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Expected peak HR and cadence are computed in the test with the same compactMap/filter/mean/round formula as the production getters, so a wrong formula in production is mirrored rather than caught; only the formatting suffix is really checked.",
+     "evidence": [
+      "EmuquTests/ViewSnapshotTests.swift:181",
+      "EmuquTests/ViewSnapshotTests.swift:183",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:77",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:84"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)": "140941c708bd6696",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "8b636c791169d5e8",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgCadenceDisplay": "90a006808f2509e7",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgPaceDisplay": "e138230294c01c95",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.peakHRDisplay": "221207b5a3cc88ab",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeSamples(count:)": "f1b648abb6026169",
+    "EmuquTests/ViewSnapshotTests.swift::func ViewSnapshotTests.makeStats()": "175f4743b7c0aed5"
+   }
+  }
+ ],
+ "deps": {}
+}

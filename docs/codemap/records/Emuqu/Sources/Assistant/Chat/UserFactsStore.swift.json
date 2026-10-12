@@ -1,0 +1,528 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift",
+ "hash": "60d74e5588e65269",
+ "role": "Persistent user facts ('memory') injected into every assistant system prompt; ≤25 deduped facts in Assistant/user_facts.json with complete protection, merge-on-unreadable and set-aside of undecodable files; plus the auto-extract toggle.",
+ "types": [
+  "UserFactsStore: final class (@Observable @MainActor) — fact memory",
+  "UserFactsStore.Fact: struct Codable Identifiable Hashable"
+ ],
+ "state": [
+  "mem:UserFactsStore.shared (nonisolated)",
+  "mem:UserFactsStore.facts (@Observable)",
+  "mem:UserFactsStore.factsBox (lock mirror for off-main readers)",
+  "ud:assistant.autoExtractFacts (standard suite)",
+  "file:<AppGroup|Documents|tmp>/Assistant/user_facts.json (pretty JSON, ISO-8601, atomic, completeFileProtection)",
+  "file:user_facts.undecodable-<unix>.json",
+  "mem:UserFactsStore.maxFacts = 25",
+  "mem:UserFactsStore.unreadableOnDisk",
+  "mem:UserFactsStore.writePending (a write failed and must be retried)",
+  "mem:UserFactsStore.queue ('com.chrissharp.flowrecovery.assistant.facts')"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "init UserFactsStore.Fact(id:text:createdAt:)",
+   "hash": "d4abd08a489415aa",
+   "does": "Fact memberwise init with generated id and now createdAt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserFactsStore.facts",
+   "hash": "543a705774601529",
+   "does": "didSet: copies facts into the lock-protected factsBox mirror.",
+   "entry": "property observer on every facts mutation",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:UserFactsStore.factsBox"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserFactsStore.factsSnapshot",
+   "hash": "3902a5acfa5f8c50",
+   "does": "Nonisolated read of the factsBox mirror.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:UserFactsStore.factsBox"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserFactsStore.autoExtractEnabled",
+   "hash": "7c783a3b75e055c3",
+   "does": "didSet: persists autoExtractEnabled to UserDefaults 'assistant.autoExtractFacts'.",
+   "entry": "property observer (Settings toggle Bindable binding)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:assistant.autoExtractFacts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init UserFactsStore()",
+   "hash": "4aebb4432859c260",
+   "does": "Singleton init: resolves storage dir, creates it, sets user_facts.json URL, probes unreadable state, loads facts (deduped/capped), seeds factsBox and reads auto-extract flag.",
+   "entry": "first access of UserFactsStore.shared",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.storageDirectory(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)"
+   ],
+   "reads": [
+    "file:Assistant/user_facts.json",
+    "ud:assistant.autoExtractFacts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.storageDirectory(_:)": "53ce8f12b02a735b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func UserFactsStore.storageDirectory(_:)",
+   "hash": "8beeec046e895f3e",
+   "does": "App Group 'Assistant' dir, else Documents/Assistant, else tmp/Assistant.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "App Group available",
+     "effect": "group/Assistant"
+    },
+    {
+     "at": "+4",
+     "cond": "Documents available",
+     "effect": "Documents/Assistant; else temporaryDirectory/Assistant"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func UserFactsStore.loadFacts(at:)",
+   "hash": "fa6b8e9c7736b1f8",
+   "does": "Reads and decodes facts, returning dedupedAndCapped result; unreadable or undecodable files yield [] with a log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)"
+   ],
+   "reads": [
+    "file:Assistant/user_facts.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file cannot be read",
+     "effect": "return [] (logs warning if it exists)"
+    },
+    {
+     "at": "+2",
+     "cond": "file exists but unreadable",
+     "effect": "log 'device locked?' warning"
+    },
+    {
+     "at": "+11",
+     "cond": "decode throws",
+     "effect": "log error, return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "init UserFactsStore(fileURL:)",
+   "hash": "984d014b73a9b43d",
+   "does": "Test init with injected file URL; same load sequence as the singleton.",
+   "entry": "XCTest (UserFactsStoreTests)",
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)"
+   ],
+   "reads": [
+    "file:Assistant/user_facts.json",
+    "ud:assistant.autoExtractFacts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func UserFactsStore.add(_:)",
+   "hash": "daa4aaa1ca2a9c03",
+   "does": "Adds a trimmed fact unless empty or a normalized duplicate exists, prunes oldest beyond 25, persists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trimmed text empty",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "normalized key empty or duplicate",
+     "effect": "return without change"
+    },
+    {
+     "at": "+9",
+     "cond": "count > 25",
+     "effect": "remove oldest overflow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)": "c354bbdd0cdc5a65",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
+   }
+  },
+  {
+   "key": "func UserFactsStore.normalizedKey(_:)",
+   "hash": "8c469b9965c04129",
+   "does": "Lowercases and trims whitespace plus . , ; : ! ? … from both ends.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserFactsStore.dedupedAndCapped(_:)",
+   "hash": "0120a480b381572d",
+   "does": "Walks facts newest-to-oldest keeping the first of each normalized key (last occurrence wins), restores order, caps at 25 keeping newest.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each fact reversed",
+     "effect": "dedupe"
+    },
+    {
+     "at": "+5",
+     "cond": "key empty or already seen",
+     "effect": "skip; else keep"
+    },
+    {
+     "at": "+9",
+     "cond": "result > 25",
+     "effect": "drop oldest overflow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b"
+   }
+  },
+  {
+   "key": "func UserFactsStore.remove(_:)",
+   "hash": "3f2e8187c5fe8cd7",
+   "does": "Removes the fact with id and persists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
+   }
+  },
+  {
+   "key": "func UserFactsStore.clear()",
+   "hash": "aed71b1bd3f34b68",
+   "does": "Empties facts, forces unreadableOnDisk=false so the write proceeds, persists (overwrites file).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
+   }
+  },
+  {
+   "key": "func UserFactsStore.systemPromptBlock()",
+   "hash": "aa8970fc456a2e7b",
+   "does": "Renders facts as 'Things to remember about this user…' header plus bullet lines; '' when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:UserFactsStore.facts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no facts",
+     "effect": "return ''"
+    },
+    {
+     "at": "+3",
+     "cond": "for each fact",
+     "effect": "append '• text'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
+   }
+  },
+  {
+   "key": "func UserFactsStore.isUnreadable(_:)",
+   "hash": "32ed009ad39df124",
+   "does": "True when the file exists and cannot be read or decoded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)"
+   ],
+   "reads": [
+    "file:Assistant/user_facts.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file missing",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "read fails",
+     "effect": "true; else decoded==nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)": "b4c88d9524e2058f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func UserFactsStore.decodedFacts(_:)",
+   "hash": "9c3daeff4b99396b",
+   "does": "ISO-8601 decode of [Fact]; nil on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func UserFactsStore.recoverAfterUnlock()",
+   "hash": "9076ae7a78ed55e1",
+   "does": "If the disk was unreadable or the last write failed (writePending), persists (which first reloads/merges).",
+   "entry": "AssistantViewModel.recoverAfterUnlock on protected-data/active notifications",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [
+    "mem:UserFactsStore.unreadableOnDisk",
+    "mem:UserFactsStore.writePending"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "neither unreadableOnDisk nor writePending",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667"
+   }
+  },
+  {
+   "key": "func UserFactsStore.reloadIfUnreadable()",
+   "hash": "40dfdd8871c1be36",
+   "does": "When flagged unreadable and the file now reads: merges on-disk facts not in memory (deduped/capped) and clears the flag; if undecodable, sets it aside and clears the flag on success.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)"
+   ],
+   "reads": [
+    "file:Assistant/user_facts.json"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.unreadableOnDisk",
+    "file:user_facts.undecodable-<unix>.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not flagged, or file still unreadable",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "decode fails",
+     "effect": "setAside; return"
+    },
+    {
+     "at": "+5",
+     "cond": "setAside succeeded",
+     "effect": "clear flag; else stays held"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)": "b4c88d9524e2058f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func UserFactsStore.persist()",
+   "hash": "1dc94366848ed1a1",
+   "does": "Reloads if unreadable; if still unreadable logs and holds (the unreadable flag drives the retry). Otherwise clears writePending, snapshots the facts and on the private queue writes them via write(_:to:); a failed write hops to the main actor to set writePending so recoverAfterUnlock retries it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.write(_:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:UserFactsStore.unreadableOnDisk",
+    "mem:UserFactsStore.facts"
+   ],
+   "writes": [
+    "mem:UserFactsStore.writePending",
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "still unreadable",
+     "effect": "log 'write held', return"
+    },
+    {
+     "at": "+9",
+     "cond": "write(_:to:) returns false",
+     "effect": "main-actor Task sets writePending = true; else done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.write(_:to:)": "69a1ee028a230b01",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func UserFactsStore.write(_:to:)",
+   "hash": "958cfbd587ba0a73",
+   "does": "Nonisolated: encodes the facts (pretty, ISO-8601), creates the parent directory (Delete All My Data removes it under a running store; only init created it), writes atomically with complete file protection; true on success, false when encode (logged by attempt) or the directory/write fails (logged at error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write(.atomic,.completeFileProtection)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encode fails",
+     "effect": "return false"
+    },
+    {
+     "at": "+11",
+     "cond": "createDirectory or write throws",
+     "effect": "log error, return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

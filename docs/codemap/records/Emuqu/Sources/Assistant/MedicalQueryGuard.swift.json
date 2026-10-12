@@ -1,0 +1,193 @@
+{
+ "file": "Emuqu/Sources/Assistant/MedicalQueryGuard.swift",
+ "hash": "5b5cfef7e49a7e20",
+ "role": "Local pre-send guard: classifies a user message against compiled MedicalTermLexicon pattern groups (self-harm, emergency symptoms, injury, rhythm, risk judgement) and returns a localized canned refusal so the turn never reaches an LLM.",
+ "types": [
+  "MedicalQueryGuard: enum — compiled pattern groups, localized replies, evaluate/classify",
+  "MedicalQueryGuard.Outcome: enum — proceed | refuse(reply:)",
+  "MedicalQueryGuard.Trigger: enum — rhythm, symptom, selfHarm, injury"
+ ],
+ "state": [
+  "mem:MedicalQueryGuard.rhythmPatterns",
+  "mem:MedicalQueryGuard.emergencyPatterns",
+  "mem:MedicalQueryGuard.generalConcernPatterns",
+  "mem:MedicalQueryGuard.selfHarmPatterns",
+  "mem:MedicalQueryGuard.injuryPatterns"
+ ],
+ "toplevel": "Five static lets compile MedicalTermLexicon groups once via compactMap(MedicalTermLexicon.regex(for:)) (lines 66-93); a concept whose pattern fails to compile is dropped silently from the guard (only an NSLog from DebugLogger.compiledPattern). emergencyPatterns includes selfHarm too, but selfHarm is checked first so that inclusion only matters for refuseAsSymptom bookkeeping.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MedicalQueryGuard.arrhythmiaReply",
+   "hash": "1818bad296df9eec",
+   "does": "Localized (LanguageManager.appBundle) refusal: app does not detect AFib/arrhythmia, talk to a doctor, Apple Watch ECG exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MedicalQueryGuard.symptomReplyTemplate",
+   "hash": "73ade376e3191d0f",
+   "does": "Localized symptom refusal: stop exercising, talk to your doctor, not a medical device, contact clinician/emergency number.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MedicalQueryGuard.selfHarmReply",
+   "hash": "b7b698d7bd5deb55",
+   "does": "Localized crisis reply: reach out, call local emergency number, findahelpline.com, US 988.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MedicalQueryGuard.injuryReply",
+   "hash": "df092fce5d921c71",
+   "does": "Localized injury reply: stop, call local emergency number if serious, cannot assess injuries, see a clinician.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuard.evaluate(_:)",
+   "hash": "2a02e1fd6fb835a9",
+   "does": "Maps classify(text) to an Outcome: the matching localized refusal reply, or .proceed when no trigger.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .selfHarm",
+     "effect": "refuse with selfHarmReply"
+    },
+    {
+     "at": "+3",
+     "cond": "case .rhythm",
+     "effect": "refuse with arrhythmiaReply"
+    },
+    {
+     "at": "+4",
+     "cond": "case .symptom",
+     "effect": "refuse with symptomReplyTemplate"
+    },
+    {
+     "at": "+5",
+     "cond": "case .injury",
+     "effect": "refuse with injuryReply"
+    },
+    {
+     "at": "+6",
+     "cond": "case nil",
+     "effect": "proceed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "38964b4b43ab8c9f",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "c502663f6adb75fd",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuard.classify(_:)",
+   "hash": "1aaac3c2f48f8ee5",
+   "does": "Trims the text, folds typographic apostrophes (U+2018, U+2019, U+02BC) to ASCII ' so iOS Smart Punctuation input matches patterns written with ', then tests the compiled groups in order selfHarm, emergency (symptom), injury, rhythm, general concern (symptom), returning the first matching Trigger or nil; matching is case-insensitive regex.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:MedicalQueryGuard.selfHarmPatterns",
+    "mem:MedicalQueryGuard.emergencyPatterns",
+    "mem:MedicalQueryGuard.injuryPatterns",
+    "mem:MedicalQueryGuard.rhythmPatterns",
+    "mem:MedicalQueryGuard.generalConcernPatterns"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "trimmed text empty",
+     "effect": "true: nil (proceed); false: run patterns"
+    },
+    {
+     "at": "+15",
+     "cond": "any self-harm pattern matches",
+     "effect": "return .selfHarm"
+    },
+    {
+     "at": "+16",
+     "cond": "any emergency pattern matches",
+     "effect": "return .symptom"
+    },
+    {
+     "at": "+17",
+     "cond": "any injury pattern matches",
+     "effect": "return .injury"
+    },
+    {
+     "at": "+18",
+     "cond": "any rhythm pattern matches",
+     "effect": "return .rhythm"
+    },
+    {
+     "at": "+19",
+     "cond": "any general-concern (danger judgement) pattern matches",
+     "effect": "return .symptom; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

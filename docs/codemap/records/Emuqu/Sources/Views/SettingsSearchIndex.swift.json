@@ -1,0 +1,674 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsSearchIndex.swift",
+ "hash": "26c47f19beab1581",
+ "role": "Hand-curated flat catalogue of Settings search entries (title, subtitle, English aliases, SF Symbol, destination-view factory) that SettingsView builds once into cachedSearchEntries and filters per keystroke for its .searchable field.",
+ "types": [
+  "SettingsSearchEntry: struct (Identifiable) — one searchable row with a precomputed lowercased haystack and an AnyView destination closure",
+  "SettingsSearchIndex: enum (@MainActor) — namespace of static factories that build the catalogue by Settings section"
+ ],
+ "state": [],
+ "toplevel": "SettingsSearchEntry stores title/subtitle/aliases/systemImage/destination/haystack as lets; Identifiable conformance uses the computed id. No globals. Titles and subtitles are localized via LanguageManager.appBundle at build time; aliases are hard-coded English. SettingsView rebuilds the catalogue when LanguageManager.revision changes (SettingsView.swift:68-71).",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "entries(scrollToTopToken:settingsManager:) still takes scrollToTopToken, which nothing uses; the parameter stays only because SettingsView.refreshSearchEntries passes it (the section factories no longer take it).",
+   "evidence": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:62",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:74",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:135",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:194",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:211",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:233",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:272",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:305",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift:131"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SettingsSearchEntry.id",
+   "hash": "c2a67f4ec792c8fc",
+   "does": "Returns \"<systemImage>|<title>\" as the Identifiable id: stable across catalogue rebuilds, and unique in every language because every entry has its own SF Symbol.",
+   "entry": "Identifiable.id witness read by SwiftUI ForEach over search results in SettingsView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+   "hash": "1129966c0e332b41",
+   "does": "Memberwise-style initializer: stores title, subtitle (default \"\"), aliases (default []), systemImage and destination closure, and precomputes haystack = [title, subtitle] + aliases joined by spaces and lowercased.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsSearchEntry.matches(_:)",
+   "hash": "b7930fd59ce03074",
+   "does": "Trims whitespace and lowercases the query; returns true only when every space-separated token is a substring of the haystack.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trimmed lowercased query is empty",
+     "effect": "true: returns false (empty query matches nothing); false: proceeds to the all-tokens substring test"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsSearchIndex.entries(scrollToTopToken:settingsManager:)",
+   "hash": "e99f535f187b7f61",
+   "does": "Concatenates the eight section factories (Identity & Profile, Data & Sources, Recovery & Training, Flo, Notifications, Appearance, Advanced, Help & About) into one [SettingsSearchEntry] of 26 entries. scrollToTopToken is ignored (kept for SettingsView's call); settingsManager goes only to the Data & Sources factory.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(settingsManager:)",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The catalogue has no entry for the Restore Purchases row in Settings, so searching 'restore', 'purchase' or 'subscription' returns no result although the row exists.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsSearchIndex.swift:62",
+      "Emuqu/Sources/Views/SettingsView.swift:352",
+      "Emuqu/Sources/Views/SettingsView.swift:369"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries()": "66c1f51b166c0caa",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries()": "d101c43e2a2f04a0",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(settingsManager:)": "17a7d162a5ed95c3",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries()": "ecac6c7745fd4bb3",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries()": "6bd71544e3a5f031",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries()": "7e0aa6fba8861840",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries()": "78f575efa0982299",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries()": "250ba93c6b587539"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.identityProfileEntries()",
+   "hash": "a9a8b42318fee83e",
+   "does": "Search entries for the Identity & Profile section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.dataSourcesEntries(settingsManager:)",
+   "hash": "508836371a24d785",
+   "does": "Search entries for the Data & Sources section: Wearables, iCloud & Data and Reports (which needs settingsManager).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.wearablesSettingsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSettingsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.reportsSettingsPageEntry(settingsManager:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSettingsPageEntry()": "3b863f9dcf68d2a0",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.reportsSettingsPageEntry(settingsManager:)": "f2c4e0f14dce7beb",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.wearablesSettingsPageEntry()": "38a0b30c1771a14f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.wearablesSettingsPageEntry()",
+   "hash": "7c4059d6a9a785aa",
+   "does": "Builds the Wearables entry (aliases polar/h10/ble/healthkit...) whose destination is AnyView(WearablesSettingsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(WearablesSettingsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.dataSettingsPageEntry()",
+   "hash": "4096a72c75f6da95",
+   "does": "Builds the iCloud & Data entry (aliases icloud/sync/backup/export/csv/rr/trash...) whose destination is AnyView(DataSettingsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(DataSettingsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.reportsSettingsPageEntry(settingsManager:)",
+   "hash": "2ef2efa7376ac9db",
+   "does": "Builds the Reports entry (aliases pdf/report/email/coach) whose destination captures settingsManager into AnyView(ReportsSettingsPage(settingsManager:)).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(ReportsSettingsPage(settingsManager: settingsManager))"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.recoveryTrainingEntries()",
+   "hash": "b6a7aa26ff248afe",
+   "does": "Search entries for the Recovery & Training section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sleepSettingsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.trainingSettingsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.modesSettingsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.customTagsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.savedRoutesPageEntry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.customTagsPageEntry()": "325c15bbe7b1986f",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.modesSettingsPageEntry()": "1966af4c1958cb82",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.savedRoutesPageEntry()": "48d4c4a71976d1d0",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sleepSettingsPageEntry()": "3d15c0820481774b",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.trainingSettingsPageEntry()": "6633d3103724dac5"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.sleepSettingsPageEntry()",
+   "hash": "5cbf835c8bb7da45",
+   "does": "Builds the Sleep entry → AnyView(SleepSettingsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(SleepSettingsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.trainingSettingsPageEntry()",
+   "hash": "24c846410576f0a1",
+   "does": "Builds the Training entry (aliases trimp/ctl/atl/tsb/training break/goal...) → AnyView(TrainingSettingsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(TrainingSettingsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.modesSettingsPageEntry()",
+   "hash": "9872c0e8eaead2cd",
+   "does": "Builds the Modes entry (comeback/peaking/taper/overreach/race) → AnyView(ModesSettingsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(ModesSettingsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.customTagsPageEntry()",
+   "hash": "1d17984d82b20f28",
+   "does": "Builds the Tags entry → AnyView(CustomTagsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(CustomTagsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.savedRoutesPageEntry()",
+   "hash": "373963e82ef04319",
+   "does": "Builds the My Routes entry (route/gpx/trail) → AnyView(SavedRoutesPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(SavedRoutesPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.floMainAiEntries()",
+   "hash": "340561bb75fa727c",
+   "does": "Search entries for the Flo / AI section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.notificationsEntries()",
+   "hash": "baf9f46f9be7eac4",
+   "does": "Search entries for the Notifications section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.appearanceEntries()",
+   "hash": "616f46259e96d1cd",
+   "does": "Search entries for the Appearance section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearancePageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.performanceSettingsPageEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.languagePageEntry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearancePageEntry()": "a297e3eec157174d",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.languagePageEntry()": "40eb459c5a48ad97",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.performanceSettingsPageEntry()": "9f01e0432df20d5d"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.appearancePageEntry()",
+   "hash": "9df059160fd723bb",
+   "does": "Builds the Appearance entry (dark/light/dim/color theme) → AnyView(AppearancePage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(AppearancePage()) → body Emuqu/Sources/Views/SettingsView+Appearance.swift:24"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.performanceSettingsPageEntry()",
+   "hash": "c8f3606226db58b0",
+   "does": "Builds the Performance & Battery entry → AnyView(PerformanceSettingsPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(PerformanceSettingsPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.languagePageEntry()",
+   "hash": "64678ac7b1dc0842",
+   "does": "Builds the Language entry → AnyView(LanguagePage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(LanguagePage()) → body Emuqu/Sources/Views/SettingsView+Appearance.swift:311"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.advancedEntries()",
+   "hash": "28a917cb71486275",
+   "does": "Search entries for the Advanced section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sampleDataEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sampleDataEntry()": "6ea33955327646e1",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.sampleDataEntry()",
+   "hash": "fe35c2434eaf43d2",
+   "does": "Builds the Sample data entry (demo/sample/no strap/review/synthetic) → AnyView(SampleDataPage()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(SampleDataPage())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.helpAboutEntries()",
+   "hash": "638b2df91ec2e2b7",
+   "does": "Search entries for the Help & About section of Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.legalEntries()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpEntries()": "3d468377b88fff21",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.legalEntries()": "748b2526a108f06e"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.helpEntries()",
+   "hash": "170d9730d2b8ba3a",
+   "does": "Returns [Help & Learn, Metric Guide, How Emuqu scores recovery] entries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpCenterViewEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.metricExplanationsViewEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryMethodologyViewEntry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpCenterViewEntry()": "268be0633d6a0500",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.metricExplanationsViewEntry()": "297f69b52ba529fb",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryMethodologyViewEntry()": "5f2daf98c337c3dd"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.helpCenterViewEntry()",
+   "hash": "d43f4a9e52f25b4b",
+   "does": "Builds the Help & Learn entry → AnyView(HelpCenterView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()",
+    "closure:destination AnyView(HelpCenterView())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()": "b289c4ded5db282b",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.metricExplanationsViewEntry()",
+   "hash": "4d971d10550034bb",
+   "does": "Builds the Metric Guide entry (rmssd/sdnn/lf/hf/dfa) → AnyView(MetricExplanationsView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(MetricExplanationsView()) → body Emuqu/Sources/Views/SettingsSubviews.swift:504"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.recoveryMethodologyViewEntry()",
+   "hash": "62af0de9c52c534b",
+   "does": "Builds the 'How Emuqu scores recovery' entry (aliases methodology/score/'60 25 15'/acwr) → AnyView(RecoveryMethodologyView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(RecoveryMethodologyView())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.legalEntries()",
+   "hash": "35fc5e0fbf0c15ae",
+   "does": "Returns [Health Disclaimer, Privacy Policy, Terms of Use, Open Source Licenses] entries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.healthDisclaimerViewEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.privacyPolicyViewEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.termsOfUseViewEntry()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.acknowledgementsViewEntry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.acknowledgementsViewEntry()": "e3f2f5e36608ccbb",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.healthDisclaimerViewEntry()": "1c3ca6b1b4d63d53",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.privacyPolicyViewEntry()": "7fbf1a01c2777804",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.termsOfUseViewEntry()": "9f91850b12f06cdc"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.healthDisclaimerViewEntry()",
+   "hash": "7894767b77b5ae16",
+   "does": "Builds the Health Disclaimer entry → AnyView(HealthDisclaimerView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(HealthDisclaimerView())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.privacyPolicyViewEntry()",
+   "hash": "cbb208334b24c1ac",
+   "does": "Builds the Privacy Policy entry → AnyView(PrivacyPolicyView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(PrivacyPolicyView())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.termsOfUseViewEntry()",
+   "hash": "f9bfa44602692496",
+   "does": "Builds the Terms of Use entry → AnyView(TermsOfUseView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(TermsOfUseView())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  },
+  {
+   "key": "func SettingsSearchIndex.acknowledgementsViewEntry()",
+   "hash": "739d6ec6f64fedd7",
+   "does": "Builds the Open Source Licenses entry → AnyView(AcknowledgementsView()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:destination AnyView(AcknowledgementsView())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+   }
+  }
+ ],
+ "deps": {}
+}

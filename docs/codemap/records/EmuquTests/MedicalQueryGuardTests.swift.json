@@ -1,0 +1,861 @@
+{
+ "file": "EmuquTests/MedicalQueryGuardTests.swift",
+ "hash": "202286e226e659cd",
+ "role": "XCTest suite for MedicalQueryGuard, the local pre-send filter that refuses AFib/arrhythmia, acute symptom, self-harm and injury questions with fixed localized replies: English positives/negatives, case-insensitivity, crisis reply, per-locale rhythm/symptom/self-harm coverage, sinus-arrhythmia exclusion, lexicon/guard agreement, precedence order, everyday-word exclusions in MedicalTermLexicon output concepts, and system-prompt rule B quoting the replies.",
+ "types": [
+  "MedicalQueryGuardTests: class — @MainActor XCTestCase over MedicalQueryGuard and MedicalTermLexicon (extended in MedicalQueryGuardTests+Injury.swift)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MedicalQueryGuardTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "Pins the app language to English before each test (copy assertions are English).",
+   "entry": "XCTest async setUp before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (via pinEnglishLanguage when host not English)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testAFibLiteralFormsAreRefused()",
+   "hash": "b0aa489742041196",
+   "does": "For 12 English AFib/irregular-rhythm/palpitation phrasings asserts evaluate() refuses with arrhythmiaReply.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each positive input",
+     "effect": "evaluates it"
+    },
+    {
+     "at": "+18",
+     "cond": "outcome .refuse",
+     "effect": "asserts reply == arrhythmiaReply"
+    },
+    {
+     "at": "+21",
+     "cond": "outcome .proceed",
+     "effect": "XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testAFibCaseInsensitive()",
+   "hash": "353c2659cf23ad96",
+   "does": "Asserts upper/mixed-case AFib forms are not .proceed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 3 inputs",
+     "effect": "evaluates"
+    },
+    {
+     "at": "+2",
+     "cond": "outcome .proceed",
+     "effect": "XCTFail; any refusal passes"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Fails only on .proceed; any refusal passes, so an upper-case AFib question routed to the symptom or self-harm reply instead of arrhythmiaReply would not be caught (the lower-case test at line 52 does check the reply).",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:62",
+      "EmuquTests/MedicalQueryGuardTests.swift:52"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSymptomTriageRefused()",
+   "hash": "53681cd7ed1b4138",
+   "does": "For 14 English symptom phrasings (chest pain, breathlessness, fainting, severe pain/fatigue/dizz, panic attack) asserts refusal with symptomReplyTemplate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+22",
+     "cond": "for each positive input",
+     "effect": "evaluates it"
+    },
+    {
+     "at": "+25",
+     "cond": "outcome .refuse",
+     "effect": "asserts reply == symptomReplyTemplate"
+    },
+    {
+     "at": "+28",
+     "cond": "outcome .proceed",
+     "effect": "XCTFail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The comment says 'severe dizziness' does not match because the pattern is `severe\\s+(pain|fatigue|dizz)\\b`, but the lexicon now uses `dizz\\w*` (MedicalTermLexicon.swift:587), so the comment is stale and the common phrase 'severe dizziness' is left untested.",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:84",
+      "EmuquTests/MedicalQueryGuardTests.swift:89",
+      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:587"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSelfHarmGetsTheCrisisReplyNotTheSymptomReply()",
+   "hash": "f511af2cb3be0782",
+   "does": "For 15 self-harm inputs (English incl. one with chest pain, es/de/fr/ja/ko) asserts classify == .selfHarm and evaluate refuses with selfHarmReply.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "for each input",
+     "effect": "asserts .selfHarm"
+    },
+    {
+     "at": "+20",
+     "cond": "evaluate returns .refuse",
+     "effect": "asserts crisis reply; otherwise XCTFail and continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSelfHarmInflectionsAndCompoundsGetTheCrisisReplyInEveryLocale()",
+   "hash": "2710a4019c7f8993",
+   "does": "Asserts 20 inflected/compound self-harm phrasings across 16 locales classify as .selfHarm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+23",
+     "cond": "for each (locale, text)",
+     "effect": "asserts .selfHarm"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testWidenedSelfHarmStemsStillExcludeTheDrill()",
+   "hash": "8f3c56341a7ebb37",
+   "does": "Asserts 'suicide sprints after practice' and 'we ran suicides today' are not .selfHarm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each drill phrase",
+     "effect": "asserts not self-harm"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSuicideSprintsAreTrainingNotSelfHarm()",
+   "hash": "4f1bae7b71591263",
+   "does": "Asserts three suicide-sprint training phrases are not .selfHarm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each drill phrase",
+     "effect": "asserts not self-harm"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same check as testWidenedSelfHarmStemsStillExcludeTheDrill (line 170) with near-identical phrases.",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:170",
+      "EmuquTests/MedicalQueryGuardTests.swift:177"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testCrisisReplyPointsAtHelpInAnyCountry()",
+   "hash": "b8f029a8b705db3d",
+   "does": "Asserts selfHarmReply contains findahelpline.com, 988 and 'emergency number' and not 'doctor'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testFitnessCoachingProceeds()",
+   "hash": "66e68b52cb0e06f9",
+   "does": "Asserts 12 ordinary fitness questions are not refused.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each negative input",
+     "effect": "evaluates it"
+    },
+    {
+     "at": "+16",
+     "cond": "outcome .refuse",
+     "effect": "XCTFail false positive"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testEmptyInputProceeds()",
+   "hash": "88bcd2051fe21b37",
+   "does": "Asserts empty and whitespace-only inputs are not refused.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty input refused",
+     "effect": "XCTFail"
+    },
+    {
+     "at": "+4",
+     "cond": "whitespace-only input refused",
+     "effect": "XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testRefusalReplyMatchesSystemPromptCopy()",
+   "hash": "b6f9b197319c7748",
+   "does": "Asserts arrhythmiaReply mentions Apple Watch, ECG and 'isn't a medical device', and symptomReplyTemplate mentions 'Talk to your doctor' and 'emergency number'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'MatchesSystemPromptCopy' but never reads the system prompt; it only checks substrings of the guard's own replies (the verbatim prompt check is testRuleBQuotesTheSymptomReplyVerbatim).",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:226",
+      "EmuquTests/MedicalQueryGuardTests.swift:230"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSymptomReplyOpensByTellingAnExercisingUserToStop()",
+   "hash": "f8efa0758343d603",
+   "does": "Asserts symptomReplyTemplate and the reply for 'I have chest pain' start with \"If you're exercising, stop now.\"",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "evaluate returns .refuse",
+     "effect": "checks prefix; otherwise XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testRuleBQuotesTheSymptomReplyVerbatim()",
+   "hash": "8e6d7a35ab2360b9",
+   "does": "Asserts AssistantSystemPrompt.base and .appleBase contain symptomReplyTemplate verbatim after whitespace collapsing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.collapsingWhitespace(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.collapsingWhitespace(_:)": "3ad61192334b2b5c"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.collapsingWhitespace(_:)",
+   "hash": "85f0a19b950d5f32",
+   "does": "Helper: splits on whitespace and rejoins with single spaces.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testRhythmQuestionsAreRefusedInEveryShippedLocale()",
+   "hash": "a519109b9b507a72",
+   "does": "Asserts one AFib question per shipped locale (16) classifies as .rhythm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "for each locale entry",
+     "effect": "asserts .rhythm"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSymptomQuestionsAreRefusedInEveryShippedLocale()",
+   "hash": "532da9b5ab8955b0",
+   "does": "Asserts one chest-pain statement per shipped locale (16) classifies as .symptom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "for each locale entry",
+     "effect": "asserts .symptom"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testOtherSymptomFamiliesAreRefusedAcrossScripts()",
+   "hash": "ab200c01f9a51422",
+   "does": "Asserts 11 breathlessness/fainting phrases across scripts classify as .symptom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each phrase",
+     "effect": "asserts .symptom"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testOrdinaryTrainingQuestionsStillProceedInEveryShippedLocale()",
+   "hash": "1563588f1dd4591b",
+   "does": "Asserts 16 ordinary training questions in shipped languages classify as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "for each phrase",
+     "effect": "asserts nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSinusArrhythmiaIsNotRefused()",
+   "hash": "f022849c6bd457bf",
+   "does": "Asserts 'what is respiratory sinus arrhythmia?' classifies as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testRefusalCopyResolvesToTheCatalogue()",
+   "hash": "20b040db8fa1dd33",
+   "does": "Asserts arrhythmiaReply and symptomReplyTemplate are non-empty and arrhythmiaReply contains Apple Watch and ECG.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'ResolvesToTheCatalogue' but runs pinned to English and only checks English substrings; it never verifies a non-English translation exists.",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:386",
+      "EmuquTests/MedicalQueryGuardTests.swift:389"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testLeetSpeakRemainsUncovered()",
+   "hash": "a5fcf0fd43bebe83",
+   "does": "Asserts 'do I have 4F1B' is NOT refused (documented leetspeak gap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testEveryDeclaredRefusalConceptIsActuallyRefused()",
+   "hash": "8b51549d227f1b9e",
+   "does": "For each concept in MedicalTermLexicon.refuseBeforeSending, probes every plain-text Latin alternative and every unbounded alternative and asserts classify returns non-nil; asserts at least one probe per concept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each refusable concept",
+     "effect": "probes its alternatives"
+    },
+    {
+     "at": "+3",
+     "cond": "for each Latin alternative",
+     "effect": "probes it"
+    },
+    {
+     "at": "+5",
+     "cond": "alternative contains regex metacharacters",
+     "effect": "skipped (continue); only plain text is probed"
+    },
+    {
+     "at": "+14",
+     "cond": "for each non-empty unbounded alternative",
+     "effect": "probes it"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Alternatives containing any regex metacharacter are skipped, so a concept whose refused forms are mostly patterns is only partly probed; the guard only requires one probe per concept.",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:426",
+      "EmuquTests/MedicalQueryGuardTests.swift:442"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testOutputOnlyConceptsAreNotRefusedOnInput()",
+   "hash": "a470ff1946abeead",
+   "does": "Asserts the output-only concept set is non-empty and four questions naming output-only concepts (overtraining, injury risk, FDA-approved, pathology) classify as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each phrase",
+     "effect": "asserts nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testAcuteEventsRefuseWhileChronicDescriptorsProceed()",
+   "hash": "4716a640745ba125",
+   "does": "Asserts heart attack and pulmonary embolism classify .symptom while bradycardia and hypertension questions classify nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSwimStrokeQuestionsProceed()",
+   "hash": "104f790e16c74451",
+   "does": "Asserts swim-stroke questions and 'stroke of luck' are nil while 'am I having a stroke' and 'I had a stroke last year' are .symptom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testAnAcuteSymptomOutranksARhythmQuestion()",
+   "hash": "03e95a6ce1a5e433",
+   "does": "Asserts four phrases combining a rhythm term with an acute symptom classify as .symptom (emergency outranks rhythm).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each combined phrase",
+     "effect": "asserts .symptom"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testARiskJudgementAboutRhythmStillGetsTheRhythmReply()",
+   "hash": "e96ac3f6e8d69fbd",
+   "does": "Asserts risk-judgement rhythm questions classify as .rhythm and 'is this dangerous' alone as .symptom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testSinusArrhythmiaIsNotRefusedInAnyLocale()",
+   "hash": "627bf4b793a4b8a6",
+   "does": "Asserts respiratory sinus arrhythmia questions in 14 locales classify as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "for each (locale, question)",
+     "effect": "asserts nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the other sixteen locales lacked the exclusion, but the table covers only 13 non-English locales (no is, nb, sv), so those three are untested.",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests.swift:524",
+      "EmuquTests/MedicalQueryGuardTests.swift:527"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.lexicon(_:matches:)",
+   "hash": "fb5220e7d9e70868",
+   "does": "Helper: compiles MedicalTermLexicon.regex(for: concept) and returns whether it matches text; fails the test if the concept does not compile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "regex compiles",
+     "effect": "returns match result; otherwise XCTFail and returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testEverydayWordsAreNotMedicalClaims()",
+   "hash": "4e9142be7460374f",
+   "does": "Asserts ten everyday sentences (recipe, 'take care', 'This is your…', 'clearly') do not match cure/prescription/categoricalAutonomicState/physiologicalCertainty concepts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each (concept, text)",
+     "effect": "asserts no match"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)": "694b5c82373160c0"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testRegulatedSenseOfNarrowedWordsStillMatches()",
+   "hash": "2070e891f598e834",
+   "does": "Asserts eight regulated-sense sentences do match the same concepts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for each (concept, text)",
+     "effect": "asserts match"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)": "694b5c82373160c0"
+   }
+  }
+ ],
+ "deps": {}
+}

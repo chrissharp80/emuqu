@@ -1,0 +1,22 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift",
+ "hash": "c05a352672538b79",
+ "role": "Verbatim prompt prose for the AI coach: base persona + hard rules + medical boundary, non-tool overlay, tool-use overlay (envelope, grounding rules, location/workout/live/mutation/web-search rules), voice overlay, and condensed Apple base/tool/no-tool/voice overlays.",
+ "types": [
+  "AssistantSystemPrompt: extension — static prompt strings"
+ ],
+ "state": [
+  "static let base",
+  "static let nonToolModeOverlay",
+  "static let toolOverlay",
+  "static let voiceOverlay",
+  "static let appleBase",
+  "static let appleToolOverlay",
+  "static let appleNoToolsOverlay",
+  "static let appleVoiceOverlay"
+ ],
+ "toplevel": "Only static string constants; no functions. Consumed by AIProvider+SystemPrompt.swift (stableSections, toolModeSections, appleInstructions; appleInstructions also detects tool/voice turns by substring-matching toolOverlay/voiceOverlay in the composed prompt). States a tool budget of 8 matching AssistantViewModel+Tools.swift:30 maxToolCallsPerTurn = 8 and recovery weights 60/25/15, 70/30, Comeback 80/20/0 consistent with ScoreDetailBuilder. toolOverlay names the only pre-loaded data — the per-send '# Dashboard cache' / '# Today' block and the <live_state> block (recovery/HRV lines and, during a workout, the 📍 LOCATION line) — as valid number sources beside this turn's tool results; its claim audit checks against those, and its staleness rule reads get_workout_live's snapshot_at.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

@@ -25,10 +25,12 @@ import MapKit
 //   1. Decode the saved polyline into a coordinate list. Reverse
 //      if the user is closer to the END of the recorded path
 //      (they're walking it the other way).
-//   2. Detect turn nodes by bearing-change between consecutive
-//      trackpoint triplets. Threshold 30°. Smooth: collapse turns
-//      within 15 m of each other (GPS jitter), drop turns whose
-//      onward segment is shorter than 30 m (clutter).
+//   2. Detect turn nodes by the bearing change across each trackpoint,
+//      measured over 15 m of path either side (a corner recorded at
+//      1 Hz bends a little at each of several fixes). Threshold 30°.
+//      Smooth: keep the sharpest of turns within 15 m of each other
+//      (GPS jitter), drop turns whose onward segment is shorter than
+//      30 m (clutter).
 //   3. For each turn node, look up the road name at the user's
 //      snapped position via `RoadGraphService` (the same OSM road
 //      graph the awareness engine uses). Cache hits are free; new
@@ -88,6 +90,12 @@ enum SavedRouteStepBuilder {
     /// side of a single intersection; collapse them so the user
     /// hears one announcement, not three.
     static let minTurnSeparationMeters: Double = 15
+    /// Path length either side of a trackpoint over which its bearing
+    /// change is measured for turn detection.
+    static let turnWindowMeters: Double = 15
+    /// Wider window used to classify a detected turn (bear / turn / sharp),
+    /// so the whole manoeuvre is judged, not just the corner.
+    static let turnClassificationWindowMeters: Double = 30
     /// Minimum onward segment length for a turn to count. A "turn"
     /// followed by another turn 5 m later is just GPS noise; drop
     /// the first one.
@@ -97,8 +105,10 @@ enum SavedRouteStepBuilder {
 
     /// Build the step list. Returns nil only when the saved route
     /// is structurally invalid (<2 trackpoints) — every other
-    /// failure path returns a partial-success result with
-    /// `hasUnnamedTurns=true` so the user gets SOMETHING.
+    /// failure path returns a result so the user gets SOMETHING:
+    /// `hasUnnamedTurns` is true when any turn has no road name; a
+    /// missing start or end name only drops the name from that
+    /// instruction.
     static func build(
         savedRoute: SavedRoute,
         currentLocation: CLLocationCoordinate2D
@@ -184,14 +194,11 @@ enum SavedRouteStepBuilder {
         return ResolvedNames(start: startName, end: endName, byIndex: byIndex, unnamedCount: unnamedCount)
     }
 
-    /// Step boundaries: 0, each turn, then the end (if not already a turn).
+    /// Step boundaries: 0, each turn, then the end. Turns lie strictly
+    /// inside the route (detectTurns only looks at interior points), so the
+    /// end is never already a boundary.
     private static func stepBoundaries(turnIndices: [Int], lastIndex: Int) -> [Int] {
-        var boundaries: [Int] = [0]
-        boundaries.append(contentsOf: turnIndices)
-        if boundaries.last != lastIndex {
-            boundaries.append(lastIndex)
-        }
-        return boundaries
+        [0] + turnIndices + [lastIndex]
     }
 
     private static func buildSteps(
@@ -247,16 +254,13 @@ enum SavedRouteStepBuilder {
         return String(localized: "Head \(cardinal) on \(name)", bundle: LanguageManager.appBundle)
     }
 
-    /// Interior turn. Direction comes from the before/after bearings around
-    /// the turn node.
+    /// Interior turn. Direction comes from the bearing change across the
+    /// turn node over `turnClassificationWindowMeters` either side.
     private static func turnInstruction(
         coords: [CLLocationCoordinate2D], turnIdx: Int, names: ResolvedNames
     ) -> String {
-        let preIdx = max(0, turnIdx - 1)
-        let postIdx = min(coords.count - 1, turnIdx + 1)
-        let beforeBearing = bearing(from: coords[preIdx], to: coords[turnIdx])
-        let afterBearing = bearing(from: coords[turnIdx], to: coords[postIdx])
-        return turnPhrase(turnDirection(before: beforeBearing, after: afterBearing), onto: names.byIndex[turnIdx])
+        let delta = deflection(at: turnIdx, in: coords, windowMeters: turnClassificationWindowMeters)
+        return turnPhrase(turnDirection(delta: delta), onto: names.byIndex[turnIdx])
     }
 
     /// Trackpoint coords are `CLLocationCoordinate2D`; `MKPolyline.init` wants
@@ -271,31 +275,55 @@ enum SavedRouteStepBuilder {
 
     // MARK: - Turn detection
 
+    /// A turn is an interior trackpoint whose bearing change, measured over
+    /// `turnWindowMeters` of path either side, reaches the threshold.
     static func detectTurns(in coords: [CLLocationCoordinate2D]) -> [Int] {
         guard coords.count >= 3 else { return [] }
-        var raw: [Int] = []
-        for i in 1 ..< (coords.count - 1) {
-            let b1 = bearing(from: coords[i - 1], to: coords[i])
-            let b2 = bearing(from: coords[i], to: coords[i + 1])
-            if abs(angleDelta(from: b1, to: b2)) >= turnAngleThresholdDegrees {
-                raw.append(i)
-            }
-        }
+        let raw = (1 ..< (coords.count - 1))
+            .map { (index: $0, delta: abs(deflection(at: $0, in: coords, windowMeters: turnWindowMeters))) }
+            .filter { $0.delta >= turnAngleThresholdDegrees }
         return dropShortSegments(collapseNearby(raw, in: coords), in: coords)
     }
 
-    /// Collapse turns within `minTurnSeparationMeters` — GPS noise around a
-    /// single physical intersection.
-    private static func collapseNearby(_ raw: [Int], in coords: [CLLocationCoordinate2D]) -> [Int] {
-        var collapsed: [Int] = []
-        for idx in raw {
-            if let prev = collapsed.last,
-               distance(coords[idx], coords[prev]) < minTurnSeparationMeters {
+    /// Signed bearing change at `index`: from the trackpoint `windowMeters`
+    /// of path before it to it, then from it to the one `windowMeters` after
+    /// (the route's ends when it is shorter).
+    private static func deflection(at index: Int, in coords: [CLLocationCoordinate2D], windowMeters: Double) -> Double {
+        let before = pathIndex(from: index, step: -1, meters: windowMeters, in: coords)
+        let after = pathIndex(from: index, step: 1, meters: windowMeters, in: coords)
+        return angleDelta(
+            from: bearing(from: coords[before], to: coords[index]),
+            to: bearing(from: coords[index], to: coords[after])
+        )
+    }
+
+    /// The trackpoint reached by walking from `start` in `step` direction
+    /// until at least `meters` of path are covered, or the route ends.
+    private static func pathIndex(from start: Int, step: Int, meters: Double, in coords: [CLLocationCoordinate2D]) -> Int {
+        var current = start
+        var walked = 0.0
+        while walked < meters, coords.indices.contains(current + step) {
+            walked += distance(coords[current], coords[current + step])
+            current += step
+        }
+        return current
+    }
+
+    /// Collapse turns within `minTurnSeparationMeters` — GPS noise, or one
+    /// corner seen from several fixes — keeping the sharpest of each run.
+    private static func collapseNearby(
+        _ raw: [(index: Int, delta: Double)], in coords: [CLLocationCoordinate2D]
+    ) -> [Int] {
+        var collapsed: [(index: Int, delta: Double)] = []
+        for candidate in raw {
+            guard let prev = collapsed.last,
+                  distance(coords[candidate.index], coords[prev.index]) < minTurnSeparationMeters else {
+                collapsed.append(candidate)
                 continue
             }
-            collapsed.append(idx)
+            if candidate.delta > prev.delta { collapsed[collapsed.count - 1] = candidate }
         }
-        return collapsed
+        return collapsed.map { $0.index }
     }
 
     /// Drop turns whose onward segment is shorter than `minSegmentMeters` —
@@ -360,20 +388,13 @@ enum SavedRouteStepBuilder {
     // MARK: - Geometry helpers
 
     /// Initial bearing from a→b in degrees clockwise from true
-    /// north (0°). Same formula used elsewhere in the codebase
-    /// (RoadGeocodingService, RoadAwarenessEngine).
+    /// north (0°), through the one great-circle formula
+    /// (`bearingDegrees(from:to:)` in RoadGeocodingSupport.swift).
     private static func bearing(
         from a: CLLocationCoordinate2D,
         to b: CLLocationCoordinate2D
     ) -> Double {
-        let lat1 = a.latitude * .pi / 180
-        let lat2 = b.latitude * .pi / 180
-        let dLon = (b.longitude - a.longitude) * .pi / 180
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        let radians = atan2(y, x)
-        let degrees = radians * 180 / .pi
-        return (degrees + 360).truncatingRemainder(dividingBy: 360)
+        bearingDegrees(from: a, to: b)
     }
 
     /// Signed angular delta from b1 to b2, normalized to [-180, 180].
@@ -405,12 +426,12 @@ enum SavedRouteStepBuilder {
         case sharpRight, right, bearRight, sharpLeft, left, bearLeft, straight
     }
 
-    /// Classify a turn by signed angle change. Threshold
-    /// alignment matches user expectation: <30° = "bear left/right"
-    /// (gentle), 30–90° = "turn", >90° = "sharp turn." Below 15°
-    /// we shouldn't have detected a turn at all.
-    private static func turnDirection(before: Double, after: Double) -> Turn {
-        let delta = angleDelta(from: before, to: after)
+    /// Classify a turn by its signed angle change over the classification
+    /// window: 15–30° = "bear left/right" (gentle), 30–90° = "turn",
+    /// >90° = "sharp turn". A corner detected over the shorter detection
+    /// window can wash out below 15° over the wider one (a jog that rejoins
+    /// the same line): that is "straight" ("continue").
+    private static func turnDirection(delta: Double) -> Turn {
         if delta > 90 { return .sharpRight }
         if delta > 30 { return .right }
         if delta > 15 { return .bearRight }

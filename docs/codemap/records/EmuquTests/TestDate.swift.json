@@ -1,0 +1,102 @@
+{
+ "file": "EmuquTests/TestDate.swift",
+ "hash": "c87d4d16c243abfa",
+ "role": "Test-target fixture helpers that XCTFail at the call site and return a harmless stand-in instead of force-unwrapping: TestDate (date from components, adding, settingTime), TestUUID.fixed, and TestFixtureDefaults.timeDomain (all-zero TimeDomainMetrics).",
+ "types": [
+  "TestDate: enum — non-trapping Calendar date builders",
+  "TestUUID: enum — non-trapping UUID literal parser",
+  "TestFixtureDefaults: enum — zero-valued stand-in analysis values"
+ ],
+ "state": [
+  "TestFixtureDefaults.timeDomain: static let TimeDomainMetrics with every field 0"
+ ],
+ "toplevel": "TestFixtureDefaults.timeDomain is a static stored TimeDomainMetrics initialiser with all zeros.",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "Fallback values (Date(timeIntervalSince1970: 0), the unchanged input date, a random UUID(), all-zero TimeDomainMetrics) keep the test running after XCTFail; later assertions in the same test then evaluate against those stand-ins and add confusing secondary failures, though the first XCTFail does mark the test red.",
+   "evidence": [
+    "EmuquTests/TestDate.swift:25",
+    "EmuquTests/TestDate.swift:75",
+    "EmuquTests/TestDate.swift:87"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TestDate.from(_:calendar:file:line:)",
+   "hash": "cae16dcacd007ef7",
+   "does": "Builds a Date from DateComponents in the given calendar (default .current); on nil XCTFails at the caller's file/line and returns the 1970 epoch.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "calendar.date(from:) is nil",
+     "effect": "true: XCTFail + return epoch; false: return the date"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TestDate.adding(_:_:to:calendar:file:line:)",
+   "hash": "2998114f2b12bb17",
+   "does": "Adds value×component to a date; on nil XCTFails at the caller and returns the input date unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "calendar.date(byAdding:) is nil",
+     "effect": "true: XCTFail + return input date; false: return result"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TestDate.settingTime(hour:minute:second:of:calendar:file:line:)",
+   "hash": "0c50f41399a40526",
+   "does": "Sets hour/minute/second on a date; on nil XCTFails at the caller and returns the input date unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "calendar.date(bySettingHour:) is nil",
+     "effect": "true: XCTFail + return input date; false: return result"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TestUUID.fixed(_:file:line:)",
+   "hash": "94e81dcd8fe587a0",
+   "does": "Parses a UUID literal; on an invalid string XCTFails at the caller and returns a random UUID().",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "UUID(uuidString:) is nil",
+     "effect": "true: XCTFail + return random UUID; false: return parsed id"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

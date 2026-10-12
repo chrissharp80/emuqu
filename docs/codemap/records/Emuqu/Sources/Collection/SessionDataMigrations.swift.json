@@ -1,0 +1,139 @@
+{
+ "file": "Emuqu/Sources/Collection/SessionDataMigrations.swift",
+ "hash": "80b6b6bf04a3a234",
+ "role": "Host type for one-shot, per-install repairs of archived sessions (moved off RRCollector); holds five injected dependencies and runs every repair staggered from RRCollector.runDeferredSessionMigrationsIfNeeded.",
+ "types": [
+  "SessionDataMigrations: class (@MainActor final) — owner of the six one-shot archive migrations, defined across this file and six extension files"
+ ],
+ "state": [
+  "mem:SessionDataMigrations.archive / healthKit / settingsManager / baselineTracker / reanalysisService (injected lets; instance built per call in RRCollector+Lifecycle.swift:160 and discarded)"
+ ],
+ "toplevel": "Class doc: each migration self-terminates via its own UserDefaults flag; the order matters only in that the TRIMP repair runs after the training recalibration and its training context is the one kept (neither moves the recovery score); a cancelled launch stops the chain.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "docs/FLOWCHART.md §13 says an archived session is frozen except for explicit user actions and additive fill-in merges, but this launch-time chain automatically overwrites recoveryScore/scoreBreakdown/frozenReadiness of historic nights (InsufficientData, NapRepair, TimeInBed via recomputeScoreOnly) and their training snapshots and frozen readiness (TrainingRecalibration, TrimpRepair); the §13.1 table lists only InsufficientData among them.",
+   "evidence": [
+    "docs/FLOWCHART.md:773-777",
+    "docs/FLOWCHART.md:786-788",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift:89-110",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:98",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift:46"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)",
+   "hash": "fc2ee700df23d5be",
+   "does": "Memberwise initializer storing archive, healthKit, settingsManager, baselineTracker and reanalysisService.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionDataMigrations.retrieveOffMain(_:caller:)",
+   "hash": "d1f544390338b524",
+   "does": "Reads one archived session in full (retrieveOrLog, failure logged → nil) on a detached utility task, for the migrations that walk the archive a session at a time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func SessionDataMigrations.loadArchivedSessions()",
+   "hash": "0c2e23bcb684892a",
+   "does": "Loads every archive index entry's full session (retrieveOrLog, failures logged and dropped) in a detached utility-priority task and returns them in index order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "85c67e62d7a10529",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func SessionDataMigrations.runAllIfNeeded()",
+   "hash": "9ea8c6502de7eeb1",
+   "does": "Runs the six one-shot migrations in migrationSchedule's order, each after its pause (1.5 s, 1 s, then 0.5 s): insufficient-data, training recalibration, TRIMP repair, workout sleep cleanup, nap repair, time-in-bed repair. A cancellation (which sleepQuietly swallows) stops the chain before the next migration; each is flag-gated, so the rest run on a later launch.",
+   "entry": "Awaited by RRCollector.runDeferredSessionMigrationsIfNeeded (RRCollector+Lifecycle.swift:159-166), which AppLaunchTasks.swift:436-440 runs as a background housekeeping job on the launch coordinator. Tests (CollectorMigrationParityTests) call individual migrations, never runAllIfNeeded.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::var SessionDataMigrations.migrationSchedule",
+    "closure:migrationSchedule step.run"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scheduled migration",
+     "effect": "pause, then run"
+    },
+    {
+     "at": "+4",
+     "cond": "Task.isCancelled after the pause",
+     "effect": "returns; the rest wait for a later launch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::var SessionDataMigrations.migrationSchedule": "b2554544eafec815",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "var SessionDataMigrations.migrationSchedule",
+   "hash": "584f18f88c0aa2ea",
+   "does": "The ordered list of (pause before, migration) pairs runAllIfNeeded walks: insufficient-data 1.5 s, training recalibration 1 s, TRIMP repair, workout sleep cleanup, nap repair, time-in-bed repair 0.5 s each.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "97bb2728b9683adb",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "158673fbc05129bf",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "41dc07c8f436d360",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "e3394a5e0e041ff2",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "543478719aaceb28",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f"
+   }
+  }
+ ],
+ "deps": {}
+}

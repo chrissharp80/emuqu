@@ -1,0 +1,780 @@
+{
+ "file": "Emuqu/Sources/Services/DemoSessionSeeder.swift",
+ "hash": "4491b9dad97db79e",
+ "role": "Deterministic generator of 21 synthetic overnight sessions (RR beats from a hypnogram + beat model) run through the app's own sleep estimator, analysis and scoring, archived with a fixed Demo tag; plus removal of sample nights. Invoked only by SampleDataLibrary on user request.",
+ "types": [
+  "DemoSessionSeeder: enum — seeding/removal namespace",
+  "DemoSessionSeeder.NightPipeline: struct — injected analyze/estimateSleep closures",
+  "DemoSessionSeeder.NightPlan: struct — per-night parameters (index, start, end, recovery, breaths/min, tags)",
+  "DemoSessionSeeder.HardNight: struct (private) — scripted bad night",
+  "DemoSessionSeeder.Hypnogram: struct — stage sequence as end offsets",
+  "DemoSessionSeeder.StageTarget: struct (private) — per-stage beat modifiers",
+  "DemoSessionSeeder.BeatModel: struct (private) — eased beat generator state",
+  "DemoSessionSeeder.SampleRandom: struct — seeded SplitMix64 RNG"
+ ],
+ "state": [
+  "demoTagId = 5A3D0000-DE30-4000-8000-000000000001 (static, fixed tag id)",
+  "defaultNightCount = 21",
+  "occupancyPadding = 3 h",
+  "parallelNights = 3",
+  "hardNights: nights 4 (alcohol, 0.14), 11 (lateMeal, 0.22), 19 (travel, 0.17) before newest"
+ ],
+ "toplevel": "NightPipeline.estimateSleep defaults to a closure calling HRSleepEstimator.estimateSleepFromHR (DemoSessionSeeder.swift:93-95). Static lets as listed.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DemoSessionSeeder.demoTagName",
+   "hash": "d92e6bb1698587e5",
+   "does": "Localized tag name \"Demo\" from LanguageManager.appBundle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DemoSessionSeeder.demoTag",
+   "hash": "b73527601cfcfb8a",
+   "does": "Builds ReadingTag(id: demoTagId, name: demoTagName, colorHex \"#8E8E93\").",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTagName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::let DemoSessionSeeder.demoTagId": "c0bfe4f489aa73c6",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTagName": "9689dd10aba3a8f5"
+   }
+  },
+  {
+   "key": "let DemoSessionSeeder.demoTagId",
+   "hash": "40e0c28dda62b9d3",
+   "does": "Lazy static initializer parsing the fixed demo tag UUID literal; traps with preconditionFailure if it is not a valid UUID.",
+   "entry": "Swift lazy static initialization on first access of demoTagId.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "UUID(uuidString:) returns nil",
+     "effect": "preconditionFailure (crash); else return id"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.isSampleData(_:)",
+   "hash": "8bd5129a53f53aa6",
+   "does": "True when any tag has the demo tag id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag": "e9238479869c5f91"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.sampleSessionIds(in:seededIds:)",
+   "hash": "2d0daaa35955812b",
+   "does": "Session ids of index entries that carry the demo tag or are in the seeded-id ledger set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)": "a96979ebf55eefa2"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)",
+   "hash": "ae2471b87f6ca03e",
+   "does": "Filters plans to unoccupied nights, builds them concurrently, attaches vitals, scores each oldest-first through the injected finalize closure, re-checks every finished night against the current archive entries (dropping any that a real session archived or synced meanwhile now overlaps), then writes the rest off-main via writeAll; returns written ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.unoccupied(_:in:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.buildAll(_:pipeline:progress:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.withVitals(_:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.writeAll(_:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "closure:finalize = SampleDataLibrary.finalize (SampleDataLibrary.swift:110: quality classify, computeRecoveryScore, BaselineTracker.update)",
+    "closure:progress set by SampleDataLibrary.load caller (SampleDataViews)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive(_:skipSameNightMerge:true)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each night with vitals",
+     "effect": "await finalize and collect"
+    },
+    {
+     "at": "+13",
+     "cond": "finished night now occupied",
+     "effect": "dropped before writing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.buildAll(_:pipeline:progress:)": "e51c591cd89c1859",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)": "c7f9fbe39f4b1128",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.unoccupied(_:in:)": "d50efe78682be887",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.withVitals(_:)": "4429fd038d7d642c",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.writeAll(_:to:)": "1dc480f268dcf127",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.buildAll(_:pipeline:progress:)",
+   "hash": "09fef5eede188086",
+   "does": "Runs buildNight for plans in a task group with at most 3 in flight, reports progress per completed night, and returns nights sorted by startDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.startNext(from:in:pipeline:count:)",
+    "closure:progress (SampleDataLibrary caller)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for await each finished night",
+     "effect": "append, report progress, start one more pending plan"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.startNext(from:in:pipeline:count:)": "66d6da0dfa037ee7"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.startNext(from:in:pipeline:count:)",
+   "hash": "b6502bf1394b0c20",
+   "does": "Pops up to count plans from pending and adds a buildNight child task for each.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.buildNight(_:pipeline:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loop count times",
+     "effect": "attempt to start one"
+    },
+    {
+     "at": "+4",
+     "cond": "pending empty",
+     "effect": "return early"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.buildNight(_:pipeline:)": "9137ed0f19a86881",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.unoccupied(_:in:)",
+   "hash": "f307032dacc39f05",
+   "does": "Keeps plans for which isOccupied(start, end) is false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)": "c7f9fbe39f4b1128"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.isOccupied(_:_:in:)",
+   "hash": "f0eee96617e1ccb3",
+   "does": "True when [start-3h, end+3h] (occupancyPadding) overlaps any archived entry's [date, endDate ?? date].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "entry endDate nil (??)",
+     "effect": "uses entry date as its end"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.buildNight(_:pipeline:)",
+   "hash": "f5c1ed6c28a9d024",
+   "does": "Creates an overnight HRVSession with new UUID, synthetic RR points and the demo + plan tags, attaches estimated sleep and the analysis result from the pipeline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.syntheticNight(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.attachSleep(_:to:)",
+    "closure:NightPipeline.estimateSleep (default HRSleepEstimator.estimateSleepFromHR, Emuqu/Sources/Collection/HRSleepEstimator.swift:39)",
+    "closure:NightPipeline.analyze set by SampleDataLibrary.pipeline (SampleDataLibrary.swift:90: fresh HRVAnalysisPipeline+WindowSelector per night, analyzeWithAutoWindow, full-series fallback) or by tests"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.attachSleep(_:to:)": "9380a6dba12dba55",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.syntheticNight(_:)": "b32177357e74cfb7",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag": "e9238479869c5f91"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.attachSleep(_:to:)",
+   "hash": "c47af40840734728",
+   "does": "Sets sleepSnapshot and sleepStartMs/sleepEndMs offsets from the session start (nil when absent).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.withVitals(_:)",
+   "hash": "12a8fb6898884d6e",
+   "does": "Assigns each night a RecoveryVitals with the analysis respiration rate, the mean of up to 7 previous nights' respiration as baseline, and meanHR of the analysis window as resting HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.weekMean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "respiration rate present",
+     "effect": "append to rolling list; nil -> not added"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.weekMean(_:)": "1122b43950c84c08"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.weekMean(_:)",
+   "hash": "cf106cf01138da85",
+   "does": "Mean of the last seven values, nil when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "week empty",
+     "effect": "nil; else mean"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.writeAll(_:to:)",
+   "hash": "b113dac56ba8d4cb",
+   "does": "Archives each session with skipSameNightMerge true; on the first error removes the ones already written and rethrows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.remove(_:from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive(_:skipSameNightMerge:true)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each session",
+     "effect": "archive and record id"
+    },
+    {
+     "at": "+7",
+     "cond": "archive throws",
+     "effect": "remove already-written ids (tombstoned via delete) and rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.remove(_:from:)": "318b67317a20ae0a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.remove(_:from:)",
+   "hash": "ad2fff85a6173a2d",
+   "does": "For each id deletes it from the archive (tombstoned) and discards it from Trash; returns ids removed, logging failures.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.delete",
+    "archive:SessionArchive.discardTrashed"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "delete throws",
+     "effect": "warning logged, id omitted from result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var DemoSessionSeeder.NightPlan.duration",
+   "hash": "3d38844e64bedda0",
+   "does": "Night length end - start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DemoSessionSeeder.NightPlan.seed",
+   "hash": "342bdfd328b07039",
+   "does": "Per-night RNG seed (index+1) * golden-ratio constant (wrapping).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.nightPlans(count:now:calendar:)",
+   "hash": "29b69762298d67ab",
+   "does": "Plans count consecutive nights ending this morning; if the newest plan's wake is after now, rebuilds them ending yesterday morning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.nightPlans(count:newestDaysBack:calendar:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newest plan exists and its end > now",
+     "effect": "rebuild with newestDaysBack 1; else return plans"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.nightPlans(count:newestDaysBack:calendar:now:)": "4c11a7fe8df8e7a8"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.nightPlans(count:newestDaysBack:calendar:now:)",
+   "hash": "6f751ec3d0442892",
+   "does": "For index 0..<count computes the morning daysBack = count-1-index+newestDaysBack from today and builds its plan.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "Calendar.date(byAdding:) nil",
+     "effect": "night skipped (compactMap)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.plan(index:count:morning:calendar:)",
+   "hash": "1ce25074b422c7da",
+   "does": "Builds one NightPlan: hard-night recovery or usual recovery trend, hours 6.5+1.4*recovery+noise(+0.4 weekend), wake 6.4-7.1h after midnight (+0.8 weekend), breaths/min 15.3-1.8*recovery+noise, hard-night tag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.usualRecovery(index:count:weekend:rng:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hard night matches (??)",
+     "effect": "use its scripted recovery; else usualRecovery"
+    },
+    {
+     "at": "+6",
+     "cond": "weekend night ?:",
+     "effect": "+0.4 h sleep; else 0"
+    },
+    {
+     "at": "+7",
+     "cond": "weekend night ?:",
+     "effect": "+0.8 h later wake; else 0"
+    },
+    {
+     "at": "+10",
+     "cond": "hard night (map ??)",
+     "effect": "tags [hard.tag]; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)": "0583f55097fb6cd8",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.usualRecovery(index:count:weekend:rng:)": "2dd14fe99a8f1dab",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.SampleRandom(seed:)": "940ef4620152dc30",
+    "Emuqu/Sources/Utilities/Extensions.swift::func Set<ReadingTag>.tag(named:)": "930ec74b181a58e3"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.usualRecovery(index:count:weekend:rng:)",
+   "hash": "ea3b10df40156502",
+   "does": "Recovery trend 0.42..0.68 across the nights plus +-0.07 scatter, minus 0.12 on weekends, clamped to [0.08, 0.92].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "weekend ?:",
+     "effect": "subtract 0.12; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)": "0583f55097fb6cd8"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.syntheticNight(_:)",
+   "hash": "9aa4e58a100a24d7",
+   "does": "Generates RR points for the plan by stepping a BeatModel through the hypnogram until elapsed reaches the night length.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.hypnogram(for:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.BeatModel(plan:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.SampleRandom(seed:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.Hypnogram.stage(at:cursor:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.BeatModel.nextInterval(stage:progress:rng:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "elapsedMs < totalMs",
+     "effect": "emit next beat and advance; loop ends at night length"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.BeatModel.nextInterval(stage:progress:rng:)": "1acb4489d3f75e27",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.Hypnogram.stage(at:cursor:)": "6b1e7039714725b5",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.hypnogram(for:)": "76b37f4350ba5093",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.BeatModel(plan:)": "3d5e80503e65733a",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.SampleRandom(seed:)": "940ef4620152dc30",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.hypnogram(for:)",
+   "hash": "f2e5a85179be268c",
+   "does": "Builds stage segments: an initial awake spell then sleep cycles until total minutes reach duration-10 min.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.SampleRandom(seed:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.sleepCycle(_:recovery:rng:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.Hypnogram(segments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "accumulated minutes < sleepMinutes",
+     "effect": "append another cycle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)": "0583f55097fb6cd8",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.sleepCycle(_:recovery:rng:)": "2474efb9f6ea114f",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.Hypnogram(segments:)": "d01b1d8c8f1e7576",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::init DemoSessionSeeder.SampleRandom(seed:)": "940ef4620152dc30"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.sleepCycle(_:recovery:rng:)",
+   "hash": "82f587910ebcadbb",
+   "does": "One ~90-min cycle: core, deep (shrinking with cycle, scaled by recovery), core, REM (growing), and an optional brief awakening with probability 0.15+0.5*(1-recovery).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "random < awakening probability",
+     "effect": "append awake 2-7 min"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)": "0583f55097fb6cd8"
+   }
+  },
+  {
+   "key": "init DemoSessionSeeder.Hypnogram(segments:)",
+   "hash": "e2737fdaa06a4bd4",
+   "does": "Stores stage list and cumulative segment end offsets in ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.Hypnogram.stage(at:cursor:)",
+   "hash": "a86e919d6ee093c3",
+   "does": "Advances cursor past segments ending at or before ms and returns that stage, or .awake past the last segment.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cursor in range and current segment ended",
+     "effect": "advance cursor"
+    },
+    {
+     "at": "+4",
+     "cond": "cursor < stages.count ?:",
+     "effect": "stage at cursor; else .awake"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.StageTarget.of(_:)",
+   "hash": "59c2fe9feb31ddb4",
+   "does": "Per-stage beat modifiers (interval offset, breathing swing scale, irregularity).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".deep",
+     "effect": "+45 ms, swing 1.35, irregularity 5"
+    },
+    {
+     "at": "+3",
+     "cond": ".rem",
+     "effect": "-40 ms, 0.6, 18"
+    },
+    {
+     "at": "+4",
+     "cond": ".awake",
+     "effect": "-170 ms, 0.45, 24"
+    },
+    {
+     "at": "+5",
+     "cond": ".core / .unspecified",
+     "effect": "0, 0.95, 12"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.Hypnogram.stage(at:cursor:)": "6b1e7039714725b5"
+   }
+  },
+  {
+   "key": "init DemoSessionSeeder.BeatModel(plan:)",
+   "hash": "e450096d6bcf4342",
+   "does": "Stores the plan; other state starts at awake targets.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.BeatModel.nextInterval(stage:progress:rng:)",
+   "hash": "e84c8bd592e00b33",
+   "does": "Eases toward the stage target, computes interval = base(950+150*recovery+20*sin(pi*progress)) + offset + RSA + slow wave + gaussian irregularity, clamped to 450-1500 ms, and advances breathing/slow phases.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.BeatModel.ease(toward:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.StageTarget.of(_:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.gaussian()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.BeatModel.ease(toward:)": "779a358d6d20164a",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.Hypnogram.stage(at:cursor:)": "6b1e7039714725b5",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.gaussian()": "99be07e7a83257ea",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.StageTarget.of(_:)": "6eb617565be41814",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.BeatModel.ease(toward:)",
+   "hash": "a9e3832f535e4878",
+   "does": "Moves offset, swing and irregularity 1/40 of the way to the target.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init DemoSessionSeeder.SampleRandom(seed:)",
+   "hash": "fed567d3fba6e0e9",
+   "does": "Seeds SplitMix64 state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.SampleRandom.next()",
+   "hash": "6d6e773e74581b08",
+   "does": "SplitMix64 step returning next UInt64.",
+   "entry": "RandomNumberGenerator protocol requirement.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DemoSessionSeeder.SampleRandom.uniform(_:_:)",
+   "hash": "dd15b5f640637685",
+   "does": "Uniform double in [low, high) from 53 random bits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.next()": "f3aba6b1f0b39482"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.SampleRandom.gaussian()",
+   "hash": "d5c395a0b2769fc2",
+   "does": "Standard normal sample via Box-Muller (guarding log(0)).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.SampleRandom.uniform(_:_:)": "0583f55097fb6cd8"
+   }
+  }
+ ],
+ "deps": {}
+}

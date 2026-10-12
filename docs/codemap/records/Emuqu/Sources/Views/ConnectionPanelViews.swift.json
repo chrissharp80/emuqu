@@ -1,0 +1,874 @@
+{
+ "file": "Emuqu/Sources/Views/ConnectionPanelViews.swift",
+ "hash": "9edd356eaa5f7a5e",
+ "role": "Record-screen Polar strap connection panel: routes on PolarManager.connectionState to disconnected (known devices + scan, Bluetooth-denied banner), scanning (discovered list), connecting (cancel) and connected (device info + disconnect) sub-views; also hosts the shared ConnectionStatusBadge text/color mapping.",
+ "types": [
+  "ConnectionPanel: struct — outer panel (used by RecordView+Sections.swift:97)",
+  "ConnectionPanelHeader: struct (private) — device name + status badge",
+  "ConnectionStatusBadge: enum — (color,text) for connection state + feed health; also used by SensorManagementSheet and WorkoutPreflightView",
+  "ConnectionPanelDisconnected: struct (private) — known devices, scan, Bluetooth-denied banner",
+  "ConnectionPanelScanning: struct (private) — discovered devices + stop",
+  "ConnectionPanelConnected: struct (private) — device id, on-device recording badge, DeviceInfoPanelObserving, disconnect",
+  "KnownDeviceRow: struct (private) — swipe-to-delete known device row"
+ ],
+ "state": [
+  "@State ConnectionPanelDisconnected.btAuthorization (CBCentralManager.authorization)",
+  "@State KnownDeviceRow.offset / revealed",
+  "KnownDeviceRow.deleteWidth = 70"
+ ],
+ "toplevel": "ConnectionPanel.collector is stored but never read in this file (comment 12-13 says it is a dependency carrier). btAuthorization initialised from CBCentralManager.authorization.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "ConnectionPanel stores `collector: RRCollector` but no code in the panel reads it; callers must pass it for nothing.",
+   "evidence": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift:14",
+    "Emuqu/Sources/Views/RecordView+Sections.swift:97"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ConnectionPanel.body",
+   "hash": "36a26fa0b4e0634d",
+   "does": "Panel body: header + state-routed section in a padded rounded card with an accessibility container label.",
+   "entry": "SwiftUI view-body evaluation (ConnectionPanel in RecordView+Sections.swift:97).",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingSection",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingSection": "68cbb45f675d1164"
+   }
+  },
+  {
+   "key": "var ConnectionPanel.connectingSection",
+   "hash": "e697e251c46db4da",
+   "does": "Switches on polarManager.connectionState to the disconnected, scanning, connecting or connected sub-view.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingPanel",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "state .disconnected",
+     "effect": "ConnectionPanelDisconnected (known devices / scan)"
+    },
+    {
+     "at": "+5",
+     "cond": "state .scanning",
+     "effect": "ConnectionPanelScanning"
+    },
+    {
+     "at": "+7",
+     "cond": "state .connecting",
+     "effect": "connectingPanel (spinner + Cancel)"
+    },
+    {
+     "at": "+9",
+     "cond": "state .connected",
+     "effect": "ConnectionPanelConnected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingPanel": "1fc0d872dd136919"
+   }
+  },
+  {
+   "key": "var ConnectionPanel.connectingPanel",
+   "hash": "ed5b9bc5a6b33387",
+   "does": "Spinner with 'Connecting...' and the cancel button.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.cancelConnectionButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.cancelConnectionButton": "b4c9d4a51050ff89"
+   }
+  },
+  {
+   "key": "var ConnectionPanel.cancelConnectionButton",
+   "hash": "c16a2a3a3e951e98",
+   "does": "Bordered Cancel button that calls polarManager.cancelConnection().",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar connection (cancel)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ConnectionPanelHeader.body",
+   "hash": "3616ad05bd4b16b3",
+   "does": "Header row: connected device type display name (or 'Polar device') and the status badge.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelHeader.connectionStatusBadge",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectedDeviceType is nil",
+     "effect": "?? shows localized 'Polar device'; otherwise its displayName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelHeader.connectionStatusBadge": "763d890f0b1a76e3"
+   }
+  },
+  {
+   "key": "var ConnectionPanelHeader.connectionStatusBadge",
+   "hash": "88543cf466e5b44b",
+   "does": "Capsule badge with colored dot and text from ConnectionStatusBadge.content(state, feedStatus, currentHeartRate).",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.feedStatus",
+    "mem:PolarManager.currentHeartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ConnectionStatusBadge.content(state:feed:heartRate:)",
+   "hash": "b116ca24ede5a436",
+   "does": "Maps connection state to (color,text): gray Disconnected, yellow Scanning, orange Connecting, or for connected defers to linked(feed:heartRate:).",
+   "entry": "Also called by SensorManagementSheet.swift:281, WorkoutPreflightView.swift:446,476 and EmuquTests/StrapConnectionBadgeTests.swift.",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.linked(feed:heartRate:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "state .disconnected",
+     "effect": "(.gray,'Disconnected')"
+    },
+    {
+     "at": "+5",
+     "cond": "state .scanning",
+     "effect": "(.yellow,'Scanning')"
+    },
+    {
+     "at": "+6",
+     "cond": "state .connecting",
+     "effect": "(.orange,'Connecting')"
+    },
+    {
+     "at": "+7",
+     "cond": "state .connected",
+     "effect": "linked(feed:heartRate:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.linked(feed:heartRate:)": "6be09970eb44e78a"
+   }
+  },
+  {
+   "key": "func ConnectionStatusBadge.linked(feed:heartRate:)",
+   "hash": "7d9d5003b043f1bd",
+   "does": "For a connected strap: live feed → green '<hr> bpm' (or 'Connected' with no HR); stalled → orange 'No heart rate from strap'; settingUp/waitingForStrap → orange 'Setting up'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "feed .live",
+     "effect": "green; see 125"
+    },
+    {
+     "at": "+3",
+     "cond": "heartRate is nil (guard)",
+     "effect": "green 'Connected'; else green '<hr> bpm'"
+    },
+    {
+     "at": "+5",
+     "cond": "feed .stalled",
+     "effect": "orange 'No heart rate from strap'"
+    },
+    {
+     "at": "+7",
+     "cond": "feed .settingUp or .waitingForStrap",
+     "effect": "orange 'Setting up'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.filteredKnownDevices",
+   "hash": "c1d634baa7cc201c",
+   "does": "Known devices, H10s first, for every session type except quick (stored order). The panel is only shown for overnight, nap and quick.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedSessionType == .quick",
+     "effect": "returns devices unsorted; otherwise sorted with H10 first"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.bluetoothAccessDenied",
+   "hash": "659dfd837c07eb91",
+   "does": "True when the stored Bluetooth authorization is .denied or .restricted.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.body",
+   "hash": "b88b0e552fa58340",
+   "does": "Disconnected body: known-device list (or denied banner); re-reads CBCentralManager.authorization onAppear.",
+   "entry": "SwiftUI view-body evaluation; .onAppear refreshes btAuthorization",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.knownDeviceList",
+    "ext:CBCentralManager.authorization"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.knownDeviceList": "31c05ed23a805cb8"
+   }
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.knownDeviceList",
+   "hash": "45e69aec0bd5e590",
+   "does": "Shows the Bluetooth-denied banner when access is denied/restricted, else the device discovery list.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothAccessDenied",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothDeniedBanner",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.deviceDiscoveryList"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "bluetoothAccessDenied",
+     "effect": "banner with Open Settings; otherwise known devices + scan"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothAccessDenied": "34488ed17dbd4019",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothDeniedBanner": "e51399df2d2f889a",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.deviceDiscoveryList": "a5f4a0d79bcd17dd"
+   }
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.deviceDiscoveryList",
+   "hash": "cef04e2d707fc7d6",
+   "does": "One KnownDeviceRow per filtered known device (tap → connect, remove → removeKnownDevice), then the scan button and a sensor-contact hint.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.filteredKnownDevices",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.scanButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:onConnect/onRemove passed to KnownDeviceRow → PolarManager.connect / removeKnownDevice"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar connect",
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (app-group suite, via StrapPairingStore.save)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Known-device list with connect/remove is implemented again in SensorManagementSheet (knownDevicesList/knownDeviceRow calling removeKnownDevice), with different ordering (no H10-first sort) and no Bluetooth-denied banner.",
+     "evidence": [
+      "Emuqu/Sources/Views/ConnectionPanelViews.swift:183",
+      "Emuqu/Sources/Views/ConnectionPanelViews.swift:187",
+      "Emuqu/Sources/Views/SensorManagementSheet.swift:148",
+      "Emuqu/Sources/Views/SensorManagementSheet.swift:150",
+      "Emuqu/Sources/Views/SensorManagementSheet.swift:167"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)": "ecd617dd9604474e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.filteredKnownDevices": "831c7a75c9c07cde",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.scanButton": "b57ce03f65e31a3a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.scanButton",
+   "hash": "054c1b60a5bba160",
+   "does": "Bordered 'Scan for Devices' button calling polarManager.startScanning().",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar scan"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()": "2f18fc79106fa230",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.bluetoothDeniedBanner",
+   "hash": "68baa667ded9c4cb",
+   "does": "Warning banner explaining Bluetooth is off for Emuqu with an Open Settings button.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.openSettingsButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.openSettingsButton": "34748295aeb8f630",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ConnectionPanelDisconnected.openSettingsButton",
+   "hash": "10dc5a9bb7696573",
+   "does": "Button that opens the app's Settings page via UIApplication.openSettingsURLString.",
+   "entry": "Button tap",
+   "calls": [
+    "ext:UIApplication.open",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "URL(string: openSettingsURLString) is non-nil",
+     "effect": "opens Settings; nil → tap does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ConnectionPanelScanning.body",
+   "hash": "8030ae116310db57",
+   "does": "Scanning body: spinner + 'Scanning for Polar devices...', discovered list, and Stop Scanning button (polarManager.stopScanning()).",
+   "entry": "SwiftUI view-body evaluation; Stop button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceList",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.stopScanning()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar scan stop"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.stopScanning()": "bf46b0390e7f785f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceList": "48281224f7e7d7f2"
+   }
+  },
+  {
+   "key": "var ConnectionPanelScanning.discoveredDeviceList",
+   "hash": "9b9cee9dcc701211",
+   "does": "Shows a 'make sure your sensor is nearby' hint while nothing is discovered, else the discovered rows.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceRows",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.discoveredDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "discoveredDevices is empty",
+     "effect": "hint text; else rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceRows": "db255f7735373b71",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ConnectionPanelScanning.discoveredDeviceRows",
+   "hash": "5dc428e0e174c39a",
+   "does": "Vertical list of discoveredDeviceRow for each discovered device.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceRow(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.discoveredDevices"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Discovered-device rows (tap to connect) duplicate SensorManagementSheet.discoveredDevicesList.",
+     "evidence": [
+      "Emuqu/Sources/Views/ConnectionPanelViews.swift:273",
+      "Emuqu/Sources/Views/ConnectionPanelViews.swift:281",
+      "Emuqu/Sources/Views/SensorManagementSheet.swift:124",
+      "Emuqu/Sources/Views/SensorManagementSheet.swift:126"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceRow(_:)": "bf1b86894779ffb2"
+   }
+  },
+  {
+   "key": "func ConnectionPanelScanning.discoveredDeviceRow(_:)",
+   "hash": "b141daafb03aa5f8",
+   "does": "Plain button for a discovered device that calls polarManager.connect(deviceId:).",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar connect"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceLabel(_:)": "098d04f6c91c00bc"
+   }
+  },
+  {
+   "key": "func ConnectionPanelScanning.discoveredDeviceLabel(_:)",
+   "hash": "265937617c0343fd",
+   "does": "Row label: heart icon, device name, RSSI in dBm.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ConnectionPanelConnected.body",
+   "hash": "82462b3fd0286437",
+   "does": "Connected body: device id + on-device recording badge, DeviceInfoPanelObserving, disconnect button.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingSection",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.disconnectSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.disconnectSection": "ca603296e3f2a327",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingSection": "909e43297e919627"
+   }
+  },
+  {
+   "key": "var ConnectionPanelConnected.recordingSection",
+   "hash": "e10f7905be8efaaa",
+   "does": "Row showing polarManager.connectedDeviceId (or 'Unknown') and the recording badge.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingOnDeviceBadge",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectedDeviceId is nil",
+     "effect": "?? shows 'Unknown'; otherwise the raw device id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingOnDeviceBadge": "3203c91c28d6f38e"
+   }
+  },
+  {
+   "key": "var ConnectionPanelConnected.recordingOnDeviceBadge",
+   "hash": "c43984e077e50c0f",
+   "does": "Red 'Recording' badge shown only while the strap records on-device.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.isRecordingOnDevice"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRecordingOnDevice",
+     "effect": "shows badge; else empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ConnectionPanelConnected.disconnectSection",
+   "hash": "f86e7c86064b4465",
+   "does": "Bordered Disconnect button calling polarManager.disconnect(); disabled unless recordingState == .idle.",
+   "entry": "SwiftUI view-body evaluation; Button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.recordingState"
+   ],
+   "writes": [
+    "ble:Polar disconnect"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var KnownDeviceRow.body",
+   "hash": "770de6acfecd7b2f",
+   "does": "Known device row: red delete backdrop under the swipeable row, clipped, with a context-menu Remove.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deleteBackdrop",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRow",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.removeDeviceButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deleteBackdrop": "80dd34ac3c80bb03",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRow": "340f300b1ff27c9f",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.removeDeviceButton": "89b719da0971184d"
+   }
+  },
+  {
+   "key": "var KnownDeviceRow.deleteBackdrop",
+   "hash": "6535163dd4133c0d",
+   "does": "Red trash button behind the row that animates onRemove().",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift:187)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (app-group suite, via onRemove)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.body": "061554c4b246e919"
+   }
+  },
+  {
+   "key": "var KnownDeviceRow.deviceRow",
+   "hash": "861cbc29bdf997e4",
+   "does": "Row content (device icon, name, id) offset by the swipe, tap → handleTap, drag → swipeToDelete.",
+   "entry": "SwiftUI view-body evaluation; tap/drag gestures",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRowText",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.handleTap()",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "8d5598d32ee06a05",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.handleTap()": "9406e44d7f7a7140",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRowText": "1e8d4488e5ce9157",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete": "180e2130f5297c1f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var KnownDeviceRow.deviceRowText",
+   "hash": "9295b95fde861a90",
+   "does": "Device name and id text stack.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func KnownDeviceRow.handleTap()",
+   "hash": "fe1936928a8bee45",
+   "does": "Tap: closes the revealed delete action if open, otherwise calls onConnect.",
+   "entry": "onTapGesture",
+   "calls": [
+    "closure:onConnect → polarManager.connect(deviceId:) set at ConnectionPanelViews.swift:186"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "revealed",
+     "effect": "animates offset to 0 and revealed=false; else onConnect()"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var KnownDeviceRow.swipeToDelete",
+   "hash": "63be776ffdf3a735",
+   "does": "DragGesture(minimumDistance 15) forwarding translation width to dragChanged/dragEnded.",
+   "entry": "Gesture",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragChanged(_:)",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragEnded(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragChanged(_:)": "a9f2c94617a56543",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragEnded(_:)": "734fb2c1cdc3575a"
+   }
+  },
+  {
+   "key": "func KnownDeviceRow.dragChanged(_:)",
+   "hash": "39189f72bfe00522",
+   "does": "Tracks drag: when open, offset = clamp(-70 + translation, -70...0); when closed, only left drags move offset to max(-70, translation).",
+   "entry": "DragGesture.onChanged",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "revealed",
+     "effect": "offset = min(0,max(-70,-70+translation)); else see 451"
+    },
+    {
+     "at": "+7",
+     "cond": "translation < 0 (closed row)",
+     "effect": "offset = max(-70,translation); right drags ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func KnownDeviceRow.dragEnded(_:)",
+   "hash": "741cecc39c1f3956",
+   "does": "On drag end, animates settleFromOpen or settleFromClosed.",
+   "entry": "DragGesture.onEnded",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromOpen(_:)",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromClosed()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "revealed",
+     "effect": "settleFromOpen(translation); else settleFromClosed()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromClosed()": "a744ab04a02b00d8",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromOpen(_:)": "ef653c20b35cd6db"
+   }
+  },
+  {
+   "key": "func KnownDeviceRow.settleFromOpen(_:)",
+   "hash": "9508dede8861aba0",
+   "does": "Open row: closes when dragged right > 30 pt, else snaps back to -70.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "translation > 30",
+     "effect": "offset 0, revealed=false; else offset -70"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func KnownDeviceRow.settleFromClosed()",
+   "hash": "cfd0a5dbf0145d6b",
+   "does": "Closed row: snaps open (offset -70, revealed) when past -35, else back to 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "offset < -35",
+     "effect": "open; else close"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var KnownDeviceRow.removeDeviceButton",
+   "hash": "63c9226c4fb670db",
+   "does": "Destructive context-menu 'Remove Device' calling onRemove.",
+   "entry": "Context menu tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift:187)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (app-group suite, via onRemove)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

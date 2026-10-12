@@ -1,0 +1,277 @@
+{
+ "file": "EmuquTests/RouteLibraryGeometryTests.swift",
+ "hash": "9ff59c755e0aa807",
+ "role": "Tests RouteLibrary route-matching geometry: totalDistanceMeters, trackPrefix, meanNearestDistance and nearestDistance, using straight eastward tracks at 51.5N.",
+ "types": [
+  "RouteLibraryGeometryTests: class (@MainActor) — XCTestCase for RouteLibrary geometry helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+   "hash": "1974a9fa925a3c90",
+   "does": "Builds `points` CLLocations at lat 51.5 spaced spacingDegrees (default 0.001°, ~69 m) in longitude from 0.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testTotalDistanceSumsConsecutiveLegs()",
+   "hash": "116af25b6b7d94b1",
+   "does": "Asserts totalDistanceMeters of a 3-point track equals the sum of the two CLLocation leg distances.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testSinglePointHasNoDistance()",
+   "hash": "0227b11abde48512",
+   "does": "Asserts a single-point track has distance 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testEmptyTrackHasNoDistance()",
+   "hash": "d9ff0c7c95383fad",
+   "does": "Asserts an empty track has distance 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testPrefixStopsOnceTheDistanceIsCovered()",
+   "hash": "ae9d5c7254d4cb6d",
+   "does": "Asserts trackPrefix(50-point track, 200 m) is shorter than the track and covers >= 200 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "838009e02228aff7",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testPrefixLongerThanTheTrackReturnsEverything()",
+   "hash": "3a27eaf836ea9793",
+   "does": "Asserts a prefix longer than the track returns all points.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "838009e02228aff7",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testPrefixOfZeroMetresReturnsTheTrackUnchanged()",
+   "hash": "ebfb40dbcd1ad6f3",
+   "does": "Asserts trackPrefix with 0 m returns the track unchanged (guard, not empty).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "838009e02228aff7",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testPrefixKeepsTheStartingPoint()",
+   "hash": "77d475c5a241e39f",
+   "does": "Asserts trackPrefix keeps the first point.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "838009e02228aff7",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testIdenticalTracksHaveZeroMeanDistance()",
+   "hash": "ca87b0197496c977",
+   "does": "Asserts meanNearestDistance of a track to itself is 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "71122270ab6b0170",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testParallelTrackMeasuresTheOffset()",
+   "hash": "c8a7ddaaec5b3483",
+   "does": "Asserts the mean nearest distance to a copy shifted 0.0005° north equals the per-point offset within 1 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "71122270ab6b0170",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testEmptyComparisonIsInfiniteNotZero()",
+   "hash": "6be6af5dd363b3cc",
+   "does": "Asserts meanNearestDistance with either side empty is +infinity.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testMeanIsSymmetricForIdenticalShapes()",
+   "hash": "dd32bb385f20a7e6",
+   "does": "Asserts meanNearestDistance from a 10-point 0.002° line to a 20-point 0.001° copy is < 5 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'Symmetric' and justified by a doc claim of density independence, but it checks only sparse→dense; the reverse direction (dense→sparse) gives ~35 m because every other dense point is half a sparse spacing from the nearest sparse point, so the metric is not symmetric and the test cannot detect that.",
+     "evidence": [
+      "EmuquTests/RouteLibraryGeometryTests.swift:89",
+      "EmuquTests/RouteLibraryGeometryTests.swift:95",
+      "Emuqu/Sources/Analysis/RouteLibrary.swift:194",
+      "Emuqu/Sources/Analysis/RouteLibrary.swift:199"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "71122270ab6b0170",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  },
+  {
+   "key": "func RouteLibraryGeometryTests.testNearestPicksTheClosestPoint()",
+   "hash": "a864ba69bac29ba1",
+   "does": "Asserts nearestDistance from a point between samples equals the brute-force minimum distance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "candidates is empty",
+     "effect": "?? .infinity fallback (not reached; 5 candidates)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "71122270ab6b0170",
+    "EmuquTests/RouteLibraryGeometryTests.swift::func RouteLibraryGeometryTests.line(points:spacingDegrees:)": "33c883bf896527ca"
+   }
+  }
+ ],
+ "deps": {}
+}

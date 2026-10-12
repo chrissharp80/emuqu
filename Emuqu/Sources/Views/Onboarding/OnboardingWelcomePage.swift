@@ -3,14 +3,15 @@ import SwiftUI
 /// Brand moment. Single CTA. Tagline copy is fixed.
 ///
 /// Hero illustration: waveform morphing into a circular
-/// score ring. Animated continuously while the page is visible — the
-/// waveform draws across, then collapses around its centerline into a
-/// ring, then dissolves back. ~5s loop. The morph is the brand moment;
-/// SF Symbols don't carry it, so we draw it in CoreGraphics-y SwiftUI.
+/// score ring. Animated continuously while the page is visible — one fixed
+/// 96-segment path eases from a two-cycle sine wave into the ring over
+/// 2.5 s, then back (autoreversing), so a full wave→ring→wave cycle is 5 s.
+/// There is no separate draw-across or dissolve phase. The morph is the
+/// brand moment; SF Symbols don't carry it, so we draw it in SwiftUI.
 struct OnboardingWelcomePage: View {
     let advance: () -> Void
     /// Drives the waveform↔ring morph. 0 = pure sine wave, 1 = pure ring.
-    /// `.repeatForever` ping-pongs between 0 and 1 over 5s.
+    /// `.repeatForever` ping-pongs between 0 and 1, 2.5 s each way.
     @State private var morph: Double = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 

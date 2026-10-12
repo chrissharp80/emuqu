@@ -336,6 +336,27 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
         }
     }
 
+    /// The percent-of-max bands are written out three times: `HRZone.classify`
+    /// (the zone label, spoken here and coloured live), `WorkoutZoneBreakdown`
+    /// (live time in zone) and `WorkoutGeometry.hrMaxZone` (zone thresholds).
+    /// From 50 % of max up all three must give the same zone for every heart
+    /// rate, so a band edge moved in one copy fails here. Under 50 % they
+    /// differ by design: no label and no binned time, while a threshold reads
+    /// zone 1 so it always has a zone to compare.
+    func testEveryCopyOfTheZoneBandsAgrees() {
+        let maxHR = 180
+        for hr in 1 ... 250 {
+            let label = HRZone.classify(hr: hr, userMaxHR: maxHR)?.rawValue
+            let binned = WorkoutZoneBreakdown.compute(
+                samples: [WorkoutSample(offsetSec: 0), WorkoutSample(offsetSec: 1, heartRate: hr)],
+                userMaxHR: maxHR
+            ).dominantZone
+            let threshold = WorkoutGeometry.hrMaxZone(hr: hr, maxHR: maxHR)
+            XCTAssertEqual(binned, label, "\(hr) bpm: the live breakdown and the zone label disagree")
+            XCTAssertEqual(threshold, label ?? 1, "\(hr) bpm: the threshold zone and the zone label disagree")
+        }
+    }
+
     /// No heart rate means no zone claim, rather than a zone computed from a
     /// missing number.
     func testNoHeartRateYieldsNoZoneLabel() {

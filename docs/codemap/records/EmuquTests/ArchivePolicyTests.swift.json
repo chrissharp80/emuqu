@@ -1,0 +1,650 @@
+{
+ "file": "EmuquTests/ArchivePolicyTests.swift",
+ "hash": "5617e1711d7c393f",
+ "role": "XCTest suite for the pure archive policies: SessionArchive.duplicatesToQuarantine (same-night dedupe keeper ranking, containment, safety window, links, merge mode) and SessionArchive/SessionMerger.mergeOutcome + apply (composite RR merges, analysis adoption by pre-merge beat count, metadata fills).",
+ "types": [
+  "ArchivePolicyTests: class — in-memory XCTestCase for dedupe and merge policy"
+ ],
+ "state": [
+  "mem:ArchivePolicyTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)"
+ ],
+ "toplevel": "schedule = SleepSchedule(22:00, 8h) stored property; class setUp pins NSTimeZone.default to UTC.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchivePolicyTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves the default zone and pins UTC.",
+   "entry": "XCTest: class setUp()",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:ArchivePolicyTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved zone.",
+   "entry": "XCTest: class tearDown()",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [
+    "mem:ArchivePolicyTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:ArchivePolicyTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a zone was saved",
+     "effect": "restores it; else no change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ArchivePolicyTests.farFuture",
+   "hash": "409a83543afb5b02",
+   "does": "Returns 25 June 2025 12:00 UTC, far after every fixture so the 24-hour dedupe safety window does not trip.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.date(day:hour:minute:)",
+   "hash": "7181cc387975e2e4",
+   "does": "Builds a June-2025 date for day/hour/minute via TestDate.from.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+   "hash": "615026e42b18f5c3",
+   "does": "Builds an overnight SessionArchiveEntry with the given id, start/end, recovery score, RMSSD and links (fixed hash/path).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+   "hash": "2f0e852d0da56a6e",
+   "does": "Calls SessionArchive.duplicatesToQuarantine with the entries, their linked-id set, the 22:00 schedule, now (default farFuture) and mergeMode (default .defaultGap).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.linkedSessionIdSet(in:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)",
+    "EmuquTests/ArchivePolicyTests.swift::var ArchivePolicyTests.farFuture"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "now is nil",
+     "effect": "uses farFuture; otherwise the given now"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.linkedSessionIdSet(in:)": "649591ea170c3866",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)": "554721c550c49305",
+    "EmuquTests/ArchivePolicyTests.swift::var ArchivePolicyTests.farFuture": "587b82dae30bed36"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testTrueDuplicateFullyContainedIsQuarantined()",
+   "hash": "5cd5ed75063e3c29",
+   "does": "Asserts a scored keeper 22-06 and an unscored loser 23-05 → only the loser is quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testDisjointSameNightSegmentsAreNotQuarantined()",
+   "hash": "5592367c37b5f79a",
+   "does": "Asserts disjoint same-night segments (22-00, 03-06) are not quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testPartialOverlapBelowRatioIsNotQuarantined()",
+   "hash": "f2de73b2123dafa4",
+   "does": "Asserts a 23-03 entry overlapping a 22-01 keeper by 50% (<85%) is not quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testRecentEntrySkipsNight()",
+   "hash": "d4cb741688eadee0",
+   "does": "Asserts with now 12 h after the loser start (inside 24 h safety window) nothing is quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testLoserWithNilEndDateIsSkipped()",
+   "hash": "c98f23c42500d659",
+   "does": "Asserts a loser with nil endDate is not quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testKeeperWithNilEndDateSkipsNight()",
+   "hash": "3600acee1806a2d8",
+   "does": "Asserts a keeper with nil endDate skips the night (nothing quarantined).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testMergeModeOffReturnsEmpty()",
+   "hash": "9c5afe97b0e8170a",
+   "does": "Asserts mergeMode .off returns no quarantine even for a true duplicate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testLinkedSessionsAreProtected()",
+   "hash": "d580b4172a79cdb4",
+   "does": "Asserts a parent linking a contained segment protects both (nothing quarantined).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "With only two entries, protecting just one side of the link already leaves a single unlinked entry and the night is skipped (unlinked.count > 1 guard), so the test passes even if linkedSessionIdSet stopped inserting the parent id; it does not pin the \"either side\" rule its doc states.",
+     "evidence": [
+      "EmuquTests/ArchivePolicyTests.swift:151",
+      "EmuquTests/ArchivePolicyTests.swift:159",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:375",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:413"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testZeroLengthEntryInsideKeeperIsQuarantined()",
+   "hash": "9b227576165fec4d",
+   "does": "Asserts a zero-length entry at 01:00 inside the keeper's range is quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testKeeperRankingPrefersScoreOverRecency()",
+   "hash": "e8c3d3214c8b7744",
+   "does": "Asserts an older scored entry is kept over a newer unscored contained entry, which is quarantined.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "6ba16cfc5b2b676a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "7b0617249db0b2cd",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "86b81c48bea39561",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "96492100f877c1a1"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.rrPoints(count:)",
+   "hash": "eaa3940576747f2f",
+   "does": "Builds count synthetic RR points (790-810 ms) with cumulative t_ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 0..<count",
+     "effect": "appends one point"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.makeAnalysisResult(for:start:)",
+   "hash": "91f95d800e92be67",
+   "does": "Builds an HRVAnalysisResult over the points with TimeDomainAnalyzer metrics, fixed nonlinear metrics, cleanBeatCount = point count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "computeTimeDomain returns nil",
+     "effect": "falls back to TestFixtureDefaults.timeDomain; otherwise computed metrics"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "085797ccd4889c54"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+   "hash": "8517c577dfcc210d",
+   "does": "Builds a 1-hour overnight HRVSession at a fixed 2025 start with optional RR series, optional analysis, score, tags, notes and imported metrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeAnalysisResult(for:start:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "withAnalysis",
+     "effect": "analysis built from points when points non-nil; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeAnalysisResult(for:start:)": "f0afcf37aec3000b"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testCompositeAdoptsImportedAnalysisWhenImportedHasMoreBeats()",
+   "hash": "d21c34050e3a2fb9",
+   "does": "Merges a 400-beat import into a 200-beat existing session and asserts a composite outcome adopting the imported analysis, source 'composite', hasChanges; after apply the score is 7.5, summary composite and artifactFlags nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rrChange is .composite",
+     "effect": "checks adoptImportedAnalysis and summary; otherwise XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)": "1b05a56ed5b554c2",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)": "8ca486c569de2d08",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "b7d8523490fd29bc",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "360fbce7005ce447",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)": "e770978cdc740f1a"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testCompositeKeepsExistingAnalysisWhenImportedHasFewerBeats()",
+   "hash": "7ce3d1d9303ebdda",
+   "does": "Merges a 200-beat import into a 400-beat existing session and asserts the composite does not adopt the imported analysis and the existing score 7.5 survives apply.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rrChange is .composite",
+     "effect": "asserts adoptImportedAnalysis false; otherwise XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)": "1b05a56ed5b554c2",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)": "8ca486c569de2d08",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "360fbce7005ce447",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)": "e770978cdc740f1a"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testStreamedBeatsTheDeviceRecordedAreNotAddedTwice()",
+   "hash": "687037800943d734",
+   "does": "Merges a 300-beat device recording into a streamed copy of the same beats offset 37 ms in wall clock and asserts the composite has 300 points (no double counting).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "rrChange is .composite",
+     "effect": "asserts 300 merged points; otherwise XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "360fbce7005ce447",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)": "e770978cdc740f1a"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testAdoptsImportedSeriesWhenExistingHasNone()",
+   "hash": "4806146b7e3f8d15",
+   "does": "Merges an import with RR into an existing session without RR and asserts .adoptImportedSeries(adoptImportedAnalysis: true); after apply the target has 200 points and score 6.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rrChange is .adoptImportedSeries",
+     "effect": "asserts analysis adoption; otherwise XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)": "1b05a56ed5b554c2",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)": "8ca486c569de2d08",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "360fbce7005ce447",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.rrPoints(count:)": "e770978cdc740f1a"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testMetadataAndScalarFillsWithoutRRMerge()",
+   "hash": "8d92ac5681687262",
+   "does": "With no RR on either side asserts nil rrChange, no analysis adoption, score/notes/importedMetrics adoption, only the missing 'stressed' tag appended, and apply yields those values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)": "1b05a56ed5b554c2",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)": "8ca486c569de2d08",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "b7d8523490fd29bc",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "360fbce7005ce447"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testNoChangesWhenNothingToMerge()",
+   "hash": "cfca6a8e1ae6f7e6",
+   "does": "Asserts an import carrying nothing new gives nil rrChange, hasChanges false, and apply leaves score, notes and tags unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.apply(_:from:to:)": "1b05a56ed5b554c2",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeOutcome(imported:existing:)": "8ca486c569de2d08",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "b7d8523490fd29bc",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "360fbce7005ce447"
+   }
+  }
+ ],
+ "deps": {}
+}

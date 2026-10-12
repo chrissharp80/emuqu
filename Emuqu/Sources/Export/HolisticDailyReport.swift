@@ -21,10 +21,10 @@ import UIKit
 // WorkoutPDFReport would conflate single-session analysis with the
 // daily-state synthesis. They're different products.
 //
-// Fallback behaviour: if no overnight session exists for "today"
-// (e.g., evening workout with no morning HRV reading), render the
-// standalone WorkoutPDFReport instead — the loop story can't be
-// told without both halves.
+// Fallback behaviour: with no overnight session this class still draws
+// both cover pages, page 1 showing a "No morning data" row. Callers that
+// want the standalone WorkoutPDFReport instead when there is no night
+// (WorkoutRecorder+Metrics, MainTabView+Reports) choose it themselves.
 /// Immutable after construction, so it is `Sendable` and renders on whatever
 /// task the caller detaches; the drawing APIs are thread-safe.
 final class HolisticDailyReport: Sendable {
@@ -54,8 +54,8 @@ final class HolisticDailyReport: Sendable {
 
     let workoutSession: HRVSession
     let workoutTrack: [CLLocation]
-    /// Optional — if nil, the loop story degrades to workout-only and
-    /// the merged output drops to just the WorkoutPDFReport pages.
+    /// Optional — if nil, the cover pages still render, with a "No morning
+    /// data" row in place of the morning column.
     let overnightSession: HRVSession?
     /// Optional — last 7-30 days of overnight sessions for baseline
     /// computation (HRV trend, sleep trend). Used by Page 1 to render
@@ -77,12 +77,16 @@ final class HolisticDailyReport: Sendable {
     /// Crash guard: reading
     /// `TrainingLoadRegistry.live()` inside the renderer via
     /// `MainActor.assumeIsolated` traps. PDF generation runs from
-    /// `Task.detached(priority: .userInitiated)` (see
-    /// `WorkoutRecorder+Lifecycle.generateHolisticReport`), so `assumeIsolated`
+    /// `Task.detached(priority: .userInitiated)` (WorkoutRecorder+Metrics'
+    /// coach report, ReportsListView.renderHolistic and
+    /// MainTabView+Reports.renderDailyReport), so `assumeIsolated`
     /// triggers a fatal trap the moment the render touches training
     /// load. The caller captures the value on MainActor at
     /// construction time; renderers consume the stored snapshot.
     let liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?
+    /// The shared daily-loop analysis, built once here: the report's inputs
+    /// never change, and pages 1 and 2 read it about ten times.
+    private let loopAnalysis: DailyLoopAnalysis
 
     init(
         workoutSession: HRVSession,
@@ -109,8 +113,13 @@ final class HolisticDailyReport: Sendable {
         // Today's live load only belongs on today's report; a past day's
         // report keeps the load frozen with that day's sessions.
         let isToday = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate)
-        self.liveLoadSnapshot = isToday ? liveLoadSnapshot : nil
+        let reportLoad = isToday ? liveLoadSnapshot : nil
+        self.liveLoadSnapshot = reportLoad
         self.config = config
+        self.loopAnalysis = Self.makeLoopAnalysis(
+            workoutSession: workoutSession, overnightSession: overnightSession,
+            recentOvernightSessions: recentOvernightSessions, userMaxHR: userMaxHR, liveLoad: reportLoad
+        )
     }
 
     // MARK: Entry point
@@ -233,8 +242,8 @@ final class HolisticDailyReport: Sendable {
     func trainingLoadForReport() -> TrainingContext? {
         // Read from the MainActor-captured snapshot
         // (`liveLoadSnapshot`) passed into the initializer. PDF
-        // generation runs on a detached task (see
-        // `WorkoutRecorder+Lifecycle.generateHolisticReport`); calling
+        // generation runs on a detached task (see the callers named on
+        // `liveLoadSnapshot`); calling
         // `MainActor.assumeIsolated` here would trap. Caller
         // captures via `TrainingLoadRegistry.live()` on MainActor
         // BEFORE entering the detached task.
@@ -261,19 +270,26 @@ final class HolisticDailyReport: Sendable {
         liveLoadSnapshot?.disclosure
     }
 
-    /// Build the shared analysis once per render — both this PDF and
+    /// The shared analysis, built once at construction — both this PDF and
     /// the Dashboard SwiftUI card consume it so they cannot drift.
-    ///
+    func analysis() -> DailyLoopAnalysis {
+        loopAnalysis
+    }
+
     /// The baseline is built only from nights up to the one reported, so a
     /// past day's report is not measured against nights that came after it.
-    func analysis() -> DailyLoopAnalysis {
+    /// The gate reads the same load `adviceGateLoad()` does.
+    private static func makeLoopAnalysis(
+        workoutSession: HRVSession, overnightSession: HRVSession?, recentOvernightSessions: [HRVSession],
+        userMaxHR: Int, liveLoad: TrainingLoadRegistry.TrainingLoad?
+    ) -> DailyLoopAnalysis {
         let reportedNight = overnightSession?.startDate ?? workoutSession.startDate
         return DailyLoopAnalysis(
             workoutSession: workoutSession,
             overnightSession: overnightSession,
             recentOvernightSessions: recentOvernightSessions.filter { $0.startDate <= reportedNight },
             userMaxHR: userMaxHR,
-            adviceLoad: adviceGateLoad()
+            adviceLoad: adviceGateLoad(live: liveLoad, workoutSession: workoutSession, overnightSession: overnightSession)
         )
     }
 

@@ -1,0 +1,584 @@
+{
+ "file": "Emuqu/Sources/Analysis/BeatConsistency.swift",
+ "hash": "b2df9c231703d2f6",
+ "role": "Pure math for the Beat-to-Beat Consistency score: splits a night's sleep-window RR series into 30 s windows, computes pNN50 / CV-RR / Poincaré SD1/SD2 per window, compares against a per-user baseline (median center + winsorized-MAD scale over prior nights) and returns a 0-100 score, band and state (calibrating / lowConfidence / normal / insufficientData).",
+ "types": [
+  "BeatConsistency: enum (namespace) — scorer",
+  "BeatConsistency.NightlyResult: struct — score/band/state + medians, fracHigh, scoring window count",
+  "BeatConsistency.Features: struct Codable — pNN50, cvRR, ratio",
+  "BeatConsistency.Band: enum — consistent / somewhatVariable / notablyVariable",
+  "BeatConsistency.State: enum — calibrating / lowConfidence / normal / insufficientData",
+  "BeatConsistency.Window: struct — one non-overlapping 30 s scoring window with its clean RR and features",
+  "BeatConsistency.Config: struct — calibration constants (windows, k=4/3, weights .5/.1/.4, floors, band cutoffs 80/60)",
+  "BeatConsistency.Baseline: struct — center, scale, acceptedNightCount",
+  "BeatConsistency.WindowCounts: private struct — shared NightlyResult builder",
+  "BeatConsistency.Features: extension — static zero",
+  "BeatConsistency.State: extension — feedsBaseline"
+ ],
+ "state": [
+  "mem:BeatConsistency.Config.default (static let Config())",
+  "mem:BeatConsistency.Features.zero (static let)"
+ ],
+ "toplevel": "Config stored-property defaults: windowLengthMs 30000 (also the window stride), span tolerance 2000 (minimum span = length − tolerance), minValidRRPerWindow 20, minScoringWindowsPerNight 20, minNightsForLowConfidence 14, minNightsForNormal 28, center window 28, scale window 56, winsorize 0.10/0.90, kLowConfidence 4.0, kNormal 3.0, weights pNN50 0.5 / cvRR 0.1 / ratio 0.4, scale floors 2.0 / 0.01 / 0.03, band cutoffs 80 / 60.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BeatConsistency.Baseline.threshold(feature:k:)",
+   "hash": "6ce5d5b4be8d51ff",
+   "does": "Returns center[feature] + k × scale[feature] — the per-feature 'high' threshold.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)",
+   "hash": "80887036799c926a",
+   "does": "Builds a clean mask (all clean if flags empty), enumerates the valid 30 s scoring windows inside the sleep range (beats after sleepEndMs excluded), computes per-feature medians; returns insufficientData when fewer than 20 valid scoring windows, else the calibration-gated score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.medianFeatures(of:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "flags array empty",
+     "effect": "every RR treated as clean; else clean = !isArtifact per index"
+    },
+    {
+     "at": "+20",
+     "cond": "valid scoring windows < 20",
+     "effect": "returns .insufficientData (no score, does not feed baseline); else scored(...)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "11ced4f212a2ca65",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)": "dfbfd35fd4ce6b8e",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.medianFeatures(of:)": "c30c3859c902f7fd",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)": "2cb14402de3e1078",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca"
+   }
+  },
+  {
+   "key": "func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)",
+   "hash": "7ff6781d5524f704",
+   "does": "NightlyResult with no score/band, state .calibrating(nightsCollected, nightsNeeded=14), fracHigh zero.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a"
+   }
+  },
+  {
+   "key": "func BeatConsistency.WindowCounts.insufficientData()",
+   "hash": "ac5dad032fa6836e",
+   "does": "NightlyResult with no score/band, state .insufficientData(validWindowCount=scoring.count), fracHigh zero.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a"
+   }
+  },
+  {
+   "key": "func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)",
+   "hash": "8a965aee78848021",
+   "does": "Assembles a NightlyResult from the given score/band/state/fracHigh plus the stored medians and the scoring window count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "f4f354ee379a9303",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717"
+   }
+  },
+  {
+   "key": "func BeatConsistency.scored(counts:baseline:config:)",
+   "hash": "68fa12ab02209b35",
+   "does": "Calibration gate: no baseline or < 14 prior nights → calibrating (nightsCollected = the baseline's count, or 0); 14-27 → lowConfidence with k=4; >= 28 → normal with k=3; computes fracHigh per feature, composite score and band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFracHigh(windows:baseline:k:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.compositeScore(fracHigh:config:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline nil or acceptedNightCount < 14",
+     "effect": "returns calibrating(nightsCollected: count ?? 0)"
+    },
+    {
+     "at": "+5",
+     "cond": "acceptedNights < 28",
+     "effect": "state lowConfidence; else normal"
+    },
+    {
+     "at": "+10",
+     "cond": "state == .normal",
+     "effect": "k = 3.0; else k = 4.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)": "5843f07fb6bddd9d",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "f4f354ee379a9303",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.compositeScore(fracHigh:config:)": "26173577d35abf9b",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFracHigh(windows:baseline:k:)": "7adc7b02fdd173c1",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca"
+   }
+  },
+  {
+   "key": "func BeatConsistency.compositeScore(fracHigh:config:)",
+   "hash": "0a656aa4148e0f5b",
+   "does": "Score = round(100 × (1 − (0.5·fracHigh.pNN50 + 0.1·fracHigh.cvRR + 0.4·fracHigh.ratio))).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistency.band(for:config:)",
+   "hash": "5fb1b63cc48b1337",
+   "does": "Maps score to band: >= 80 consistent, >= 60 somewhatVariable, else notablyVariable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "score >= 80",
+     "effect": "consistent"
+    },
+    {
+     "at": "+2",
+     "cond": "score >= 60",
+     "effect": "somewhatVariable; else notablyVariable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717"
+   }
+  },
+  {
+   "key": "func BeatConsistency.buildBaseline(priorNights:config:)",
+   "hash": "130c590e9c33dfc4",
+   "does": "Builds a Baseline from newest-first prior nightly medians: center = per-feature median of first 28, scale = floored winsorized MAD of first 56, acceptedNightCount = total count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.baselineScale(_:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "priorNights empty",
+     "effect": "returns nil (scorer reports calibrating)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.baselineScale(_:config:)": "fa64213cb4ea4bcf",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistency.baselineScale(_:config:)",
+   "hash": "70f0d8bdea9c6a03",
+   "does": "Per-feature scale = max(winsorizedMAD(10th/90th pct), floor) with floors pNN50 2.0, cvRR 0.01, ratio 0.03.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.mad(_:floor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.mad(_:floor:)": "9905654b885f907b",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistency.mad(_:floor:)",
+   "hash": "93631b69f46d26d4",
+   "does": "Nested helper: winsorized MAD of the values floored at the given floor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)": "781b59bbe24ee82b"
+   }
+  },
+  {
+   "key": "func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)",
+   "hash": "7287b44656036862",
+   "does": "Non-overlapping 30 s windows from sleepStartMs while the start is before sleepEndMs, each built by window(rr:cleanMask:startMs:sleepEndMs:config:); [] for empty rr or an empty sleep range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "rr empty or sleepEndMs <= sleepStartMs",
+     "effect": "returns []"
+    },
+    {
+     "at": "+10",
+     "cond": "startMs < sleepEndMs",
+     "effect": "append a window and advance by windowLengthMs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)": "be4d73e3d8159b1b"
+   }
+  },
+  {
+   "key": "func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)",
+   "hash": "d145e0a0d3ab7565",
+   "does": "One window: nominal end start + 30 s; takes the clean beats in [start, min(end, sleepEndMs)) via inWindow, validates them (>= 20 intervals, span >= 28 s) and computes features when valid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "isValid",
+     "effect": "features computed; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)": "d8d875417564351f",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)": "3afdad56e45c144d",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+   }
+  },
+  {
+   "key": "func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)",
+   "hash": "6577d625d9849602",
+   "does": "Binary-searches the first beat at/after start, then collects rr_ms of clean beats with t_ms < end, returning intervals and last−first t_ms span.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.firstIndex(in:atOrAfter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each beat from first index",
+     "effect": "iterates to end of rr"
+    },
+    {
+     "at": "+11",
+     "cond": "beat t_ms >= end",
+     "effect": "breaks"
+    },
+    {
+     "at": "+12",
+     "cond": "index beyond cleanMask or flagged artifact",
+     "effect": "skips beat"
+    },
+    {
+     "at": "+14",
+     "cond": "first clean beat",
+     "effect": "records firstT"
+    },
+    {
+     "at": "+17",
+     "cond": "firstT and lastT both set",
+     "effect": "span = lastT − firstT; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.firstIndex(in:atOrAfter:)": "a7f600f63b5d7c65"
+   }
+  },
+  {
+   "key": "func BeatConsistency.firstIndex(in:atOrAfter:)",
+   "hash": "ee92d2375d25b618",
+   "does": "Lower-bound binary search for the first index with t_ms >= ms (rr.count if none).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lo < hi",
+     "effect": "keeps bisecting"
+    },
+    {
+     "at": "+4",
+     "cond": "rr[mid].t_ms < ms",
+     "effect": "lo = mid+1; else hi = mid"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)",
+   "hash": "34616af4cc5adad4",
+   "does": "Valid when >= 20 clean intervals and their span >= window length − tolerance (28 s). No upper bound: the beats all lie within one window, so the span is always under its length.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "intervals < minN (20)",
+     "effect": "false; else span >= 28 s"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+   }
+  },
+  {
+   "key": "func BeatConsistency.computeFeatures(rrIntervals:)",
+   "hash": "2b35bd409d6ded7a",
+   "does": "Per-window features with population statistics: pNN50 = % successive diffs > 50 ms, cvRR = SD/mean, ratio = Poincaré SD1/SD2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(_:variance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 2 intervals",
+     "effect": "returns Features.zero"
+    },
+    {
+     "at": "+5",
+     "cond": "successive |diff| > 50 ms",
+     "effect": "counts NN50"
+    },
+    {
+     "at": "+14",
+     "cond": "mean > 0",
+     "effect": "cvRR = sd/mean; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(_:variance:)": "aed54ccf0c4fa654",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "4286a96f53b29130"
+   }
+  },
+  {
+   "key": "func BeatConsistency.populationVariance(_:mean:)",
+   "hash": "a2ec1d9a4192ad74",
+   "does": "Population variance (divisor N) around the supplied mean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BeatConsistency.poincareRatio(_:variance:)",
+   "hash": "084a9dbc54f482e9",
+   "does": "SD1 from successive differences / sqrt 2, SD2 = sqrt(2·var − SD1²); returns SD1/SD2, 0 when SD2 not positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "2·var − SD1² > 0",
+     "effect": "sd2 = sqrt; else 0"
+    },
+    {
+     "at": "+6",
+     "cond": "sd2 > 0",
+     "effect": "ratio sd1/sd2; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "4286a96f53b29130"
+   }
+  },
+  {
+   "key": "func BeatConsistency.medianFeatures(of:)",
+   "hash": "77ef26c769124f28",
+   "does": "Per-feature median across valid windows; zero features when there are none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no windows",
+     "effect": "Features.zero"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistency.computeFracHigh(windows:baseline:k:)",
+   "hash": "859843dcbdddb7b4",
+   "does": "Fraction of windows whose pNN50, cvRR, ratio each exceed the baseline threshold for k.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.Baseline.threshold(feature:k:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no windows",
+     "effect": "Features.zero"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.Baseline.threshold(feature:k:)": "b5dba6ad6a73b2b9",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistency.median(_:)",
+   "hash": "07c1c59fc2f9aef0",
+   "does": "Median (average of middle two for even counts); 0 for empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty",
+     "effect": "0"
+    },
+    {
+     "at": "+4",
+     "cond": "even count",
+     "effect": "mean of two middle values; else middle value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BeatConsistency.winsorizedMAD(_:low:high:)",
+   "hash": "9627ca6a4fb9fdd0",
+   "does": "Clamps values to the ~10th/~90th percentile ranks, then returns 1.4826 × median absolute deviation from the median; 0 for empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty",
+     "effect": "returns 0 (caller floors)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8"
+   }
+  },
+  {
+   "key": "var BeatConsistency.State.feedsBaseline",
+   "hash": "39d910998d0dd345",
+   "does": "True for calibrating, lowConfidence, normal; false for insufficientData — whether the night's medians may feed the baseline.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .insufficientData",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "case .calibrating/.lowConfidence/.normal",
+     "effect": "true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

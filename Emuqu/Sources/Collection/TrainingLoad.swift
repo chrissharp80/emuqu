@@ -17,7 +17,7 @@ struct TrainingLoad {
     let recentWorkouts: [HealthKitManager.WorkoutSummary]
     let weeklyLoadScore: Double // 0-100 based on workout intensity/duration
     let daysSinceHardWorkout: Int? // Days since last intense session
-    let acuteChronicRatio: Double? // Training load ratio (injury risk indicator)
+    let acuteChronicRatio: Double? // Acute:chronic load ratio — descriptive load context, not an injury predictor (see ACWRBand)
     let metrics: TrainingMetrics? // Full TRIMP/ATL/CTL/TSB metrics
 
     init(

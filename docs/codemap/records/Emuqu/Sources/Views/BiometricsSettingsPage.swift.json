@@ -1,0 +1,500 @@
+{
+ "file": "Emuqu/Sources/Views/BiometricsSettingsPage.swift",
+ "hash": "52316d05b8f345c1",
+ "role": "Settings > Biometrics page core: state, bounds-clamping bindings for VO2max/HR/LTHR/FTP/body weight, lower-bound cleanup on defocus/disappear, the 'Fill from Apple Health' action, and the HR-zones mode label/footer. The Form content lives in BiometricsSettingsPage+Sections.swift.",
+ "types": [
+  "BiometricsSettingsPage: struct (View) — biometrics settings page; reads/writes SettingsManager.settings"
+ ],
+ "state": [
+  "@FocusState isNumericFieldFocused (one Bool shared by every numeric TextField)",
+  "@State isFillingFromHealthKit",
+  "@State fillFeedback",
+  "static vo2MaxRange 10...100",
+  "static maxHRRange 80...230",
+  "static restingHRRange 30...110",
+  "static lthrRange 80...220",
+  "static ftpRange 50...600",
+  "static minimumBodyWeightKg 30.0",
+  "static maximumBodyWeightKg 250.0",
+  "lb/kg factor 2.20462 literal (lines 167, 223, 230)"
+ ],
+ "toplevel": "Static range constants (67-73) are read by BiometricsSettingsPage+Sections.swift when building the clamped bindings. No #if blocks.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Every keystroke in a numeric field assigns SettingsManager.settings, which posts flowRecoverySettingsChanged per keystroke and makes intermediate values (e.g. 1 and 18 while typing 180) the live settings that AssistantContextSource and other observers see; disk writes are coalesced so only the final value is normally persisted.",
+   "evidence": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift:107",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift:123",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift:235",
+    "Emuqu/Sources/Models/SettingsManager.swift:34-40",
+    "Emuqu/Sources/Models/SettingsManager.swift:241-248"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var BiometricsSettingsPage.settingsBinding",
+   "hash": "9ff25a714b005e7a",
+   "does": "Builds a Binding<UserSettings> whose get returns settingsManager.settings and set assigns it (stand-in for $settingsManager.settings since @Environment has no projected binding); used for the useHealthKitVO2Max toggle (BiometricsSettingsPage+Sections.swift:112).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same get/set Binding<UserSettings> over SettingsManager.settings is re-declared as a private settingsBinding in at least six other views instead of one shared helper.",
+     "evidence": [
+      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:19",
+      "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift:10",
+      "Emuqu/Sources/Views/SettingsView+Pages.swift:9",
+      "Emuqu/Sources/Views/SettingsView+Pages.swift:431",
+      "Emuqu/Sources/Views/TrainingSettingsPage.swift:14",
+      "Emuqu/Sources/Views/SettingsPages+Data.swift:93",
+      "Emuqu/Sources/Views/WearablesSettingsPage.swift:18"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.body",
+   "hash": "d7bab24ffbe90719",
+   "does": "Page body: ZStack of the keyboard-dismiss overlay and biometricsForm, titled 'Biometrics'; when numeric focus is lost and when the page disappears it runs dropValuesBelowMinimum to clear below-minimum entries.",
+   "entry": "SwiftUI body; .onChange(of: isNumericFieldFocused) and .onDisappear callbacks",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.keyboardDismissOverlay",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "focus changed to false (user left the numeric fields)",
+     "effect": "dropValuesBelowMinimum() runs; when focus becomes true nothing happens. Moving focus directly from one numeric field to another keeps the shared Bool true so no cleanup runs until all fields are left or the page closes."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm": "8941a3b63899f4d1",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "9136009cf6371cb3",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.keyboardDismissOverlay": "bf1fa34dcc587e3f"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.keyboardDismissOverlay",
+   "hash": "be6f9bb1586bce24",
+   "does": "When a numeric field is focused, overlays a clear full-size tap target (zIndex 1) that sets isNumericFieldFocused = false on tap to dismiss the number pad; otherwise renders nothing.",
+   "entry": "SwiftUI view property; tap gesture",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isNumericFieldFocused",
+     "effect": "true: clear tappable overlay above the form (taps anywhere dismiss focus and are swallowed by the overlay); false: empty view"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BiometricsSettingsPage.dropValuesBelowMinimum()",
+   "hash": "7c9e8c88f7cd3b38",
+   "does": "Copies settings, clears (sets nil) VO2max override < 10, maxHR < 80, resting HR < 30, LTHR < 80, cycling/running FTP < 50 W, body weight < 30 kg, and writes the copy back only if anything changed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.atLeast(_:_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "VO2max override >= 10",
+     "effect": "kept; below 10 → nil (formula default applies)"
+    },
+    {
+     "at": "+8",
+     "cond": "body weight >= 30 kg",
+     "effect": "kept; below 30 → nil (a Health fill never stores one below 30, fillBodyWeight skips it)"
+    },
+    {
+     "at": "+9",
+     "cond": "modified copy equals current settings",
+     "effect": "early return with no write; otherwise assigns settingsManager.settings (save + notification)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.atLeast(_:_:)": "fda9c4f976363d05"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.atLeast(_:_:)",
+   "hash": "0feb44c5f6dc2999",
+   "does": "Returns value if it is >= minimum, else nil (nil stays nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value >= minimum",
+     "effect": "returns value; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BiometricsSettingsPage.clampedIntBinding(_:range:)",
+   "hash": "94186317564612ff",
+   "does": "Returns a Binding<Int?> onto a UserSettings key path: get reads the stored value; set stores nil for nil, otherwise min(value, range.upperBound) (upper bound only, lower bound deferred to dropValuesBelowMinimum).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "new value is nil (field cleared)",
+     "effect": "stores nil and returns; otherwise stores min(v, upperBound)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.clampedDoubleBinding(_:range:)",
+   "hash": "f85db052d53eb8c2",
+   "does": "Double variant of clampedIntBinding: set stores nil for nil, else min(value, range.upperBound); used for the VO2max override.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "new value is nil",
+     "effect": "stores nil and returns; otherwise stores min(v, upperBound)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.fillFromAppleHealth()",
+   "hash": "99d34c81c46294a5",
+   "does": "Async: sets isFillingFromHealthKit, fetches the HealthKit biometric profile (body mass, biological sex, date of birth), fills only empty settings fields via fill(_:from:), saves settings if anything was filled, and sets fillFeedback to 'Nothing to fill…' or 'Filled: <labels>.'.",
+   "entry": "Button action in BiometricsSettingsPage+Sections.swift:67 (Task { await fillFromAppleHealth() })",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)"
+   ],
+   "reads": [
+    "hk:HKQuantityType.bodyMass",
+    "hk:biologicalSex characteristic",
+    "hk:dateOfBirth characteristic",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "at least one field was filled",
+     "effect": "writes settings back (save + notification); otherwise no write"
+    },
+    {
+     "at": "+7",
+     "cond": "filled list is empty",
+     "effect": "fillFeedback = 'Nothing to fill — Apple Health had nothing new.' (also shown when HealthKit read was denied/failed, since denials come back nil); otherwise 'Filled: a, b.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "0455a9e9d10244f7"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.fill(_:from:)",
+   "hash": "c5f139e7f8ab1e9a",
+   "does": "Static: runs fillBodyWeight, fillBiologicalSex and fillBirthday on the inout settings and returns the non-nil labels of the fields it filled.",
+   "entry": "Also called directly by tests EmuquTests/HealthSourcedSyncMarkerTests.swift:19,34,45 and CloudSessionPayloadHealthReadingsTests.swift:206",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "c99215f1b465dff1",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "46be4c833141a632",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "2dbc9074828ec5aa"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.fillBodyWeight(_:from:)",
+   "hash": "c77a8ec5470584f1",
+   "does": "If profile has a body weight within minimumBodyWeightKg…maximumBodyWeightKg (30–250 kg) and settings has none, sets bodyWeightKg, marks .bodyWeight as Health-sourced (so iCloud backup excludes it), and returns a label 'weight (N lb|kg)' using the units preference; otherwise nil (nothing filled, nothing reported).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)",
+    "ud:fitness.unitsPreference (standard suite, legacy fallback when the App Group key is missing)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group suite; one-time copy of the legacy standard value via UnitsPreferenceStore.current getter, UnitsPreference.swift:136-139)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "profile weight present, settings weight nil, and weight within 30–250 kg",
+     "effect": "fills and marks; otherwise returns nil (existing manual value kept, out-of-range Health weight not filled)"
+    },
+    {
+     "at": "+5",
+     "cond": "units preference resolves to imperial",
+     "effect": "label in pounds (kg*2.20462 rounded); otherwise kg rounded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.fillBiologicalSex(_:from:)",
+   "hash": "b5339c00876de49e",
+   "does": "If settings has no biological sex and the profile maps to an app sex, sets it, marks .biologicalSex as Health-sourced, and returns a localized 'biological sex (female|male|other)' label; otherwise nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "settings sex nil AND profile.appBiologicalSex non-nil",
+     "effect": "fills; otherwise nil (HK notSet/denied maps to nil)"
+    },
+    {
+     "at": "+5",
+     "cond": "sex == .female",
+     "effect": "returns 'biological sex (female)'"
+    },
+    {
+     "at": "+6",
+     "cond": "sex == .male",
+     "effect": "returns 'biological sex (male)'"
+    },
+    {
+     "at": "+7",
+     "cond": "sex == .other",
+     "effect": "returns 'biological sex (other)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.fillBirthday(_:from:)",
+   "hash": "efac47773b296590",
+   "does": "If settings has no birthday and the profile has a date of birth, sets birthday, marks .birthday as Health-sourced, and returns 'birthday (<medium date in app locale>)'; otherwise nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "settings birthday nil AND profile DOB present",
+     "effect": "fills; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.zonesModeLabel",
+   "hash": "39d9e740acf69aeb",
+   "does": "Returns 'Manual' when any of maxHR, userRestingHR or lactateThresholdHR is overridden, else 'Auto'.",
+   "entry": "Read by hrZonesModeSection (BiometricsSettingsPage+Sections.swift:269)",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "any HR override set",
+     "effect": "'Manual'; otherwise 'Auto'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.zonesModeFooter",
+   "hash": "64e388734639593a",
+   "does": "Returns 'Effective: max X bpm · resting Y bpm · LTHR Z bpm' from UserSettings.effectiveMaxHR/effectiveRestingHR/effectiveLTHR.",
+   "entry": "Read by hrZonesModeSection (BiometricsSettingsPage+Sections.swift:273)",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)",
+   "hash": "7a2d9497a9ab98d8",
+   "does": "Binding<Double?> for the body-weight field: get shows kg or kg*2.20462 lb; set converts lb→kg when imperial, stores nil for nil, else min(kg, maximumBodyWeightKg = 250).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save via settings didSet)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stored weight present",
+     "effect": "returns converted value; nil → field empty"
+    },
+    {
+     "at": "+4",
+     "cond": "isImperial",
+     "effect": "get returns pounds; otherwise kg"
+    },
+    {
+     "at": "+7",
+     "cond": "new value nil",
+     "effect": "stores nil and returns"
+    },
+    {
+     "at": "+11",
+     "cond": "isImperial",
+     "effect": "set converts v/2.20462 to kg; otherwise v used as kg"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  }
+ ],
+ "deps": {}
+}

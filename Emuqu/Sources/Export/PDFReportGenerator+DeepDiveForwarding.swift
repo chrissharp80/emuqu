@@ -11,8 +11,9 @@ import UIKit
 // forwarders below keep every existing call site working.
 
 extension PDFReportGenerator {
-    /// The deep-dive page renderer. Lazy — a `.summary` report never draws
-    /// these pages and never builds it.
+    /// The deep-dive page renderer: a stateless value wrapping `self`, built
+    /// afresh on every forwarder call (not cached). Only the deep-dive
+    /// forwarders reach it, so a `.summary` report never builds one.
     var deepDive: DeepDiveReportRenderer {
         DeepDiveReportRenderer(generator: self)
     }
@@ -73,21 +74,6 @@ extension PDFReportGenerator {
             vitals: vitals,
             pageNumber: &pageNumber, yPosition: yPosition,
             in: context, pageRect: pageRect
-        )
-    }
-
-    func drawWrappedText(
-        _ text: String,
-        style: DeepDiveReportRenderer.TextStyle,
-        y: CGFloat,
-        contentWidth: CGFloat,
-        pageNumber: inout Int,
-        context: UIGraphicsPDFRendererContext,
-        pageRect: CGRect
-    ) -> CGFloat {
-        deepDive.drawWrappedText(
-            text, style: style, y: y, contentWidth: contentWidth,
-            pageNumber: &pageNumber, context: context, pageRect: pageRect
         )
     }
 }

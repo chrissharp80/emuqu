@@ -44,32 +44,98 @@ SOURCE_ROOT="${SOURCE_ROOTS[0]}"
 # reached through the contact-specific properties below.
 PII_PATTERN='\\\(([^)]*\.)?(email|emailAddress|recipientEmail|fullName|firstName|lastName|contactName|recipientName|apiKey|token|bearer|password|secret)[^)]*\)'
 GEO_PATTERN='\\\([^)]*\.(latitude|longitude)[^)]*\)'
-RAW_SERIES_PATTERN='\\\((rr|rrValues|rrSeries|beats|rrIntervals|samples)\)'
+# A bare `\(rr)` and a member path `\(self.rrIntervals)` / `\(session.rr)` alike.
+# `samples` only bare: as a member it is a sample COUNT in this codebase
+# (`\(pass.samples)`), not a series.
+RAW_SERIES_PATTERN='\\\((([^)]*\.)?(rr|rrValues|rrSeries|beats|rrIntervals)|samples)\)'
 
-# Bracket classes rather than backslash escapes: this string is handed to awk
-# via -v, which processes escape sequences in the assigned value, so a `\(`
-# would arrive as a bare `(` and silently turn into a regex group.
 # `NSLog` and `(Swift.)print` are log calls too. The app target has dozens of
 # NSLog call sites, all lifecycle text today, and a list without them leaves
 # every one outside this gate's field of view.
 LOG_CALL='(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|logger[.](debug|info|notice|warning|error|fault)|os_log|os_signpost|NSLog|(Swift[.])?print)[(]'
 
+# A missing root would make the scan read nothing and report clean.
+for root in "${SOURCE_ROOTS[@]}"; do
+    if [[ ! -d "$root" ]]; then
+        echo "check_log_redaction: source root not found: $root" >&2
+        exit 2
+    fi
+done
+
 tmp="$(gate_mktemp log-redaction)" || exit $?
 trap 'rm -f "$tmp"' EXIT
 
-# Collect log call sites, honouring `// log-redaction-ok: <reason>` either on
-# the same line or on the line immediately above (the `disable:next` shape,
-# so the escape hatch doesn't push an already-long call site over line_length).
-find "${SOURCE_ROOTS[@]}" -name '*.swift' -type f -print0 \
-    | xargs -0 awk -v pat="$LOG_CALL" '
-        FNR == 1 { prev = "" }
-        {
-            if ($0 ~ pat && $0 !~ /log-redaction-ok/ && prev !~ /log-redaction-ok/) {
-                print FILENAME ":" FNR ":" $0
-            }
-            prev = $0
-        }
-    ' 2>/dev/null > "$tmp" || true
+# Collect log call sites, one per line as `file:line:<the whole call>`. A call
+# split across lines is joined first, so an interpolation on a continuation
+# line is seen. `// log-redaction-ok: <reason>` waives a call when it sits on
+# any line of the call or on the line immediately above it (the `disable:next`
+# shape, so the escape hatch does not push a long call over line_length).
+python3 - "$LOG_CALL" "${SOURCE_ROOTS[@]}" > "$tmp" <<'PY' || { echo "check_log_redaction: the scan failed; nothing was measured." >&2; exit 2; }
+import pathlib
+import re
+import sys
+
+LOG_CALL = re.compile(r"(?<!\w)" + sys.argv[1])
+
+
+def call_end(text, i):
+    """Index just past the parenthesis closing the one at `i`.
+
+    String literals are skipped, except for the code inside an interpolation,
+    so a paren in copy or in an interpolated expression cannot end the call.
+    """
+    depth, j, n, in_string, interpolations = 0, i, len(text), False, []
+    while j < n:
+        c = text[j]
+        if in_string:
+            if c == "\\" and text.startswith("(", j + 1):
+                interpolations.append(depth)
+                depth += 1
+                in_string = False
+                j += 2
+                continue
+            if c == "\\":
+                j += 2
+                continue
+            if c == '"':
+                in_string = False
+            j += 1
+            continue
+        if text.startswith("//", j):
+            newline = text.find("\n", j)
+            j = n if newline < 0 else newline
+            continue
+        if c == '"':
+            in_string = True
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if interpolations and depth == interpolations[-1]:
+                interpolations.pop()
+                in_string = True
+            elif depth == 0:
+                return j + 1
+        j += 1
+    return n
+
+
+for root in sys.argv[2:]:
+    for path in sorted(pathlib.Path(root).rglob("*.swift")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        lines = text.split("\n")
+        for m in LOG_CALL.finditer(text):
+            first = text.count("\n", 0, m.start())
+            if lines[first].lstrip().startswith("//"):
+                continue
+            call = text[m.start():call_end(text, m.end() - 1)]
+            last = first + call.count("\n")
+            above = lines[first - 1] if first > 0 else ""
+            if "log-redaction-ok" in above or any(
+                    "log-redaction-ok" in lines[k] for k in range(first, last + 1)):
+                continue
+            print(f"{path}:{first + 1}:" + " ".join(l.strip() for l in call.split("\n")))
+PY
 
 violations=0
 report() {

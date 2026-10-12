@@ -59,46 +59,4 @@ enum HKTypes {
         }
         return type
     }
-
-    /// Returns the HKCharacteristicType for `identifier`, or nil
-    /// with a warning log.
-    static func characteristic(
-        _ identifier: HKCharacteristicTypeIdentifier,
-        caller: StaticString = #function,
-        file: StaticString = #file,
-        line: UInt = #line
-    ) -> HKCharacteristicType? {
-        guard let type = HKCharacteristicType.characteristicType(forIdentifier: identifier) else {
-            debugLog(
-                "[HKTypes] characteristic type '\(identifier.rawValue)' unavailable — caller=\(caller) at \(file):\(line)",
-                level: .warning
-            )
-            return nil
-        }
-        return type
-    }
-
-    /// Build an HKQuantity safely, rejecting NaN and infinite values
-    /// that would cause AVFoundation to raise an uncatchable
-    /// `NSInvalidArgumentException`. The HRV pipeline computes
-    /// SDNN / RMSSD / DFA-α1 over arrays that can contain artifacts;
-    /// a single divide-by-zero or empty filter result has been seen
-    /// to produce NaN, and feeding that into `HKQuantity(unit:doubleValue:)`
-    /// has been observed to crash on iOS 26.
-    static func validQuantity(
-        unit: HKUnit,
-        doubleValue: Double,
-        caller: StaticString = #function,
-        file: StaticString = #file,
-        line: UInt = #line
-    ) -> HKQuantity? {
-        guard doubleValue.isFinite else {
-            debugLog(
-                "[HKTypes] refused to build HKQuantity from non-finite value (\(doubleValue)) unit=\(unit) caller=\(caller) at \(file):\(line)",
-                level: .warning
-            )
-            return nil
-        }
-        return HKQuantity(unit: unit, doubleValue: doubleValue)
-    }
 }

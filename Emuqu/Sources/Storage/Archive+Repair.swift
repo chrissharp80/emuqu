@@ -3,9 +3,13 @@ import Foundation
 // MARK: - Archive Repair & Integrity
 
 extension SessionArchive {
-    /// Repair corrupted archive by removing .encrypted files and rebuilding index from .json files
+    /// Repair a corrupted archive by rebuilding the index from the .json files.
     /// Call this manually from Settings > Debug when needed
     /// - Returns: Number of sessions recovered
+    ///
+    /// Files with other extensions (`*.encrypted`, which no current writer
+    /// produces) are left alone: the repair never deletes a file it has not
+    /// read.
     ///
     /// The rebuild is seeded with a snapshot of the current index keyed by
     /// sessionId. When a session file is present on disk but can't be
@@ -27,8 +31,11 @@ extension SessionArchive {
             debugLog("[Archive] Repair: Could not list directory: \(error.localizedDescription)")
             return 0
         }
-        removeEncryptedFiles(in: files)
         index = rebuiltIndex(from: files).sorted { $0.date > $1.date }
+        // Dropped now, not by `saveIndex`: a save that fails before it gets
+        // there would leave them serving the index this repair replaced.
+        sortedEntriesCache = nil
+        sessionIdLookup = nil
         do {
             try saveIndex()
         } catch {
@@ -42,16 +49,6 @@ extension SessionArchive {
         return files
             .filter { $0.pathExtension == "json" && $0.lastPathComponent != "index.json" && $0.lastPathComponent != "deleted.json" }
             .compactMap { rebuiltEntry(for: $0, existing: existingEntriesById) }
-    }
-
-    private func removeEncryptedFiles(in files: [URL]) {
-        for file in files where file.pathExtension == "encrypted" {
-            do {
-                try fileManager.removeItem(at: file)
-            } catch {
-                debugLog("[Archive] Repair: Failed to remove \(file.lastPathComponent): \(error)")
-            }
-        }
     }
 
     /// Rebuild one file's index entry. Skips files that aren't UUID-named and
@@ -85,7 +82,7 @@ extension SessionArchive {
         } catch {
             return preserved(existing[sessionId], filename: filename, error: error, verb: "read")
         }
-        guard let session = Self.decodeRepairable(fileData) else {
+        guard let session = Self.decodeRepairable(fileData, id: sessionId) else {
             return preserved(existing[sessionId], filename: filename, error: nil, verb: "decrypt")
         }
         return SessionArchiveEntry.make(
@@ -97,9 +94,11 @@ extension SessionArchive {
         )
     }
 
-    /// Try decoding as JSON first; on failure, fall back to decrypting (the
-    /// file predates the encryption rollout or was written by an older build).
-    /// The file on disk is left untouched either way so we don't downgrade
+    /// Decoded through the archive's own dual-format reader
+    /// (`ArchiveStore.plaintextBytes`, the one `_retrieve` and
+    /// `loadAndDecodeSessionFile` use): encrypted files are decrypted, legacy
+    /// plaintext passes through. Nil, logged, when it does not decode. The
+    /// file on disk is left untouched either way so we don't downgrade
     /// protection.
     ///
     /// Do NOT reassign `jsonData = decrypted`
@@ -110,12 +109,13 @@ extension SessionArchive {
     /// after running repair). Always hash the bytes-as-stored, matching the
     /// write-path contract in `_archive` / `batchArchive` /
     /// `relinkSameNightSessions`.
-    private static func decodeRepairable(_ fileData: Data) -> HRVSession? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if let session = try? decoder.decode(HRVSession.self, from: fileData) { return session }
-        guard let decrypted = try? AppDependencies.current.storage.encryptionManager.decrypt(fileData) else { return nil }
-        return try? decoder.decode(HRVSession.self, from: decrypted)
+    private static func decodeRepairable(_ fileData: Data, id: UUID) -> HRVSession? {
+        do {
+            return try sessionDecoder.decode(HRVSession.self, from: ArchiveStore.plaintextBytes(fileData, id: id))
+        } catch {
+            debugLog("[Archive] Repair: \(id.uuidString.prefix(8)) does not decode: \(error)", level: .warning)
+            return nil
+        }
     }
 
     private func preserved(
@@ -138,38 +138,65 @@ extension SessionArchive {
     ///
     /// Decode-and-validate FIRST: only refresh the hash if the file still yields
     /// a real `HRVSession`, so genuinely-corrupt bytes are NEVER laundered into a
-    /// "valid" fingerprint. Returns true when repaired (fingerprint refreshed to
-    /// match the file, so it passes the integrity check and can sync again),
-    /// false when the file won't decode — in which case the caller should
-    /// quarantine it rather than bless garbage. Hashes the bytes-as-stored,
+    /// "valid" fingerprint. `.repaired` when the fingerprint now matches the
+    /// file (so it passes the integrity check and can sync again);
+    /// `.undecodable` when the bytes were read and won't decode — the caller
+    /// should quarantine it rather than bless garbage; `.notNow` when nothing
+    /// can be judged yet (the file can't be read or decrypted at the moment —
+    /// locked device, key unreachable — or the index save failed), which is
+    /// no reason for a permanent quarantine. Hashes the bytes-as-stored,
     /// matching `_retrieve` and every write path (see the note in
     /// `repairArchive`).
-    @discardableResult
-    func repairSessionHashIfDecodable(sessionId: UUID) -> Bool {
+    func repairSessionHashIfDecodable(sessionId: UUID) -> HashRepair {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-
-        guard let idx = index.firstIndex(where: { $0.sessionId == sessionId }) else { return false }
+        guard let idx = index.firstIndex(where: { $0.sessionId == sessionId }) else { return .notNow }
         let entry = index[idx]
         let fileURL = resolveFileURL(for: entry)
+        guard let fileData = Self.bytesForRepair(at: fileURL, id: sessionId) else { return .notNow }
         // Only re-hash a file that decodes to a real session.
-        guard let fileData = try? Data(contentsOf: fileURL),
-              let session = Self.decodeRepairable(fileData) else {
+        guard let session = Self.decodeRepairable(fileData, id: sessionId) else {
             debugLog("[Archive] Repair: session \(sessionId.uuidString.prefix(8)) will not decode — NOT re-hashing (genuine corruption, caller should quarantine)", level: .warning)
-            return false
+            return .undecodable
         }
         // Already matches? Nothing to repair (defensive — caller only calls on mismatch).
         let currentHash = SessionFileCodec.sha256Hex(fileData)
-        if currentHash == entry.fileHash { return true }
+        if currentHash == entry.fileHash { return .repaired }
         index[idx] = SessionArchiveEntry.make(
             from: session, hash: currentHash, filePath: fileURL.lastPathComponent,
             overridingSessionId: sessionId, recoveryScoreFallback: session.readinessScore
         )
-        return persistRehash(sessionId: sessionId, from: entry.fileHash, to: currentHash)
+        return persistRehash(sessionId: sessionId, from: entry.fileHash, to: currentHash) ? .repaired : .notNow
+    }
+
+    /// What `repairSessionHashIfDecodable` found.
+    enum HashRepair: Equatable {
+        case repaired
+        case undecodable
+        case notNow
+    }
+
+    /// The stored bytes, or nil (logged) while they cannot be judged: the
+    /// read fails, or they are encrypted and the key is unreachable.
+    private static func bytesForRepair(at fileURL: URL, id: UUID) -> Data? {
+        let fileData: Data
+        do {
+            fileData = try Data(contentsOf: fileURL)
+        } catch {
+            debugLog("[Archive] Repair: \(id.uuidString.prefix(8)) cannot be read now: \(error) — will retry", level: .warning)
+            return nil
+        }
+        guard !ArchiveStore.looksEncrypted(fileData) || AppDependencies.current.storage.encryptionManager.isAvailable else {
+            debugLog("[Archive] Repair: \(id.uuidString.prefix(8)) is encrypted and the key is unavailable — will retry", level: .warning)
+            return nil
+        }
+        return fileData
     }
 
     /// Persist the refreshed fingerprint, logging the before/after so a stale
-    /// hash that blocked syncing leaves a trace of having been healed.
+    /// hash that blocked syncing leaves a trace of having been healed. The
+    /// in-memory index already holds the new fingerprint when the save
+    /// fails; the next successful save writes it.
     private func persistRehash(sessionId: UUID, from oldHash: String, to currentHash: String) -> Bool {
         do {
             try saveIndex()

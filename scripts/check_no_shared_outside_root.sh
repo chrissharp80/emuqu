@@ -16,8 +16,10 @@
 # (`UIApplication.shared`, `URLSession.shared`, …) are not the app's business
 # and are ignored.
 #
-# Scope is the iOS app. The watch extension is a separate target with two
-# singletons of its own and no container; it stays on the tech-debt count.
+# Scope is the iOS app AND the watch app. The watch is a separate target with
+# singletons of its own and no `AppDependencies`; its composition root is its
+# app struct (`WatchApp.swift`, listed below), and every other watch file has
+# them injected, the same rule as the phone.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 

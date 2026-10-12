@@ -14,8 +14,10 @@ import Foundation
 ///     provider's default model; otherwise the user's chosen primary.
 ///   - Deep → the user's chosen primary. Tier routing runs only when that
 ///     primary is Apple, so in practice Deep takes Auto's consented
-///     mid-tier cloud provider (it must never land on a weaker model
-///     than Auto), and Apple only when no cloud provider is consented.
+///     mid-tier cloud provider, Grok then DeepSeek (it must never land on a
+///     weaker model than Auto), and Apple when neither is consented. A
+///     consented Anthropic, OpenAI or Gemini key does not count: below the
+///     user's primary, tier routing uses only those two.
 ///
 /// When a tier can't get what it wants (e.g. Apple-only user → Quick /
 /// Auto / Deep all on Apple), the mapping is marked `collapsed`. The
@@ -86,9 +88,10 @@ enum TierProviderMapper {
 
     /// Deep is the conversational default: the user's chosen cloud primary.
     /// When the primary IS Apple, Deep takes the same consented mid-tier cloud
-    /// provider as Auto, collapsed: a question with more capability flags must
-    /// never go to a weaker model (Apple's 4K window) than a one-flag question.
-    /// Apple only when no cloud provider is consented.
+    /// provider as Auto (Grok, then DeepSeek), collapsed: a question with more
+    /// capability flags must never go to a weaker model (Apple's 4K window)
+    /// than a one-flag question. Apple when neither Grok nor DeepSeek is
+    /// consented, whatever other cloud keys are set.
     private static func deepMapping(_ registry: ProviderRegistry) -> Mapping {
         if let chosen = userChosenMapping(registry) {
             return Mapping(provider: chosen.0, model: chosen.1, collapsed: false)
@@ -111,10 +114,13 @@ enum TierProviderMapper {
         return fallback(registry)
     }
 
-    /// True when the user has at least one paid provider configured.
-    /// Drives the Settings UX's "Deep mode unavailable" copy.
+    /// True when tier routing can hand a turn to a cloud model while Apple is
+    /// the primary: a consented, enabled, available Grok or DeepSeek. When it
+    /// is false, Quick, Auto and Deep all answer on Apple Intelligence, which
+    /// is what the Settings notice "every mode answers on Apple Intelligence"
+    /// states.
     static func hasCloudProvider(in registry: ProviderRegistry) -> Bool {
-        cheapestCloud(in: registry) != nil
+        midTierProvider(in: registry) != nil
     }
 
     // MARK: - Internals
@@ -185,29 +191,4 @@ enum TierProviderMapper {
         else { return nil }
         return (provider, model)
     }
-
-    /// Pick the cheapest configured cloud provider's cheapest model.
-    /// Heuristic: lowest input price per million tokens. Apple is
-    /// excluded from this pool (it's the Quick tier's home).
-    private static func cheapestCloud(in registry: ProviderRegistry) -> (provider: AIProvider, model: ModelOption)? {
-        registry.allProviders
-            .filter { $0.id != .apple && $0.isAvailable && ProviderRegistry.isEnabled($0.id) }
-            .compactMap { provider -> (AIProvider, ModelOption, Decimal)? in
-                guard let (model, price) = cheapestModel(of: provider) else { return nil }
-                return (provider, model, price)
-            }
-            .min(by: { $0.2 < $1.2 })
-            .map { ($0.0, $0.1) }
-    }
-
-    /// This provider's lowest-priced model, ignoring any without a listed price.
-    private static func cheapestModel(of provider: AIProvider) -> (ModelOption, Decimal)? {
-        provider.availableModels
-            .compactMap { model -> (ModelOption, Decimal)? in
-                guard let price = model.inputPricePerMTok else { return nil }
-                return (model, price)
-            }
-            .min(by: { $0.1 < $1.1 })
-    }
-
 }

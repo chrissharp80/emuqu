@@ -1,0 +1,536 @@
+{
+ "file": "Emuqu/Sources/Views/MainTabView+Tabs.swift",
+ "hash": "d741aab9786bb9c5",
+ "role": "MainTabView extension: More tab, the coalesced/debounced/deferred dashboard reload pipeline (decrypt slice, count, UIStateCache snapshot, LaunchCoordinator ready signal), dashboard callbacks (delete, tags, reanalyze, ask assistant) and the Send-report preparation flow.",
+ "types": [
+  "MainTabView.SendReportInputs: struct — main-actor snapshot of sessions/baseline/HR settings/units for the detached report render",
+  "MainTabView.RenderOutcome: enum — ok(URL) | failed(String)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references reloadDashboardSessions, buildDashboardSnapshot, mostRecentDailyPair or the send-report flow; the in-flight/pending/deferred/debounce state machine has no coverage.",
+   "evidence": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift:45",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift:169",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift:249"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var MainTabView.moreTab",
+   "hash": "72208951766803af",
+   "does": "Lazily-built More tab (NavigationStack bound to morePath with MoreMenuView) with tab item and accessibility ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "selectedTab == .more",
+     "effect": "filled icon; else outline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "dbfbdba03a68cf31",
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "2e0c755eae0e07db"
+   }
+  },
+  {
+   "key": "func MainTabView.reloadDashboardSessions()",
+   "hash": "7ccad1aeba44421e",
+   "does": "Requests a dashboard slice reload: deferred if Dashboard is not showing, folded into a trailing reload if one is in flight, delayed to the end of a 50 ms window if within 50 ms of the last start, else starts the load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadIsWanted()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.scheduleDebouncedDashboardReload()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dashboardReloadIsWanted() false (another tab selected)",
+     "effect": "return (deferred flag set)"
+    },
+    {
+     "at": "+6",
+     "cond": "dashboardReloadInFlight",
+     "effect": "set dashboardReloadPending = true and return"
+    },
+    {
+     "at": "+10",
+     "cond": "debounce fails (< 50 ms since last start)",
+     "effect": "scheduleDebouncedDashboardReload() and return; passes: startDashboardLoad()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadIsWanted()": "eac7a3ba099d7f36",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "7a6ae6cf86410529",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.scheduleDebouncedDashboardReload()": "1449895ee5a4ee09",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0"
+   }
+  },
+  {
+   "key": "func MainTabView.scheduleDebouncedDashboardReload()",
+   "hash": "9b3755d229cd32f1",
+   "does": "Schedules one trailing reload after 50 ms (sleepQuietly) unless a debounce is already scheduled (dashboardReloadDebounceScheduled, its own flag, separate from the in-flight load's pending marker); clears the flag then calls reloadDashboardSessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a debounce is already scheduled",
+     "effect": "return (request rides on it); else set the flag and spawn the delayed task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41"
+   }
+  },
+  {
+   "key": "func MainTabView.dashboardReloadIsWanted()",
+   "hash": "394c2e051a1e0f01",
+   "does": "True when the Dashboard tab is selected; otherwise marks the reload deferred and returns false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "selectedTab != .dashboard",
+     "effect": "dashboardReloadDeferred = true, return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MainTabView.dashboardReloadPassesDebounce()",
+   "hash": "6cd7473a655d2a40",
+   "does": "Passes if at least 50 ms elapsed since lastDashboardReloadAt and stamps it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "less than 0.05 s since last start",
+     "effect": "false; else stamp now and true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MainTabView.startDashboardLoad()",
+   "hash": "669b407bbf29247a",
+   "does": "Marks in-flight and starts a Task: lightweight-decrypts the 35 most recent sessions, counts archive entries on a detached task, records timings, and applies the result on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.applyDashboardLoad(_:count:timing:)",
+    "Emuqu/Sources/Views/MainTabView.swift::init DashboardLoadTiming(requestedAt:)"
+   ],
+   "reads": [
+    "archive:entries (index)",
+    "archive:retrieveLightweight (35 most recent)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.applyDashboardLoad(_:count:timing:)": "975b7c9af137a3cb",
+    "Emuqu/Sources/Views/MainTabView.swift::init DashboardLoadTiming(requestedAt:)": "c30974acc7d69f26"
+   }
+  },
+  {
+   "key": "func MainTabView.applyDashboardLoad(_:count:timing:)",
+   "hash": "e3de070ed1bd2903",
+   "does": "Publishes loaded sessions and count, writes the dashboard snapshot to UIStateCache (persisted file), logs timing, signals LaunchCoordinator dashboard-ready, clears in-flight and starts one trailing load if a request arrived meanwhile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.buildDashboardSnapshot(from:)",
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setDashboard(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.logDashboardTiming(_:timing:)",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.signalDashboardReady()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:UIStateCache.json",
+    "mem:UIStateCache.dashboard",
+    "mem:LaunchCoordinator.dashboardReady",
+    "mem:LaunchCoordinator.dashboardReadyWaiter"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "dashboardReloadPending",
+     "effect": "clear it and startDashboardLoad() directly (bypasses the tab check and debounce); else done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setDashboard(_:)": "bbcce0d1f5c609e5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "2fa54266c0d06af1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "2257379aa8cbc059",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.signalDashboardReady()": "1fbdfe54306c062a",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.buildDashboardSnapshot(from:)": "047ac3a9bd6ea93a",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.logDashboardTiming(_:timing:)": "a95251b86ea0017f",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0"
+   }
+  },
+  {
+   "key": "func MainTabView.logDashboardTiming(_:timing:)",
+   "hash": "c6b57ce29e9bf052",
+   "does": "Logs total reload ms at info; when >= 1500 ms logs wait/read/count/apply phase breakdown instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func DashboardLoadTiming.milliseconds(from:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug log"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "totalMs < 1500",
+     "effect": "one-line log and return; else phased SLOW log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/MainTabView.swift::func DashboardLoadTiming.milliseconds(from:to:)": "37ba23790b60613c"
+   }
+  },
+  {
+   "key": "func MainTabView.buildDashboardSnapshot(from:)",
+   "hash": "5a33a44a78d395a1",
+   "does": "Builds UIStateCache.DashboardSnapshot using DashboardSessionPolicy selectors: hero score (latest complete overnight recoveryScore×10 via safeDisplayScore), rounded RMSSD, sleep minutes (overnight's snapshot or latest with sleep), recent-days strip, latest vitals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "overnight?.sleepSnapshot ?? latestWithSleep(...)?.sleepSnapshot",
+     "effect": "falls back to the most recent session with sleep when the hero overnight has none"
+    },
+    {
+     "at": "+12",
+     "cond": "(sleepMin ?? 0) > 0",
+     "effect": "store sleep minutes; nil or 0: nil (no sleep shown)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)": "99cc59183360c507",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)": "567cefcff6b6ced1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "a8d9a72705e8946f",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "func MainTabView.startRecording()",
+   "hash": "570cf4e5b4a7ec84",
+   "does": "Switches to the Record tab.",
+   "entry": "DashboardV2View onStartRecording callback.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MainTabView.askAssistant(_:)",
+   "hash": "718188e1b44d6216",
+   "does": "Sets AssistantInbox.pendingDraft (nil for an empty question) and bumps openRequestToken so the Coach tab opens.",
+   "entry": "Ask Flo menu buttons.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox",
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantInbox.pendingDraft",
+    "mem:AssistantInbox.openRequestToken"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "question.isEmpty",
+     "effect": "pendingDraft = nil (just open); else the question"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "40b37a16b89fae33",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93"
+   }
+  },
+  {
+   "key": "func MainTabView.reanalyzeSession(_:method:)",
+   "hash": "6311c0cb6f9db85c",
+   "does": "Forwards to RRCollector.reanalyzeSession (ReanalysisService), returning the updated session.",
+   "entry": "DashboardV2View onReanalyzeSession callback; also rescoreReport.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:reanalyzeSession (via ReanalysisService)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "4fa12f1dba8fbc1e"
+   }
+  },
+  {
+   "key": "var MainTabView.mostRecentOvernight",
+   "hash": "5b315a909ae34eb5",
+   "does": "Latest complete overnight in the slice per DashboardSessionPolicy (same selector as the dashboard hero).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e"
+   }
+  },
+  {
+   "key": "var MainTabView.mostRecentWorkout",
+   "hash": "226a2cbc84dfb1c8",
+   "does": "First workout session in the slice (slice is newest-first).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func MainTabView.mostRecentDailyPair()",
+   "hash": "68981d357f846632",
+   "does": "Newest workout that has a reliable overnight starting within the 36 h before it; returns (workout, latest such night).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each workout in slice order",
+     "effect": "check its 36 h lookback"
+    },
+    {
+     "at": "+7",
+     "cond": "a qualifying night exists",
+     "effect": "return the pair; else continue; none: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "func MainTabView.prepareAndSendReport(_:)",
+   "hash": "01639a98921e40ff",
+   "does": "Starts report preparation once: sets preparingReportKind, clears the error, snapshots inputs for the kind (sendReportInputs(for:), with the reported night's baseline), then on a detached userInitiated task loads full sessions and the reported night's baseline nights (withFullSessions(kind:)), refreshes live training load, renders the PDF and finishes on the main actor.",
+   "entry": "sendReportButton tap.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs(for:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "preparingReportKind != nil",
+     "effect": "return (already preparing); else proceed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "de41f5576d55031d",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)": "3287bab5f513bbe6",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)": "f1ffb3f46500d0f1",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs(for:)": "8d4c260cd093cbd1"
+   }
+  },
+  {
+   "key": "func MainTabView.sendReportInputs(for:)",
+   "hash": "49dd58a86a0a42db",
+   "does": "Captures recovery/workout/pair sessions, reliable overnights of the dashboard slice (replaced for recovery and daily reports by withFullSessions with the archive's nights before the reported one), the baseline as it stood for the reported night (reportBaselineStats: the daily pair's overnight for .daily, otherwise the recovery night), effective max/resting HR and LTHR, units and temperature unit from settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "ud:fitness.unitsPreference (App Group suite, legacy fallback to standard suite)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group suite; one-time copy from standard when only the legacy value exists, UnitsPreference.swift:136-138)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "kind == .daily",
+     "effect": "baseline for the pair's overnight; else for the recovery night"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "2358ab79f93dc47e",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)": "98cca752611d1642",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight": "0c11fceac50c25be",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout": "5f2f6d7fd8736046",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func MainTabView.reportBaselineStats(night:settings:)",
+   "hash": "139ff009724b4ca4",
+   "does": "The baseline as it stood for the reported night: BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:) (the nights before it, not the reported or later ones); with no night, the tracker's current recoveryBaselineStats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker.historicalData",
+    "mem:SettingsManager.settings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "night nil",
+     "effect": "current baseline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401"
+   }
+  },
+  {
+   "key": "func MainTabView.finishReportPreparation(_:)",
+   "hash": "463d576e587052b7",
+   "does": "Clears preparingReportKind; on success sets pendingReportMailURL (opens mail/share sheet), on failure sets reportPrepError (alert).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "switch outcome",
+     "effect": "see cases"
+    },
+    {
+     "at": "+4",
+     "cond": "case .ok(url)",
+     "effect": "pendingReportMailURL = IdentifiableURL(url)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .failed(message)",
+     "effect": "reportPrepError = message"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

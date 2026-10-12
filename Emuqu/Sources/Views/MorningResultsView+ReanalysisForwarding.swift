@@ -32,13 +32,7 @@ extension MorningResultsView {
 
     var overnightStrapMergeCard: some View { reanalysis.overnightStrapMergeCard }
 
-    func persistentWindowComparisonBanner() -> some View {
-        reanalysis.persistentWindowComparisonBanner()
-    }
-
     var pdfLoadingOverlay: some View { reanalysis.pdfLoadingOverlay }
-
-    var provenanceView: some View { reanalysis.provenanceView }
 
     var availableReportSections: PDFReportGenerator.ReportSections {
         reanalysis.availableReportSections
@@ -48,25 +42,21 @@ extension MorningResultsView {
         style: PDFReportGenerator.ReportStyle = .comprehensive,
         sections: PDFReportGenerator.ReportSections = .all
     ) {
-        reanalysis.exportPDF(style: style, sections: sections)
+        reanalysis.exportPDF(style: style, sections: sections) { exportErrorMessage = $0 }
     }
 
     func emailReport(
         style: PDFReportGenerator.ReportStyle = .comprehensive,
         sections: PDFReportGenerator.ReportSections = .all
     ) {
-        reanalysis.emailReport(style: style, sections: sections)
+        reanalysis.emailReport(style: style, sections: sections) { exportErrorMessage = $0 }
     }
 
     func performReanalysis() { reanalysis.performReanalysis() }
-
-    func reanalyzeWithMethod(_ method: WindowSelectionMethod) {
-        reanalysis.reanalyzeWithMethod(method)
-    }
 
     func handleManualReanalysis(timestampMs: Int64) {
         reanalysis.handleManualReanalysis(timestampMs: timestampMs)
     }
 
-    func exportRRData() { reanalysis.exportRRData() }
+    func exportRRData() { reanalysis.exportRRData { exportErrorMessage = $0 } }
 }

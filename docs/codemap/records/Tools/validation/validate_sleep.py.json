@@ -1,0 +1,273 @@
+{
+ "file": "Tools/validation/validate_sleep.py",
+ "hash": "e5eb2eb14db1abf4",
+ "role": "Validation 1: runs the ported RR-only HRVSleepStageClassifier on slpdb (annotated beats, NN or all-beat RR) or CAP healthy controls (detected beats from cap_extract_rr.py), over the whole scored recording or the PSG sleep period, and scores 5-min and 30-s agreement plus stage-minute Bland-Altman; writes results/sleep_<db>_<mode>_<bounds>.json.",
+ "types": [],
+ "state": [
+  "STAGE_MAP_SLPDB, APP_TO_4 (lines 37-38)",
+  "MIN_SCORABLE_IN_WINDOW=5, EPOCH_MS=30000 (lines 39-40)",
+  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/slpdb/*, file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/n<i>.json (read)",
+  "file:Tools/validation/results/sleep_<db>_<mode>_<bounds>.json (written)"
+ ],
+ "toplevel": "Adds script dir to sys.path; runs main() as a script.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The mode argument is ignored for CAP (cap_records(mode) never reads it; CAP RR is always every detected beat), yet the outputs are named sleep_cap_nn_*.json, implying normal-to-normal RR.",
+   "evidence": [
+    "Tools/validation/validate_sleep.py:69",
+    "Tools/validation/validate_sleep.py:183"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def slpdb_records",
+   "hash": "06f0ec744503d177",
+   "does": "Generator over slpdb RECORDS: reads beats (.ecg) and stage annotations (.st), lays the first aux-note token of each stage annotation on a 30-s grid from the first one (mapped W/1/2/3/4/R; others None), builds NN or all-beat RR points, yields (record, rr, ref labels, raw tokens, first epoch ms, meta with age/sex from header comment and beat counts).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/validation_common.py::def beats_from_ann",
+    "Tools/validation/validation_common.py::def nn_rr_points",
+    "Tools/validation/validation_common.py::def all_beat_rr_points",
+    "ext:wfdb.rdheader",
+    "ext:wfdb.rdann"
+   ],
+   "reads": [
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/slpdb/RECORDS",
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/slpdb/<rec>.hea|.ecg|.st"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each record",
+     "effect": "yield"
+    },
+    {
+     "at": "+12",
+     "cond": "for each stage annotation",
+     "effect": "place"
+    },
+    {
+     "at": "+14",
+     "cond": "note not blank",
+     "effect": "first token else ''"
+    },
+    {
+     "at": "+16",
+     "cond": "epoch index in range",
+     "effect": "store"
+    },
+    {
+     "at": "+19",
+     "cond": "mode == 'nn'",
+     "effect": "NN RR else all-beat RR"
+    },
+    {
+     "at": "+22",
+     "cond": "header has comments",
+     "effect": "age/sex = first two words else ''"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/validation_common.py::def all_beat_rr_points": "c111b17b37a8c175",
+    "Tools/validation/validation_common.py::def beats_from_ann": "a0facaa81dee6d9a",
+    "Tools/validation/validation_common.py::def nn_rr_points": "fe7261db6cd56d02"
+   }
+  },
+  {
+   "key": "def cap_records",
+   "hash": "85beeba4071ed0a3",
+   "does": "Generator over CAP n1..n16 derived JSONs that exist: yields RR points, epochs, tokens, first epoch ms and meta including ArtifactDetector artifact percentage; the mode argument is unused.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+   ],
+   "reads": [
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/n<i>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 1..16",
+     "effect": "load"
+    },
+    {
+     "at": "+4",
+     "cond": "file missing",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+   }
+  },
+  {
+   "key": "def majority",
+   "hash": "dc2ad430bc93e1e2",
+   "does": "Majority label of a 10-epoch block ignoring None; None if < 5 scorable; ties go to the tied class that appears first.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "< 5 scorable epochs",
+     "effect": "None"
+    },
+    {
+     "at": "+6",
+     "cond": "for each label in time order",
+     "effect": "check"
+    },
+    {
+     "at": "+7",
+     "cond": "count equals max",
+     "effect": "return it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def evaluate_record",
+   "hash": "c644cabc27a373d1",
+   "does": "Runs the classifier for [first_ms, first_ms + n_epochs*30 s), maps each 5-min window index to its app label, pairs with majority reference per 10-epoch block (5-min) and per scorable epoch (30-s), and returns counts, reference/app minutes, confusion matrices, stats, has_freq/has_dfa and stage counts (or classified=False).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def classify",
+    "Tools/validation/validate_sleep.py::def majority",
+    "Tools/validation/validation_common.py::def confusion",
+    "Tools/validation/validation_common.py::def summary_from_cm"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "classifier returned None",
+     "effect": "classified=False, early return"
+    },
+    {
+     "at": "+17",
+     "cond": "for each window/stage",
+     "effect": "map"
+    },
+    {
+     "at": "+24",
+     "cond": "for each 5-min grid block",
+     "effect": "pair"
+    },
+    {
+     "at": "+26",
+     "cond": "block has app window and majority label",
+     "effect": "pair recorded"
+    },
+    {
+     "at": "+29",
+     "cond": "for each 30-s epoch",
+     "effect": "pair"
+    },
+    {
+     "at": "+30",
+     "cond": "epoch scorable and its block classified",
+     "effect": "pair recorded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
+    "Tools/validation/validate_sleep.py::def majority": "e097dc12994e277b",
+    "Tools/validation/validation_common.py::def confusion": "df998ee7a724b9fc",
+    "Tools/validation/validation_common.py::def summary_from_cm": "77390317c9244e8e"
+   }
+  },
+  {
+   "key": "def main",
+   "hash": "f3e997de9d93fd3b",
+   "does": "CLI: picks db/mode/bounds, iterates records (for 'sp' trims the reference to first..last non-wake epoch, skipping records with none), evaluates each, pools confusion matrices, stats, per-record kappa/accuracy mean+SD, and Bland-Altman of TST/deep/REM minutes over classified records; writes JSON and prints pooled stats.",
+   "entry": "python3 -I validate_sleep.py slpdb|cap [nn|all] [full|sp]",
+   "calls": [
+    "Tools/validation/validate_sleep.py::def slpdb_records",
+    "Tools/validation/validate_sleep.py::def cap_records",
+    "Tools/validation/validate_sleep.py::def evaluate_record",
+    "Tools/validation/validation_common.py::def summary_from_cm",
+    "Tools/validation/validation_common.py::def bland_altman"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Tools/validation/results/sleep_<db>_<mode>_<bounds>.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "argv[2] given",
+     "effect": "mode else 'nn'"
+    },
+    {
+     "at": "+3",
+     "cond": "argv[3] given",
+     "effect": "bounds else 'full'"
+    },
+    {
+     "at": "+4",
+     "cond": "db == 'slpdb'",
+     "effect": "slpdb generator; any other value -> CAP generator"
+    },
+    {
+     "at": "+6",
+     "cond": "for each record",
+     "effect": "evaluate"
+    },
+    {
+     "at": "+7",
+     "cond": "bounds == 'sp'",
+     "effect": "trim to sleep period"
+    },
+    {
+     "at": "+9",
+     "cond": "no sleep epoch",
+     "effect": "record skipped"
+    },
+    {
+     "at": "+20",
+     "cond": "record classified",
+     "effect": "label printed"
+    },
+    {
+     "at": "+24",
+     "cond": "for each resolution",
+     "effect": "pool"
+    },
+    {
+     "at": "+26",
+     "cond": "for each classified record",
+     "effect": "add matrix"
+    },
+    {
+     "at": "+34",
+     "cond": "for each minutes quantity",
+     "effect": "Bland-Altman"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/validate_sleep.py::def cap_records": "ae155ef8052a3de5",
+    "Tools/validation/validate_sleep.py::def evaluate_record": "a43eb116b5ddbd36",
+    "Tools/validation/validate_sleep.py::def slpdb_records": "9ff19c35b33e7e9f",
+    "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2",
+    "Tools/validation/validation_common.py::def summary_from_cm": "77390317c9244e8e"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/validation/validate_sleep.py::def main": "6f7248a906fb33e1"
+ }
+}

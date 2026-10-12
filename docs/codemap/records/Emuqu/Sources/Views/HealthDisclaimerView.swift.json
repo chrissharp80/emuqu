@@ -1,0 +1,407 @@
+{
+ "file": "Emuqu/Sources/Views/HealthDisclaimerView.swift",
+ "hash": "2507b8a2fd25a9bd",
+ "role": "Health disclaimer text (shared by the first-launch gate and Terms of Use) plus the first-launch disclaimer view whose 'I Agree' button unlocks after scrolling to the bottom (or immediately under VoiceOver) and sets the device-local accepted flag.",
+ "types": [
+  "HealthDisclaimer: enum (@MainActor) — disclaimer section text incl. Apple DPLA route-guidance notice and 13+ age affirmation",
+  "DisclaimerSectionView: struct (View) — heading+body block",
+  "HealthDisclaimerView: struct (View) — gate / re-read view",
+  "VoiceOverAgreementUnlock: private struct (ViewModifier) — enables agree under VoiceOver"
+ ],
+ "state": [
+  "static let HealthDisclaimer.routeGuidanceNotice (English Apple DPLA 3.3.3 F(iii) text)",
+  "@State canAgree",
+  "scrollSpace coordinate space name 'disclaimerScroll'",
+  "accessibility ids 'disclaimer.scroll', 'disclaimer.agree'",
+  "ud:hasAcceptedHealthDisclaimer written via SettingsManager.hasAcceptedDisclaimer"
+ ],
+ "toplevel": "#Preview builds HealthDisclaimerView with AppDependencies.current.app.settingsManager. Presented as the .disclaimer launch fullScreenCover (EmuquApp.swift:345) and pushed from SettingsView.swift:469, MoreMenuView.swift:199 and SettingsSearchIndex.swift:362.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HealthDisclaimer.sections",
+   "hash": "a6185fdfcec88e57",
+   "does": "Returns all disclaimer sections in reading order: legalSections followed by ageSection.",
+   "entry": "Read by HealthDisclaimerView.disclaimerSections and TermsOfUseView.swift:39; tests HealthDisclaimerTests",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.legalSections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.ageSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.ageSection": "a9dfdb41af80aee6",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.legalSections": "350918ed69f19dc7"
+   }
+  },
+  {
+   "key": "var HealthDisclaimer.legalSections",
+   "hash": "456fc8c252943d96",
+   "does": "Returns scopeSections + navigationSections + riskSections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.scopeSections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.navigationSections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.riskSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.navigationSections": "3d6b8a2adeae803d",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.riskSections": "8e6bf30d6b8efcf5",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.scopeSections": "e90a8653d310fdf2"
+   }
+  },
+  {
+   "key": "var HealthDisclaimer.routeGuidanceNoticeText",
+   "hash": "fb3a36e5e70e1aaa",
+   "does": "Returns the localized route-guidance notice, followed by Apple's English wording after a blank line whenever the localized string differs from the English constant.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "localized text equals the English notice",
+     "effect": "returns it alone; otherwise localized + '\\n\\n' + English notice so the required wording is always present"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthDisclaimer.navigationSections",
+   "hash": "b491736d0c7b01cc",
+   "does": "Returns the single 'Navigation and Route Guidance' section whose body explains reliance on location/map data and appends routeGuidanceNoticeText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.routeGuidanceNoticeText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.routeGuidanceNoticeText": "14e74da20449bfda"
+   }
+  },
+  {
+   "key": "var HealthDisclaimer.scopeSections",
+   "hash": "67bbf22c07950813",
+   "does": "Returns the three scope sections: Not a Medical Device, Informational Purposes Only, No Medical Advice (localized).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthDisclaimer.riskSections",
+   "hash": "c0dfee9a0ac7fb41",
+   "does": "Returns the three risk sections: Data Accuracy, Consult a Professional, Assumption of Risk (localized).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthDisclaimer.ageSection",
+   "hash": "a81018e3e230c61b",
+   "does": "Returns the 'Age Requirement' section stating that tapping I Agree confirms the user is at least 13.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DisclaimerSectionView.body",
+   "hash": "4a8dd8a1d1901cb2",
+   "does": "Renders one disclaimer section: semibold heading over secondary-color body text.",
+   "entry": "SwiftUI body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HealthDisclaimerView.isGate",
+   "hash": "bfe8be7e2eec5892",
+   "does": "True when settingsManager.hasAcceptedDisclaimer is false (first-launch gate mode); false when re-reading after acceptance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer"
+   ],
+   "reads": [
+    "ud:hasAcceptedHealthDisclaimer"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f"
+   }
+  },
+  {
+   "key": "var HealthDisclaimerView.body",
+   "hash": "052c428e1e509ee7",
+   "does": "Gate/re-read body: header, scrollable sections, and (only in gate mode) the agreement footer; disables interactive dismiss and applies the VoiceOver unlock modifier.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.disclaimerHeader",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.disclaimerScroll",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.isGate",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.agreementFooter",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func VoiceOverAgreementUnlock.body(content:)"
+   ],
+   "reads": [
+    "ud:hasAcceptedHealthDisclaimer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isGate (not yet accepted)",
+     "effect": "shows agreement footer with I Agree; otherwise (pushed from Settings/More after acceptance) no footer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func VoiceOverAgreementUnlock.body(content:)": "fccad7d81834c736",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.agreementFooter": "a8571f8fecb32652",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.disclaimerHeader": "a541e6748e636341",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.disclaimerScroll": "963ba4185a1f1ead",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.isGate": "a39d983133688632",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var HealthDisclaimerView.disclaimerHeader",
+   "hash": "79302731d74a0bda",
+   "does": "Header with clipboard icon, 'Health Disclaimer' title and, in gate mode, the 'Please read before continuing' subtitle.",
+   "entry": "SwiftUI view property",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.isGate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "isGate",
+     "effect": "shows subtitle; otherwise omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.isGate": "a39d983133688632",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HealthDisclaimerView.disclaimerScroll",
+   "hash": "2b9d0f7a38976ba8",
+   "does": "GeometryReader hosting the scroll body, masked with a bottom 20 pt fade that collapses to 0 once canAgree is true.",
+   "entry": "SwiftUI view property",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.disclaimerScrollBody(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "canAgree",
+     "effect": "fade height 0; otherwise 20 pt fade hinting more text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.disclaimerScrollBody(_:)": "e00268d8e62cc470"
+   }
+  },
+  {
+   "key": "func HealthDisclaimerView.disclaimerScrollBody(_:)",
+   "hash": "d3dc64364dfd2be1",
+   "does": "ScrollView of the sections in a named coordinate space with accessibility id 'disclaimer.scroll'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.disclaimerSections(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.disclaimerSections(_:)": "47d2a45cd9750431"
+   }
+  },
+  {
+   "key": "func HealthDisclaimerView.disclaimerSections(_:)",
+   "hash": "483e1bf5defdd64a",
+   "does": "VStack of DisclaimerSectionView for every HealthDisclaimer.sections entry, with a background geometry probe feeding scroll position.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var DisclaimerSectionView.body",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.scrollPositionProbe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.scrollPositionProbe(_:)": "6c44212f0df2751a",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var DisclaimerSectionView.body": "b85ef97f3e2be465",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections": "b56cef1812263673"
+   }
+  },
+  {
+   "key": "func HealthDisclaimerView.scrollPositionProbe(_:)",
+   "hash": "3bf99f3b02962d1d",
+   "does": "Background GeometryReader that calls checkScrollPosition with the content frame in the scroll space on every frame change and once on appear.",
+   "entry": "SwiftUI .onChange(of: frame) and .onAppear",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.checkScrollPosition(contentFrame:viewportHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::func HealthDisclaimerView.checkScrollPosition(contentFrame:viewportHeight:)": "ab53745cca07ae91"
+   }
+  },
+  {
+   "key": "var HealthDisclaimerView.agreementFooter",
+   "hash": "0b3f0975e29b71d6",
+   "does": "Footer with the I Agree button (disabled and 50% opacity until canAgree, id 'disclaimer.agree') and a 'Scroll to read the full disclaimer' caption while locked.",
+   "entry": "SwiftUI view property",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.iAgreeButton",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "canAgree",
+     "effect": "opacity 1.0; otherwise 0.5 (button also disabled)"
+    },
+    {
+     "at": "+12",
+     "cond": "!canAgree",
+     "effect": "shows scroll hint caption; otherwise hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.iAgreeButton": "9eba9512c60787b5",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var HealthDisclaimerView.iAgreeButton",
+   "hash": "1e72029580323362",
+   "does": "'I Agree' button that sets settingsManager.hasAcceptedDisclaimer = true with animation (UserDefaults write; EmuquApp's onChange then dismisses the launch modal).",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:hasAcceptedHealthDisclaimer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HealthDisclaimerView.checkScrollPosition(contentFrame:viewportHeight:)",
+   "hash": "3d563cfd27835844",
+   "does": "Unlocks agreement (canAgree = true, animated) once the content fits the viewport or its bottom is within 40 pt of the viewport bottom; no-op if already unlocked.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canAgree already true",
+     "effect": "early return"
+    },
+    {
+     "at": "+6",
+     "cond": "content fits OR bottom reached (maxY <= viewport+40)",
+     "effect": "sets canAgree = true; otherwise stays locked"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceOverAgreementUnlock.body(content:)",
+   "hash": "23ffd4aebf9e9a32",
+   "does": "Modifier: on appear and on every VoiceOver status-change notification, sets canAgree = true if VoiceOver is running.",
+   "entry": "ViewModifier body; .onAppear and NotificationCenter publisher for UIAccessibility.voiceOverStatusDidChangeNotification",
+   "calls": [
+    "ext:UIAccessibility.isVoiceOverRunning"
+   ],
+   "reads": [
+    "notif:UIAccessibility.voiceOverStatusDidChangeNotification"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "VoiceOver running at appear",
+     "effect": "canAgree = true; otherwise unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "VoiceOver running after a status change",
+     "effect": "canAgree = true; otherwise unchanged (turning VoiceOver off does not re-lock)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

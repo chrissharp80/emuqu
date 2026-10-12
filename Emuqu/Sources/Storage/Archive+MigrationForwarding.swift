@@ -12,7 +12,6 @@ extension SessionArchive {
     }
 
     func runDeferredMigrations() { migrations.runDeferredMigrations() }
-    func removeDuplicates() { migrations.removeDuplicates() }
     func relinkSameNightSessions() { migrations.relinkSameNightSessions() }
 
     /// Pure helpers — no archive state — so they forward to the type.

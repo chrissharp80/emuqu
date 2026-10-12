@@ -17,11 +17,13 @@ import XCTest
 /// it is a lock on the claim.
 final class RecoveryBlockClassificationTests: XCTestCase {
     /// A block with everything irrelevant to classification held constant, so
-    /// each test varies exactly the field it is about.
+    /// each test varies exactly the field it is about. LF/HF defaults to nil,
+    /// as the production selector builds every block, so a test that does not
+    /// set it runs the live α1-and-stable-HR rule, not the tolerant LF/HF one.
     private func block(
         cleanBeatCount: Int = 400,
         dfaAlpha1: Double? = 0.85,
-        lfHfRatio: Double? = 1.2,
+        lfHfRatio: Double? = nil,
         hrCV: Double = 0.05
     ) -> ScoredRecoveryBlock {
         ScoredRecoveryBlock(

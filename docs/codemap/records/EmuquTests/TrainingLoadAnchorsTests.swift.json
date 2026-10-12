@@ -1,0 +1,209 @@
+{
+ "file": "EmuquTests/TrainingLoadAnchorsTests.swift",
+ "hash": "a78dc1db78eea2d5",
+ "role": "@MainActor XCTest suite pinning that per-workout intensity judgements (hard workout, days since hard, weekly intensity score) use the resolved HeartRateAnchors, that TrainingLoadProjection steps the shared EWMA, and that a ride's computedPowerTSS equals TrainingLoadPrecedence.readTimePowerTSS.",
+ "types": [
+  "TrainingLoadAnchorsTests: class — @MainActor XCTestCase over HealthWorkoutSummary anchors, TrainingLoad/TrainingHealthQueries builders, TrainingLoadProjection, TrainingLoadPrecedence"
+ ],
+ "state": [
+  "now: fixed Date(1_790_000_000)",
+  "athlete: HeartRateAnchors(restingHR 48, maxHR 160)",
+  "sixtyBpm: HeartRateAnchors(restingHR 60, maxHR 160)"
+ ],
+ "toplevel": "Stored fixtures now, athlete and sixtyBpm.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)",
+   "hash": "9dfd0f4ed0cba046",
+   "does": "Test helper: a running HealthKitManager.WorkoutSummary `daysAgo` before `now`, default 45 min at avg HR 118.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testHardWorkoutIsJudgedAgainstTheResolvedRestingHR()",
+   "hash": "543dde868d7b2135",
+   "does": "Asserts the 45 min / 118 bpm session is hard against resting 48 (62.5% reserve) and not hard against resting 60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)": "f7405ae764f64b96"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testDaysSinceHardWorkoutUsesTheAnchors()",
+   "hash": "402b04379b20b5c2",
+   "does": "Asserts TrainingLoad.daysSinceHardWorkout is 1 with the athlete anchors and nil with the 60 bpm anchors.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)": "f7405ae764f64b96"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testIntensityScoreUsesTheResolvedReserve()",
+   "hash": "b8178e223a82cc27",
+   "does": "Asserts intensityScore(anchors: athlete) = 22.5 duration points + 0.625 × 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.intensityScore(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.intensityScore(anchors:)": "e6141d599ba16aaa",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)": "f7405ae764f64b96"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testWithoutHeartRateLongSessionsStillCountAsHard()",
+   "hash": "96f283c8219d3bbb",
+   "does": "Asserts with no HR a 75 min session is hard and a 45 min one is not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)": "f7405ae764f64b96"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testTheTrainingLoadBuilderPassesItsAnchorsThrough()",
+   "hash": "7874dce2ffc3021b",
+   "does": "Asserts TrainingHealthQueries.trainingLoad over one session with the athlete anchors gives daysSinceHardWorkout 1 and weeklyLoadScore = (22.5 + 31.25)/7×7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingLoad(workouts:days:anchors:vo2Max:metrics:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.intensityScore(anchors:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.intensityScore(anchors:)": "e6141d599ba16aaa",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingLoad(workouts:days:anchors:vo2Max:metrics:relativeTo:)": "0888e8bb7c4646cc",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "EmuquTests/TrainingLoadAnchorsTests.swift::func TrainingLoadAnchorsTests.session(minutes:avgHR:daysAgo:)": "f7405ae764f64b96"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testProjectionIsTheSharedEWMAStepRepeated()",
+   "hash": "19ac7027f9fac6c9",
+   "does": "Asserts each of the 5 days from TrainingLoadProjection.project(ATL 70, CTL 50, daily 80) equals repeated TrainingLoadSeries.Point.stepped(load: 80) (±1e-12), and there are 5 days.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each projected day",
+     "effect": "steps the reference point and compares ATL and CTL"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadAnchorsTests.testComputedPowerTSSIsThePrecedenceReadTimeFigure()",
+   "hash": "65607ce11dbfaa92",
+   "does": "Sets the shared settings' cyclingFTPWatts to 250 (restored by defer), builds a bike WorkoutMetadata with NP 200 W and 61 one-minute samples, and asserts computedPowerTSS equals readTimePowerTSS(ftp: .current(settings)) and both are 64.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.settingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.cyclingFTPWatts",
+    "file:settings (SettingsManager save)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Shares state with the app host: mutates the live AppDependencies.current settings manager (cyclingFTPWatts = 250), whose didSet saves the host's settings file; it is restored in a defer, but a crash in between leaves the host's FTP changed, and any concurrently running code reads 250.",
+     "evidence": [
+      "EmuquTests/TrainingLoadAnchorsTests.swift:77",
+      "EmuquTests/TrainingLoadAnchorsTests.swift:80",
+      "Emuqu/Sources/Models/SettingsManager.swift:34"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "8fe8124d422c3999",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedPowerTSS": "bdc32e3316520d02",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  }
+ ],
+ "deps": {}
+}

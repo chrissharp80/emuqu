@@ -13,9 +13,10 @@ extension WindowSelector {
 
     /// Scan a range of the series, evaluating windows at regular intervals.
     /// `artifactRateLimit` overrides `config.maxArtifactRate` when supplied —
-    /// `findBestWindow` uses this to run a strict 10% pass first, falling
-    /// back to the permissive 15% cutoff only if the strict pass yields no
-    /// organized windows.
+    /// `scanBandWithArtifactFallback` uses this to run a strict 10% pass
+    /// first, falling back to the permissive 15% cutoff only if the strict
+    /// pass yields no organized windows (`findBestWindow`) or no windows at
+    /// all (`findPeakMetricWindow`).
     func scanWindows(
         series: RRSeries,
         flags: [ArtifactFlags],
@@ -69,9 +70,7 @@ extension WindowSelector {
             windowPoints: slice.points, windowFlags: slice.flags, startIdx: startIdx
         )
         let effectiveLimit = artifactRateLimit ?? config.maxArtifactRate
-        guard validateArtifactRate(
-            artifactRate, limit: effectiveLimit, windowPoints: slice.points, windowFlags: slice.flags
-        ) else { return nil }
+        guard validateArtifactRate(artifactRate, limit: effectiveLimit, windowPointCount: slice.points.count) else { return nil }
         guard rrValues.count >= 50 else {
             debugLog("[WindowSelector] evaluateWindow REJECTED: only \(rrValues.count) valid RR values (need ≥50)")
             return nil
@@ -123,13 +122,15 @@ extension WindowSelector {
         let rmssd: Double
     }
 
-    /// Ectopic-filtered beats, or nil when too few survive. The floor adapts
+    /// Ectopic-filtered beats, or nil when too few survive. The gate is
+    /// `TimeDomainAnalyzer.ectopicKeepMask`, the one the reported RMSSD uses,
+    /// so the window is chosen on the beats it then reports. The floor adapts
     /// downward for short windows so a 200-beat window isn't held to the same
     /// absolute count as a 600-beat one.
     private func cleanBeats(
         rrValues: [(index: Int, rr: Double)], windowPoints: [RRPoint], breaks: Set<Int>
     ) -> CleanBeats? {
-        let kept = ectopicKeepMask(rrValues.map(\.rr))
+        let kept = TimeDomainAnalyzer.ectopicKeepMask(rrValues.map(\.rr))
         let cleanRRs = zip(rrValues, kept).filter { $0.1 }.map { $0.0.rr }
         let adaptiveMinCleanBeats = min(config.minCleanBeats, max(50, Int(Double(windowPoints.count) * 0.75)))
         guard cleanRRs.count >= adaptiveMinCleanBeats else {
@@ -171,25 +172,32 @@ extension WindowSelector {
 
     // MARK: - evaluateWindow Helpers
 
+    /// The window's valid, artifact-free beats with their series index, and
+    /// the share of its beats that are artifacts or unverified. A beat past
+    /// the end of `windowFlags` (a recovered session whose artifact detection
+    /// ran on a partial backup) was never checked, so it is neither clean nor
+    /// left out of the rate: it counts as unverified, against the window.
     private func extractValidRRValues(
         windowPoints: [RRPoint], windowFlags: [ArtifactFlags], startIdx: Int
     ) -> (values: [(index: Int, rr: Double)], artifactRate: Double) {
         var rrValues: [(index: Int, rr: Double)] = []
+        var rejectedCount = 0
         for (i, point) in windowPoints.enumerated() {
-            let isArtifact = i < windowFlags.count ? windowFlags[i].isArtifact : false
-            if !isArtifact, HRVConstants.RRInterval.isValid(point.rr_ms) {
+            guard i < windowFlags.count, !windowFlags[i].isArtifact else {
+                rejectedCount += 1
+                continue
+            }
+            if HRVConstants.RRInterval.isValid(point.rr_ms) {
                 rrValues.append((startIdx + i, Double(point.rr_ms)))
             }
         }
-        let artifactCount = windowFlags.filter(\.isArtifact).count
-        let artifactRate = Double(artifactCount) / Double(windowPoints.count)
-        return (rrValues, artifactRate)
+        return (rrValues, Double(rejectedCount) / Double(windowPoints.count))
     }
 
-    private func validateArtifactRate(_ artifactRate: Double, limit: Double, windowPoints: [RRPoint], windowFlags: [ArtifactFlags]) -> Bool {
+    private func validateArtifactRate(_ artifactRate: Double, limit: Double, windowPointCount: Int) -> Bool {
         if artifactRate > limit {
-            let artifactCount = windowFlags.filter(\.isArtifact).count
-            debugLog("[WindowSelector] evaluateWindow REJECTED: artifact rate \(String(format: "%.1f%%", artifactRate * 100)) > limit \(String(format: "%.1f%%", limit * 100)) (\(artifactCount)/\(windowPoints.count) artifacts)")
+            let rejectedCount = Int((artifactRate * Double(windowPointCount)).rounded())
+            debugLog("[WindowSelector] evaluateWindow REJECTED: artifact rate \(String(format: "%.1f%%", artifactRate * 100)) > limit \(String(format: "%.1f%%", limit * 100)) (\(rejectedCount)/\(windowPointCount) artifacts or unverified)")
             return false
         }
         return true
@@ -199,16 +207,16 @@ extension WindowSelector {
         let meanHR: Double, hrCV: Double, rmssd: Double, sdnn: Double
     }
 
+    /// SDNN is the sample standard deviation (divisor N-1), the estimator the
+    /// reported SDNN uses (`TimeDomainAnalyzer.computeTimeDomain` via
+    /// `Statistics.sampleStandardDeviation`), so peak-SDNN selection and
+    /// `PeakCapacity.peakSDNN` carry the value the report shows. HR CV is
+    /// that SD over the mean RR.
     private func computeWindowMetrics(cleanRRs: [Double], rmssd: Double, windowPoints: [RRPoint]) -> WindowMetrics {
         let meanRR = cleanRRs.reduce(0, +) / Double(cleanRRs.count)
         let meanHR = computeMeanHR(windowPoints: windowPoints, meanRR: meanRR)
-        // Population variance (divisor N) — NOT routed through Statistics, which offers
-        // only sample variance (divisor N-1). Convention mismatch; left as-is to preserve behavior.
-        let variance = cleanRRs.map { pow($0 - meanRR, 2) }.reduce(0, +) / Double(cleanRRs.count)
-        return WindowMetrics(
-            meanHR: meanHR, hrCV: sqrt(variance) / meanRR,
-            rmssd: rmssd, sdnn: sqrt(variance)
-        )
+        let sdnn = Statistics.sampleStandardDeviation(cleanRRs)
+        return WindowMetrics(meanHR: meanHR, hrCV: sdnn / meanRR, rmssd: rmssd, sdnn: sdnn)
     }
 
     /// Calculate mean HR — trimmed mean from sensor if available, otherwise from mean RR.

@@ -1,0 +1,268 @@
+{
+ "file": "Emuqu/Sources/Services/DirectionsService.swift",
+ "hash": "b4599c6d7e32b47b",
+ "role": "Backend for the AI directions.routeTo tool: resolves a destination (breadcrumb origin, POI search, address) to a coordinate, asks MapKit for a route, engages it as the active route session, and returns a compact RouteResult.",
+ "types": [
+  "DirectionsService: enum — static route resolution",
+  "DirectionsService.Destination: enum — origin | poi(query) | address",
+  "DirectionsService.Mode: enum — walking | driving",
+  "DirectionsService.RouteResult: struct — label, coords, distance, duration, mode, first 3 steps",
+  "DirectionsError: enum — noBreadcrumbOrigin, noPOIMatch, geocoderFailed, noRoute"
+ ],
+ "state": [
+  "mem:DirectionsService.poiRadiusMeters = 25_000 (static)"
+ ],
+ "toplevel": "No top-level code beyond type declarations.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references DirectionsService or DirectionsError.",
+   "evidence": [
+    "Emuqu/Sources/Services/DirectionsService.swift:67"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DirectionsService.Mode.transportType",
+   "hash": "964135512249d9fd",
+   "does": "Maps Mode to MKDirectionsTransportType: walking → .walking, otherwise .automobile.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self == .walking",
+     "effect": "true: .walking; false: .automobile"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DirectionsService.resolveRoute(from:to:mode:)",
+   "hash": "092a8dfc97b745af",
+   "does": "Resolves the destination label+coordinate, computes a MapKit route from origin, throws CancellationError if its task was cancelled meanwhile (the assistant caller cancels the lookup when its 4 s timeout wins), otherwise engages it on ActiveRouteSession (replacing any active one) and returns distance/duration/mode and up to 3 non-empty step instructions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveDestination(_:near:)",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.mapKitRoute(from:to:mode:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ActiveRouteSession (engaged route)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "task cancelled",
+     "effect": "throw CancellationError, nothing engaged"
+    },
+    {
+     "at": "+21",
+     "cond": "mode == .walking",
+     "effect": "true: \"walking\"; false: \"driving\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)": "8c8881cd432f81ff",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.mapKitRoute(from:to:mode:)": "ffd69659ae12ac8b",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveDestination(_:near:)": "a12b92a09163c3a4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "bd4f88369c187afe"
+   }
+  },
+  {
+   "key": "func DirectionsService.mapKitRoute(from:to:mode:)",
+   "hash": "026121456d2bacbe",
+   "does": "Builds an MKDirections request (no alternates, transport from mode) and returns the first route; throws DirectionsError.noRoute when MapKit returns none (MapKit errors propagate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DirectionsService.swift::var DirectionsService.Mode.transportType",
+    "ext:MKDirections.calculate"
+   ],
+   "reads": [
+    "net:Apple MapKit directions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "response.routes.first exists",
+     "effect": "false: throw noRoute; true: return it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Services/DirectionsService.swift::var DirectionsService.Mode.transportType": "925dcb28eace1dda",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.destination(for:)": "5beb3780ba6105b1"
+   }
+  },
+  {
+   "key": "func DirectionsService.resolveDestination(_:near:)",
+   "hash": "a6636008d976ddfd",
+   "does": "Dispatches the destination to the matching resolver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.breadcrumbOrigin()",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.nearestPOI(matching:near:)",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.geocodedAddress(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "case .origin",
+     "effect": "breadcrumbOrigin()"
+    },
+    {
+     "at": "+7",
+     "cond": "case .poi(query)",
+     "effect": "nearestPOI(query, near: origin)"
+    },
+    {
+     "at": "+9",
+     "cond": "case .address(text)",
+     "effect": "geocodedAddress(text)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.breadcrumbOrigin()": "8689afc5a3bff5cb",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.geocodedAddress(_:)": "b6be388533e4f310",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.nearestPOI(matching:near:)": "986988871fb79bf9"
+   }
+  },
+  {
+   "key": "func DirectionsService.breadcrumbOrigin()",
+   "hash": "c321dfd05328b95c",
+   "does": "Loads the active breadcrumb trail from disk and returns its origin coordinate with label = trail.label ?? resolvedOriginLabel ?? localized 'where you started'; throws noBreadcrumbOrigin when no trail or no origin.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "active trail loaded AND it has an origin",
+     "effect": "false: throw DirectionsError.noBreadcrumbOrigin; true: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "trail.label ?? resolvedOriginLabel ?? \"where you started\"",
+     "effect": "label falls back to geocoded origin label, then the localized generic phrase"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "ec7d3168e9a8ca29",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+   }
+  },
+  {
+   "key": "func DirectionsService.nearestPOI(matching:near:)",
+   "hash": "3447f55915a5f85d",
+   "does": "MKLocalSearch for the natural-language query in a region 50 km across centred on origin (POIs and addresses), drops results farther than poiRadiusMeters (25 km), picks the nearest remaining one; label = name ?? thoroughfare ?? query.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.distance(from:to:)",
+    "ext:MKLocalSearch.start"
+   ],
+   "reads": [
+    "net:Apple MapKit local search"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "result farther than 25 km",
+     "effect": "dropped"
+    },
+    {
+     "at": "+14",
+     "cond": "no result within 25 km",
+     "effect": "throw noPOIMatch"
+    },
+    {
+     "at": "+15",
+     "cond": "nearest.name ?? placemark.thoroughfare ?? query",
+     "effect": "label fallback chain"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.distance(from:to:)": "46745a2eb22a4be7"
+   }
+  },
+  {
+   "key": "func DirectionsService.distance(from:to:)",
+   "hash": "27c1f2afc477d157",
+   "does": "CLLocation distance in meters from a map item's placemark coordinate to origin.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DirectionsService.geocodedAddress(_:)",
+   "hash": "ec764594c9afcc3f",
+   "does": "Forward-geocodes free text via RoadGeocodingService.geocodeAddress; label = 'road, locality' or the input text if both empty; throws geocoderFailed when no result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocodeAddress(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "net:Apple CLGeocoder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "geocodeAddress returned a context",
+     "effect": "false: log warning, throw geocoderFailed(query); true: continue"
+    },
+    {
+     "at": "+8",
+     "cond": "label.isEmpty",
+     "effect": "true: use the raw text; false: joined road/locality"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocodeAddress(_:)": "ceffa72d829b0d43",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

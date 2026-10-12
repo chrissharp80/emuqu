@@ -1,0 +1,307 @@
+{
+ "file": "Emuqu/Sources/Views/ReportsSettingsPage.swift",
+ "hash": "273bddf51118c520",
+ "role": "Settings > Reports page: link to ReportsListView, auto-email-after-workout toggle (enableAutoCoachReport), default training email recipient/CC fields shared with Profile, and an explainer of the three report kinds.",
+ "types": [
+  "ReportsSettingsPage: struct (View) — reports settings form"
+ ],
+ "state": [
+  "var settingsManager: SettingsManager (injected)"
+ ],
+ "toplevel": "Header comment (lines 3-17) documents the toggle and recipient cross-link. Presented from SettingsView.swift:219 and SettingsSearchIndex.swift:131; snapshot test PageSnapshotTests.swift:65.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ReportsSettingsPage.body",
+   "hash": "5c9e2b699a348dac",
+   "does": "Form of browse, auto-email, recipient and explainer sections titled 'Reports'.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.browseSection",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailSection",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.recipientSection",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.explainerSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailSection": "dbe37c5125b8da0c",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.browseSection": "0ad8ae29af78e68f",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.explainerSection": "98c5e2cd27591e5c",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.recipientSection": "21bb0e360c51739f"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.browseSection",
+   "hash": "38a81db98a9bd5bf",
+   "does": "Section with a NavigationLink to ReportsListView.",
+   "entry": "SwiftUI view builder; NavigationLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.browseLinkLabel",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.body": "1cb8facfe3c3ad2f",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.browseLinkLabel": "9dfbe987b5158ee7"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.browseLinkLabel",
+   "hash": "c455819cbe31f774",
+   "does": "Link label: icon, 'View All Reports', 'Recovery, workout, and daily PDFs'.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.autoEmailSection",
+   "hash": "7084055ba3e97566",
+   "does": "Auto-email section with toggle and footer.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailFields",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailFields": "10aa3695da2ef3ab",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailFooter": "741ed9ce21d39fc9"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.autoEmailFields",
+   "hash": "646e882f03c95786",
+   "does": "Toggle bound to settingsManager.settings.enableAutoCoachReport (set triggers SettingsManager didSet → persist + settings-changed notification). Read by WorkoutRecorder+Stop.swift:395 to stage the coach report email after HRR.",
+   "entry": "toggle change",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailToggleLabel",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.autoEmailToggleLabel": "e64135965611e0c6"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.autoEmailToggleLabel",
+   "hash": "792ca31980392baa",
+   "does": "Toggle label 'Email after each workout' / 'Opens a pre-filled email when HRR completes'.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.autoEmailFooter",
+   "hash": "097bf1c7d7201d96",
+   "does": "Footer describing auto-email behaviour (daily report or workout-only PDF; user taps Send).",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.recipientSection",
+   "hash": "67838bb9b73a9504",
+   "does": "Default-recipient section with fields and footer.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.recipientFields",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.recipientFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.recipientFields": "f3677348b9d6b84e",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.recipientFooter": "be18ae885005dd7d"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.recipientFields",
+   "hash": "846b650370bc0a15",
+   "does": "Training recipient row plus CC TextField bound to defaultTrainingEmailCC (empty string stored as nil).",
+   "entry": "text field edit",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.trainingRecipientRow",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "defaultTrainingEmailCC nil (??)",
+     "effect": "field shows empty string"
+    },
+    {
+     "at": "+9",
+     "cond": "typed value empty (?:)",
+     "effect": "store nil; else store the string"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Recipient and CC rows are a copy of SettingsView+Pages.swift's training email rows (same placeholder, bindings and modifiers).",
+     "evidence": [
+      "Emuqu/Sources/Views/ReportsSettingsPage.swift:109",
+      "Emuqu/Sources/Views/ReportsSettingsPage.swift:126",
+      "Emuqu/Sources/Views/SettingsView+Pages.swift:240",
+      "Emuqu/Sources/Views/SettingsView+Pages.swift:255"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.trainingRecipientRow": "4cb1830cfad6ace2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.trainingRecipientRow",
+   "hash": "849508d5538f192d",
+   "does": "TextField bound to defaultTrainingEmailRecipient (empty → nil).",
+   "entry": "text field edit",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:settings JSON (SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "defaultTrainingEmailRecipient nil (??)",
+     "effect": "field shows empty string"
+    },
+    {
+     "at": "+7",
+     "cond": "typed value empty (?:)",
+     "effect": "store nil; else the string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.recipientFooter",
+   "hash": "abd30ac5f53120f7",
+   "does": "Footer: 'Same field as Profile → Training emails'.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.explainerSection",
+   "hash": "5bcf8efbebb5ba2e",
+   "does": "'What's in each report' section.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.explainerFields"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.explainerFields": "1ae2a7467b989fe0"
+   }
+  },
+  {
+   "key": "var ReportsSettingsPage.explainerFields",
+   "hash": "ac795899b62329b8",
+   "does": "Static descriptions of the Recovery/HRV, Daily and Workout reports.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says the Daily report is 'Generated when both exist for the same day', but ReportsListView pairs a workout with a reliable overnight that started within 36 h before it (can be the previous calendar day, and an unreliable same-day night gives workout-only); also 'Produced for every overnight HRV session' while the list only covers the last 90 days.",
+     "evidence": [
+      "Emuqu/Sources/Views/ReportsSettingsPage.swift:166",
+      "Emuqu/Sources/Views/ReportsSettingsPage.swift:160",
+      "Emuqu/Sources/Views/ReportsListView.swift:231",
+      "Emuqu/Sources/Views/ReportsListView.swift:205"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

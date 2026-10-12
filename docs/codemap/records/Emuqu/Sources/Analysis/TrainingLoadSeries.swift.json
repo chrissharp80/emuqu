@@ -1,0 +1,157 @@
+{
+ "file": "Emuqu/Sources/Analysis/TrainingLoadSeries.swift",
+ "hash": "802d9f7c086fdcba",
+ "role": "Shared daily-load bucketing and Banister/Coggan EWMA (ATL τ=7, CTL τ=42, exact e^(−1/τ)) used by both the live training metrics and TrainingMetricsCache.dailySeries.",
+ "types": [
+  "TrainingLoadSeries: enum — dailyLoad/replay/point",
+  "TrainingLoadSeries.HeartRateAnchors: struct Codable Sendable — restingHR, maxHR (the TRIMP sex weighting is read from settings at load time; the cache's LoadSettings keys it)",
+  "TrainingLoadSeries.Point: struct — atl, ctl, tsb, stepped(load:)"
+ ],
+ "state": [
+  "static Point.zero"
+ ],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)",
+   "hash": "afd3c242dfd3473e",
+   "does": "Builds anchors: resting HR = Apple's value if present else the setting; max HR = setting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "appleRestingHR ?? Double(settingRestingHR)",
+     "effect": "setting used when Health has no resting HR"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingLoadSeries.Point.tsb",
+   "hash": "b18a2cd957a1779f",
+   "does": "TSB = CTL − ATL.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadSeries.Point.stepped(load:)",
+   "hash": "f68f5d2ec5211822",
+   "does": "One day's EWMA step: X = load·(1−e^(−1/τ)) + X·e^(−1/τ) for ATL (acuteDays) and CTL (chronicDays).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
+   "hash": "7f40185a273a4592",
+   "does": "Creates a 0 entry for every local day from firstDay to lastDay, adds each in-window workout's effectiveLoad(resting,max) to its day, skips out-of-window workouts, caps each day at TRIMP.maxDailyLoad.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot.biologicalSex (inside effectiveLoad)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "day <= end",
+     "effect": "adds a zero day and advances"
+    },
+    {
+     "at": "+12",
+     "cond": "calendar.date(byAdding: 1 day) nil",
+     "effect": "break"
+    },
+    {
+     "at": "+15",
+     "cond": "for each workout",
+     "effect": "bucket it"
+    },
+    {
+     "at": "+17",
+     "cond": "workout's day inside the window",
+     "effect": "false: skipped; true: adds effectiveLoad"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func TrainingLoadSeries.replay(_:)",
+   "hash": "e42d2df53d2dbca9",
+   "does": "Replays dailyLoad in date order from zero, returning each day's Point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sorted day",
+     "effect": "steps the EWMA"
+    },
+    {
+     "at": "+4",
+     "cond": "dailyLoad[day] ?? 0",
+     "effect": "0 never used (key comes from the dict)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "4e9666f175b0eb18"
+   }
+  },
+  {
+   "key": "func TrainingLoadSeries.point(through:in:)",
+   "hash": "056ab6cc3c78f15c",
+   "does": "The EWMA after `day`: replay over the days of dailyLoad up to and including it, read at the last of them; .zero when none is. One loop implementation (replay) serves both the live value and the series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "any day <= `day`",
+     "effect": "false → .zero"
+    },
+    {
+     "at": "+3",
+     "cond": "replay(...)[lastDay] ?? .zero",
+     "effect": ".zero never used (lastDay is a key of the replayed days)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "c30287884e799aea"
+   }
+  }
+ ],
+ "deps": {}
+}

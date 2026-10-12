@@ -1,0 +1,496 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift",
+ "hash": "37e1cecda6351004",
+ "role": "CloudKitLiveBackupManager: throttled (5 min) upload of an encrypted, compressed RR-point buffer for an in-progress recording as a RawBackup record in the HRVSessions zone, plus delete and recovery fetch.",
+ "types": [
+  "CloudKitLiveBackupManager: final class (@MainActor) — live recording backup to CloudKit"
+ ],
+ "state": [
+  "ck:RawBackup record 'live_<sessionId>' in zone HRVSessions (fields captureDate, sessionId, rrData asset; beatCount/deviceId cleared)",
+  "mem:CloudKitLiveBackupManager.lastUpload",
+  "mem:CloudKitLiveBackupManager.schemaUnavailable (per launch)",
+  "file:tmp/live_<id>_<8>.gz (temp asset)",
+  "ud:cloudkit.liveBackup.awaitingDeletion (session ids with an uploaded live backup not yet deleted)",
+  "mem:CloudKitLiveBackupManager.recoveryLimit=10 / listingLimit=200"
+ ],
+ "toplevel": "container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier); recordType 'RawBackup'; zoneID HRVSessions; uploadInterval 300 s. Instance created lazily by CloudKitSyncManager.liveBackup with ensureZone = the manager's zone-creation step.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CloudKitLiveBackupManager.privateDB",
+   "hash": "1446541f2f1e5523",
+   "does": "Returns the container's private CloudKit database.",
+   "entry": null,
+   "calls": [
+    "ext:CKContainer.privateCloudDatabase"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CloudKitLiveBackupManager.backedUpIds",
+   "hash": "2da2bec17601075b",
+   "does": "UserDefaults-backed set of session id strings (cloudkit.liveBackup.awaitingDeletion): read on get, written on set.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "writes": [
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no stored array",
+     "effect": "?? → empty set"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init CloudKitLiveBackupManager(settingsManager:ensureZone:)",
+   "hash": "3f947fdfbd56cb84",
+   "does": "Stores the SettingsManager and the ensureZone closure.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CloudKitLiveBackupManager.settings",
+   "hash": "b8a9dc90ea126a69",
+   "does": "Returns settingsManager.settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.upload(sessionId:points:deviceId:force:)",
+   "hash": "242225d0f70967f9",
+   "does": "If due, advances the throttle first, ensures the zone, fetches/creates record live_<id>, sets plain fields, encodes+compresses+encrypts the points, saves with a temp-file asset, records the id in backedUpIds and logs; any error goes to handleUploadFailure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.isUploadDue(pointCount:force:)",
+    "closure:ensureZone (CloudKitSyncManager.ensureZoneExists passed at CloudKitSyncManager.liveBackup init)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupRecord(sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.setPlainFields(of:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.saveWithAsset(_:compressedData:sessionId:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.handleUploadFailure(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds"
+   ],
+   "reads": [
+    "mem:CloudKitLiveBackupManager.lastUpload"
+   ],
+   "writes": [
+    "mem:CloudKitLiveBackupManager.lastUpload",
+    "ck:RawBackup/HRVSessions",
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not due",
+     "effect": "returns without network"
+    },
+    {
+     "at": "+11",
+     "cond": "any step throws",
+     "effect": "handleUploadFailure: schema error pauses for launch, else logged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)": "45ad750339c8d94c",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.handleUploadFailure(_:)": "8deafcac4db2a0be",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.isUploadDue(pointCount:force:)": "f57e39b71356a93a",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupRecord(sessionId:)": "73caac112f6ec920",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.saveWithAsset(_:compressedData:sessionId:)": "b40d772f81295a7d",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.setPlainFields(of:)": "09630dabc905f62b",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "f2f0bb0db9a454a3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.setPlainFields(of:)",
+   "hash": "288401ff7c50a4ef",
+   "does": "Sets captureDate to now only if absent; clears legacy plaintext beatCount and deviceId fields.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ck:RawBackup.captureDate",
+    "ck:RawBackup.beatCount",
+    "ck:RawBackup.deviceId"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "captureDate nil",
+     "effect": "sets it to Date(); else keeps the first upload's time"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.isUploadDue(pointCount:force:)",
+   "hash": "6e5e27b3d1be4203",
+   "does": "True only when iCloud sync enabled, onboarding completed, points non-empty, schema not flagged unavailable, and (unless force) 300 s have passed since lastUpload.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings"
+   ],
+   "reads": [
+    "mem:CloudKitLiveBackupManager.lastUpload",
+    "mem:CloudKitLiveBackupManager.schemaUnavailable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sync off or onboarding incomplete",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "no points or schema unavailable",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "not forced and last upload < 300 s ago",
+     "effect": "false; otherwise true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "592167b110d714c2"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.liveBackupRecord(sessionId:)",
+   "hash": "689afdcf6c521105",
+   "does": "Fetches record live_<id> with only captureDate/sessionId keys; returns it if present; on unknownItem logs first upload; otherwise builds a new RawBackup record with sessionId.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:CKDatabase.records(for:desiredKeys:)"
+   ],
+   "reads": [
+    "ck:RawBackup/HRVSessions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "record present in the fetch result dictionary",
+     "effect": "returns existing.get(); when that per-record result is a CKError .unknownItem (record not yet created) get() throws inside the do block and is caught at line 104, so a fresh record is built; any other per-record or batch error propagates to upload's catch"
+    },
+    {
+     "at": "+5",
+     "cond": "CKError unknownItem (from the batch call or from existing.get())",
+     "effect": "logs 'first upload', falls through to a fresh RawBackup record with sessionId; other errors propagate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.compressedPoints(_:)",
+   "hash": "491507df40e46819",
+   "does": "In an autoreleasepool: fails closed if no usable CloudPayloadCodec key; JSON-encodes points (ISO-8601), compresses, encrypts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [
+    "kc:CloudPayloadCodec key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no usable key",
+     "effect": "throws CloudSyncError.encryptionUnavailable (no plaintext fallback)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.saveWithAsset(_:compressedData:sessionId:)",
+   "hash": "15f21bd6deead577",
+   "does": "Writes the data to a uniquely named temp .gz file, attaches it as rrData CKAsset, saves the record, then removes the temp file (removal errors logged via attempt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:Data.write",
+    "ext:CKDatabase.save",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/live_<id>_<8>.gz",
+    "ck:RawBackup.rrData"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.handleUploadFailure(_:)",
+   "hash": "c4954d5228f26248",
+   "does": "Permanent schema error → sets schemaUnavailable for this launch and logs an error; otherwise logs the failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitLiveBackupManager.schemaUnavailable"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isPermanentSchemaError",
+     "effect": "pauses live backup for the launch; else info log only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.delete(sessionId:)",
+   "hash": "c586c8658e1363b3",
+   "does": "When sync is enabled, or this device uploaded a live backup for the session (backedUpIds, persisted), deletes record live_<id> without creating the zone; a missing record or zone counts as deleted. Then forgets the id; another error is logged and the id kept for a later attempt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:CKDatabase.deleteRecord"
+   ],
+   "reads": [
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "writes": [
+    "ck:RawBackup/HRVSessions",
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sync disabled and no backup uploaded from here",
+     "effect": "returns without deleting"
+    },
+    {
+     "at": "+6",
+     "cond": "CKError unknownItem/zoneNotFound/userDeletedZone",
+     "effect": "logged as nothing to delete; id forgotten"
+    },
+    {
+     "at": "+8",
+     "cond": "other error",
+     "effect": "logged, return (id kept)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "f2f0bb0db9a454a3",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "592167b110d714c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.fetchAll()",
+   "hash": "8edbdbddaf467ca1",
+   "does": "When sync is enabled, ensures zone, picks the 10 newest backups by capture date from a date-only listing (newestBackupIDs), fetches those records whole and decodes each into a LiveBackupSummary, newest first; returns [] on any error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings",
+    "closure:ensureZone (CloudKitSyncManager.ensureZoneExists)",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.newestBackupIDs()",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupSummary(from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:CKDatabase.records(for:)"
+   ],
+   "reads": [
+    "ck:RawBackup/HRVSessions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sync disabled",
+     "effect": "returns []"
+    },
+    {
+     "at": "+7",
+     "cond": "any backups decoded",
+     "effect": "logs count"
+    },
+    {
+     "at": "+11",
+     "cond": "query/fetch/zone error",
+     "effect": "logs and returns [] (recovery sees nothing)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupSummary(from:)": "8598a4f1727bd63e",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.newestBackupIDs()": "70fd30ebaae843ff",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "592167b110d714c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.newestBackupIDs()",
+   "hash": "ba90b46168b7f364",
+   "does": "Queries RawBackup records (captureDate > 1970) for captureDate only, up to 200, and returns the ids of the 10 with the latest capture date (results without a date or failed are skipped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.recoveryQuery",
+    "ext:CKDatabase.records(matching:inZoneWith:desiredKeys:resultsLimit:)"
+   ],
+   "reads": [
+    "ck:RawBackup/HRVSessions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result failed or has no captureDate",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The date-only listing is capped at 200 records; beyond that (only if hundreds of stale backups piled up) the newest backup could still be missed.",
+     "evidence": [
+      "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift"
+     ]
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.recoveryQuery": "c1d51c1c7c9a59a8"
+   }
+  },
+  {
+   "key": "var CloudKitLiveBackupManager.recoveryQuery",
+   "hash": "6f54720261df8d9a",
+   "does": "CKQuery for RawBackup with predicate captureDate > epoch.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.liveBackupSummary(from:)",
+   "hash": "f45b248d6617da36",
+   "does": "From a query result, requires sessionId (UUID), captureDate and an rrData asset file, decodes the points and returns a summary with beatCount = points.count; nil on missing field, empty points or decode error (error-level log).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.decodePoints(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ck:RawBackup fields"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "failure result or missing/invalid field",
+     "effect": "returns nil silently"
+    },
+    {
+     "at": "+9",
+     "cond": "decoded points empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+11",
+     "cond": "decode throws",
+     "effect": "logs error, returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.decodePoints(at:)": "2592f41f72110483",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.decodePoints(at:)",
+   "hash": "845c4b943cc2a9d6",
+   "does": "Reads the asset file, decrypts with CloudPayloadCodec.decode, decompresses, and JSON-decodes [RRPoint] with ISO-8601 dates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)"
+   ],
+   "reads": [
+    "file:CKAsset fileURL",
+    "kc:CloudPayloadCodec key"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f"
+   }
+  }
+ ],
+ "deps": {}
+}

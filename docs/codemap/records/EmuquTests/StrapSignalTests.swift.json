@@ -1,0 +1,190 @@
+{
+ "file": "EmuquTests/StrapSignalTests.swift",
+ "hash": "4e3848581948b4dc",
+ "role": "@MainActor XCTest suite for StrapSignal, the main-actor continuation wake-up: fire resumes all waiters with true, timeout and cancellation resume with false, a late fire after timeout is harmless, and a fire with no waiters is not latched.",
+ "types": [
+  "StrapSignalTests: class — @MainActor XCTestCase over StrapSignal.fire/wait",
+  "ArrivalCount: private @MainActor final class — counter of waiters that have reached StrapSignal.wait, used by startedWaiters"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapSignalTests.testFireResumesAWaiterWithTrue()",
+   "hash": "4e943af7008e78fb",
+   "does": "Starts one waiter on wait(timeout: 30) through startedWaiters (which returns once it is registered), fires, and asserts the waiter returns true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapSignalTests.swift::func StrapSignalTests.startedWaiters(_:on:timeout:)",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for the one waiter task",
+     "effect": "awaits its value and asserts true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "d215a2acaf301215",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5",
+    "EmuquTests/StrapSignalTests.swift::func StrapSignalTests.startedWaiters(_:on:timeout:)": "5b65d030d517cbc5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.testFireResumesEveryWaiter()",
+   "hash": "51750ae352807176",
+   "does": "Starts three waiters with timeout nil through startedWaiters (which returns once all are registered), fires once, and asserts each returns true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapSignalTests.swift::func StrapSignalTests.startedWaiters(_:on:timeout:)",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each of the 3 waiter tasks",
+     "effect": "awaits its value and asserts true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "d215a2acaf301215",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5",
+    "EmuquTests/StrapSignalTests.swift::func StrapSignalTests.startedWaiters(_:on:timeout:)": "5b65d030d517cbc5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.startedWaiters(_:on:timeout:)",
+   "hash": "05515cec2ab72269",
+   "does": "Test helper: starts `count` main-actor Tasks that each increment an ArrivalCount and then call signal.wait(timeout:) in the same main-actor turn (wait registers its continuation before the first suspension), yields up to 1,000 times until all have counted, asserts the count reached `count`, and returns the tasks. Once all have counted, all are registered, so a following fire() cannot run before them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of count waiters",
+     "effect": "starts a Task that counts itself then waits"
+    },
+    {
+     "at": "+8",
+     "cond": "for up to 1,000 iterations while fewer than count have arrived",
+     "effect": "Task.yield() so the waiter tasks run"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.testATimeoutResumesWithFalse()",
+   "hash": "001adaa31191a804",
+   "does": "Asserts wait(timeout: 0.05) with no fire returns false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.testFiringAfterATimeoutIsHarmless()",
+   "hash": "6fcdf0d5cbc75283",
+   "does": "Waits with timeout 0.01 (returns false), then fires; asserts false and that the second resume does not trap (no waiter left).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "d215a2acaf301215",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.testCancellationResumesWithFalse()",
+   "hash": "5cbffd90382cc6fc",
+   "does": "Starts a waiter with no timeout, yields, cancels the task, and asserts it returns false via the cancellation handler.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "If the cancel lands before the waiter task starts, register() sees Task.isCancelled and returns false immediately, so the test passes without exercising the onCancel resolve path it is named for; which path ran is not asserted.",
+     "evidence": [
+      "EmuquTests/StrapSignalTests.swift:52",
+      "Emuqu/Sources/Collection/StrapSignal.swift:42",
+      "Emuqu/Sources/Collection/StrapSignal.swift:35"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.testAnAlreadyCancelledTaskDoesNotSuspend()",
+   "hash": "c576d4a1feca296d",
+   "does": "A task cancels itself (withUnsafeCurrentTask) before calling wait(timeout: nil); asserts it returns false immediately rather than suspending forever.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  },
+  {
+   "key": "func StrapSignalTests.testAFireWithNoWaitersIsNotLatched()",
+   "hash": "b2597e749ec10a53",
+   "does": "Fires with no waiters, then waits 0.05 s; asserts false (fire not latched).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "d215a2acaf301215",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  }
+ ],
+ "deps": {}
+}

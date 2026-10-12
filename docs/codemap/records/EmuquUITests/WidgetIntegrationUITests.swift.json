@@ -1,0 +1,81 @@
+{
+ "file": "EmuquUITests/WidgetIntegrationUITests.swift",
+ "hash": "6c2b27b5fe79058a",
+ "role": "XCUITest of a background → foreground round trip: the app comes back to the foreground on the Record tab it left (not relaunched) and the tab bar still responds. Holds BackgroundForegroundUITests; the app has no widget, and the file name is left over from the removed widget coverage.",
+ "types": [
+  "BackgroundForegroundUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "naming",
+   "sev": "low",
+   "text": "The file is still named WidgetIntegrationUITests.swift although its class (BackgroundForegroundUITests) and doc no longer claim widget coverage; renaming the file needs project.pbxproj edits (it is listed by name at four places), outside this file.",
+   "evidence": [
+    "EmuquUITests/WidgetIntegrationUITests.swift:1",
+    "Emuqu.xcodeproj/project.pbxproj:974"
+   ],
+   "found": "fix pass b38"
+  }
+ ],
+ "units": [
+  {
+   "key": "func BackgroundForegroundUITests.setUp()",
+   "hash": "21c84c38230e01df",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func BackgroundForegroundUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BackgroundForegroundUITests.testBackgroundForegroundCycleSurvives()",
+   "hash": "4690b7fd04a2acbb",
+   "does": "Opens the Record tab (asserting UITestNav.selectTab succeeded), sends the app to the background and back with UITestLaunch.backgroundToPersist (Home press, wait for background, activate, wait for foreground), then asserts the app is runningForeground, that the Record tab's content (tab.record identifier) is still showing within UITestTiming.s(8) — a crash and relaunch under -UITests-FreshInstall would be back at the first-run gates — and that selecting the Dashboard tab still works.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)": "b4902c0b81652495",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

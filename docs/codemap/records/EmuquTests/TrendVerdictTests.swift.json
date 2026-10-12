@@ -1,0 +1,554 @@
+{
+ "file": "EmuquTests/TrendVerdictTests.swift",
+ "hash": "f5dada5eb7b2e0f4",
+ "role": "@MainActor XCTest suite for the shared TrendVerdict rule: 60→30 ms halvings (linear, midpoint step, recent step) read .down at every window length, Monte Carlo false-trend rate on log-normal noise stays under 7% (12% through TrendAnalyzer), flat/insufficient cases, Flo's TrendAnalyzer and the Trends card agree, weekly change only for a trend, and Student-t critical values.",
+ "types": [
+  "TrendVerdictTests: class — @MainActor XCTestCase over TrendVerdict, TrendAnalyzer and TrendsV2View.computeDirection",
+  "SeededNormal: private struct — SplitMix64 + Box-Muller deterministic standard normals"
+ ],
+ "state": [
+  "origin: fixed Date(1_700_000_000) for readings"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "SeededNormal re-implements the same SplitMix64 generator as DFAReferenceValidationTests.SeededGenerator (identical constants), adding Box-Muller on top.",
+   "evidence": [
+    "EmuquTests/TrendVerdictTests.swift:31",
+    "EmuquTests/DFAReferenceValidationTests.swift:159"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrendVerdictTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "setUp: super.setUp then pinEnglishLanguage.",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LanguageManager (pinned English)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.SeededNormal.next()",
+   "hash": "6fccb5a11c263d89",
+   "does": "SeededNormal: returns one standard normal via Box-Muller from two SplitMix64 uniforms (u1 floored at leastNonzeroMagnitude).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.uniform()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.uniform()": "4e070595bc44b7b4"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.SeededNormal.uniform()",
+   "hash": "2272970489cb373a",
+   "does": "SeededNormal: advances the SplitMix64 state and returns a uniform in [0,1) from the top 53 bits.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdictTests.readings(_:)",
+   "hash": "66431f1646cb9e11",
+   "does": "Test helper: one TrendVerdict.Reading per value, one day apart from origin, oldest first.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.linear(from:to:count:)",
+   "hash": "962d7bd2be60a440",
+   "does": "Test helper: `count` values evenly from start to end inclusive.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdictTests.stepAtMidpoint(count:)",
+   "hash": "43636e08733f7d2f",
+   "does": "Test helper: count/2 values of 60 followed by the rest at 30.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdictTests.sessions(rmssd:)",
+   "hash": "9ec36169fadf76eb",
+   "does": "Test helper: complete overnight HRVSessions with the given RMSSDs, one per day ending today, each with a minimal HRVAnalysisResult.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.noiseRate(count:series:sd:seed:)",
+   "hash": "fe3628e21eeef144",
+   "does": "Test helper: fraction of `series` log-normal noise series (60·e^(sd·N)) of length `count` that TrendVerdict.evaluate (log scale) calls .up or .down.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of `series` noise series",
+     "effect": "draws a series and evaluates it"
+    },
+    {
+     "at": "+6",
+     "cond": "movement is .up or .down",
+     "effect": "true: counts a false trend; false: adds 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()": "8e9a8d17e9021fed",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testLinearHalvingIsFallingAtEveryWindowLength()",
+   "hash": "43d68609ceef2089",
+   "does": "For window lengths 7, 14, 30, 35, 60, 90, 365 asserts a linear 60→30 series reads .down.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each window length",
+     "effect": "evaluates and asserts .down"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testStepHalvingIsFallingAtEveryWindowLength()",
+   "hash": "b4e6c290fc3f25ee",
+   "does": "For window lengths 7, 14, 30, 90, 365 asserts a midpoint step 60→30 reads .down.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each window length",
+     "effect": "evaluates and asserts .down"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "240686bb95271982"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testRecentStepIsFallingInALongWindow()",
+   "hash": "153e03a1d29eab4c",
+   "does": "Asserts a halving confined to the last `low` readings of a long window reads .down for (30,3), (90,3), (90,70), (365,3), (365,30).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each (count, low) pair",
+     "effect": "builds the series and asserts .down"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testFloAnalyzerCallsALongHalvingDeclining()",
+   "hash": "1ad65d193c124d34",
+   "does": "For 35, 90, 365 readings of a linear 60→30 halving asserts TrendAnalyzer (.all) gives rmssdStats.trend and overallTrend .declining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each count",
+     "effect": "analyzes and asserts .declining twice"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testNoiseFalseTrendRateIsBelowSevenPercent()",
+   "hash": "9232636c248152bf",
+   "does": "For lengths 7/14/30/90 (seeded) and SD(ln) 0.07/0.10/0.29, asserts the false-trend rate over 2000 noise series is < 7%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.noiseRate(count:series:sd:seed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each (count, seed)",
+     "effect": "runs the three SD levels"
+    },
+    {
+     "at": "+2",
+     "cond": "for each sd",
+     "effect": "computes the rate and asserts < 0.07"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.noiseRate(count:series:sd:seed:)": "58609ae4f50373f0"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testFloAnalyzerRarelyCallsANoiseWeekATrend()",
+   "hash": "8871505fdc5f63e2",
+   "does": "Over 300 seeded 7-day log-normal noise weeks, asserts TrendAnalyzer calls fewer than 12% of them non-stable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each of 300 series",
+     "effect": "builds a noise week and analyzes it"
+    },
+    {
+     "at": "+7",
+     "cond": "rmssdStats.trend == .stable",
+     "effect": "true: adds 0; false: counts a trend"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc comment says 'The same bound through Flo's analyzer' but the assertion allows 12%, not the 7% of testNoiseFalseTrendRateIsBelowSevenPercent, so Flo's path may call almost twice as many noise weeks a trend as the shared rule and still pass.",
+     "evidence": [
+      "EmuquTests/TrendVerdictTests.swift:140",
+      "EmuquTests/TrendVerdictTests.swift:151",
+      "EmuquTests/TrendVerdictTests.swift:135"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()": "8e9a8d17e9021fed",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testConstantAndNegligibleSeriesAreFlat()",
+   "hash": "4d27b15eebc30a32",
+   "does": "Asserts constant 45 (log) and constant 7 (linear) over 14 readings read .flat, and a 60→59.9 line over 40 readings reads .flat.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testFewerThanFourReadingsIsInsufficient()",
+   "hash": "0ed1980f5bd1ce3d",
+   "does": "Asserts 3 readings give movement .insufficient and recentChangePercent nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testFloAndTheTrendsScreenAgree()",
+   "hash": "cff00bc8d8c79ce8",
+   "does": "For four series (90-day halving, 30-day step, 14-day rise, flat 30) asserts TrendsV2View.computeDirection's glyph matches the arrow for TrendAnalyzer's overallTrend.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of the four series",
+     "effect": "analyzes with both paths and compares"
+    },
+    {
+     "at": "+6",
+     "cond": "overallTrend .improving",
+     "effect": "expects arrow.up.right"
+    },
+    {
+     "at": "+7",
+     "cond": "overallTrend .declining",
+     "effect": "expects arrow.down.right"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "expects arrow.right"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "51cec13b934c1292",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "240686bb95271982"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testWeeklyChangeIsReportedOnlyForATrend()",
+   "hash": "4c0dfb796b656478",
+   "does": "Asserts weeklyRMSSDChange is nil for a flat 14-day series and ≈ −50% (±0.5) for a 14-day midpoint halving.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)": "26eac7e02c76e2ca",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "240686bb95271982"
+   }
+  },
+  {
+   "key": "func TrendVerdictTests.testStudentTCriticalValues()",
+   "hash": "9b4b1044931ca3d8",
+   "does": "Asserts tCritical(3) ≈ 4.1765, (10) ≈ 2.6338, (30) ≈ 2.3596, (1000) ≈ 2.2448.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd"
+   }
+  }
+ ],
+ "deps": {}
+}

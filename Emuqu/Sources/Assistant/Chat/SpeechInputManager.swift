@@ -4,10 +4,13 @@ import Speech
 
 /// Apple on-device speech recognition for the Assistant tab's hands-free input.
 ///
-/// Tap-to-talk: a single instance lives for the duration of one recording, owned
-/// by `AssistantViewModel`. `start()` requests permissions, configures the audio
-/// engine, and begins streaming partial transcripts to `transcript`. `stop()`
-/// returns the final string. `cancel()` aborts without yielding anything.
+/// Tap-to-talk: one instance per chat input bar, held in `ChatInputBar`'s
+/// `@State` and reused across recordings. `start()` requests permissions,
+/// configures the audio engine, and begins streaming partial transcripts to
+/// `transcript`. `stop()` returns the final string. `cancel()` aborts without
+/// yielding anything. A recognition error after start ends the recording
+/// (`isRecording` goes false, the transcript so far is kept) and leaves the
+/// reason in `lastError`.
 ///
 /// Uses `requiresOnDeviceRecognition = true` so transcripts never leave the device
 /// — consistent with the rest of Emuqu's data-local stance.
@@ -28,6 +31,9 @@ final class SpeechInputManager {
     /// is responsive immediately — audio engine spins up only on
     /// `start()`.
     @ObservationIgnored private lazy var engine = AVAudioEngine()
+    /// True while `start()` is suspended on the permission prompts, so a
+    /// second tap in that window does not start a second recognition.
+    @ObservationIgnored private var isStarting = false
 
     init() {
         // Recognizer instantiation is cheap — just a wrapper around
@@ -38,7 +44,8 @@ final class SpeechInputManager {
             ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     }
 
-    /// Whether the device supports on-device recognition for the chosen locale.
+    /// Whether the device supports on-device recognition for the chosen locale,
+    /// which `start()` requires (`requiresOnDeviceRecognition`).
     var isAvailable: Bool {
         guard let recognizer, recognizer.isAvailable else { return false }
         return recognizer.supportsOnDeviceRecognition
@@ -63,9 +70,11 @@ final class SpeechInputManager {
     /// while not recording, so a claim left behind here would keep
     /// `hasActiveClaims()` true for the rest of the process.
     func start() async throws {
-        guard !isRecording else { return }
+        guard !isRecording, !isStarting else { return }
+        isStarting = true
+        defer { isStarting = false }
         try await requestPermissions()
-        guard let recognizer, recognizer.isAvailable else { throw SpeechError.unavailable }
+        guard isAvailable, let recognizer else { throw SpeechError.unavailable }
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
@@ -161,7 +170,17 @@ final class SpeechInputManager {
             Task { @MainActor in self.transcript = text }
         }
         guard let error, ![203, 216, 301].contains(error.code) else { return }
-        Task { @MainActor in self.lastError = error.localizedDescription }
+        let message = error.localizedDescription
+        Task { @MainActor in self.endRecording(failure: message) }
+    }
+
+    /// A recognition error ends the recording rather than leaving the mic on
+    /// with nothing arriving: the engine stops and the claim is released
+    /// (`stop()`), the transcript so far is kept, and the reason is kept in
+    /// `lastError`.
+    private func endRecording(failure message: String) {
+        lastError = message
+        stop()
     }
 
     /// Stop recording and return the final transcript. Safe to call multiple times.

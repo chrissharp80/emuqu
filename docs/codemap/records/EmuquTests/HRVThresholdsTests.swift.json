@@ -1,0 +1,366 @@
+{
+ "file": "EmuquTests/HRVThresholdsTests.swift",
+ "hash": "7a69b7b76cc7e852",
+ "role": "XCTest suite asserting HRVThresholds constants are ordered, in range and equal to a few literal values (RR bounds, RMSSD bands, recovery scores, stress index, LF/HF, DFA α1, sleep duration/efficiency, window CV, artifact rates, illness drops).",
+ "types": [
+  "HRVThresholdsTests: class — XCTestCase over HRVThresholds static constants"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Every test reads constants only (no production behaviour is exercised); ordering checks cannot detect a wrong threshold used by the scoring code, and literal-equality checks just restate the constant.",
+   "evidence": [
+    "EmuquTests/HRVThresholdsTests.swift:11",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:10"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HRVThresholdsTests.testRRIntervalBoundsArePhysiologicallyValid()",
+   "hash": "8c01d4d198d75dcb",
+   "does": "Asserts minimumRRIntervalMs == 300, maximumRRIntervalMs == 2000 and min < max.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testRMSSDThresholdsAreOrdered()",
+   "hash": "ad6d999732630ff0",
+   "does": "Asserts rmssdExcellent > rmssdGood > rmssdReduced > rmssdLow.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Ordering check skips rmssdModerate (40), which sits above rmssdGood (35) despite its name; the inconsistent band is neither covered nor caught.",
+     "evidence": [
+      "EmuquTests/HRVThresholdsTests.swift:23",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testRMSSDThresholdsArePositive()",
+   "hash": "aaf7a61e4456696f",
+   "does": "Asserts the four RMSSD thresholds are positive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testRMSSDThresholdsMatchResearchRanges()",
+   "hash": "887c3e7f09fb568c",
+   "does": "Asserts rmssdExcellent ≥ 50 and rmssdLow ≤ 20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Asserts HRVThresholds.rmssdExcellent ≥ 50, but no production code reads HRVThresholds.rmssdExcellent (grep Emuqu/ finds only its declaration at HRVThresholds.swift:42); the \"excellent\" RMSSD cut actually applied is AnalysisSummaryGenerator's private DiagnosticPoints.rmssdExcellent = 40, a separate constant with a different value that no test here covers.",
+     "evidence": [
+      "EmuquTests/HRVThresholdsTests.swift:37",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:42",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:51"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testDiagnosticScoreThresholdsAreOrdered()",
+   "hash": "3ea37dbd09780978",
+   "does": "Asserts scoreWellRecovered > scoreAdequateRecovery > scoreIncompleteRecovery.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testDiagnosticScoreThresholdsAreWithinValidRange()",
+   "hash": "8b1f9df1a86ba0c0",
+   "does": "Asserts scoreWellRecovered and scoreIncompleteRecovery are within 0…100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testStressIndexThresholdsAreOrdered()",
+   "hash": "ea56f5b309bd287e",
+   "does": "Asserts stressIndexLow < Normal < Elevated < High.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testStressIndexThresholdsArePositive()",
+   "hash": "237d239c23f8c74c",
+   "does": "Asserts stressIndexLow and stressIndexHigh are positive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testLfHfRatioThresholdsAreOrdered()",
+   "hash": "40c2839d071fef41",
+   "does": "Asserts LF/HF thresholds ParasympatheticDominance < BalancedLower < BalancedUpper < OptimalUpper ≤ ModerateSympatheticUpper.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testLfHfRatioThresholdsArePositive()",
+   "hash": "bce9f5dc652046c0",
+   "does": "Asserts lfHfParasympatheticDominance and lfHfSympatheticDominance are positive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testDfaAlpha1OptimalRangeIsValid()",
+   "hash": "912f89947782da75",
+   "does": "Asserts DFA α1 optimal range is exactly 0.75–1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testDfaAlpha1ThresholdsAreOrdered()",
+   "hash": "9eaa1c9a1213284c",
+   "does": "Asserts dfaAlpha1FlexibleLower < OptimalLower, OptimalUpper < HighVariability ≤ Fatigue.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testSleepDurationThresholdsAreOrdered()",
+   "hash": "c94412a4e01671eb",
+   "does": "Asserts sleepShortMinutes < sleepVeryShortMinutes < sleepMinimumMinutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Pins inverted naming: 'very short' (360) is the looser cut and 'short' (300) the stricter; HRVThresholds says the names are kept because a scoring governance gate hashes them, so the test enshrines misleading names instead of a rename.",
+     "evidence": [
+      "EmuquTests/HRVThresholdsTests.swift:102",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:162",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:169"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testSleepDurationThresholdsAreReasonable()",
+   "hash": "5b3ccdf0252050ee",
+   "does": "Asserts sleepMinimumMinutes == 420 and sleepShortMinutes == 300.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testSleepEfficiencyThresholdsAreOrdered()",
+   "hash": "e835e42dee09ab24",
+   "does": "Asserts sleepEfficiencyGood > Acceptable > Low.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testSleepEfficiencyThresholdsAreValidPercentages()",
+   "hash": "0cc493770763e32a",
+   "does": "Asserts sleepEfficiencyGood and Low are within 0…100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testWindowCVThresholdIsReasonable()",
+   "hash": "7a4437132a3768d6",
+   "does": "Asserts windowUnstableCVThreshold == 0.08 and within (0,1).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testArtifactRateThresholdsAreOrdered()",
+   "hash": "a1ab6905c5a8351a",
+   "does": "Asserts warnArtifactRate < maxArtifactRate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "HRVThresholds.maxArtifactRate/warnArtifactRate are not read by any production code; WindowSelector.Config hard-codes its own maxArtifactRate 0.15 and maxArtifactRateStrict 0.10, so these tests validate unused constants that can drift from the values actually applied.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:230",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:32",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testArtifactRateThresholdsAreValidPercentages()",
+   "hash": "89068673569b3ba8",
+   "does": "Asserts maxArtifactRate and warnArtifactRate are within 0…1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testIllnessThresholdsAreNegative()",
+   "hash": "340ad83eb995a7bd",
+   "does": "Asserts illnessSevereHRVCrash and illnessMajorHRVDrop are negative.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVThresholdsTests.testIllnessThresholdsAreOrdered()",
+   "hash": "17d686bfe854a00d",
+   "does": "Asserts illnessSevereHRVCrash < illnessMajorHRVDrop.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [
+    "mem:HRVThresholds (static constants, Analysis/HRVThresholds.swift)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

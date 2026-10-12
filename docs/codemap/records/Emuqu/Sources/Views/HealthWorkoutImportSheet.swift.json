@@ -1,0 +1,800 @@
+{
+ "file": "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift",
+ "hash": "a48e20022931335d",
+ "role": "Sheet listing interrupted (empty) Emuqu recordings to rebuild from Apple Health, a manual rebuild-from-Health section, and Apple Health workouts from the last 30 days not yet in the archive, importing the ones the user taps into the archive.",
+ "types": [
+  "HealthWorkoutImportSheet: struct (View) — Apple Health import / rebuild UI"
+ ],
+ "state": [
+  "static HealthWorkoutImportSheet.manualRebuildRow = UUID() (HealthWorkoutImportSheet.swift:65) — synthetic busy-row key",
+  "@State candidates, interrupted, completedRows, busyRow, failureMessage"
+ ],
+ "toplevel": "Presented from FitnessTabView.healthImportSheet (FitnessTabView+DataMenu.swift:63) with onImported = notifyArchiveChanged + reloadInterruptedRecordings.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HealthWorkoutImportSheet.body",
+   "hash": "7d0c72937e8060a6",
+   "does": "Body: listBody wrapped in the failure alert.",
+   "entry": "SwiftUI View.body",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.withFailureAlert(_:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.listBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.withFailureAlert(_:)": "8629d14fedb9c8dd",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.listBody": "70fceb5400c971d9"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.listBody",
+   "hash": "1da0d9347646d151",
+   "does": "List of content with inline title 'Import from Apple Health', Done toolbar, and a .task that runs load().",
+   "entry": "SwiftUI .task on appear",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.content",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.doneToolbarItem",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.load()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.load()": "aa9e0e71bb751cb5",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.content": "70fbc82911fed125",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.doneToolbarItem": "c4157c63c103ffae"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.doneToolbarItem",
+   "hash": "f02600bfc28909b2",
+   "does": "Trailing 'Done' toolbar button that dismisses the sheet.",
+   "entry": "SwiftUI toolbar button",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.content",
+   "hash": "d4e94874c2f29b91",
+   "does": "Sections: interrupted recordings, RebuildFromHealthSection (busy while manual row busy), candidates, limits footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.interruptedSection",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.startManualRebuild(at:sport:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.candidateRows",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.limitsFooter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.startManualRebuild(at:sport:)": "5de3506d89812169",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.candidateRows": "62fb789c9ccfea17",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.interruptedSection": "f20d93db1e0c7845",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.limitsFooter": "33f675e51f9b7ce1"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.startManualRebuild(at:sport:)",
+   "hash": "73576c9db064457a",
+   "does": "Spawns a Task running manualRebuild(at:sport:).",
+   "entry": "closure:onRebuild from RebuildFromHealthSection",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.manualRebuild(at:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.manualRebuild(at:sport:)": "a6cf33ddf518ee5a"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.manualRebuild(at:sport:)",
+   "hash": "f4658ec3cd8d6f80",
+   "does": "Marks the manual row busy, asks the importer to rebuild a workout from Health starting at the given time/sport, stores it on success or shows the failure message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(startingAt:sport:replacing:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.store(_:markingDone:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.message(for:)"
+   ],
+   "reads": [
+    "hk:steps/route/heart rate (via HealthWorkoutImporter.rebuild)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "result .success(session)",
+     "effect": "store(session) marking the manual row done"
+    },
+    {
+     "at": "+6",
+     "cond": "result .failure(reason)",
+     "effect": "failureMessage = message(for: reason)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(startingAt:sport:replacing:)": "edd6cd517cecacda",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.message(for:)": "f8d52d978859bea8",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.store(_:markingDone:)": "107de07754394d02"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.interruptedSection",
+   "hash": "408de8994509cee5",
+   "does": "Interrupted-recordings section, only when the list is non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.interruptedRows",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.interruptedHeader"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!interrupted.isEmpty",
+     "effect": "false → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.interruptedHeader": "2947b65694e7f388",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.interruptedRows": "35891fdd230e2365"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.interruptedHeader",
+   "hash": "72b74c13453f5117",
+   "does": "Section header 'Interrupted recordings'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.interruptedRows",
+   "hash": "0fa9167b9e29f28e",
+   "does": "One row per interrupted stub: label + action.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.interruptedLabel(_:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.interruptedAction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.interruptedAction(_:)": "d0a16404ed576568",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.interruptedLabel(_:)": "77028c7137bb873f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.interruptedLabel(_:)",
+   "hash": "5a61a95d1ad6e1d0",
+   "does": "Sport label and start date/time of the stub.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.dateText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.dateText(_:)": "b1f30a8576e41d01"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.interruptedAction(_:)",
+   "hash": "c1e81163be6ad9b7",
+   "does": "Imported badge when done, spinner while busy, else Rebuild button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.importedBadge",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.rebuildButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "completedRows contains stub.id",
+     "effect": "→ importedBadge"
+    },
+    {
+     "at": "+4",
+     "cond": "busyRow == stub.id",
+     "effect": "→ ProgressView; else rebuildButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.rebuildButton(_:)": "d4044652f3e50263",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.importedBadge": "7977151863ff1152"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.rebuildButton(_:)",
+   "hash": "0ac7fc181953c0b5",
+   "does": "Bordered 'Rebuild' button calling startRebuild; disabled while any row is busy.",
+   "entry": "SwiftUI Button",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.startRebuild(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.startRebuild(_:)": "b6f4f89484712279"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.candidateRows",
+   "hash": "9642839dd34b944e",
+   "does": "Candidate list once loaded, else 'Checking Apple Health…' row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.resultSection(_:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.loadingRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "candidates non-nil (loaded)",
+     "effect": "true → resultSection; false → loadingRow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.resultSection(_:)": "6759d1c41bfcca74",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.loadingRow": "550e533086be0fd5"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.resultSection(_:)",
+   "hash": "a5f07d90f208ece2",
+   "does": "Empty-state section when no candidates, else a section with a row per candidate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.emptyRows",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.row(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "found.isEmpty",
+     "effect": "true → emptyRows; false → ForEach rows"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "importer.candidates returns [] when HealthKit is unavailable, and a timed-out/failed workout query also yields no candidates, yet the sheet then states 'Every workout Apple Health has from the last 30 days is already in Emuqu.' — the user is told their history is complete when nothing was read.",
+     "evidence": [
+      "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:138",
+      "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:159",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:23"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.row(_:)": "7e484762d21bbcbc",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.emptyRows": "c5fa55c5843baaf6"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.loadingRow",
+   "hash": "4c45ecf048cb78d9",
+   "does": "Spinner + 'Checking Apple Health…'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.emptyRows",
+   "hash": "e9c8f7011b152cb2",
+   "does": "'Nothing to import' headline with explanation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.emptyExplanation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.emptyExplanation": "0dd3fa4d19018dc0"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.emptyExplanation",
+   "hash": "4676bbd98a17ddeb",
+   "does": "Footnote under 'Nothing to import': 'Every workout Apple Health has from the last 30 days is already in Emuqu.' (30 matches HealthWorkoutImporter.candidates default days) when HKHealthStore.isHealthDataAvailable(), else 'Apple Health is not available on this device'.",
+   "entry": null,
+   "calls": [
+    "ext:HKHealthStore.isHealthDataAvailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Apple Health available on the device",
+     "effect": "true → history-complete text; false → not-available text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.limitsFooter",
+   "hash": "f36570b8bcc6c7ee",
+   "does": "Footer section holding limitsText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.limitsText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.limitsText": "13ed3ffacc440fb0"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.limitsText",
+   "hash": "8f27df90f54e26e5",
+   "does": "States that HR, distance, route, elevation import but HRV/DFA α1 do not.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.row(_:)",
+   "hash": "819bbd006875f584",
+   "does": "Candidate row: label + action.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.rowLabel(_:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.action(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.action(for:)": "7b73873d0ab4d817",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.rowLabel(_:)": "2bb1cfba5613ede7"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.rowLabel(_:)",
+   "hash": "cc7361c83a4d98f8",
+   "does": "Sport label and subtitle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.subtitle(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.subtitle(for:)": "1b5f2a3ed1993a28"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.action(for:)",
+   "hash": "6ae213a60f52a9e0",
+   "does": "Imported badge if done, spinner if busy, else Import button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.importedBadge",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.importButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "completedRows contains candidate.id",
+     "effect": "→ importedBadge"
+    },
+    {
+     "at": "+4",
+     "cond": "busyRow == candidate.id",
+     "effect": "→ ProgressView; else importButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.importButton(_:)": "65a1e935e0dc3f92",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.importedBadge": "7977151863ff1152"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.importedBadge",
+   "hash": "0c380f5d975505b1",
+   "does": "Green icon-only 'Imported' checkmark label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.importButton(_:)",
+   "hash": "9c5afc374d4bd0d7",
+   "does": "Bordered 'Import' button calling startImport; disabled while any row is busy.",
+   "entry": "SwiftUI Button",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.startImport(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.startImport(_:)": "3be35bc9cbdc0f1b"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.withFailureAlert(_:)",
+   "hash": "18d88d1ae8284103",
+   "does": "Attaches an 'Import' alert driven by failureMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.failurePresented",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.failureDismissButton",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.failureText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.failureDismissButton": "5f99cdd780f19b70",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.failurePresented": "4e2500027253e0c6",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.failureText": "47b7693a1551de9f"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.failurePresented",
+   "hash": "f9b03d35ba3d3a0a",
+   "does": "Bool binding true while failureMessage non-nil; false clears it.",
+   "entry": "SwiftUI alert binding",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "set to false",
+     "effect": "clears failureMessage"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.failureDismissButton",
+   "hash": "1518b90f2ee40fab",
+   "does": "'OK' cancel button clearing failureMessage.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HealthWorkoutImportSheet.failureText",
+   "hash": "d0a5f01408ae06ff",
+   "does": "Alert message text when failureMessage non-nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "failureMessage non-nil",
+     "effect": "true → Text"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.subtitle(for:)",
+   "hash": "78e26f6dc22e7eb6",
+   "does": "Subtitle 'date · h m · distance · source app' (distance and source only when present).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.dateText(_:)",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
+   ],
+   "reads": [
+    "ud:UnitsPreferenceStore (units preference)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "distanceMeters non-nil",
+     "effect": "true → appends formatted distance"
+    },
+    {
+     "at": "+6",
+     "cond": "sourceName non-empty",
+     "effect": "true → appends source name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.dateText(_:)": "b1f30a8576e41d01",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.dateText(_:)",
+   "hash": "ce1547f7c4a45b26",
+   "does": "Abbreviated date + short time in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.load()",
+   "hash": "171e70e8c6988346",
+   "does": "First load only: reads interrupted stubs from the archive synchronously, then awaits HealthKit candidates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidates(days:archive:now:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "hk:HKWorkout (last 30 days)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "candidates already loaded",
+     "effect": "early return (no reload when the .task re-runs)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.candidates(days:archive:now:)": "afb8151a4b33ba9a",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)": "130980037689363f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.startRebuild(_:)",
+   "hash": "98214a09e3339558",
+   "does": "Spawns a Task running rebuild(stub).",
+   "entry": "SwiftUI Button action",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.rebuild(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.rebuild(_:)": "536bb96d1c49b6cd"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.rebuild(_:)",
+   "hash": "11c68578fb118454",
+   "does": "Marks the stub row busy, rebuilds it from Apple Health, stores on success or shows the failure message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(_:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.store(_:markingDone:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.message(for:)"
+   ],
+   "reads": [
+    "hk:steps/route/heart rate (via HealthWorkoutImporter.rebuild)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "result .success",
+     "effect": "store(session) marking stub.id done"
+    },
+    {
+     "at": "+6",
+     "cond": "result .failure",
+     "effect": "failureMessage = message(for:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(_:)": "3d30358cba6106f3",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.message(for:)": "f8d52d978859bea8",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.store(_:markingDone:)": "107de07754394d02"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.message(for:)",
+   "hash": "d64d19f36a572f39",
+   "does": "Maps a RebuildFailure to its user message.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".noActivityAfterStart",
+     "effect": "'Apple Health has no activity recorded after that recording started…'"
+    },
+    {
+     "at": "+7",
+     "cond": ".noSamplesAtAll",
+     "effect": "'Apple Health has no step data for that time… check that Steps is on…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.startImport(_:)",
+   "hash": "17529ee8cdfe4689",
+   "does": "Spawns a Task running importWorkout(candidate).",
+   "entry": "SwiftUI Button action",
+   "calls": [
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.importWorkout(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.importWorkout(_:)": "3cad6f61f1f8ad74"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.importWorkout(_:)",
+   "hash": "130b792ce9d5be81",
+   "does": "Marks the row busy, builds an HRVSession from the HealthKit workout, stores it; nil session shows 'That workout is no longer in Apple Health.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.store(_:markingDone:)"
+   ],
+   "reads": [
+    "hk:HKWorkout, route, heart rate, cadence"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "importer.session(for:) returned nil",
+     "effect": "true → failureMessage 'no longer in Apple Health', return; false → store"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "session(for:) returns nil whenever the bounded HKSampleQuery for the workout yields nothing, including on its timeout, but the sheet always says the workout 'is no longer in Apple Health'.",
+     "evidence": [
+      "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:316",
+      "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:318",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:112"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "9798f3e1c844a016",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::func HealthWorkoutImportSheet.store(_:markingDone:)": "107de07754394d02"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImportSheet.store(_:markingDone:)",
+   "hash": "6fe60820d17c70fb",
+   "does": "Archives the session (no same-night merge skip, requestingReupload true), marks the row completed and calls onImported; archive errors become the alert message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "closure:onImported — set by FitnessTabView.healthImportSheet (Emuqu/Sources/Views/FitnessTabView+DataMenu.swift:68) → Emuqu/Sources/Collection/RRCollector+Session.swift:25 + Emuqu/Sources/Views/FitnessTabView+DataMenu.swift:102"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive, Archive.swift:470)",
+    "ck:session re-upload (requestingReupload stamps modifiedAt, Archive.swift:458)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "catch archive error",
+     "effect": "failureMessage = error.localizedDescription; row not marked done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,699 @@
+{
+ "file": "Emuqu/Sources/Services/SessionAcceptanceService.swift",
+ "hash": "f99b948ecbfbba46",
+ "role": "@MainActor service doing the heavy work of accepting a morning session (freeze score with fresh sleep/vitals/training, archive, baseline update, raw-backup mark, HealthKit export, CloudKit upload + live-backup delete), re-scoring already archived sessions (re-uploaded), rejecting sessions, and the shared HRV quality classifier with the one insufficient-data rule (isInsufficientData).",
+ "types": [
+  "SessionAcceptanceService: class — acceptance/rejection/rescore service built by RRCollector.makeAcceptanceService (RRCollector.swift:745)",
+  "SessionAcceptanceService.HRVQualityDecision: struct — dataQuality + useBaselineHRV",
+  "SessionAcceptanceService.SleepAndVitals: struct (private, Sendable) — timeout race payload",
+  "SessionAcceptanceService.AcceptanceInputs: struct — frozen scoring config, training, baseline, typical sleep hours, sleep schedule"
+ ],
+ "state": [
+  "private let archive/healthKit/baselineTracker/rawBackup (injected, :13-16)",
+  "closure onCloudSync → CloudKitSyncManager.uploadSession; onCloudDelete → CloudKitSyncManager.deleteLiveBackup (set at RRCollector.swift:757-762)"
+ ],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
+   "hash": "93dcf6e3033bdb35",
+   "does": "Stores the archive, HealthKit service, baseline tracker, raw backup and the two CloudKit closures.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/API_REFERENCE.md lists an `onDiscardExercise` init parameter that the code does not have.",
+     "evidence": [
+      "docs/API_REFERENCE.md:1487",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:25"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+   "hash": "5f4a8c1fa641dbe9",
+   "does": "Static: classifies a recording's HRV: .insufficient (+useBaselineHRV) when RMSSD < baseline and the analysed span (window, or the session without one) is <5 min or a <3 h session lacks organized recovery (rule 1, isInsufficientData); .preSleep (+baseline) when sleep data exists and doesn't overlap the recording; .insufficient when RMSSD < baseline and session <3 h; else .good. Used by acceptance, ReanalysisService.reclassifyHRVQuality (reanalysis, manual window, sleep edits, retro-apply) and SampleDataLibrary.finalize.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "baselineStats nil",
+     "effect": "baselineRmssd = 0 (so every RMSSD-below-baseline rule is false)"
+    },
+    {
+     "at": "+10",
+     "cond": "insufficientDataDecision returned a decision",
+     "effect": "true: return .insufficient; false: continue"
+    },
+    {
+     "at": "+13",
+     "cond": "recording overlaps sleep (or no sleep data)",
+     "effect": "false: log and return .preSleep/useBaselineHRV; true: continue"
+    },
+    {
+     "at": "+18",
+     "cond": "rmssd >= baseline || session >= 3 h",
+     "effect": "false: log and return .insufficient/useBaselineHRV; true: continue"
+    },
+    {
+     "at": "+23",
+     "cond": "session shorter than 3 h",
+     "effect": "true: log 'trusting it'; both: return .good"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "260f68f989f891aa",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+   "hash": "e19dea77a6711dc4",
+   "does": "Static: true when sleep start/end are unknown, else whether [recordingStart, recordingEnd] intersects [sleepStart, sleepEnd].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleepData has both sleepStart and sleepEnd",
+     "effect": "false: return true (assume overlap); true: interval test"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.isInsufficientData(result:baselineRmssd:sessionDuration:)",
+   "hash": "8393a7596be4ed64",
+   "does": "Static, the one implementation of rule 1: false when the result's RMSSD >= baselineRmssd; otherwise true when the analysed span (analysedSpanMs: window, or the whole session without one) is shorter than forReliableWindowMs (300,000 ms), or the result is not organized recovery and the session is shorter than forOvernightSessionSeconds (10,800 s). Used by insufficientDataDecision and ReanalysisService.hasInsufficientData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.analysedSpanMs(of:sessionDuration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rmssd < baselineRmssd",
+     "effect": "false: return false (with no baseline, baselineRmssd 0, always false); true: evaluate the window and recovery rules"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.analysedSpanMs(of:sessionDuration:)": "691cdd1c89adc49a"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.analysedSpanMs(of:sessionDuration:)",
+   "hash": "c6e2db895a0c2cdd",
+   "does": "Static: windowEndMs − windowStartMs when both are present, else the session duration in ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "windowStartMs and windowEndMs present",
+     "effect": "false: session duration × 1000; true: window length"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+   "hash": "df93b3083d7ad07a",
+   "does": "Static: rule 1 as a decision: when rmssd < baseline and isInsufficientData holds, logs the reason (window too short, else no organized recovery) and returns .insufficient/useBaselineHRV; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.isInsufficientData(result:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.analysedSpanMs(of:sessionDuration:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rmssd < baseline and isInsufficientData",
+     "effect": "false: nil; true: log reason and return .insufficient"
+    },
+    {
+     "at": "+8",
+     "cond": "analysed span < forReliableWindowMs",
+     "effect": "true: log window-too-short; false: log no-organized-recovery"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.analysedSpanMs(of:sessionDuration:)": "691cdd1c89adc49a",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.isInsufficientData(result:baselineRmssd:sessionDuration:)": "4695da6424e2dc2e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.resolveTrainingContext(given:scoringConfig:sessionEnd:)",
+   "hash": "2a5a6b885ae18461",
+   "does": "Returns the given training context, else (when integration enabled and not on a training break) builds one from HealthKit calculateTrainingLoad(relativeTo: sessionEnd); nil otherwise.",
+   "entry": null,
+   "calls": [
+    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:168|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
+   ],
+   "reads": [
+    "hk:workouts (training load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trainingContext given",
+     "effect": "return it"
+    },
+    {
+     "at": "+6",
+     "cond": "enableTrainingLoadIntegration && !isOnTrainingBreak",
+     "effect": "false: nil; true: HealthKit fetch, TrainingContext init (nil when no data)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)",
+   "hash": "208d66e639d11cda",
+   "does": "Nonisolated static: awaits fetchSleepData for the range with RR points; logs \"Sleep fetch failed\" and returns nil on error. Used by fetchSleepAndVitals for acceptance and the archived-score refresh.",
+   "entry": null,
+   "calls": [
+    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:) (extension Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:141) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis",
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "fetchSleepData throws",
+     "effect": "catch: log, return nil (score computed without sleep)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
+   "hash": "86b2c1df5eb6e898",
+   "does": "Races, against a 10 s runWithTimeout: the sleep fetch, the previous day's qualifying nap (fetchDaytimeNapMinutes anchored at the session start, credited via withNapSleepMinutes when > 0, as the morning pass does), and fetchRecoveryVitals; returns (sleep, vitals) or (nil, nil) on timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
+    "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift:21|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis",
+    "hk:daytime naps (sleepAnalysis)",
+    "hk:restingHeartRate/vitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "napMinutes > 0 (and sleep fetched)",
+     "effect": "sleep credited with the nap; else unchanged / nil"
+    },
+    {
+     "at": "+15",
+     "cond": "race returned a value",
+     "effect": "false (timeout): log and return (nil, nil); true: return both"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)": "297b99d9063299c1",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "d7a85e38dc532d26",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)": "6675df02711b275c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)",
+   "hash": "b0acde97057a85de",
+   "does": "Accepts a session: freezes score when it has an analysis result, archives it (throws on failure), marks the raw backup archived, updates the baseline, clears persisted recording state via callback, kicks off HealthKit export (if enabled) and CloudKit sync; returns the updated session. Called by RRCollector+Acceptance acceptSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "closure:clearPersistedRecordingState — RRCollector.clearPersistedRecordingState passed by RRCollector+Acceptance",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.syncToCloud(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "file:RawRRBackup archived mark",
+    "mem:BaselineTracker baseline points"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "session.analysisResult non-nil",
+     "effect": "true: freezeScore (sleep/vitals/training/quality/score); false: archive unscored as-is"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)": "7d02d989663d8ed3",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)": "938f1bd588f7d0a0",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.syncToCloud(_:)": "6dffac2c77775a76",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)": "324b3ca4c0060dce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.freezeScore(on:result:inputs:)",
+   "hash": "f06b80aaae6c41ae",
+   "does": "Resolves training context, snapshots sleep+vitals, classifies HRV quality, builds the composite breakdown and stamps score/readiness/training onto the session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.resolveTrainingContext(given:scoringConfig:sessionEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.endDate nil",
+     "effect": "sessionEnd = startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "3619103cd658de5f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)": "03afabc428180322",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.resolveTrainingContext(given:scoringConfig:sessionEnd:)": "9565a90d73d45123",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)": "910300a1dbd65504",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "e063c5c4aca0bc87"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)",
+   "hash": "eb3750cb2e441dec",
+   "does": "Static: runs classifyHRVQuality on the session's sleep snapshot, stores hrvDataQuality and returns useBaselineHRV.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "endDate nil",
+     "effect": "recordingEnd = startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "ef2cf4065b8aca0b"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)",
+   "hash": "967f55ee7b78e729",
+   "does": "Fetches sleep (overnight window of the session's night, with the previous day's nap credited) and vitals with the 10 s timeout and stores them as sleepSnapshot and vitalsSnapshot (resting HR swapped for analysis mean HR).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis",
+    "hk:restingHeartRate/vitals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "e81e10a7740cd6b6",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "b6aa8c2a79603eeb"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)",
+   "hash": "c579021ccce72ff8",
+   "does": "Builds the composite ScoreBreakdown from result metrics, inputs baseline, sleep/vitals snapshots, typical sleep hours, training (unused by composite), config, useBaselineHRV, perceived readiness, the pns−sns balance (ReanalysisService.ansBalance(of:)) and referenceDate = session end/start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+21",
+     "cond": "endDate nil",
+     "effect": "referenceDate = startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "654db6a2c6b1ba9a",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "e063c5c4aca0bc87"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.applyFrozenScore(_:to:training:)",
+   "hash": "c3b5d2e6f43b4913",
+   "does": "Writes recoveryScore (0-10), scoreBreakdown, analysisResult.trainingContext = training (even nil), trainingSnapshot when unset, and frozenReadiness via ReanalysisService.computeFrozenReadiness.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "recoveryScore nil / training nil",
+     "effect": "only selects log text"
+    },
+    {
+     "at": "+11",
+     "cond": "trainingSnapshot nil",
+     "effect": "true: set to training; false: keep existing snapshot"
+    },
+    {
+     "at": "+18",
+     "cond": "frozenReadiness nil",
+     "effect": "log text only (always set at 350)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)",
+   "hash": "b019aeccc2443d59",
+   "does": "When enabled, fire-and-forget Task exporting the session's metrics to Apple Health; errors logged.",
+   "entry": null,
+   "calls": [
+    "dyn:HealthKitServiceProtocol.exportSessionMetrics → Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift:12|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.exportSessionMetrics(from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:HRV/heart-rate samples exported"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "enabled",
+     "effect": "false: return"
+    },
+    {
+     "at": "+7",
+     "cond": "export throws",
+     "effect": "catch: log only; user not told"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.syncToCloud(_:)",
+   "hash": "16def5772875cab3",
+   "does": "Fire-and-forget Task: await onCloudSync(session) then onCloudDelete(sessionId) (delete the iCloud live backup).",
+   "entry": null,
+   "calls": [
+    "closure:onCloudSync — CloudKitSyncManager.uploadSession (RRCollector.swift:757)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "closure:onCloudDelete — CloudKitSyncManager.deleteLiveBackup (RRCollector.swift:760)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:session record",
+    "ck:live backup deletion"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)",
+   "hash": "2138f11b1febb827",
+   "does": "Re-scores an already archived session: re-fetches sleep/vitals from HealthKit with the 10 s timeout, keeping the previous snapshots when a fetch fails or times out; keeps or computes HRV quality, rebuilds the breakdown with the caller's training context, stamps the score, re-archives with a re-upload request so iCloud gets the new score, and optionally exports to Health. Returns false without analysis result or on archive failure. Called by MorningSessionPipeline.updateCompositeRecoveryScore (RecordView dismiss/auto-accept).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshedUseBaselineHRV(on:result:baselineStats:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis",
+    "hk:restingHeartRate/vitals"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "session.analysisResult nil",
+     "effect": "return false"
+    },
+    {
+     "at": "+26",
+     "cond": "reArchive succeeded",
+     "effect": "false: return false (score not saved); true: export if exportMetrics && enableHealthKitExport, return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "3619103cd658de5f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)": "7d02d989663d8ed3",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)": "6c1bca74f3755ed8",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)": "231278fbc78cc5ae",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshedUseBaselineHRV(on:result:baselineStats:)": "1ab97a3bd7da058b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.refreshedUseBaselineHRV(on:result:baselineStats:)",
+   "hash": "cd00948e11047d15",
+   "does": "Static: if hrvDataQuality is already set returns !isReliableForHRVAggregates; else classifies now (storing quality) and returns its useBaselineHRV.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hrvDataQuality non-nil",
+     "effect": "true: return !reliable (insufficient/preSleep → true); false: classify"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)": "03afabc428180322"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.reArchive(_:)",
+   "hash": "ba009982c8df8f52",
+   "does": "Archives the session with skipSameNightMerge false and requestingReupload true (stamps modifiedAt and, for an already archived session, posts the re-upload request that CloudKitSyncManager turns into a push); logs and returns false on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "archive throws",
+     "effect": "catch: log, return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)",
+   "hash": "aac4b536fb223e2a",
+   "does": "Fetches sleep for the night's overnight window (previous day's nap credited) and recovery vitals relative to session end through fetchSleepAndVitals (10 s timeout). A sleep result replaces sleepSnapshot and a vitals result replaces vitalsSnapshot (strap-swapped); a failed or timed-out fetch keeps the stored snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis",
+    "hk:restingHeartRate/vitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "endDate nil",
+     "effect": "sessionEnd = startDate"
+    },
+    {
+     "at": "+8",
+     "cond": "sleep fetched",
+     "effect": "true: replace sleepSnapshot; false (failed/timed out): keep it"
+    },
+    {
+     "at": "+9",
+     "cond": "vitals fetched",
+     "effect": "true: replace vitalsSnapshot; false (timed out): keep it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "e81e10a7740cd6b6",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "b6aa8c2a79603eeb"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)",
+   "hash": "5c76ac8508d03b88",
+   "does": "Clears persisted recording state via callback and, when a session id is given, fires a Task deleting the iCloud live backup.",
+   "entry": null,
+   "calls": [
+    "closure:clearPersistedRecordingState — RRCollector.clearPersistedRecordingState (RRCollector+Acceptance.swift:117)",
+    "closure:onCloudDelete — CloudKitSyncManager.deleteLiveBackup",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:live backup deletion"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "sessionId non-nil",
+     "effect": "true: delete live backup; false: nothing in iCloud"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72"
+   }
+  },
+  {
+   "key": "func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)",
+   "hash": "8f6c94b48412dbd7",
+   "does": "Returns (overnightWindowStart(relativeTo: session.startDate), morningCutoff(forNightStartingAt: start)) — the whole night's sleep fetch range, which covers split and single-segment nights alike; sessionEnd is not read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)"
+   ],
+   "reads": [
+    "mem:UserSettings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,98 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift",
+ "hash": "6a58d92ad7130c87",
+ "role": "Forwarders on PDFReportGenerator to DeepDiveReportRenderer for the four deep-dive blocks, plus the `deepDive` computed property that builds the renderer afresh on each call.",
+ "types": [
+  "PDFReportGenerator: extension — deep-dive forwarding"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PDFReportGenerator.deepDive",
+   "hash": "b004362fb1a0d339",
+   "does": "Computed property returning a fresh DeepDiveReportRenderer(generator: self) on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepHRVAnalysis(result:session:recentSessions:pageNumber:yPosition:in:pageRect:)",
+   "hash": "87f7699f30d9088c",
+   "does": "Forwards to DeepDiveReportRenderer.drawDeepHRVAnalysis (HRV deep-dive page block, may paginate via pageNumber).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepHRVAnalysis(result:session:recentSessions:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepHRVAnalysis(result:session:recentSessions:pageNumber:yPosition:in:pageRect:)": "440717ac0677aae6",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+   "hash": "a1abd2f4551eae06",
+   "does": "Forwards to DeepDiveReportRenderer.drawDeepSleepAnalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "9bca4ca2bb605020",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepTrainingAnalysis(training:pageNumber:yPosition:in:pageRect:)",
+   "hash": "08cd566251143ef0",
+   "does": "Forwards to DeepDiveReportRenderer.drawDeepTrainingAnalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepTrainingAnalysis(training:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepTrainingAnalysis(training:pageNumber:yPosition:in:pageRect:)": "3aa3bc631b5d4348",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)",
+   "hash": "65698d7700f05d41",
+   "does": "Forwards to DeepDiveReportRenderer.drawDeepVitalsAnalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)": "edaf6195f452e18e",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63"
+   }
+  }
+ ],
+ "deps": {}
+}

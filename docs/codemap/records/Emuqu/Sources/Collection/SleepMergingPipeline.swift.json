@@ -1,0 +1,463 @@
+{
+ "file": "Emuqu/Sources/Collection/SleepMergingPipeline.swift",
+ "hash": "9085695fdc2b7c4a",
+ "role": "Sleep stage-interval primitives (stage-minute accumulation, clipping, gap split, awake-accumulation split, segment building) plus the processForRecording adapter that wraps SleepResolver for a recording-scoped HealthKit sleep fetch; also SleepMergingConfig built from user settings.",
+ "types": [
+  "SleepMergingConfig: struct — overnight window, split gap minutes, enhanceWithRR",
+  "StageMinutes: struct — accumulated deep/rem/core/awake/unspecified minutes",
+  "SleepMergingPipeline: enum — static primitives + processForRecording",
+  "SleepMergingPipeline.AwakeSplitState<T>: private struct — running state of splitByAccumulatedAwake"
+ ],
+ "state": [],
+ "toplevel": "No top-level code beyond type declarations.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepMergingConfig.fromSettings(recordingStart:settingsManager:)",
+   "hash": "c75f28706bb04a01",
+   "does": "Builds a SleepMergingConfig from a settings snapshot: overnight window start/end from sleepSchedule relative to recordingStart, sleepSplitGapMinutes, enableHRVSleepAugmentation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule, sleepSplitGapMinutes, enableHRVSleepAugmentation)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "1a61e49463bf63fc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func SleepMergingConfig.defaultProcessing(settingsManager:)",
+   "hash": "a1613ab465f34fa9",
+   "does": "Builds a SleepMergingConfig with an unbounded window (distantPast..distantFuture) and the settings' split gap and RR-enhancement toggle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (sleepSplitGapMinutes, enableHRVSleepAugmentation)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var StageMinutes.hasDetailed",
+   "hash": "9d368b0705ebc0a8",
+   "does": "True when deep + rem > 0 (core-only counts as unstaged).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StageMinutes.detailedSleep",
+   "hash": "47f896e06c456de7",
+   "does": "deep + rem + core minutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StageMinutes.totalSleep",
+   "hash": "83904acce5fd2590",
+   "does": "detailedSleep + unspecified (all non-awake minutes).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.detailedSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.detailedSleep": "b24bf22797a19a2d"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.accumulateStageMinutes(_:)",
+   "hash": "f56233e44bedd85a",
+   "does": "Sums durationMinutes of each interval into the StageMinutes bucket for its stage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "loop over intervals",
+     "effect": "each interval added to one bucket"
+    },
+    {
+     "at": "+7",
+     "cond": "stage .deep",
+     "effect": "deep += minutes"
+    },
+    {
+     "at": "+8",
+     "cond": "stage .rem",
+     "effect": "rem += minutes"
+    },
+    {
+     "at": "+9",
+     "cond": "stage .core",
+     "effect": "core += minutes"
+    },
+    {
+     "at": "+10",
+     "cond": "stage .awake",
+     "effect": "awake += minutes"
+    },
+    {
+     "at": "+11",
+     "cond": "stage .unspecified",
+     "effect": "unspecified += minutes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.clipIntervals(_:to:end:)",
+   "hash": "aea816c149130ca8",
+   "does": "Clips each interval to [start,end], dropping those with no positive overlap, preserving stage and provenance (new interval ids).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "clipped start >= clipped end",
+     "effect": "interval dropped (nil); otherwise clipped copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)",
+   "hash": "92300686113ae40e",
+   "does": "Sorts items by start and groups them, starting a new group when an item's start is >= gap seconds after the latest end seen in the current group (so an item nested inside a longer overlapping one does not open a false gap).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no items",
+     "effect": "returns []"
+    },
+    {
+     "at": "+12",
+     "cond": "loop over remaining sorted items",
+     "effect": "each item either joins or starts a group"
+    },
+    {
+     "at": "+13",
+     "cond": "gap from the group's latest end to this item's start >= gap",
+     "effect": "close current group, start a new one (latest end reset); otherwise append and extend the latest end"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepMergingPipeline.splitStageIntervals(_:gap:)",
+   "hash": "0dd2b7d1a61a3d17",
+   "does": "Sorts stage intervals by start and splits them by physical gap via splitByGaps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "45c78b18f06a4ade"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.buildSegmentFromIntervals(_:)",
+   "hash": "da6ba829116964f2",
+   "does": "Builds a SleepSegment from the earliest interval start to the latest interval end (whatever their order or overlap) with accumulated stage minutes; deep/rem/core are nil unless the segment has any deep or REM.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.hasDetailed",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "intervals empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+9",
+     "cond": "stages.hasDetailed",
+     "effect": "deep minutes; otherwise nil"
+    },
+    {
+     "at": "+10",
+     "cond": "stages.hasDetailed",
+     "effect": "rem minutes; otherwise nil"
+    },
+    {
+     "at": "+11",
+     "cond": "stages.hasDetailed",
+     "effect": "core minutes; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.hasDetailed": "58d2883748188e25",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.splitByAccumulatedAwake(_:thresholdMinutes:isAwake:durationMinutes:sortBy:)",
+   "hash": "75c03fb262895a9c",
+   "does": "Generic awake-accumulation splitter: walks items in sort order, buffering awake streaks (with embedded short sleep) and splitting into a new group when accumulated awake >= threshold, the buffer is predominantly awake, and a sleep run >= threshold follows; the awake region is dropped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.absorbAwake(_:minutes:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.absorbSleepCandidate(_:minutes:thresholdMinutes:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.finish(thresholdMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "loop over sorted items",
+     "effect": "each item dispatched"
+    },
+    {
+     "at": "+10",
+     "cond": "item is awake",
+     "effect": "absorbAwake"
+    },
+    {
+     "at": "+12",
+     "cond": "not awake and awake buffer empty",
+     "effect": "appended to current group; otherwise absorbSleepCandidate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.absorbAwake(_:minutes:)": "bb36476de5e6c908",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.absorbSleepCandidate(_:minutes:thresholdMinutes:)": "7e38a7c80a2da941",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.finish(thresholdMinutes:)": "6d42067c576fa239"
+   }
+  },
+  {
+   "key": "var SleepMergingPipeline.AwakeSplitState.predominantlyAwake",
+   "hash": "ebc6728a91c42007",
+   "does": "True when buffer total > 0 and awake minutes ×2 >= buffer total.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepMergingPipeline.AwakeSplitState.absorbAwake(_:minutes:)",
+   "hash": "635e05d33b5176e2",
+   "does": "Folds any pending sleep candidate into the awake buffer, then adds the awake item and its minutes to awake and buffer totals.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepCandidate non-empty",
+     "effect": "candidate moved into awakeBuffer and its minutes added to bufferTotal, candidate cleared; otherwise nothing extra"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepMergingPipeline.AwakeSplitState.absorbSleepCandidate(_:minutes:thresholdMinutes:)",
+   "hash": "ced6ff87d96c9389",
+   "does": "Adds a sleep item to the candidate run; when the run reaches thresholdMinutes, closes the awake streak.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.closeStreak(thresholdMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleepCandidateMinutes < threshold",
+     "effect": "returns, streak stays open; otherwise closeStreak"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.AwakeSplitState.closeStreak(thresholdMinutes:)": "ceced2c7afd6bb3d"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.AwakeSplitState.closeStreak(thresholdMinutes:)",
+   "hash": "b15360fafd4f06b9",
+   "does": "Ends an awake streak: if awake >= threshold and predominantly awake, emits the current group and starts a new group from the sleep candidate (dropping the awake buffer); otherwise folds buffer and candidate back into the current group. Resets all streak counters.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var SleepMergingPipeline.AwakeSplitState.predominantlyAwake"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "awakeMinutes >= threshold && predominantlyAwake",
+     "effect": "split: current group emitted (if non-empty), new group = sleep candidate, awake buffer discarded; otherwise buffer+candidate appended to current group"
+    },
+    {
+     "at": "+2",
+     "cond": "currentGroup non-empty",
+     "effect": "appended to result; otherwise nothing emitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var SleepMergingPipeline.AwakeSplitState.predominantlyAwake": "f0fcacb71b2857c2"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.AwakeSplitState.finish(thresholdMinutes:)",
+   "hash": "bed71aab902c9b54",
+   "does": "Flushes at end of sequence: on a qualifying awake streak the current group is emitted and the trailing sleep candidate becomes a group only if >= threshold (else dropped); otherwise buffer and candidate join the current group. Emits the final non-empty group and returns all groups.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var SleepMergingPipeline.AwakeSplitState.predominantlyAwake"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "awakeMinutes >= threshold && predominantlyAwake",
+     "effect": "split path; otherwise fold buffer and candidate into current group"
+    },
+    {
+     "at": "+2",
+     "cond": "currentGroup non-empty",
+     "effect": "emitted"
+    },
+    {
+     "at": "+3",
+     "cond": "trailing sleepCandidateMinutes >= threshold",
+     "effect": "candidate becomes the new current group; otherwise [] (trailing short sleep dropped)"
+    },
+    {
+     "at": "+8",
+     "cond": "currentGroup non-empty",
+     "effect": "appended to result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var SleepMergingPipeline.AwakeSplitState.predominantlyAwake": "f0fcacb71b2857c2"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)",
+   "hash": "2bed9512207aa432",
+   "does": "Calls splitByAccumulatedAwake on stage intervals with threshold Int(gap/60) minutes, awake = stage .awake, duration = durationMinutes, sorted by start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByAccumulatedAwake(_:thresholdMinutes:isAwake:durationMinutes:sortBy:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByAccumulatedAwake(_:thresholdMinutes:isAwake:durationMinutes:sortBy:)": "1cd64f84fd873c80",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
+   "hash": "b3c5d563c48f9f53",
+   "does": "Recording-scoped sleep: builds a SleepResolver.Context from samples, recording bounds (widened to the overnight window end when end <= start), config window, RR points, auto-sleep extension and split gap, and returns SleepResolver.resolve(ctx).sleepData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "recordingEnd > recordingStart",
+     "effect": "uses recordingEnd; otherwise max(config.overnightWindowEnd, recordingStart+60s)"
+    },
+    {
+     "at": "+16",
+     "cond": "rrPoints nil (??)",
+     "effect": "passes []"
+    },
+    {
+     "at": "+20",
+     "cond": "samples empty (?? on samples.first?.startDate)",
+     "effect": "fallbackDate = recordingStart; otherwise first sample's startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+   }
+  }
+ ],
+ "deps": {}
+}

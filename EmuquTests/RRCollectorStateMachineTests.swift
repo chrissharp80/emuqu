@@ -31,6 +31,42 @@ final class RRCollectorStateMachineTests: XCTestCase {
 
     private lazy var testArchive = SessionArchive(directory: testArchiveDirectory)
 
+    /// Every key `PersistedRecordingState` reads or writes: the modern atomic
+    /// key `load()` tries first, the legacy trio it falls back to, and the
+    /// dismissed-sessions list `clear()` wipes. They live in the host app's
+    /// standard defaults, so each test starts with none of them (a modern-key
+    /// state left by the host would win over the legacy keys a test seeds)
+    /// and the host's own values go back afterwards.
+    private static let recordingStateKeys = [
+        UserDefaultsKeys.persistedRecordingState,
+        UserDefaultsKeys.activeRecordingStartTime,
+        UserDefaultsKeys.activeRecordingSessionId,
+        UserDefaultsKeys.activeRecordingSessionType,
+        "RRCollector.dismissedInterruptedSessionIds"
+    ]
+    private var hostRecordingState: [String: Any] = [:]
+
+    override func setUp() async throws {
+        try await super.setUp()
+        let defaults = UserDefaults.standard
+        for key in Self.recordingStateKeys {
+            if let value = defaults.object(forKey: key) { hostRecordingState[key] = value }
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    /// Puts back what setUp found, or removes what a test left.
+    private func restoreHostRecordingState() {
+        let defaults = UserDefaults.standard
+        for key in Self.recordingStateKeys {
+            if let value = hostRecordingState[key] {
+                defaults.set(value, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+    }
+
     override func tearDown() async throws {
         // Clean up any sessions created
         if let session = collector.currentSession {
@@ -48,6 +84,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         // stranger's UUID and a start time two hours off the one it had just
         // written.
         PersistedRecordingState.clear()
+        restoreHostRecordingState()
         try? FileManager.default.removeItem(at: testArchiveDirectory)
         try await super.tearDown()
     }

@@ -65,21 +65,28 @@ extension WorkoutSessionLifecycle {
         AppDependencies.current.collection.workoutStartLatencyTracker.recordStartEntry()
         recorder.beginWorkoutCorrelation()
         var startCompleted = false
-        defer { if !startCompleted { recorder.endWorkoutCorrelation() } }
+        defer { if !startCompleted { abandonFailedStart() } }
         debugLog("[Recorder.start] entry sport=\(sport.rawValue) source=\(source.rawValue) hasPlan=\(intervalPlan != nil) thresholds=\(thresholds.count) hasRoute=\(route != nil)")
         var stamps = StartStamps()
-        try applyStartParametersAndGuardIdle(thresholds: thresholds, route: route)
+        try guardStartablePhase()
         let effectiveSource = try resolveEffectiveSource(requested: source)
-        let provenance = makeStartProvenance(effectiveSource: effectiveSource)
         stamps.mark("preflight")
-        let session = Self.makeStartingSession(sport: sport, provenance: provenance)
+        let session = Self.makeStartingSession(sport: sport, provenance: makeStartProvenance(effectiveSource: effectiveSource))
         stamps.mark("session")
         try beginPolarStreamingOrDefer(effectiveSource: effectiveSource, workoutId: session.id)
+        applyStartParameters(thresholds: thresholds, route: route)
         stamps.mark("polarStream")
         bringUpRecording(session: session, sport: sport, effectiveSource: effectiveSource, intervalPlan: intervalPlan, stamps: &stamps)
         debugLog("[Recorder.start] sync-breakdown " + stamps.breakdown())
         AppDependencies.current.collection.workoutStartLatencyTracker.recordStartReturned()
         startCompleted = true
+    }
+
+    /// A start that threw: close its correlation scope and drop its latency
+    /// stamps, so neither tags nor measures a later start.
+    private func abandonFailedStart() {
+        recorder.endWorkoutCorrelation()
+        AppDependencies.current.collection.workoutStartLatencyTracker.recordStartAbandoned()
     }
 
     /// Per-block timing inside the synchronous body of `start()`.
@@ -158,19 +165,34 @@ extension WorkoutSessionLifecycle {
         launchStartTailTask(sport: sport, startDate: session.startDate, intervalPlan: intervalPlan)
     }
 
-    /// start() — parameter capture + idle guard (first slice of the sync-breakdown `preflight` span).
-    /// The idle guard runs first: a second start (a Watch Start, a double
-    /// tap) must not touch the thresholds or route of the workout in progress.
-    func applyStartParametersAndGuardIdle(thresholds: [WorkoutThreshold], route: Route?) throws {
-        guard case .idle = recorder.phase else {
+    /// start() — phase guard (first slice of the sync-breakdown `preflight` span).
+    /// A second start while a workout records or finalizes (a Watch Start, a
+    /// double tap) is refused. `.finished` and `.failed` mean the last
+    /// workout's summary or error is still up; a start from a surface that
+    /// does not dismiss it first (the Watch's Start, which
+    /// `AppLaunchTasks.startWorkoutFromWatch` lets through) goes ahead, and
+    /// `applyStartParameters` clears the old summary once the start can no
+    /// longer fail.
+    func guardStartablePhase() throws {
+        switch recorder.phase {
+        case .idle, .finished, .failed:
+            return
+        case .recording, .finalizing:
             debugLog("[Recorder.start] BAIL — already recording (phase=\(recorder.phase))", level: .warning)
             throw WorkoutRecorderError.alreadyRecording
         }
+    }
+
+    /// start() — parameter capture, after every step that can throw, so a
+    /// refused start (busy strap, a Polar throw) leaves the recorder's
+    /// thresholds, route and last summary as they were.
+    func applyStartParameters(thresholds: [WorkoutThreshold], route: Route?) {
+        recorder.lifecycle.finishedSession = nil
         recorder.userThresholds = thresholds
         recorder.thresholdBreachSec.removeAll()
         recorder.plannedRoute = route
         recorder.plannedRouteWasAutoDetected = false
-        recorder.routeDetectionAttempted = false
+        recorder.nextRouteDetectionAtMeters = 0
     }
 
     /// start() — source-conditional pre-flight + strap downgrade cascade (sync-breakdown `preflight` span).
@@ -189,20 +211,19 @@ extension WorkoutSessionLifecycle {
     /// workout proceed and the post-summary notes the missing HR source.
     func resolveEffectiveSource(requested source: HRSource) throws -> HRSource {
         guard source == .strap else { return source }
-        stopStaleStreamIfIdle()
+        try stopOwnStaleStreamOrRefuse()
         // The cascade itself lives in `WorkoutHRSourceResolver` — pure, and
         // tested. Everything below is the side effects it decided on.
         let resolution = currentSourceResolution(requested: source)
         WorkoutHRSourceResolver.log(resolution)
-        switch resolution {
-        case .strapBusy:
+        // The source to record comes from the resolver too; nil is a busy strap.
+        guard let resolved = WorkoutHRSourceResolver.provenanceSource(for: resolution) else {
             throw WorkoutRecorderError.strapBusy
-        case .reconnectThenUseStrap:
-            recorder.core.polarManager.connectToLastDevice()
-            return .strap
-        case let .use(resolved):
-            return resolved
         }
+        if case .reconnectThenUseStrap = resolution {
+            recorder.core.polarManager.connectToLastDevice()
+        }
+        return resolved
     }
 
     /// Reads what is actually attached right now and asks the resolver. The
@@ -217,20 +238,29 @@ extension WorkoutSessionLifecycle {
         )
     }
 
-    /// `isStreaming` true with our own recorder idle = a lingering
-    /// post-workout stream the HRR-capture detached task hasn't torn down yet.
-    /// Don't bounce the user — stop the stale stream inline and proceed.
-    /// `acknowledgeFinished` already does this on summary dismiss; this guard
-    /// catches the path where the user starts a new workout from a surface
-    /// that doesn't go through the summary (e.g. the Watch's Start button, or
-    /// hitting Start before the post-summary has rendered).
-    private func stopStaleStreamIfIdle() {
-        guard recorder.core.polarManager.isStreaming else { return }
+    /// A live Polar stream while no workout records is either this recorder's
+    /// own lingering post-workout stream (the HRR capture keeps it open up to
+    /// 120 s) or another session's: RRCollector's overnight and quick
+    /// streaming buffer on the same manager, and a Verity Sense overnight, an
+    /// overnight without the strap's internal backup, or a quick reading is
+    /// not `isRecordingOnDevice`, so the resolver does not see it. Our own
+    /// stream (the start stamp this recorder took) is stopped inline so the
+    /// user is not bounced; this catches starts that skip the summary's
+    /// `acknowledgeFinished` (the Watch's Start, or Start before the summary
+    /// has rendered). Any other stream refuses the start with `strapBusy`
+    /// rather than discard that session's buffered beats.
+    private func stopOwnStaleStreamOrRefuse() throws {
+        let polar = recorder.core.polarManager
+        guard polar.isStreaming else { return }
+        guard let ownStart = recorder.ownedStrapStreamStart, polar.streamingStartTime == ownStart else {
+            debugLog("[Recorder.start] BAIL — the strap is buffering for another session", level: .warning)
+            throw WorkoutRecorderError.strapBusy
+        }
         debugLog("[Recorder.start] stale Polar stream detected with recorder idle — stopping inline before new session")
-        _ = recorder.core.polarManager.stopStreaming()
+        _ = polar.stopStreaming()
     }
 
-    /// start() — device-provenance construction from the post-downgrade source (sync-breakdown `preflight` span).
+    /// start() — device-provenance construction from the post-downgrade source (sync-breakdown `session` span).
     ///
     /// Provenance reflects the chosen source so downstream analysis (and
     /// the post-summary) knows which fields are trustworthy. Use the
@@ -272,6 +302,7 @@ extension WorkoutSessionLifecycle {
         guard effectiveSource == .strap else { return }
         debugLog("[Recorder.start] step=polar.startStreaming (link: \(recorder.core.polarManager.connectionState))")
         try recorder.core.polarManager.startStreaming()
+        recorder.ownedStrapStreamStart = recorder.core.polarManager.streamingStartTime
         debugLog("[Recorder.start] step=polar.startStreaming done")
         recorder.startDeviceInternalBackupIfPossible(workoutId: workoutId)
     }
@@ -288,7 +319,7 @@ extension WorkoutSessionLifecycle {
         recorder.lastIngestedPointCount = 0
         recorder.workoutSamples = []
         recorder.livePace.reset()
-        recorder.footPodStartDistanceMeters = nil
+        recorder.footPodOdometer = FootPodOdometer()
         recorder.powerSampleSum = 0
         recorder.powerSampleCount = 0
         recorder.maxPowerObserved = 0
@@ -343,12 +374,15 @@ extension WorkoutSessionLifecycle {
     /// the broker so the AI's `workout.live.timeline` tool can pull
     /// recent correlated HR / elevation / pace / power samples on
     /// demand without us shipping the buffer through the broker every
-    /// tick. `recorder.samplesView` is @MainActor-isolated; the AI fact
-    /// resolver runs on the main actor too, so assumeIsolated is
-    /// safe. Cleared at stop via broker.clear().
+    /// tick. `recorder.samplesView` is @MainActor-isolated and the broker
+    /// may be asked from any thread (the fact resolver and the system-prompt
+    /// builder), so the buffer is read only on the main thread; a caller on
+    /// another thread gets no samples instead of an isolation trap. Cleared
+    /// at stop via broker.clear().
     private func installLiveWorkoutSamplesProvider() {
         AppDependencies.current.assistant.liveWorkoutBroker.registerSamplesProvider { [weak recorder] in
-            MainActor.assumeIsolated {
+            guard Thread.isMainThread else { return [] }
+            return MainActor.assumeIsolated {
                 recorder?.samplesView ?? []
             }
         }
@@ -493,12 +527,18 @@ extension WorkoutSessionLifecycle {
     /// deferral loses no data — it just unblocks the user-tap path.
     /// `recorder.phase.recording` is already flipped, so the UI renders immediately and
     /// the GPS metrics tile fills in whenever the first fix lands.
+    ///
+    /// The hop re-checks that the workout is still recording (a stop in
+    /// between has already called `stopTracking`), and re-applies a pause
+    /// taken in between, since `startTracking` starts unpaused.
     func deferLocationTrackingStart(sport: Sport) {
         guard sport.usesGPS else { return }
         debugLog("[Recorder.start] step=location.startTracking (deferred)")
         Task { @MainActor [weak recorder] in
+            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
             let lt0 = Date()
-            recorder?.location.startTracking()
+            recorder.location.startTracking()
+            recorder.location.isPaused = recorder.lifecycle.isPaused
             let ltMs = Int(Date().timeIntervalSince(lt0) * 1000)
             debugLog("[Recorder.start] step=location.startTracking deferred done (\(ltMs)ms)")
         }
@@ -542,13 +582,15 @@ extension WorkoutSessionLifecycle {
     /// (post-app-launch, post-Watch-handoff). Belt-and-braces — the
     /// first pedometer sample doesn't arrive for ~1 s anyway, so
     /// moving the call off the sync path costs nothing if it's fast
-    /// and saves us if it's slow.
+    /// and saves us if it's slow. Like the GPS start, the hop does nothing
+    /// once the workout has stopped.
     func deferPedometerStart(sport: Sport) {
         guard Self.pedometerSports.contains(sport) else { return }
         debugLog("[Recorder.start] step=pedometer.start (deferred)")
         Task { @MainActor [weak recorder] in
+            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
             let pt0 = Date()
-            recorder?.pedometer.start()
+            recorder.pedometer.start()
             let ptMs = Int(Date().timeIntervalSince(pt0) * 1000)
             debugLog("[Recorder.start] step=pedometer.start deferred done (\(ptMs)ms)")
             if ptMs > 100 {
@@ -557,7 +599,7 @@ extension WorkoutSessionLifecycle {
         }
     }
 
-    /// start() — owns `step=footpod.reconnectLast` / `step=footpod.disconnect` / `step=concept2.reconnectLast` (sync-breakdown `tail` span).
+    /// start() — owns `step=footpod.reconnect` / `step=footpod.disconnect` / `step=concept2.reconnectLast` (sync-breakdown `tail` span).
     ///
     /// Auto-reconnect previously-paired secondary sensors at workout start.
     /// Without this, the foot pod / FTMS bike trainer / PM5 rower stay
@@ -611,6 +653,14 @@ extension WorkoutSessionLifecycle {
     /// of phase=.recording on the background queue, which is fine for
     /// crash recovery (we only need the record on disk before iOS
     /// SIGKILLs, not synchronously in the start path).
+    ///
+    /// The save and the archive's clear (`retireRedundantBackups`) run in
+    /// order on `recordingStateQueue`, so a slow save can never land after
+    /// the clear and leave a record for a workout already in history. The
+    /// key is shared with RRCollector's overnight and quick recordings, which
+    /// a `.watch` or `.none` workout can run beside: their record is left in
+    /// place, not overwritten, and this workout's raw backup stays
+    /// recoverable without it.
     func persistRecordingStateOffMain(session: HRVSession, startDate: Date, sport: Sport) {
         let state = PersistedRecordingState(
             sessionId: session.id,
@@ -619,7 +669,11 @@ extension WorkoutSessionLifecycle {
             phase: "workout:\(sport.rawValue)",
             useDeviceInternalBackup: nil
         )
-        Task.detached(priority: .utility) {
+        Self.recordingStateQueue.async {
+            if let held = PersistedRecordingState.load(), held.sessionType != .workout {
+                debugLog("[Recorder.start] PersistedRecordingState holds a \(held.sessionType.rawValue) recording — leaving it in place")
+                return
+            }
             let t0 = Date()
             PersistedRecordingState.save(state)
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -628,6 +682,10 @@ extension WorkoutSessionLifecycle {
             }
         }
     }
+
+    /// Serial queue for this recorder's `PersistedRecordingState` save and
+    /// clear, off the main thread (both IPC into `cfprefsd`).
+    static let recordingStateQueue = DispatchQueue(label: "WorkoutRecorder.persistedRecordingState", qos: .utility)
 
     /// start() — the deferred tail task: diagnostics sampler, Watch workout session, interval plan, ticker.
     ///
@@ -796,11 +854,12 @@ private func manageFootPod(for sport: Sport) {
     let usesPod = footPodManagerServes(sport, pod: pod)
     pod.holdLinkForWorkout(usesPod)
     if usesPod {
-        guard !pod.knownDevices.isEmpty, pod.connectionState == .disconnected else { return }
-        debugLog("[Recorder.start] step=footpod.reconnectLast (deferred, sport=\(sport.rawValue))")
+        guard let device = footPodDeviceToReconnect(for: sport, pod: pod),
+              pod.connectionState == .disconnected else { return }
+        debugLog("[Recorder.start] step=footpod.reconnect (deferred, sport=\(sport.rawValue))")
         Task { @MainActor in
-            AppDependencies.current.collection.footPodManager.reconnectLast()
-            debugLog("[Recorder.start] step=footpod.reconnectLast done")
+            AppDependencies.current.collection.footPodManager.connect(deviceId: device.id)
+            debugLog("[Recorder.start] step=footpod.reconnect done")
         }
     } else {
         guard pod.connectionState == .connected else { return }
@@ -812,12 +871,21 @@ private func manageFootPod(for sport: Sport) {
     }
 }
 
-/// Foot sports use a shoe pod; bike sports use the remembered device only
-/// when it carries power (a trainer or power meter).
+/// Foot sports (the pedometer sports) use a shoe pod; bike sports use the
+/// manager only when a remembered device carries power (a trainer or power
+/// meter), wherever it sits in the remembered list.
 @MainActor
 private func footPodManagerServes(_ sport: Sport, pod: FootPodManager) -> Bool {
-    let footPodSports: Set<Sport> = [.run, .trailRun, .walk, .hike, .treadmill]
-    if footPodSports.contains(sport) { return true }
+    if WorkoutSessionLifecycle.pedometerSports.contains(sport) { return true }
     guard sport == .bike || sport == .indoorBike else { return false }
-    return pod.knownDevices.first?.supportsPower == true
+    return pod.knownDevices.contains { $0.supportsPower }
+}
+
+/// The remembered device a workout of this sport reconnects: the most recent
+/// one for a foot sport (as `reconnectLast` picks), the most recent
+/// power-carrying one for a bike sport. Nil when none is remembered.
+@MainActor
+private func footPodDeviceToReconnect(for sport: Sport, pod: FootPodManager) -> FootPodManager.KnownFootPod? {
+    guard sport == .bike || sport == .indoorBike else { return pod.knownDevices.first }
+    return pod.knownDevices.first { $0.supportsPower }
 }

@@ -1,0 +1,91 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutTickState.swift",
+ "hash": "e2dea034d1a98b31",
+ "role": "Small value types for tick bookkeeping: TrackBackupWatermark (stream counts already backed up) and AutoPauseDetector (stationary/moving run-lengths, 15 s pause / 3 s resume).",
+ "types": [
+  "TrackBackupWatermark: struct — track/baro/samples backup cursor",
+  "AutoPauseDetector: struct — auto-pause/resume counters"
+ ],
+ "state": [
+  "AutoPauseDetector.stationarySecondsBeforeAutoPause = 15",
+  "AutoPauseDetector.movingSecondsBeforeAutoResume = 3"
+ ],
+ "toplevel": "Constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)",
+   "hash": "6e27894c0a5a68fc",
+   "does": "If any of the three counts differs from the stored ones, stores all three and returns true; else false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "any count differs (!=)",
+     "effect": "false: returns false; true: advance and return true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AutoPauseDetector.reset()",
+   "hash": "8518f8b11c69a77c",
+   "does": "Zeroes both run-lengths.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "386762caa0eef914"
+   }
+  },
+  {
+   "key": "func AutoPauseDetector.accrueStationary(isStopped:)",
+   "hash": "c72993ccbcc2fa60",
+   "does": "Running tick: stopped → increments stationary, zeroes moving, returns stationary >= 15; not stopped → zeroes stationary, returns false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isStopped",
+     "effect": "false: reset stationary, false; true: accrue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "386762caa0eef914"
+   }
+  },
+  {
+   "key": "func AutoPauseDetector.accrueMoving(isMoving:)",
+   "hash": "2935b9e04e543c19",
+   "does": "Paused tick: moving → increments moving, zeroes stationary, returns moving >= 3; not moving → zeroes moving, returns false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isMoving",
+     "effect": "false: reset moving, false; true: accrue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)": "30ec5a019c6877eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "386762caa0eef914"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,292 @@
+{
+ "file": "EmuquTests/RedactionPatternTests.swift",
+ "hash": "f232f359f2a2ec47",
+ "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy, rebuilding the two runtime-composed patterns, and scraping raw-string literals from the source files at test time; and asserts what DebugLogger.scrubPHI actually leaves of sample log lines.",
+ "types": [
+  "RedactionPatternTests: class — XCTestCase for DebugLogger redaction pattern compilation"
+ ],
+ "state": [
+  "mem:RedactionPatternTests.patterns (4 verbatim copies of DebugLog.swift's raw-string patterns: lat/lon, metric names incl. \\w*score, unit, separator)",
+  "mem:RedactionPatternTests.failOpenSources (DebugLog.swift, MetricsVerifier.swift paths)",
+  "mem:RedactionPatternTests.failOpenCoveredElsewhere (MedicalTermLexicon.swift → CoachVoiceGuardTests.testEveryConceptCompiles)",
+  "file:<repo>/Emuqu/Sources/Utilities/DebugLog.swift and Emuqu/Sources/Assistant/MetricsVerifier.swift read via #filePath"
+ ],
+ "toplevel": "Static lets hold copied patterns and source paths. Tests read production .swift files from disk relative to #filePath, so they only work when the test bundle runs on the machine holding the source tree.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Source-scraping tests read Emuqu/Sources/... via #filePath; on a device or CI host without the source checkout String(contentsOf:) throws and the tests error out.",
+   "evidence": [
+    "EmuquTests/RedactionPatternTests.swift:142",
+    "EmuquTests/RedactionPatternTests.swift:144"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RedactionPatternTests.testEveryRedactionPatternCompiles()",
+   "hash": "8adab178d90ff135",
+   "does": "Asserts each of the 4 copied redaction patterns compiles with NSRegularExpression.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each pattern in Self.patterns",
+     "effect": "XCTAssertNoThrow per pattern; loop over 4 entries"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RedactionPatternTests.testComposedValueChainPatternCompiles()",
+   "hash": "f137274d2033f6cf",
+   "does": "Rebuilds the value-chain regex the way redactValueChains does (DebugLog.swift:379) with the unit pattern and asserts it compiles with (?i) prefix.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Reconstructs the chain string by hand instead of exercising DebugLogger.redactValueChains; a change to the production interpolation at DebugLog.swift:379 is not detected (the source-scrape test only sees raw #\"\"# literals, and the chain is a normal string literal).",
+     "evidence": [
+      "EmuquTests/RedactionPatternTests.swift:45",
+      "Emuqu/Sources/Utilities/DebugLog.swift:379"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RedactionPatternTests.testComposedMetricPatternCompiles()",
+   "hash": "cd0176dd1b51c4a9",
+   "does": "Rebuilds scrubPHI's main pattern the way DebugLogger composes it ((?i)(\\b<metric>\\b<separator>)[-+]?\\d+(?:\\.\\d+)?<unit>, from patterns[1], [3] and [2]) and asserts it compiles.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:NSRegularExpression.init(pattern:options:)"
+   ],
+   "reads": [
+    "mem:RedactionPatternTests.patterns"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Reconstructs the composed string by hand, like testComposedValueChainPatternCompiles; a change to scrubPHI's interpolation is caught only through testScrubPHIRedactsHealthValues' outputs, not here.",
+     "evidence": [
+      "EmuquTests/RedactionPatternTests.swift:53",
+      "Emuqu/Sources/Utilities/DebugLog.swift:352"
+     ],
+     "found": "t2 test pass"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RedactionPatternTests.testScrubPHIRedactsHealthValues()",
+   "hash": "6c6d6b59dda26fd8",
+   "does": "Asserts DebugLogger.scrubPHI's output on six lines: 'RMSSD: 42.5 ms' → 'RMSSD: <redacted>', an arrow chain 'RMSSD 42.0→51.3' → both values redacted, 'score=72.00' and camel-case 'frozenScore=55.20' redacted, lat/lon values redacted, and 'session 3 started' left untouched.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "507c1db8e611eeaa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "3ce0a99266611d57",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testCompiledPatternReturnsNilOnMalformedInput()",
+   "hash": "e05f6c798bae71d6",
+   "does": "Asserts DebugLogger.compiledPattern returns nil for '([unterminated' and non-nil for '\\d+'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testCompiledPatternIsStableAcrossCalls()",
+   "hash": "47868533f115ff01",
+   "does": "Calls compiledPattern twice with the same pattern and asserts both regexes have the same .pattern string.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comparing .pattern of two regexes compiled from the same string is tautological; it does not verify the cache (DebugLog.swift:413) returns the cached instance or that caching is order-independent.",
+     "evidence": [
+      "EmuquTests/RedactionPatternTests.swift:62",
+      "Emuqu/Sources/Utilities/DebugLog.swift:413"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testEveryLivePatternIsCoveredHere()",
+   "hash": "9a46e91339bb0620",
+   "does": "Reads DebugLog.swift from disk, scrapes every #\"...\"# raw-string literal, asserts at least one was found and that each is in Self.patterns.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.sourceOfDebugLog()",
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.matches(of:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each scraped live pattern",
+     "effect": "asserts it is contained in the verbatim copy list; any new raw-string literal in DebugLog.swift fails the test"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.matches(of:in:)": "7c6a9ae5654b4dfe",
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.sourceOfDebugLog()": "e4241625cce1315b"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testMedicalLexiconCoverageStillExists()",
+   "hash": "5e66df995568a6fe",
+   "does": "Asserts MedicalTermLexicon.all is non-empty, every concept compiles via MedicalTermLexicon.regex(for:), and failOpenCoveredElsewhere has exactly 1 entry.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each concept in MedicalTermLexicon.all",
+     "effect": "XCTAssertNotNil on its compiled regex"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testEveryLiteralPatternInFailOpenSourcesCompiles()",
+   "hash": "d45674855b971133",
+   "does": "For DebugLog.swift and MetricsVerifier.swift, scrapes every raw-string literal from source, asserts each file yields some and each compiles, and that more than 10 were checked in total.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.sourceOf(_:)",
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.matches(of:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each fail-open source path",
+     "effect": "reads file (throws if missing → test errors), scrapes patterns, asserts non-empty"
+    },
+    {
+     "at": "+6",
+     "cond": "for each scraped pattern",
+     "effect": "XCTAssertNoThrow compile; increments checked"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.matches(of:in:)": "7c6a9ae5654b4dfe",
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.sourceOf(_:)": "e178cb323de5b819"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.sourceOfDebugLog()",
+   "hash": "9bb3641fdfb1c656",
+   "does": "Returns the text of Emuqu/Sources/Utilities/DebugLog.swift via sourceOf.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.sourceOf(_:)"
+   ],
+   "reads": [
+    "file:Emuqu/Sources/Utilities/DebugLog.swift"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RedactionPatternTests.swift::func RedactionPatternTests.sourceOf(_:)": "e178cb323de5b819"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.sourceOf(_:)",
+   "hash": "dca232dccefeffce",
+   "does": "Resolves the repo root as two levels above this test file's #filePath and reads the given relative path as UTF-8; throws if unreadable.",
+   "entry": null,
+   "calls": [
+    "ext:String(contentsOf:encoding:)"
+   ],
+   "reads": [
+    "file:<repo>/<relativePath>"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RedactionPatternTests.matches(of:in:)",
+   "hash": "6c4046708c72a2c8",
+   "does": "Compiles the scan pattern and returns capture group 1 of every match in text.",
+   "entry": null,
+   "calls": [
+    "ext:NSRegularExpression"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "scan pattern fails to compile",
+     "effect": "returns [] (callers then fail their isEmpty assertions); otherwise maps matches to group-1 substrings, dropping matches whose group range is invalid"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

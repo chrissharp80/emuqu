@@ -109,9 +109,10 @@ enum TopoElevationService {
     /// into a run, and a run is only committed to gain/loss once its magnitude
     /// crosses the threshold — see the `elevations` doc comment for why 15 m is
     /// the empirically-calibrated default.
-    /// `internal` so the accumulation can be tested directly. This produces
-    /// the elevation gain shown on every workout and feeds grade-adjusted
-    /// pace.
+    /// `internal` so the accumulation can be tested directly. In the app it
+    /// runs only inside `elevations(for:)`, the DEM lookup the user starts
+    /// from the post-workout summary; recorded workouts take their gain from
+    /// the barometer or GPS at recording time.
     ///
     /// A FLAT step is not a direction change. Treating
     /// `sign == 0` as a reversal would commit the run in progress and
@@ -191,7 +192,9 @@ enum TopoElevationService {
     /// DEM-dataset cascade. For US coords prefer USGS NED 10 m (higher
     /// resolution than SRTM 30 m — matches barometric truth more closely
     /// on rolling-neighborhood terrain). For non-US, or when NED fails,
-    /// SRTM 30 m. When SRTM fails too the error goes to the caller.
+    /// SRTM 30 m. When SRTM fails too the error goes to the caller. After a
+    /// failed NED call the SRTM call waits `requestSpacingNanoseconds`, so
+    /// the pair stays within the operator's one-call-per-second limit.
     ///
     /// Empirical calibration against iSmoothRun / Apple Fitness / FITIV
     /// (all barometric) on the same rolling-hills loop: SRTM
@@ -204,13 +207,21 @@ enum TopoElevationService {
             if let values = try? await fetchFromOpenTopoData(coords: coords, dataset: "ned10m") {
                 return values
             }
+            try await Task.sleep(nanoseconds: requestSpacingNanoseconds)
         }
         return try await fetchFromOpenTopoData(coords: coords, dataset: "srtm30m")
     }
 
+    /// The gap kept between two calls to the public endpoint, whose stated
+    /// limit is one call per second.
+    private static let requestSpacingNanoseconds: UInt64 = 1_000_000_000
+
     /// Cheap bounding-box check for "is this point in the continental US
     /// or Alaska / Hawaii?" — NED 10m coverage area. No need to call a
-    /// proper geocoder; wrong answers just mean we fall through to SRTM.
+    /// proper geocoder; wrong answers just mean we fall through to SRTM. The
+    /// continental box takes in southern Canada (Toronto, Montreal,
+    /// Vancouver) and northern Mexico, which then cost one rejected NED call
+    /// and the paced SRTM retry.
     private static func isLikelyUS(coord: CLLocationCoordinate2D) -> Bool {
         let lat = coord.latitude, lon = coord.longitude
         // Continental US

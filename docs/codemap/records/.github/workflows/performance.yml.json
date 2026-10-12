@@ -1,0 +1,131 @@
+{
+ "file": ".github/workflows/performance.yml",
+ "hash": "ffb4ee55cd64bc30",
+ "role": "Manual workflow running the single Analysis performance test on a simulator and uploading its xcresult.",
+ "types": [],
+ "state": [
+  "permissions contents: read"
+ ],
+ "toplevel": "Trigger: workflow_dispatch only. One job.",
+ "flags": [],
+ "units": [
+  {
+   "key": "job performance-tests",
+   "hash": "c565595ead16b3d7",
+   "does": "macOS-26 job (timeout 60): checkout, Xcode 26.6, resolve simulator, run EmuquTests/AnalysisPerformanceTests, upload xcresult.",
+   "entry": "GitHub Actions job; workflow_dispatch only.",
+   "calls": [
+    ".github/workflows/performance.yml::step performance-tests/Checkout",
+    ".github/workflows/performance.yml::step performance-tests/Select Xcode",
+    ".github/workflows/performance.yml::step performance-tests/Resolve simulator destination",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests",
+    ".github/workflows/performance.yml::step performance-tests/Upload performance test results"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/performance.yml::step performance-tests/Checkout": "1d1ce710209c8758",
+    ".github/workflows/performance.yml::step performance-tests/Resolve simulator destination": "fff3bcb9140c715c",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "1990c882a1546ea1",
+    ".github/workflows/performance.yml::step performance-tests/Select Xcode": "79db03f927158b4f",
+    ".github/workflows/performance.yml::step performance-tests/Upload performance test results": "0f0f2e367e5fde5a",
+    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+   }
+  },
+  {
+   "key": "step performance-tests/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of performance.yml job performance-tests (manual workflow_dispatch only)",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step performance-tests/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of performance.yml job performance-tests (manual workflow_dispatch only)",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step performance-tests/Resolve simulator destination",
+   "hash": "b5b6ad9540c8ac8c",
+   "does": "Runs scripts/select_simulator_destination.sh Emuqu Emuqu.xcodeproj into steps.destination.outputs.value.",
+   "entry": "Step of performance.yml job performance-tests (manual workflow_dispatch only)",
+   "calls": [
+    "ext:script scripts/select_simulator_destination.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+   }
+  },
+  {
+   "key": "step performance-tests/Run Analysis performance tests",
+   "hash": "81cdfe5d66053ebf",
+   "does": "`xcodebuild test -only-testing:EmuquTests/AnalysisPerformanceTests` with result bundle build/PerformanceTests.xcresult; fails only if the test fails (DFAAnalyzer.compute returns nil) or the build fails.",
+   "entry": "Step of performance.yml job performance-tests (manual workflow_dispatch only)",
+   "calls": [
+    "ext:xcodebuild test",
+    "EmuquTests/AnalysisPerformanceTests.swift::func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "No performance baseline (.xcbaselines) exists anywhere in the repo, so measure(metrics:[XCTClockMetric()]) records timings but can never fail; this workflow cannot detect a performance regression, only a crash or nil result.",
+     "evidence": [
+      ".github/workflows/performance.yml:26-34",
+      "EmuquTests/AnalysisPerformanceTests.swift:49-51"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/AnalysisPerformanceTests.swift::func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()": "0607b8b3c5346b90"
+   }
+  },
+  {
+   "key": "step performance-tests/Upload performance test results",
+   "hash": "4f7af64e5b9218a3",
+   "does": "Uploads build/PerformanceTests.xcresult as performance-tests-xcresult; missing file ignored.",
+   "entry": "Step of performance.yml job performance-tests (manual workflow_dispatch only)",
+   "calls": [
+    "ext:actions/upload-artifact"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "always()",
+     "effect": "runs even after the test step fails"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

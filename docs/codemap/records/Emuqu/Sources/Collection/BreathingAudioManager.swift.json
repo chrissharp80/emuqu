@@ -1,0 +1,239 @@
+{
+ "file": "Emuqu/Sources/Collection/BreathingAudioManager.swift",
+ "hash": "02e97c47ee611105",
+ "role": "Speaks localized 'Breathe in'/'Breathe out' cues in sync with the BreathingMandalaView phase while the voice guide is enabled, claiming the .breathingGuide audio session through AudioSessionCoordinator.",
+ "types": [
+  "BreathingAudioManager: class (@Observable @MainActor, NSObject, AVSpeechSynthesizerDelegate) — breathing voice guide",
+  "BreathingAudioManager.BreathCue: enum — none/breatheIn/breatheOut"
+ ],
+ "state": [
+  "mem:BreathingAudioManager.isEnabled (toggled by StreamingLiveView/RecordPanels)",
+  "synthesizer: lazy AVSpeechSynthesizer",
+  "lastSpokenCue, isActive (private)"
+ ],
+ "toplevel": "Declares AVSpeechSynthesizerDelegate conformance and sets itself as delegate but implements no delegate methods.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var BreathingAudioManager.isEnabled",
+   "hash": "369f28aa5a8a0a64",
+   "does": "didSet observer on isEnabled: on an actual change starts (true) or stops (false) the voice guide.",
+   "entry": "SwiftUI toggle in the live breathing view sets isEnabled.",
+   "calls": [
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BreathingAudioManager.isEnabled"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "new value equals old value",
+     "effect": "returns without action"
+    },
+    {
+     "at": "+3",
+     "cond": "enabled",
+     "effect": "calls start(); false calls stop()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "4460902c1fa5d3a5",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()": "bbfa0b16f1f39e22"
+   }
+  },
+  {
+   "key": "let BreathingAudioManager.synthesizer",
+   "hash": "a45033aa5d385181",
+   "does": "Lazily creates the AVSpeechSynthesizer on first use and sets self as its delegate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreathingAudioManager.updatePhase(_:)",
+   "hash": "3ecfc5ab1db9b2fe",
+   "does": "Per-frame phase update: maps phase <0.5 to breatheIn else breatheOut and speaks when the cue differs from the last one spoken.",
+   "entry": "BreathingMandalaView.slowPacedBreathing onPhaseUpdate closure (StreamingLiveView.swift:48), ~60 fps timer.",
+   "calls": [
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.speak(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "guide not active",
+     "effect": "returns"
+    },
+    {
+     "at": "+5",
+     "cond": "phase < 0.5",
+     "effect": "cue breatheIn; else breatheOut"
+    },
+    {
+     "at": "+8",
+     "cond": "cue differs from lastSpokenCue",
+     "effect": "records it and calls speak (the cue is recorded even if speak then skips because the synthesizer is busy, so that phase stays silent); same cue does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.speak(_:)": "e52823d824d15b4e"
+   }
+  },
+  {
+   "key": "func BreathingAudioManager.speak(_:)",
+   "hash": "118c915ace5597b5",
+   "does": "Speaks the localized cue text through FRSafeSpeak with the calm utterance settings, skipping if already speaking; a failed speak is logged as warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.breathUtterance(_:)",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "synthesizer is speaking",
+     "effect": "returns, dropping this cue"
+    },
+    {
+     "at": "+5",
+     "cond": "cue breatheIn",
+     "effect": "text 'Breathe in'"
+    },
+    {
+     "at": "+6",
+     "cond": "cue breatheOut",
+     "effect": "text 'Breathe out'"
+    },
+    {
+     "at": "+7",
+     "cond": "cue none",
+     "effect": "returns without speaking"
+    },
+    {
+     "at": "+10",
+     "cond": "FRSafeSpeak returned false",
+     "effect": "logs warning; nothing else"
+    },
+    {
+     "at": "+11",
+     "cond": "speakErr is nil",
+     "effect": "log shows '?'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.breathUtterance(_:)": "f420151490e6a804",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "7d8b80467768d419"
+   }
+  },
+  {
+   "key": "func BreathingAudioManager.breathUtterance(_:)",
+   "hash": "d60d8a2e17e9a16f",
+   "does": "Builds an AVSpeechUtterance at 0.85× default rate, pitch 0.9, volume 0.6, no post delay, with the cached app-language voice.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "840eae12a70d0f17"
+   }
+  },
+  {
+   "key": "func BreathingAudioManager.start()",
+   "hash": "ae8aabb352b76bbc",
+   "does": "Prewarms the voice for the app language, claims .breathingGuide playback via the coordinator, activates the session (error logged), marks active and resets lastSpokenCue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",
+    "ext:AVAudioSession.setActive",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "app locale has no language code",
+     "effect": "prewarms 'en'"
+    },
+    {
+     "at": "+5",
+     "cond": "setActive(true) throws",
+     "effect": "logged and swallowed; guide still marked active and speaks into whatever session state exists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BreathingAudioManager.stop()",
+   "hash": "59b6154a4d0125b3",
+   "does": "Marks inactive, stops speech immediately via FRSafeStopSpeaking, releases the .breathingGuide claim and asks BackgroundAudioManager.deactivateIfIdle to deactivate the session on its transition queue — only when no cue holds it and no other claimant remains — logging a deactivation error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "writes": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "deactivateIfIdle reported an error (on the cue queue)",
+     "effect": "logged; nil (deactivated or had to stay up) does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager": "a650b3abbfe836c8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
+   }
+  }
+ ],
+ "deps": {}
+}

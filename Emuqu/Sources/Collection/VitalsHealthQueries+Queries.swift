@@ -27,17 +27,19 @@ extension VitalsHealthQueries {
         )
     }
 
-    /// Fetch respiratory rate around a reference date
+    /// Fetch respiratory rate for the night before a reference date: the mean
+    /// of every sample in the trailing 24-hour window ending at the reference
+    /// date (clamped to now), so a night with many samples is represented
+    /// whole, not by its last few.
     private func fetchRespiratoryRate(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, let respType = HKTypes.quantity(.respiratoryRate) else { return nil }
-        // 24-hour window centered around the reference date's overnight period
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: respType,
                 predicate: predicate,
-                limit: 10,
+                limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in
                 resolve(Self.meanRespiratoryRate(samples: samples, error: error))
@@ -71,6 +73,14 @@ extension VitalsHealthQueries {
         Calendar.current.isDateInToday(referenceDate)
     }
 
+    /// The cached baseline stands in only for a reading of today: the cache
+    /// holds the latest baseline, and a historical reanalysis scored against
+    /// it would compare an old night with a different week. A past night
+    /// with no HealthKit baseline has none.
+    nonisolated private static func cachedBaselineIfToday(_ cached: Double?, relativeTo referenceDate: Date) -> Double? {
+        refreshesBaselineCache(relativeTo: referenceDate) ? cached : nil
+    }
+
     nonisolated private static func meanRespiratoryRate(samples: [HKSample]?, error: Error?) -> Double? {
         if let error {
             debugLog("[HealthKitManager] Respiratory rate query error: \(error.localizedDescription)")
@@ -91,13 +101,14 @@ extension VitalsHealthQueries {
     /// Always tries HealthKit first. On success for today, the value is persisted to
     /// `RespiratoryBaselineCache` so future callers can fall back to it when
     /// HK is unreachable (e.g. morning processing on a still-locked phone,
-    /// which returns `errorDatabaseInaccessible`). When HK returns nil/error,
-    /// the cached value is returned — a baseline from a few days ago is the
-    /// same physiology as today's, and far better than a frozen "no data"
-    /// label.
+    /// which returns `errorDatabaseInaccessible`). When HK returns nil/error
+    /// for today's reading, the cached value is returned — a baseline from a
+    /// few days ago is the same physiology as today's, and far better than a
+    /// frozen "no data" label. A historical reading gets no cached stand-in
+    /// (`cachedBaselineIfToday`).
     private func fetchRespiratoryRateBaseline(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, let respType = HKTypes.quantity(.respiratoryRate) else {
-            return RespiratoryBaselineCache.read()?.value
+            return Self.cachedBaselineIfToday(RespiratoryBaselineCache.read()?.value, relativeTo: referenceDate)
         }
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
         let liveValue: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
@@ -113,7 +124,7 @@ extension VitalsHealthQueries {
             if Self.refreshesBaselineCache(relativeTo: referenceDate) { RespiratoryBaselineCache.write(value: liveValue) }
             return liveValue
         }
-        return RespiratoryBaselineCache.read()?.value
+        return Self.cachedBaselineIfToday(RespiratoryBaselineCache.read()?.value, relativeTo: referenceDate)
     }
 
     nonisolated private static func respiratoryBaselineValue(statistics: HKStatistics?, error: Error?) -> Double? {
@@ -241,11 +252,12 @@ extension VitalsHealthQueries {
     ///
     /// Same caching behavior as `fetchRespiratoryRateBaseline`: writes the
     /// last-known-good value to `WristTemperatureBaselineCache` on success for
-    /// today and falls back to it when HK is unreachable.
+    /// today and falls back to it when HK is unreachable, for today's reading
+    /// only.
     private func fetchWristTemperatureBaseline(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, #available(iOS 16.0, *),
               let tempType = HKTypes.quantity(.appleSleepingWristTemperature)
-        else { return WristTemperatureBaselineCache.read()?.value }
+        else { return Self.cachedBaselineIfToday(WristTemperatureBaselineCache.read()?.value, relativeTo: referenceDate) }
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
         let liveValue: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
@@ -262,7 +274,7 @@ extension VitalsHealthQueries {
             if Self.refreshesBaselineCache(relativeTo: referenceDate) { WristTemperatureBaselineCache.write(value: liveValue) }
             return liveValue
         }
-        return WristTemperatureBaselineCache.read()?.value
+        return Self.cachedBaselineIfToday(WristTemperatureBaselineCache.read()?.value, relativeTo: referenceDate)
     }
 
     /// Normalises each sample the same way `fetchWristTemperature` does, then
@@ -330,7 +342,11 @@ extension VitalsHealthQueries {
         }
         manager.vitalsObserverQueries.append(query)
         manager.healthStore.execute(query)
-        manager.healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { _, _ in }
+        let typeName = type.identifier
+        manager.healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { success, error in
+            guard !success else { return }
+            debugLog("[HealthKitManager] Background delivery for \(typeName) not enabled: \(error?.localizedDescription ?? "no error given")")
+        }
     }
 
     /// Stop observing all vitals data queries.
@@ -345,8 +361,10 @@ extension VitalsHealthQueries {
     ///
     /// Reads HealthKit's purpose-built `.restingHeartRate` sample first — this is
     /// what Apple Watch writes once a day after computing the user's actual RHR.
-    /// Falls back to the minimum `.heartRate` sample over a 24h window only when
-    /// no RHR sample exists (older devices, users without an Apple Watch). The
+    /// Falls back to the minimum `.heartRate` sample over the same 36h window
+    /// only when no RHR sample exists (older devices, users without an Apple
+    /// Watch): the lowest instantaneous reading, a stand-in that reads at or
+    /// below a true resting HR, used because nothing better exists then. The
     /// previous implementation always took the 24h `.heartRate` minimum, which
     /// conflated "lowest instantaneous beat" with "resting HR" and missed the
     /// authoritative Watch value entirely.
@@ -396,8 +414,9 @@ extension VitalsHealthQueries {
         return (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
     }
 
-    /// 24h-window minimum heart rate. Only used when no `.restingHeartRate`
-    /// sample exists at all.
+    /// Minimum heart rate over the caller's window (36 h in
+    /// `fetchRestingHeartRate`). Only used when no `.restingHeartRate` sample
+    /// exists at all.
     private func minimumHeartRate(predicate: NSPredicate) async -> Double? {
         guard let hrType = HKTypes.quantity(.heartRate) else { return nil }
         let bpm = HKUnit.count().unitDivided(by: .minute())
@@ -480,7 +499,10 @@ extension VitalsHealthQueries {
         return await sumActivityQuantity(type: flightsType, unit: .count(), from: start, to: end).map { Int($0) } ?? 0
     }
 
-    /// Generic cumulative-sum statistics query for activity quantities.
+    /// Generic cumulative-sum statistics query for activity quantities: the
+    /// sum, 0 when HealthKit has no samples in the range, nil when the query
+    /// failed (HealthKit locked or not authorized, or the timeout), logged.
+    /// The public `fetchSum…` totals still read nil as 0.
     private func sumActivityQuantity(
         type: HKQuantityType,
         unit: HKUnit,
@@ -488,16 +510,31 @@ extension VitalsHealthQueries {
         to end: Date
     ) async -> Double? {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        let typeName = type.identifier
+        let sum: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: type,
                 quantitySamplePredicate: predicate,
                 options: .cumulativeSum
-            ) { _, statistics, _ in
-                let value = statistics?.sumQuantity()?.doubleValue(for: unit)
-                resolve(value)
+            ) { _, statistics, error in
+                resolve(Self.activitySum(statistics, error: error, unit: unit, typeName: typeName))
             }
         }
+        if sum == nil { debugLog("[HealthKitManager] \(typeName) total unavailable (query failed or timed out)") }
+        return sum
+    }
+
+    /// No samples (`errorNoData`, or no sum) is a real 0; any other error is nil.
+    nonisolated private static func activitySum(_ statistics: HKStatistics?, error: Error?, unit: HKUnit, typeName: String) -> Double? {
+        if let error {
+            let nsError = error as NSError
+            guard nsError.domain == HKErrorDomain, nsError.code == HKError.Code.errorNoData.rawValue else {
+                debugLog("[HealthKitManager] \(typeName) sum query error: \(error.localizedDescription)")
+                return nil
+            }
+            return 0
+        }
+        return statistics?.sumQuantity()?.doubleValue(for: unit) ?? 0
     }
 }
 

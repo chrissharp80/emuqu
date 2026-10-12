@@ -53,18 +53,22 @@ extension RecoveryScoreCalculator {
         // (above-baseline is ambiguous per the research).
         var score = zToRecoveryScore((log(rmssd) - stats.lnRmssdMean) / stats.lnRmssdSD)
         score += rhrAdjustment(meanHR: meanHR, stats: stats)
-        score += dfaAlpha1Adjustment(dfaAlpha1)
+        score += dfaAlpha1Adjustment(dfaAlpha1)?.points ?? 0
         // Reduced day-to-day variability signals overreaching (Plews); excessive
         // variability signals instability. Deductions only.
-        score += cvAdjustment(stats.lnRmssdCV7Day)
+        score += cvAdjustment(stats.lnRmssdCV7Day)?.points ?? 0
         score += ansBalanceAdjustment(ansBalance)
-        score -= stalenessPenalty(stats: stats, referenceDate: referenceDate)
+        score -= baselineStalenessPenalty(stats: stats, referenceDate: referenceDate)?.penalty ?? 0
         return score
     }
 
     /// Elevated resting HR independent of RMSSD suggests incomplete recovery,
     /// worth ±10 points. Inverted: higher HR = worse recovery.
-    private static func rhrAdjustment(meanHR: Double?, stats: BaselineTracker.RecoveryBaselineStats) -> Double {
+    ///
+    /// Each Tier-1 adjustment below is the one place its arithmetic lives:
+    /// `ScoreDetailBuilder` reads these to write the shown adjustments, so the
+    /// detail line cannot drift from the score.
+    static func rhrAdjustment(meanHR: Double?, stats: BaselineTracker.RecoveryBaselineStats) -> Double {
         guard let hr = meanHR else { return 0 }
         let zHR = (hr - stats.meanHRBaseline) / stats.meanHRSD
         return max(
@@ -76,19 +80,21 @@ extension RecoveryScoreCalculator {
     /// After 7+ days without a session the baseline is increasingly unreliable,
     /// so the score is penalized to reflect reduced confidence — the z-score
     /// comparison is against stale data that may no longer represent current
-    /// physiology.
-    private static func stalenessPenalty(
+    /// physiology. Nil when the baseline is not stale (or has no last date);
+    /// otherwise its age in days and the points deducted.
+    static func baselineStalenessPenalty(
         stats: BaselineTracker.RecoveryBaselineStats,
         referenceDate: Date
-    ) -> Double {
-        guard let lastDate = stats.lastDataPointDate else { return 0 }
+    ) -> (days: Int, penalty: Double)? {
+        guard let lastDate = stats.lastDataPointDate else { return nil }
         let daysSince = baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
-        guard daysSince >= RecoveryScoreConstants.BaselineStaleness.staleAfterDays else { return 0 }
+        guard daysSince >= RecoveryScoreConstants.BaselineStaleness.staleAfterDays else { return nil }
         let weeksStale = Double(daysSince - RecoveryScoreConstants.BaselineStaleness.staleAfterDays) / 7.0
-        return min(
+        let penalty = min(
             RecoveryScoreConstants.BaselineStaleness.maxPenalty,
             RecoveryScoreConstants.BaselineStaleness.penaltyPerWeek * (1.0 + weeksStale)
         )
+        return (daysSince, penalty)
     }
 
     /// Last resort: absolute RMSSD thresholds, with no baseline and no readiness.
@@ -104,9 +110,12 @@ extension RecoveryScoreCalculator {
     // MARK: - Tier 2: Sleep Sub-Score
 
     /// Calculate sleep quality sub-score from HealthKit sleep data.
-    /// Uses SleepScienceAnalyzer's enhanced score (incorporating fragmentation, cycles,
-    /// architecture, and age-adjusted norms) when stage data is available.
-    /// Falls back to basic weighted formula when stage data is missing.
+    ///
+    /// Every night with sleep minutes, staged or not, is scored by
+    /// `SleepScienceAnalyzer`'s enhanced score (fragmentation, cycles,
+    /// architecture, age-adjusted norms), which gives neutral half credit to
+    /// whatever the night did not measure. `analyze` returns nil only for a
+    /// night with no sleep minutes; that night gets `zeroMinuteNightScore`.
     ///
     /// - Parameters:
     ///   - sleepData: HealthKit sleep data
@@ -123,40 +132,22 @@ extension RecoveryScoreCalculator {
         ) {
             return analysis.enhancedScore
         }
-        return basicSleepScore(sleep, typicalSleepHours: typicalSleepHours)
+        return zeroMinuteNightScore(sleep, typicalSleepHours: typicalSleepHours)
     }
 
-    /// Basic weighted formula for when stage data is missing.
+    /// The sleep sub-score for a night with no sleep minutes — the only
+    /// night `SleepScienceAnalyzer.analyze` declines.
     ///
-    /// Duration uses 24h sleep (night + qualifying daytime nap); the deep/REM
-    /// proportions stay night-only, since a nap is a separate episode and not
-    /// part of this night's architecture.
+    /// Duration uses 24h sleep, so a qualifying daytime nap still counts.
+    /// Efficiency is the measured value (neutral 0.5 when unmeasured). With
+    /// no night minutes there is no deep or REM share to score, so both take
+    /// the neutral 0.5 an unrecorded stage gets.
     ///
-    /// ## Its stage branch is currently unreachable
-    ///
-    /// Found by mutation testing: swapping the deep/REM weights (M13) and
-    /// removing the `stageRatio` cap (M12) both left the whole suite green, and
-    /// the reason is not a missing test.
-    ///
-    /// `calculateSleepScore` reaches this function only when
-    /// `SleepScienceAnalyzer.analyze` returns nil, and its only nil condition is
-    /// `nightSleepMinutes <= 0`. `nightSleepMinutes` IS `totalSleepMinutes`. So
-    /// whenever this function runs, `sleep.nightSleepMinutes` is zero — and
-    /// `stageRatio` guards `nightMinutes > 0` and returns its neutral 0.5
-    /// before either the target division or the cap can matter. The deep/REM
-    /// weights, their targets, and the cap therefore have no effect on any
-    /// score the app can produce.
-    ///
-    /// The selection is the bug, not the arithmetic: `calculateSleepScore`'s own
-    /// doc says "falls back to basic weighted formula when STAGE DATA is
-    /// missing", and `analyze` returns non-nil for a night with no stage data at
-    /// all (it sets `architecture = .unknown` and carries on). Making the
-    /// fallback reachable as documented would change the score for every user
-    /// whose watch reports duration but not stages, which is a product decision
-    /// and a re-tune, not a formatting fix. Left alone deliberately; recorded
-    /// here so the next reader does not spend an afternoon testing arithmetic
-    /// that cannot execute.
-    private static func basicSleepScore(
+    /// This replaced a "basic weighted formula" whose deep/REM share branch
+    /// could never run here (mutation testing found swapping its weights left
+    /// every test green): the share always fell back to 0.5 for a zero-minute
+    /// night. The arithmetic is unchanged; it now says what it does.
+    private static func zeroMinuteNightScore(
         _ sleep: SleepData,
         typicalSleepHours: Double
     ) -> Double {
@@ -164,26 +155,12 @@ extension RecoveryScoreCalculator {
         let durationRatio = min(sleepHours / max(typicalSleepHours, 1.0), 1.2)
         // Unmeasured efficiency (passive Watch HR estimate) is neutral 0.5, like an unrecorded stage.
         let efficiency = sleep.measuredSleepEfficiency.map { min($0, 100.0) / 100.0 } ?? 0.5
-        let deepRatio = stageRatio(
-            sleep.deepSleepMinutes, of: sleep.nightSleepMinutes,
-            target: ScoringWeights.Sleep.deepSleepTargetProportion
-        )
-        let remRatio = stageRatio(
-            sleep.remSleepMinutes, of: sleep.nightSleepMinutes,
-            target: ScoringWeights.Sleep.remSleepTargetProportion
-        )
+        let neutralStageShare = 0.5
         let sleepScore = (durationRatio * ScoringWeights.Sleep.duration
             + efficiency * ScoringWeights.Sleep.efficiency
-            + deepRatio * ScoringWeights.Sleep.deepSleep
-            + remRatio * ScoringWeights.Sleep.remSleep) * 100.0
+            + neutralStageShare * ScoringWeights.Sleep.deepSleep
+            + neutralStageShare * ScoringWeights.Sleep.remSleep) * 100.0
         return min(ScoringBounds.maxScore, max(ScoringBounds.minScore, sleepScore))
-    }
-
-    /// A stage's share of the night against its target proportion, capped at 1.
-    /// Neutral 0.5 when the stage wasn't recorded — absence is not a deficit.
-    private static func stageRatio(_ stageMinutes: Int?, of nightMinutes: Int, target: Double) -> Double {
-        guard let stageMinutes, nightMinutes > 0 else { return 0.5 }
-        return min((Double(stageMinutes) / Double(nightMinutes)) / target, 1.0)
     }
 
     // MARK: - Tier 1 adjustments
@@ -192,9 +169,13 @@ extension RecoveryScoreCalculator {
     // contributes, so `calculateTier1` reads as the sum of its adjustments
     // rather than as a single accumulating branch tree.
 
-    /// DFA α1: ±5 points, against the app's resting reference range
-    /// (0.75–1.0). Values above it are more correlated than the reference
-    /// range; values below it, less. Both are treated as small deductions.
+    /// DFA α1 against the app's resting reference range (0.75–1.0): inside
+    /// it, `dfaOptimalBonus` (+5). Well above it (> `dfaAlpha1Fatigue`, 1.2),
+    /// more correlated than the range, `dfaFatiguePenalty` (−5); well below it
+    /// (< `dfaAlpha1FlexibleLower`, 0.60), less correlated, `dfaIrregularPenalty`
+    /// (−3). The margins between (1.0–1.2 and 0.60–0.75) score nothing. Nil
+    /// for no α1 or a neutral margin; otherwise the kind the detail line names
+    /// and the points it adds.
     ///
     /// Not "physiologically optimal", and a value outside the band is not a
     /// marker of pathology: the reasoning behind a score is held to the same
@@ -210,32 +191,32 @@ extension RecoveryScoreCalculator {
     /// The ±5 stays as it is. There is no better-evidenced number
     /// to move it to, and moving it would rewrite every user's score history
     /// on no evidence at all.
-    private static func dfaAlpha1Adjustment(_ dfaAlpha1: Double?) -> Double {
-        guard let a1 = dfaAlpha1 else { return 0 }
+    static func dfaAlpha1Adjustment(_ dfaAlpha1: Double?) -> (kind: ScoreFactorFacts.Adjustment, points: Double)? {
+        guard let a1 = dfaAlpha1 else { return nil }
         if a1 >= HRVThresholds.dfaAlpha1OptimalLower, a1 <= HRVThresholds.dfaAlpha1OptimalUpper {
-            return RecoveryScoreConstants.HRVAdjustments.dfaOptimalBonus
+            return (.alphaBalanced, RecoveryScoreConstants.HRVAdjustments.dfaOptimalBonus)
         }
         if a1 > HRVThresholds.dfaAlpha1Fatigue {
-            return RecoveryScoreConstants.HRVAdjustments.dfaFatiguePenalty
+            return (.alphaStrained, RecoveryScoreConstants.HRVAdjustments.dfaFatiguePenalty)
         }
         if a1 < HRVThresholds.dfaAlpha1FlexibleLower {
-            return RecoveryScoreConstants.HRVAdjustments.dfaIrregularPenalty
+            return (.alphaReduced, RecoveryScoreConstants.HRVAdjustments.dfaIrregularPenalty)
         }
-        return 0
+        return nil
     }
 
     /// 7-day coefficient of variation: deductions only. Suspiciously flat
     /// day-to-day variability signals overreaching (Plews); excessive
-    /// variability signals instability.
-    private static func cvAdjustment(_ cv7Day: Double?) -> Double {
-        guard let cv = cv7Day else { return 0 }
+    /// variability signals instability. Nil for no CV or a CV in range.
+    static func cvAdjustment(_ cv7Day: Double?) -> (kind: ScoreFactorFacts.Adjustment, points: Double)? {
+        guard let cv = cv7Day else { return nil }
         if cv < RecoveryScoreConstants.HRVAdjustments.cvFlatThreshold {
-            return RecoveryScoreConstants.HRVAdjustments.cvFlatPenalty
+            return (.variabilityFlat, RecoveryScoreConstants.HRVAdjustments.cvFlatPenalty)
         }
         if cv > RecoveryScoreConstants.HRVAdjustments.cvErraticThreshold {
-            return RecoveryScoreConstants.HRVAdjustments.cvErraticPenalty
+            return (.variabilityErratic, RecoveryScoreConstants.HRVAdjustments.cvErraticPenalty)
         }
-        return 0
+        return nil
     }
 
     /// ANS balance (PNS − SNS). Kubios indices (Tarvainen et al. 2014) are

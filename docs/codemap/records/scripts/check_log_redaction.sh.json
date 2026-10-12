@@ -1,0 +1,32 @@
+{
+ "file": "scripts/check_log_redaction.sh",
+ "hash": "b9de2addd97b6ec0",
+ "role": "CI gate: log-call lines (debugLog, logger.*, os_log, NSLog, print, ...) must not interpolate PII/credential names, latitude/longitude, or raw RR/beat series.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources",
+  "dir:EmuquWatch Watch App"
+ ],
+ "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app; a missing root -> exit 2. tmp via gate_mktemp (|| exit). Python writes one line per log call (LOG_CALL not preceded by a word character; the whole call found by string/interpolation-aware paren matching and joined onto one line) as file:line:call, skipping // lines and calls with `log-redaction-ok` on any of their lines or the line above; a Python failure -> exit 2. report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN (bare or member-path rr/rrValues/rrSeries/beats/rrIntervals, bare samples); any -> remediation text + exit 1; else clean with scanned count.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn report",
+   "hash": "1b72d8814ba21738",
+   "does": "Greps the collected log-call lines in $tmp for an extended regex; on hits prints 'FAIL: <label> interpolated into a log statement' with the lines and sets global violations=1.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:$tmp (gate_mktemp log-redaction)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
+  "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea"
+ }
+}

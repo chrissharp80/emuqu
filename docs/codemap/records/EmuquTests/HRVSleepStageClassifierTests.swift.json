@@ -1,0 +1,927 @@
+{
+ "file": "EmuquTests/HRVSleepStageClassifierTests.swift",
+ "hash": "df5e0a4a0a09030d",
+ "role": "XCTest suite for HRVSleepStageClassifier (HRV-based sleep staging when Watch stages are missing): synthetic-night stage presence/proportions/REM-not-first-hour, nil on insufficient/empty/inverted input, interval continuity and merging, smoothing, rank computation with ties, percentile clamping, interval building across dropouts, feature-window RMSSD parity, and windowVariability (population SDNN, RMSSD, CV, degenerate inputs). Pins NSTimeZone.default to UTC for the class and restores it.",
+ "types": [
+  "HRVSleepStageClassifierTests: class — XCTestCase for Analysis/HRVSleepStageClassifier*.swift"
+ ],
+ "state": [
+  "mem:HRVSleepStageClassifierTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)",
+  "mem:NSTimeZone.default (process-global; set to UTC in class setUp, restored in class tearDown)",
+  "mem:HRVSleepStageClassifierTests.fixedRecordingStart (Date 1_700_000_000)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HRVSleepStageClassifierTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves NSTimeZone.default and sets it to TestTimeZone.utc for the whole class.",
+   "entry": "XCTest runner: class-level setUp before the first test of the class",
+   "calls": [],
+   "reads": [
+    "mem:NSTimeZone.default"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:HRVSleepStageClassifierTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved NSTimeZone.default (if any), clears the saved value, then calls super.",
+   "entry": "XCTest runner: class-level tearDown after the last test of the class",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:HRVSleepStageClassifierTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists",
+     "effect": "true: restores it; false: leaves NSTimeZone.default as is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)",
+   "hash": "025daa02c55a3700",
+   "does": "Test helper: deterministic pseudo-random integer in [min,max] from an LCG step of the beat index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+   "hash": "400dd7be67535a36",
+   "does": "Test helper: synthesises a night of RR points in 90-min cycles: 2-min ~800 ms wake at each cycle start after the first, deep (~1154 ms ±15) for the first 30%/15% of a cycle, REM (~923 ms ±60) for the last 15%/30%, light (~1000 ms ±30) otherwise; RR clamped to 200–2000.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each 90-min cycle (at least 1)",
+     "effect": "generates the cycle"
+    },
+    {
+     "at": "+21",
+     "cond": "cycle < 2",
+     "effect": "deep fraction 0.30, else 0.15"
+    },
+    {
+     "at": "+25",
+     "cond": "cycle < 2",
+     "effect": "REM fraction 0.15, else 0.30"
+    },
+    {
+     "at": "+31",
+     "cond": "while currentMs < cycleEnd",
+     "effect": "appends beats until cycle end"
+    },
+    {
+     "at": "+32",
+     "cond": "currentMs < awakeEnd and cycle > 0",
+     "effect": "awake RR ~800 ms"
+    },
+    {
+     "at": "+35",
+     "cond": "currentMs < deepEnd",
+     "effect": "deep RR ~1154 ms"
+    },
+    {
+     "at": "+38",
+     "cond": "currentMs >= remStart",
+     "effect": "REM RR ~923 ms; else light RR ~1000 ms"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "deepPercent/remPercent/awakePercent parameters are declared but ignored (underscored), so the signature advertises control over stage proportions that the generator does not provide.",
+     "evidence": [
+      "EmuquTests/HRVSleepStageClassifierTests.swift:52",
+      "EmuquTests/HRVSleepStageClassifierTests.swift:54"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "durationHours is floored to whole 90-minute cycles: cycleCount = Int(durationMs / cycleMs) (line 63) and the loop only generates cycles 0..<cycleCount, so the remainder is never generated. generateSleepNight() \"7 h\" yields 6 h of beats and 8 h yields 7.5 h; testClassifyProducesAllStages' message \"7h of data\" (line 132) is wrong. Tests compute durations from rrPoints.last, so assertions stay self-consistent.",
+     "evidence": [
+      "EmuquTests/HRVSleepStageClassifierTests.swift:63",
+      "EmuquTests/HRVSleepStageClassifierTests.swift:65",
+      "EmuquTests/HRVSleepStageClassifierTests.swift:132"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "80bb01ba2101f6ef"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)",
+   "hash": "b8d018101bfa2ece",
+   "does": "Test helper: generates constant-RR points at the given HR for durationMinutes from startMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "t < endMs",
+     "effect": "appends a beat and advances"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyProducesAllStages()",
+   "hash": "55a6a87b6bfb00c3",
+   "does": "Classifies a 7 h synthetic night and asserts non-nil with deep, REM and core > 0 and total staged minutes within 15 of the duration.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "result non-nil",
+     "effect": "false: returns after the XCTAssertNotNil failure"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyDeepSleepProportions()",
+   "hash": "9a19a2ff2efe9267",
+   "does": "Classifies an 8 h synthetic night and asserts deep is 5–45% of sleep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "result non-nil",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+17",
+     "cond": "total sleep > 0",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyREMNotInFirstHour()",
+   "hash": "a53d1ede902d792c",
+   "does": "Classifies a 7 h synthetic night and asserts no REM interval starts in the first 60 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "result non-nil",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyInsufficientDataReturnsNil()",
+   "hash": "d2035c03ee79a27b",
+   "does": "Asserts classify returns nil for 10 minutes of uniform 60 bpm data.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)": "8862fde1bf53c328"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyEmptyDataReturnsNil()",
+   "hash": "312ac13fe758354d",
+   "does": "Asserts classify returns nil for empty input.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyInvertedBoundariesReturnsNil()",
+   "hash": "37baed11f8d80b50",
+   "does": "Asserts classify returns nil when sleepEndMs < sleepStartMs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)": "8862fde1bf53c328"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testStageIntervalsAreContinuous()",
+   "hash": "da5e43c2c3a6d44e",
+   "does": "Classifies a 6 h night and asserts each stage interval starts within 1 s of the previous one's end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "result non-nil",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+17",
+     "cond": "for i in 1..<interval count",
+     "effect": "asserts continuity"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "`for i in 1 ..< r.stageIntervals.count` traps (invalid range) if the classifier ever returns zero intervals, crashing the runner instead of failing the test.",
+     "evidence": [
+      "EmuquTests/HRVSleepStageClassifierTests.swift:252"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testAdjacentIntervalsHaveDifferentStages()",
+   "hash": "3abb76fc0362d2b9",
+   "does": "Classifies a 7 h night and asserts adjacent intervals have different stages (merged).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "result non-nil",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+17",
+     "cond": "for i in 1..<interval count",
+     "effect": "asserts stage differs"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "`for i in 1 ..< r.stageIntervals.count` traps (invalid range) if the classifier ever returns zero intervals, crashing the runner instead of failing the test.",
+     "evidence": [
+      "EmuquTests/HRVSleepStageClassifierTests.swift:281"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testSmoothingRemovesSingleWindowBlips()",
+   "hash": "ba2ea3b9fdd26ee7",
+   "does": "Asserts smoothStages turns a single core window between deeps into deep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testSmoothingPreservesBriefAwakenings()",
+   "hash": "0015dfa5cf3623aa",
+   "does": "Asserts smoothStages keeps a single awake window.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testSmoothingPreservesRealTransitions()",
+   "hash": "44b85eafbc4c6fa8",
+   "does": "Asserts smoothStages keeps 2-window runs unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testSmoothingShortInput()",
+   "hash": "6191d14fa28db884",
+   "does": "Asserts smoothStages passes a 2-element input through.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testComputeRanksOrdering()",
+   "hash": "3157de838b60c078",
+   "does": "Asserts computeRanks maps [50,30,70,10,90] to fractional ranks 0.5,0.25,0.75,0,1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testComputeRanksGivesTiesTheirAverageRank()",
+   "hash": "0cc5220422e35118",
+   "does": "Asserts tied values get their average rank (all-equal → 0.5; mixed ties → 0.75).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testComputeRanksSingleElement()",
+   "hash": "3c7564caa3c10902",
+   "does": "Asserts a single value ranks 0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testDFARankDirectionLowAlpha1IsDeepLike()",
+   "hash": "c5369b8d0f9f4b33",
+   "does": "Asserts DFA α1 0.55 ranks 0 and 1.25 ranks 1 (low α1 deep-like).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only re-tests computeRanks ordering on another array; it does not touch how the classifier uses the DFA rank, so the 'low α1 is deep-like' direction it is named for is not verified.",
+     "evidence": [
+      "EmuquTests/HRVSleepStageClassifierTests.swift:350"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testCoreSleepDominatesWithUniformPhysiology()",
+   "hash": "d4c599e71c024f37",
+   "does": "Classifies 7 h of ~1250 ms ±20 ms noise and asserts core > 15% and deep < 80% of sleep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "while t < 7 h",
+     "effect": "appends noisy beats"
+    },
+    {
+     "at": "+22",
+     "cond": "result non-nil",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+28",
+     "cond": "total sleep > 0",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "With physiologically uniform input the rank-based scorer still assigns deep/REM/core from noise ranks plus temporal priors (computeRanks/remTemporalBonus); the test accepts any split with core > 15% and deep < 80% instead of requiring the classifier to decline or flag low confidence, so fabricated stage minutes on such nights are pinned as correct.",
+     "evidence": [
+      "EmuquTests/HRVSleepStageClassifierTests.swift:367",
+      "EmuquTests/HRVSleepStageClassifierTests.swift:393",
+      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:403"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "80bb01ba2101f6ef"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testClassifyREMProportionWithinNorms()",
+   "hash": "8ec0da305ef15dd0",
+   "does": "Classifies an 8 h synthetic night and asserts REM is 5–35% of sleep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "result non-nil",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+19",
+     "cond": "total sleep > 0",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testPercentileEmpty()",
+   "hash": "43cae79751b8579a",
+   "does": "Asserts percentile of [] is 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testPercentileSingleValue()",
+   "hash": "d89281aedeb70f5f",
+   "does": "Asserts percentile of a single value is that value.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testPercentileMedian()",
+   "hash": "43dab8a8f151cce6",
+   "does": "Asserts p=0.5 of [10..50] is 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testPercentileExtremes()",
+   "hash": "1e050d83738bcc0c",
+   "does": "Asserts p=0 → 10 and p=1 → 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testPercentileAboveOneClampsToTheLastValue()",
+   "hash": "d7d3b20c7c0f858c",
+   "does": "Asserts p=1.5 and p=99 clamp to 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testPercentileBelowZeroClampsToTheFirstValue()",
+   "hash": "28d1ac976560568f",
+   "does": "Asserts p=-0.5 clamps to 10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testNonFinitePercentileDoesNotTrap()",
+   "hash": "83da78980fb494f9",
+   "does": "Asserts p=NaN and p=-inf return the first value (10) without trapping.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testInfinitePercentileClampsToTheLastValue()",
+   "hash": "730599bbabacb07a",
+   "does": "Asserts p=+inf clamps to the last value (50).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testBuildIntervalsNoWindows()",
+   "hash": "c5ac47847dd6b548",
+   "does": "Asserts buildIntervals of no windows is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testBuildIntervalsMergesAdjacentSameStage()",
+   "hash": "9105ef1fb7a9a22c",
+   "does": "Asserts buildIntervals merges [deep,deep,core,core] over 4 contiguous windows into 2 intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testBuildIntervalsEndsAtADropoutGap()",
+   "hash": "e61a1dc416e83ee9",
+   "does": "Asserts buildIntervals splits a same-stage run at a 90-minute gap (first interval ends at window 1's end; second starts at window 20).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testBuildFeatureWindowsRMSSDParityExact()",
+   "hash": "1faf22a2a890c3fc",
+   "does": "Builds 15 beats of a 5-value pattern and asserts buildFeatureWindows yields one window with RMSSD 64.25396 (1e-6).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "3 repetitions",
+     "effect": "repeats pattern"
+    },
+    {
+     "at": "+8",
+     "cond": "for each RR in pattern",
+     "effect": "appends a beat"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "e5152bee7dc8280c",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.window(at:from:)",
+   "hash": "a67b04c134890e81",
+   "does": "Test helper: builds a 5-minute FeatureWindow at index·300 s from start with fixed features (hr 55, rmssd 50, sdnn 40, cv 0.03, α1 0.85, LF/HF 1.5, HF 200).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testSDNNUsesPopulationVarianceNotTheSampleForm()",
+   "hash": "ed11bcf20de485f6",
+   "does": "Asserts windowVariability SDNN of [900,950,1050,1100] is population 79.0569, not sample 91.287.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testSDNNMatchesThePopulationFormulaForEveryWindowSize()",
+   "hash": "6d54cf3e192c93d4",
+   "does": "For window sizes 2…12 asserts windowVariability SDNN equals the population formula (1e-9).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for count in 2...12",
+     "effect": "compares to population SDNN"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testRMSSDIsTheRootMeanSquareOfSuccessiveDifferences()",
+   "hash": "9221ce7938753379",
+   "does": "Asserts RMSSD of [900,1000,1100,1200] is 100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testCoefficientOfVariationIsSDNNOverTheMean()",
+   "hash": "84867fb2ed9c2bd4",
+   "does": "Asserts hrCV equals SDNN / mean.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testTooFewBeatsYieldsZeroesRatherThanTrapping()",
+   "hash": "3cc090a27f5fc3f0",
+   "does": "Asserts 0 or 1 beats give rmssd, sdnn and hrCV of 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of [] and [1000]",
+     "effect": "asserts zeros"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifierTests.testAZeroMeanYieldsZeroCoefficientRatherThanNaN()",
+   "hash": "caa014cd458a0ae0",
+   "does": "Asserts zero mean gives hrCV 0 (not NaN).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  }
+ ],
+ "deps": {}
+}

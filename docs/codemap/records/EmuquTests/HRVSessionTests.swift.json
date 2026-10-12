@@ -1,0 +1,434 @@
+{
+ "file": "EmuquTests/HRVSessionTests.swift",
+ "hash": "53d8629ea5ca7004",
+ "role": "@MainActor XCTest suite for the HRVSession model and neighbours: defaults, duration, isValidForAnalysis (≥120 beats), isResumable, Codable round trip/legacy defaults/schemaVersion/skipRRSeries, DataSourceSummary descriptions, SessionArchiveEntry codable/displayDate/legacy, SleepSegmentMs equality and ImportedMetrics codable.",
+ "types": [
+  "HRVSessionTests: class — @MainActor XCTestCase for Models/SessionMetadata.swift"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HRVSessionTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "Calls super.setUp then pins the app language to English so localized copy assertions are stable.",
+   "entry": "XCTest runner: async setUp before each test method",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (UserDefaults.standard of the test host, via LanguageManager.setLanguage→AppLanguage.apply, SettingsView+Appearance.swift:302; only when the host language is not already English; restored by a teardown block)",
+    "notif:LanguageManager.languageDidChangeNotification",
+    "mem:LanguageManager.shared locale/bundle"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDefaultInit()",
+   "hash": "e27ee98fa11fcd2a",
+   "does": "Asserts HRVSession(startDate:) defaults: state .collecting, type .overnight, no tags/endDate/rrSeries/analysis/recoveryScore/notes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testInitWithCustomSessionType()",
+   "hash": "9f43650a4a7a29bc",
+   "does": "Asserts sessionType .nap is kept by the initializer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testInitWithTags()",
+   "hash": "b810a53dad1d861b",
+   "does": "Asserts two tags passed to the initializer are stored.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDurationWithEndDate()",
+   "hash": "2c6b645bde2c8bf6",
+   "does": "Asserts duration is 3600 s when endDate is 1 h after start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDurationWithoutEndDate()",
+   "hash": "1b0dcfdec8428fbd",
+   "does": "Asserts duration is nil without endDate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testIsValidForAnalysisNoSeries()",
+   "hash": "7422cbed699a2265",
+   "does": "Asserts isValidForAnalysis is false with no rrSeries.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isValidForAnalysis"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isValidForAnalysis": "8a25b04d1a3a5e0d"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testIsValidForAnalysisTooFewPoints()",
+   "hash": "5d3b5ba989b56095",
+   "does": "Asserts isValidForAnalysis is false with 50 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isValidForAnalysis"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isValidForAnalysis": "8a25b04d1a3a5e0d"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testIsValidForAnalysisEnoughPoints()",
+   "hash": "ddc6ec1ae25ccc76",
+   "does": "Asserts isValidForAnalysis is true with 200 beats (threshold 120).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isValidForAnalysis"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isValidForAnalysis": "8a25b04d1a3a5e0d"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testIsResumable()",
+   "hash": "0478ca9284d625af",
+   "does": "Asserts isResumable is true only for .paused (false for .complete and .collecting).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isResumable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isResumable": "38191f82110d91ea"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testCodableRoundtrip()",
+   "hash": "f3d0e46d08b59e9f",
+   "does": "Encodes a complete overnight session with tags, recoveryScore, notes and sleep ms bounds to ISO8601 JSON and asserts decode restores them.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testCodableLegacyDataWithMissingFields()",
+   "hash": "eabd15042b4d0967",
+   "does": "Decodes legacy JSON with only id/startDate/state and asserts defaults: sessionType .overnight, empty tags, nil sleepStartMs/deviceProvenance/linkedSessionIds.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testSchemaVersionEncoded()",
+   "hash": "98db606ebd563f2c",
+   "does": "Asserts encoded HRVSession JSON contains schemaVersion == HRVSession.currentSchemaVersion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testSkipRRSeriesDecoding()",
+   "hash": "746d20328ebbf967",
+   "does": "Encodes a session with a 10-beat rrSeries and asserts decoding with userInfo[.skipRRSeries] = true yields nil rrSeries and same id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDataSourceSummaryCompositeDescription()",
+   "hash": "931ad0450b963d8f",
+   "does": "Asserts DataSourceSummary 'composite' description mentions 'merged'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description": "c5f516afc8843ba3"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDataSourceSummaryStreamingDescription()",
+   "hash": "f36f2c733dfc9f7d",
+   "does": "Asserts 'streaming' description without device beats mentions 'Streamed'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description": "c5f516afc8843ba3"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDataSourceSummaryVeritySense()",
+   "hash": "b95263ef5a659e2f",
+   "does": "Asserts 'streaming' with deviceModel 'Polar Verity Sense' mentions 'Verity Sense'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description": "c5f516afc8843ba3"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testDataSourceSummaryInternalDescription()",
+   "hash": "013cf6389250720e",
+   "does": "Asserts 'internal' description mentions 'Strap'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.description": "c5f516afc8843ba3"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testSessionArchiveEntryCodable()",
+   "hash": "25b00667e2900b8a",
+   "does": "Round-trips a SessionArchiveEntry through ISO8601 JSON and asserts id, recoveryScore 8, meanRMSSD 45 and type .overnight survive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encode(to:)": "9aa00c4440bacb12",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)": "3a580e4117024fad",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testSessionArchiveEntryDisplayDate()",
+   "hash": "0fc8cb0d2263460b",
+   "does": "Asserts SessionArchiveEntry.displayDate is endDate for overnights and startDate for naps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testSessionArchiveEntryLegacyDecoding()",
+   "hash": "af8bfb362751a6f1",
+   "does": "Decodes legacy SessionArchiveEntry JSON (no type/tags/score) and asserts defaults .overnight, empty tags, nil recoveryScore.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)": "3a580e4117024fad"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testSleepSegmentMsEquatable()",
+   "hash": "d3a8e4c4ddcdaca7",
+   "does": "Asserts SleepSegmentMs equality by value.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVSessionTests.testImportedMetricsCodable()",
+   "hash": "b40f716c53ce105c",
+   "does": "Round-trips HRVSession.ImportedMetrics through JSON and asserts rmssd, sdnn and source survive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -11,8 +11,10 @@ import UIKit
 extension FitnessSummaryCards {
 
     /// Render the workout RecapCard variant to a 1080×1920 PNG and
-    /// present the share sheet. Renders on a utility queue so the
-    /// CoreGraphics work doesn't pin the UI thread.
+    /// present the share sheet. Runs on the main actor: `ImageRenderer` and
+    /// the route-map overlay are main-actor APIs; only the map snapshot
+    /// itself is produced asynchronously by MapKit. A render that yields no
+    /// image raises the "Export failed" alert instead of ending silently.
     @MainActor
     func generateRecapCard() async {
         guard !recapGenerating else { return }
@@ -20,19 +22,27 @@ extension FitnessSummaryCards {
         defer { recapGenerating = false }
         let meta = session.workoutMetadata
         let mapImage = await renderTrackImage()
-        let card = RecapCard(variant: .workout(
+        let card = recapCard(meta: meta, routeMap: mapImage)
+        guard let img = card.renderImage() else {
+            reportShare.error = String(localized: "Couldn't build recap card. Try again.", bundle: LanguageManager.appBundle)
+            return
+        }
+        recapImage = img
+        recapImageURL = writeRecapPNG(img, meta: meta)
+        recapSharePresented = true
+    }
+
+    /// The workout variant of the recap card for this session.
+    private func recapCard(meta: WorkoutMetadata?, routeMap: UIImage?) -> RecapCard {
+        RecapCard(variant: .workout(
             distance: recapDistance(meta: meta),
             duration: recapDuration(),
             pace: recapPace(meta: meta),
             verdict: recapVerdict(meta: meta),
             summary: recapSummary(meta: meta),
             date: session.startDate,
-            routeMap: mapImage
+            routeMap: routeMap
         ))
-        guard let img = card.renderImage() else { return }
-        recapImage = img
-        recapImageURL = writeRecapPNG(img, meta: meta)
-        recapSharePresented = true
     }
 
     /// Seconds of elapsed workout, floored at zero.
@@ -65,15 +75,13 @@ extension FitnessSummaryCards {
         return "\(label) \(Int(load.value.rounded()))"
     }
 
-    /// Render the route map off-main if we have a track.
+    /// The route map for the recap card, nil without a track. MapKit takes
+    /// the snapshot asynchronously; the polyline overlay is drawn on the main
+    /// actor, where `RecapCard.renderRouteMap` is isolated.
     private func renderTrackImage() async -> UIImage? {
-        let trackCopy = track
-        let tint = UIColor(AppTheme.primary) // palette read on the main actor, drawn off it
-        return await Task.detached(priority: .utility) {
-            guard !trackCopy.isEmpty else { return nil }
-            let coords = trackCopy.map { CLLocationCoordinate2D(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) }
-            return await RecapCard.renderRouteMap(coordinates: coords, tint: tint)
-        }.value
+        guard !track.isEmpty else { return nil }
+        let coords = track.map(\.coordinate)
+        return await RecapCard.renderRouteMap(coordinates: coords, tint: UIColor(AppTheme.primary))
     }
 
     /// Write to temp file with meaningful name so the share sheet
@@ -95,27 +103,49 @@ extension FitnessSummaryCards {
     /// Share and Email buttons for the PDF report. When a PDF for this
     /// session is already cached (`pdfURL`, cleared whenever the archived
     /// session changes), the render is skipped and the file is shared as is.
+    /// The sheets show `reportShare.presentedURL`, not the cache, so an archive
+    /// refresh while a sheet is open cannot empty it.
     @ViewBuilder
     var pdfShareButton: some View {
-        VStack(spacing: 6) {
-            sharePDFButton
+        withPDFAlerts(
+            VStack(spacing: 6) {
+                sharePDFButton
 
-            emailPDFButton
-        }
-        .sheet(isPresented: $pdfSharePresented) {
-            pdfShareSheet
-        }
-        .sheet(isPresented: $pdfMailPresented) { pdfMailSheet }
-        .alert(String(localized: "Email failed", bundle: LanguageManager.appBundle), isPresented: pdfMailErrorBinding) {
-            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
-        } message: {
-            Text(pdfMailError ?? "")
-        }
+                emailPDFButton
+            }
+            .sheet(isPresented: $pdfSharePresented) {
+                pdfShareSheet
+            }
+            .sheet(isPresented: $pdfMailPresented) { pdfMailSheet }
+        )
+    }
+
+    /// The mail-failure alert, and the alert for a failed PDF or recap-card
+    /// render (kept out of `exportError`, which every export rebuild rewrites).
+    private func withPDFAlerts(_ content: some View) -> some View {
+        content
+            .alert(String(localized: "Email failed", bundle: LanguageManager.appBundle), isPresented: pdfMailErrorBinding) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: {
+                Text(pdfMailError ?? "")
+            }
+            .alert(String(localized: "Export failed", bundle: LanguageManager.appBundle), isPresented: reportShareErrorBinding) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: {
+                Text(reportShare.error ?? "")
+            }
+    }
+
+    private var reportShareErrorBinding: Binding<Bool> {
+        Binding(
+            get: { reportShare.error != nil },
+            set: { if !$0 { reportShare.error = nil } }
+        )
     }
 
     @ViewBuilder
     private var pdfMailSheet: some View {
-        if let url = pdfURL {
+        if let url = reportShare.presentedURL {
             MailComposerView(
                 subject: pdfMailSubject,
                 recipients: trainingMailRecipients,
@@ -134,7 +164,7 @@ extension FitnessSummaryCards {
 
     @ViewBuilder
     private var pdfShareSheet: some View {
-        if let url = pdfURL {
+        if let url = reportShare.presentedURL {
             ShareSheet(activityItems: [url])
         }
     }
@@ -247,10 +277,10 @@ extension FitnessSummaryCards {
     }
 
     var trainingMailRecipients: [String] {
-        // Prefer the training default, then fall through the
-        // resolved chain (training → recovery → legacy generic), matching
-        // MainTabView's report mailer and MorningResultsView's recovery
-        // mailer. Reading `defaultTrainingEmailRecipient` alone leaves
+        // Prefer the training default, then fall back to the generic
+        // resolved chain (`resolvedDefaultEmailRecipient`: recovery →
+        // training → legacy generic), matching MainTabView's report mailer
+        // and MorningResultsView's recovery mailer. Reading `defaultTrainingEmailRecipient` alone leaves
         // the workout PDF blank when the user has only set a recovery /
         // legacy default while the other report types pre-fill.
         if let to = settingsManager.settings.defaultTrainingEmailRecipient,
@@ -283,16 +313,10 @@ extension FitnessSummaryCards {
             pdfMailError = String(localized: "Mail isn't set up on this device. Use Share PDF Report and pick Mail from the share sheet to compose without a Emuqu default account.", bundle: LanguageManager.appBundle)
             return
         }
-        if let url = pdfURL, FileManager.default.fileExists(atPath: url.path) {
-            pdfMailPresented = true
-            return
-        }
-        pdfGenerating = true
-        let outcome = await renderWorkoutPDF()
-        pdfGenerating = false
+        let outcome = await cachedOrRenderedPDF()
         switch outcome {
         case .success(let url):
-            pdfURL = url
+            reportShare.presentedURL = url
             pdfMailPresented = true
         case .failure(let error):
             pdfMailError = String(localized: "PDF render failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
@@ -300,21 +324,33 @@ extension FitnessSummaryCards {
     }
 
     func generateAndShowPDFShare() async {
-        // Fast path: already rendered for this session and not invalidated.
-        if let url = pdfURL, FileManager.default.fileExists(atPath: url.path) {
+        let outcome = await cachedOrRenderedPDF()
+        switch outcome {
+        case .success(let url):
+            reportShare.presentedURL = url
             pdfSharePresented = true
-            return
+        case .failure(let error):
+            reportShare.error = String(localized: "PDF failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
+    }
+
+    /// The cached PDF when it is still on disk (fast path: already rendered
+    /// for this session and not invalidated), else a fresh render. The fresh
+    /// file is cached only when no archive refresh invalidated the cache
+    /// while it rendered — it was drawn from the pre-refresh session, so it
+    /// is shown this once but never reused.
+    private func cachedOrRenderedPDF() async -> Result<URL, Error> {
+        if let url = pdfURL, FileManager.default.fileExists(atPath: url.path) {
+            return .success(url)
+        }
+        let generation = reportShare.cacheGeneration
         pdfGenerating = true
         let outcome = await renderWorkoutPDF()
         pdfGenerating = false
-        switch outcome {
-        case .success(let url):
+        if case .success(let url) = outcome, generation == reportShare.cacheGeneration {
             pdfURL = url
-            pdfSharePresented = true
-        case .failure(let error):
-            exportError = String(localized: "PDF failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
+        return outcome
     }
 
     /// CRITICAL: run the entire PDF render on a background task.
@@ -421,16 +457,6 @@ extension FitnessSummaryCards {
     struct ElevationPoint {
         let distance: Double  // km from start
         let altitude: Double  // meters
-    }
-
-    func metricRow(label: String, value: String, caption: String? = nil) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(AppTheme.textSecondary)
-            Spacer()
-            trailingValue(value, caption: caption)
-        }
-        .padding(.vertical, 4)
     }
 
     /// The right-hand column of a metric row: the value, optionally captioned.

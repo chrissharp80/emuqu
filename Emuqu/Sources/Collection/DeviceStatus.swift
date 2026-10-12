@@ -8,7 +8,10 @@ import Observation
 /// streaming, or morning-processing property the collector also publishes.
 ///
 /// Writers: `RRCollector+Bindings.setupBindings()` — the bindings subscribe
-/// to `PolarManager` and push the values here.
+/// to `PolarManager` and push the values here. One direct write besides:
+/// `publishGatherSavingState` (RRCollector+OvernightGather) sets
+/// `isStreaming = false` as a night ends, ahead of the binding, which pushes
+/// the same `false` once `PolarManager` stops streaming.
 ///
 /// Readers: inject via `@Environment(DeviceStatus.self) var deviceStatus`.
 /// `RRCollector` keeps thin back-compat getters (e.g. `collector.isDeviceConnected`)

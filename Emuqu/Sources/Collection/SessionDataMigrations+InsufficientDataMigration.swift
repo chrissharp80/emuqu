@@ -17,8 +17,9 @@ extension SessionDataMigrations {
     ///   • Session < 3 hours without organized recovery,
     ///   AND RMSSD below the recovery baseline.
     ///
-    /// Matched sessions are flipped to `.insufficient` and rescored with
-    /// `useBaselineHRV: true`, then re-archived. Runs exactly once per install.
+    /// Matched sessions are flipped to `.insufficient` and rescored against
+    /// the baseline, then re-archived. Runs exactly once per install.
+    /// A night with no earlier nights to form its baseline is left as it is.
     func runInsufficientDataMigrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.insufficientDataMigrationKey) else { return }
@@ -30,8 +31,7 @@ extension SessionDataMigrations {
         guard let candidates = insufficientDataCandidates(in: await loadArchivedSessions(), defaults: defaults) else { return }
         var rescored = 0
         for session in candidates {
-            let prior = scoringBaseline(for: session)
-            if let prior, rescoreIfInsufficient(session, baseline: prior) { rescored += 1 }
+            if rescoreIfInsufficient(session) { rescored += 1 }
             // Yield between sessions so we don't block launch.
             await Task.yield()
         }
@@ -60,19 +60,21 @@ extension SessionDataMigrations {
 
     /// The gate delegates to the
     /// one classifier so the migration cannot drift from the acceptance-time
-    /// and reanalysis paths.
-    private func rescoreIfInsufficient(_ session: HRVSession, baseline: BaselineTracker.RecoveryBaselineStats) -> Bool {
-        guard let result = session.analysisResult else { return false }
-        guard ReanalysisService.hasInsufficientData(
-            session: session,
-            analysisResult: result,
-            baselineRmssd: exp(baseline.lnRmssdMean)
-        ) else { return false }
-        var updated = session
-        updated.hrvDataQuality = .insufficient
-        applyBaselineRescore(&updated, result: result, baseline: baseline)
+    /// and reanalysis paths. The gate reads the night as loaded; the rescore
+    /// is applied to the archived copy as it is at the write, so a change
+    /// saved since the load (sleep or vitals refresh, a feeling, a pull) is
+    /// kept rather than overwritten by the loaded copy.
+    private func rescoreIfInsufficient(_ session: HRVSession) -> Bool {
+        guard let result = session.analysisResult,
+              let baseline = reanalysisService.scoringBaseline(for: session),
+              ReanalysisService.hasInsufficientData(
+                  session: session, analysisResult: result, baselineRmssd: exp(baseline.lnRmssdMean)
+              ) else { return false }
         do {
-            try archive.archive(updated)
+            try archive.update(session.id, requestingReupload: false) { stored in
+                stored.hrvDataQuality = .insufficient
+                applyBaselineRescore(&stored)
+            }
             debugLog("[InsufficientDataMigration] Rescored session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery vs baseline")
             return true
         } catch {
@@ -81,38 +83,24 @@ extension SessionDataMigrations {
         }
     }
 
-    /// Rescore against the baseline instead of the session's own HRV. The
-    /// acceptance-time ANS-balance term is preserved so the data-quality
-    /// re-score doesn't ALSO shift the score by the HRV-factor ANS adjustment.
-    private func applyBaselineRescore(
-        _ updated: inout HRVSession,
-        result: HRVAnalysisResult,
-        baseline: BaselineTracker.RecoveryBaselineStats
-    ) {
-        let settings = settingsManager.settings
+    /// Rescore against the baseline instead of the session's own HRV, through
+    /// the one re-score every reanalysis runs
+    /// (`ReanalysisService.rescoredBreakdown`): `.insufficient` makes the
+    /// nights before this one stand in for its HRV, the strap's nocturnal HR
+    /// replaces a daytime resting HR, the acceptance-time ANS-balance term is
+    /// kept, and the staleness penalty is measured at the night, not today —
+    /// so an old night is not marked down for the time since.
+    private func applyBaselineRescore(_ updated: inout HRVSession) {
+        guard let result = updated.analysisResult else { return }
         let bestTraining = updated.trainingSnapshot ?? result.trainingContext
-        let newBreakdown = RecoveryScoreCalculator.calculateWithBreakdown(
-            RecoveryScoreCalculator.ScoreInputs(
-                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
-                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baseline, sleepData: updated.sleepSnapshot, vitals: updated.vitalsSnapshot,
-                typicalSleepHours: settings.typicalSleepHours
-            ),
-            trainingContext: bestTraining,
-            config: RecoveryScoreCalculator.ScoringConfiguration(from: settings),
-            useBaselineHRV: true,
-            perceivedReadiness: updated.perceivedReadiness,
-            ansBalance: Self.ansBalance(result)
+        let newBreakdown = reanalysisService.rescoredBreakdown(
+            of: updated, result: result, training: bestTraining,
+            referenceDate: updated.endDate ?? updated.startDate
         )
         updated.recoveryScore = RecoveryScoreCalculator.toTenScale(newBreakdown.compositeScore)
         updated.scoreBreakdown = newBreakdown
         updated.frozenReadiness = ReanalysisService.computeFrozenReadiness(
             compositeScore: newBreakdown.compositeScore, trainingContext: bestTraining
         )
-    }
-
-    private static func ansBalance(_ result: HRVAnalysisResult) -> Double? {
-        guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
-        return pns - sns
     }
 }

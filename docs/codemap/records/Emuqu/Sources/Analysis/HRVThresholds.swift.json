@@ -1,0 +1,438 @@
+{
+ "file": "Emuqu/Sources/Analysis/HRVThresholds.swift",
+ "hash": "acd712c3b313beea",
+ "role": "Central table of HRV/sleep/stress/DFA/verification thresholds (HRVThresholds), plus age- and sex-adjusted RMSSD banding (AgeAdjustedHRV) and its result types RMSSDCategory / RMSSDInterpretation.",
+ "types": [
+  "HRVThresholds: enum — namespace of static threshold constants used by Verification, AnalysisSummaryGenerator, CauseDetection, scoring",
+  "AgeAdjustedHRV: enum — age/sex population RMSSD norms and banding",
+  "AgeAdjustedHRV.Sex: enum — male/female with RMSSD multiplier",
+  "RMSSDCategory: enum — excellent/good/fair/reduced/low band with localized label and age phrase",
+  "RMSSDInterpretation: struct — category + optional app-language age context"
+ ],
+ "state": [
+  "mem:HRVThresholds.minimumRRIntervalMs=300",
+  "mem:HRVThresholds.maximumRRIntervalMs=2000",
+  "mem:HRVThresholds.verificationMaxGapMs=5000",
+  "mem:HRVThresholds.verificationDriftWarnMs=200",
+  "mem:HRVThresholds.verificationDriftRejectMs=400",
+  "mem:HRVThresholds.verificationEctopyRejectPercent=10",
+  "mem:HRVThresholds.verificationEctopyWarnCount=100",
+  "mem:HRVThresholds.verificationOutOfBoundsRejectPercent=5",
+  "mem:HRVThresholds.verificationOutOfBoundsWarnCount=50",
+  "mem:HRVThresholds.rmssdExcellent=50",
+  "mem:HRVThresholds.rmssdGood=35",
+  "mem:HRVThresholds.rmssdModerate=40",
+  "mem:HRVThresholds.rmssdReduced=25",
+  "mem:HRVThresholds.rmssdLow=20",
+  "mem:HRVThresholds.scoreWellRecovered=80",
+  "mem:HRVThresholds.scoreAdequateRecovery=60",
+  "mem:HRVThresholds.scoreIncompleteRecovery=40",
+  "mem:HRVThresholds.stressIndexVeryLow=50",
+  "mem:HRVThresholds.stressIndexLow=100",
+  "mem:HRVThresholds.stressIndexNormal=150",
+  "mem:HRVThresholds.stressIndexElevated=200",
+  "mem:HRVThresholds.stressIndexHigh=300",
+  "mem:HRVThresholds.lfHfParasympatheticDominance=0.5",
+  "mem:HRVThresholds.lfHfBalancedLower=0.8",
+  "mem:HRVThresholds.lfHfBalancedUpper=1.5",
+  "mem:HRVThresholds.lfHfOptimalUpper=2.0",
+  "mem:HRVThresholds.lfHfMildSympathetic=2.5",
+  "mem:HRVThresholds.lfHfModerateSympatheticUpper=3.0",
+  "mem:HRVThresholds.lfHfSympatheticDominance=3.0",
+  "mem:HRVThresholds.dfaAlpha1OptimalLower=0.75",
+  "mem:HRVThresholds.dfaAlpha1OptimalUpper=1.0",
+  "mem:HRVThresholds.dfaAlpha1FlexibleLower=0.60",
+  "mem:HRVThresholds.dfaAlpha1Fatigue=1.2",
+  "mem:HRVThresholds.dfaAlpha1ClearlyElevated=1.35",
+  "mem:HRVThresholds.dfaAlpha1Disorganized=0.65",
+  "mem:HRVThresholds.dfaAlpha1HighVariability=1.15",
+  "mem:HRVThresholds.hrElevationThreshold=5",
+  "mem:HRVThresholds.hrSignificantElevation=8",
+  "mem:HRVThresholds.sleepMinimumMinutes=420",
+  "mem:HRVThresholds.sleepShortMinutes=300",
+  "mem:HRVThresholds.sleepVeryShortMinutes=360",
+  "mem:HRVThresholds.sleepEfficiencyExcellent=92",
+  "mem:HRVThresholds.sleepEfficiencyGood=90",
+  "mem:HRVThresholds.sleepEfficiencyAcceptable=80",
+  "mem:HRVThresholds.sleepEfficiencyLow=75",
+  "mem:HRVThresholds.sleepFragmentedAwakeMinutes=30",
+  "mem:HRVThresholds.deepSleepGoodPercent=20",
+  "mem:HRVThresholds.deepSleepLowPercent=10",
+  "mem:HRVThresholds.deepSleepMinimumMinutes=45",
+  "mem:HRVThresholds.trendSignificantChange=20",
+  "mem:HRVThresholds.trendModerateChange=10",
+  "mem:HRVThresholds.baselineAboveThreshold=15",
+  "mem:HRVThresholds.pnn50VeryLow=5",
+  "mem:HRVThresholds.pnn50Low=10",
+  "mem:HRVThresholds.pnn50Moderate=25",
+  "mem:HRVThresholds.pnn50Strong=30",
+  "mem:HRVThresholds.windowUnstableCVThreshold=0.08",
+  "mem:HRVThresholds.maxArtifactRate=0.15",
+  "mem:HRVThresholds.warnArtifactRate=0.10",
+  "mem:HRVThresholds.ectopicThresholdPercent=0.20",
+  "mem:HRVThresholds.illnessSevereHRVCrash=-50",
+  "mem:HRVThresholds.illnessMajorHRVDrop=-30",
+  "mem:HRVThresholds.illnessConsecutiveDeclineDays=3",
+  "mem:HRVThresholds.illnessDeclineThreshold=0.95"
+ ],
+ "toplevel": "All HRVThresholds members are static let constants (no logic). Nested types and RMSSDThresholds construction live in units. No #if blocks.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "HRVThresholds.illnessConsecutiveDeclineDays has no reference anywhere in the repo outside its declaration.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:247"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "lfHfModerateSympatheticUpper and lfHfSympatheticDominance are both 3.0 under different names; callers use both interchangeably (TagBasedCauseDetector uses one, MetricBasedCauseDetector the other).",
+   "evidence": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:121",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:124",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift:129",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:184"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Constant names contradict their values: rmssdModerate (40) sits above rmssdGood (35), sleepShortMinutes (300) is stricter than sleepVeryShortMinutes (360); comments acknowledge it and keep names because a governance gate hashes them.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:50",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:165",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift:169"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AgeAdjustedHRV.Sex.rmssdMultiplier",
+   "hash": "fc9585e021f90a63",
+   "does": "Returns the RMSSD sex multiplier: 1.0 for male, 0.92 for female.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .male",
+     "effect": "returns 1.0"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .female",
+     "effect": "returns 0.92"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AgeAdjustedHRV.medianRMSSD(forAge:sex:)",
+   "hash": "afaa1b3c44c988a2",
+   "does": "Maps age to a population-median RMSSD (ms) by decade band (55/45/38/32/27/22/18) and multiplies by the sex factor when sex is given.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var AgeAdjustedHRV.Sex.rmssdMultiplier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "age < 20",
+     "effect": "base 55"
+    },
+    {
+     "at": "+3",
+     "cond": "20..<30",
+     "effect": "base 45"
+    },
+    {
+     "at": "+4",
+     "cond": "30..<40",
+     "effect": "base 38"
+    },
+    {
+     "at": "+5",
+     "cond": "40..<50",
+     "effect": "base 32"
+    },
+    {
+     "at": "+6",
+     "cond": "50..<60",
+     "effect": "base 27"
+    },
+    {
+     "at": "+7",
+     "cond": "60..<70",
+     "effect": "base 22"
+    },
+    {
+     "at": "+8",
+     "cond": "default (>=70)",
+     "effect": "base 18"
+    },
+    {
+     "at": "+12",
+     "cond": "sex is nil (?? fallback)",
+     "effect": "multiplier 1.0 when sex unknown, else sex.rmssdMultiplier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var AgeAdjustedHRV.Sex.rmssdMultiplier": "0c543a88a849147b"
+   }
+  },
+  {
+   "key": "func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)",
+   "hash": "f28163b1896a3e79",
+   "does": "Builds RMSSDThresholds from the age/sex median: low 0.6x, fair 0.85x, good 1.15x, excellent 1.4x median.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.medianRMSSD(forAge:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.medianRMSSD(forAge:sex:)": "6dc65df7357d7689"
+   }
+  },
+  {
+   "key": "func AgeAdjustedHRV.interpret(rmssd:age:sex:)",
+   "hash": "9a074a975edba32a",
+   "does": "Interprets an RMSSD value: with no age returns the absolute-threshold interpretation; with age returns the age-banded category from categorize and its app-language age phrase (RMSSDCategory.localizedAgeContext) as ageContext. Called by AnalysisSummaryGenerator.ageAdjustedInterpretation and ReportSectionRenderer.ageAdjustedInterpretation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "age is nil",
+     "effect": "early return interpretAbsolute(rmssd) (ageContext nil); otherwise age-banded interpretation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)": "cff3c034db73edc2",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)": "dd4f9e90b8552c74",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "465506b05bb30d83"
+   }
+  },
+  {
+   "key": "func AgeAdjustedHRV.categorize(rmssd:age:sex:)",
+   "hash": "9f238954982ca456",
+   "does": "Returns the RMSSDCategory by comparing rmssd to the age/sex thresholds from top band down (the phrase for it is RMSSDCategory.localizedAgeContext).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rmssd >= excellent (1.4x median)",
+     "effect": ".excellent"
+    },
+    {
+     "at": "+3",
+     "cond": "rmssd >= good (1.15x)",
+     "effect": ".good"
+    },
+    {
+     "at": "+4",
+     "cond": "rmssd >= fair (0.85x)",
+     "effect": ".fair"
+    },
+    {
+     "at": "+5",
+     "cond": "rmssd >= low (0.6x)",
+     "effect": ".reduced; else falls through to .low"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "32ef5872d3b536c5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "a5fefa381c71f597",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "c6b63e41e15ce7ec",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)": "3df80fffefa3fee2"
+   }
+  },
+  {
+   "key": "func AgeAdjustedHRV.interpretAbsolute(rmssd:)",
+   "hash": "334d11b81c1f0af7",
+   "does": "Absolute RMSSD banding when age unknown: >=50 excellent, >=35 good, >=25 fair, >=20 reduced, else low; ageContext nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rmssd >= rmssdExcellent (50)",
+     "effect": ".excellent"
+    },
+    {
+     "at": "+3",
+     "cond": "rmssd >= rmssdGood (35)",
+     "effect": ".good"
+    },
+    {
+     "at": "+5",
+     "cond": "rmssd >= rmssdReduced (25)",
+     "effect": ".fair"
+    },
+    {
+     "at": "+7",
+     "cond": "rmssd >= rmssdLow (20)",
+     "effect": ".reduced; else .low"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RMSSDCategory.localizedLabel",
+   "hash": "ddca223f8dd79e62",
+   "does": "Localized category name via String(localized:bundle: LanguageManager.appBundle).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".excellent",
+     "effect": "'Excellent'"
+    },
+    {
+     "at": "+3",
+     "cond": ".good",
+     "effect": "'Good'"
+    },
+    {
+     "at": "+4",
+     "cond": ".fair",
+     "effect": "'Fair'"
+    },
+    {
+     "at": "+5",
+     "cond": ".reduced",
+     "effect": "'Reduced'"
+    },
+    {
+     "at": "+6",
+     "cond": ".low",
+     "effect": "'Low'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RMSSDCategory.localizedAgeContext",
+   "hash": "05afda4c5f412f10",
+   "does": "Localized sentence-case age-band phrase for the category.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".excellent",
+     "effect": "'Well above average for your age'"
+    },
+    {
+     "at": "+3",
+     "cond": ".good",
+     "effect": "'Above average...'"
+    },
+    {
+     "at": "+4",
+     "cond": ".fair",
+     "effect": "'Typical for your age'"
+    },
+    {
+     "at": "+5",
+     "cond": ".reduced",
+     "effect": "'Below average...'"
+    },
+    {
+     "at": "+6",
+     "cond": ".low",
+     "effect": "'Significantly below average...'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RMSSDInterpretation.localizedLabel",
+   "hash": "ff8804145055a853",
+   "does": "Returns category.localizedLabel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "34fa7b333dfcae74"
+   }
+  },
+  {
+   "key": "var RMSSDInterpretation.localizedAgeContext",
+   "hash": "ca7e7c69770cca75",
+   "does": "Returns the localized age phrase, or nil when the interpretation had no age.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ageContext == nil",
+     "effect": "nil; else category.localizedAgeContext"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "465506b05bb30d83"
+   }
+  }
+ ],
+ "deps": {}
+}

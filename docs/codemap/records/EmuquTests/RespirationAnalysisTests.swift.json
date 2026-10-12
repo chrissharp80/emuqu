@@ -1,0 +1,245 @@
+{
+ "file": "EmuquTests/RespirationAnalysisTests.swift",
+ "hash": "c08f0ac1cddc3a40",
+ "role": "Tests RespirationAnalyzer.estimateRespirationRate (RR-derived respiration via resample → Hann → DFT → 0.15-0.5 Hz peak): minimum sample count, known 15/12 br/min modulations, out-of-band inputs, constant and very short series.",
+ "types": [
+  "RespirationAnalysisTests: class — XCTestCase for RespirationAnalyzer"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RespirationAnalysisTests.testInsufficientDataReturnsNil()",
+   "hash": "94990e24efcf8d80",
+   "does": "Asserts 59 constant RR samples return nil (<60 guard).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testExactMinimumDataProcesses()",
+   "hash": "188672c14a3df807",
+   "does": "Calls estimateRespirationRate on 60 constant samples and discards the result; asserts nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "No assertion: the test only checks it does not crash; any return value, including a wrong rate, passes.",
+     "evidence": [
+      "EmuquTests/RespirationAnalysisTests.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testDetects15BreathsPerMinute()",
+   "hash": "6118b26929a45a98",
+   "does": "Builds 240 RR values 800±30 ms modulated at 0.25 Hz (time advancing 0.8 s per sample) and asserts a non-nil rate within 15±3 br/min at fs 4.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each of 240 samples",
+     "effect": "appends one modulated RR value and advances t by 0.8 s"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testDetects12BreathsPerMinute()",
+   "hash": "b6be7b2f5066e647",
+   "does": "Builds 300 RR values 900±40 ms at 0.2 Hz (t += 0.9 s) and asserts a non-nil rate within 12±3 br/min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each of 300 samples",
+     "effect": "appends one modulated RR value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testRejectsImplausiblyLowRate()",
+   "hash": "d8e0f4541f1b288c",
+   "does": "Feeds 300 RR values with 0.05 Hz modulation and asserts that if a rate is returned it is >= 6 br/min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each of 300 samples",
+     "effect": "appends one modulated RR value"
+    },
+    {
+     "at": "+16",
+     "cond": "result non-nil",
+     "effect": "asserts rate >= 6; nil passes with no assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Assertion cannot fail: respiratoryPeakFrequency only searches 0.15-0.5 Hz (9-30 br/min) and a final guard rejects <6, so any returned rate is >=9; a nil result also passes. The test does not pin that slow modulation is rejected.",
+     "evidence": [
+      "EmuquTests/RespirationAnalysisTests.swift:89",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:73",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:26"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The test is named 'RejectsImplausiblyLowRate' but the estimator does not reject it: a line-by-line Python replica of estimateRespirationRate (resample at 4 Hz, Hann DENORM, DFT, band 0.15-0.5 Hz) on this exact input returns 8.906 br/min (the band's lowest bin, Int(0.15/freqRes)=19 at freqRes 4/512), so a 3 br/min modulation is reported as a plausible ~9 br/min respiration rate and the test passes. There is no in-band power-ratio check (RespirationAnalysis.swift:76-87), so leakage from any out-of-band signal yields a band-edge rate.",
+     "evidence": [
+      "EmuquTests/RespirationAnalysisTests.swift:86",
+      "EmuquTests/RespirationAnalysisTests.swift:89",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:73",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:81",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:86"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testRejectsImplausiblyHighRate()",
+   "hash": "bc1cff6c1a7081cd",
+   "does": "Feeds 300 RR values with 0.8 Hz modulation and asserts that if a rate is returned it is <= 40 br/min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each of 300 samples",
+     "effect": "appends one modulated RR value"
+    },
+    {
+     "at": "+13",
+     "cond": "result non-nil",
+     "effect": "asserts rate <= 40; nil passes with no assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Assertion cannot fail: the band search caps the peak at 0.5 Hz (30 br/min) and a guard rejects >40, so the conditional assert is tautological; nil also passes.",
+     "evidence": [
+      "EmuquTests/RespirationAnalysisTests.swift:111",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:74",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:26"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "With one RR per 0.8 s the 0.8 Hz modulation is above the beat-sampling Nyquist (0.625 Hz) and aliases; a Python replica of the estimator on this input returns 26.95 br/min, a plausible in-band rate, which the conditional <=40 assertion accepts. The test does not check rejection of high-rate input.",
+     "evidence": [
+      "EmuquTests/RespirationAnalysisTests.swift:104",
+      "EmuquTests/RespirationAnalysisTests.swift:106",
+      "EmuquTests/RespirationAnalysisTests.swift:111"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testConstantSignalReturnsNil()",
+   "hash": "d7d3923a2e8f4fa0",
+   "does": "Asserts 200 constant RR samples return nil (no band power).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testVeryShortSeriesForResampling()",
+   "hash": "e6b0540805c62591",
+   "does": "Asserts a 3-sample series returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named for the resampling minimum of 4 but 3 samples are rejected by the rr.count >= 60 guard first, so the resampling edge case is never reached.",
+     "evidence": [
+      "EmuquTests/RespirationAnalysisTests.swift:136",
+      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:17"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+   }
+  }
+ ],
+ "deps": {}
+}

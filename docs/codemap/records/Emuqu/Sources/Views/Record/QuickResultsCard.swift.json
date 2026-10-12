@@ -1,0 +1,303 @@
+{
+ "file": "Emuqu/Sources/Views/Record/QuickResultsCard.swift",
+ "hash": "37ad3490db824142",
+ "role": "Post-reading card for a completed quick (streaming) reading: score ring and verdict from the recovery score or ANS readiness, RMSSD / Avg HR / Readiness-or-SDNN stats, View full report and Done buttons.",
+ "types": [
+  "QuickResultsCard: struct — View over HRVSession + HRVAnalysisResult with onViewReport / onDone closures"
+ ],
+ "state": [],
+ "toplevel": "No environment dependencies; the card reads only its inputs.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var QuickResultsCard.body",
+   "hash": "65dd899b0e026def",
+   "does": "Body forwards to v2Body.",
+   "entry": "SwiftUI view body; QuickResultsCard built by RecordView.quickResultsSection (RecordView+Sections.swift:281) when currentSession is .complete, not awaiting acceptance, and has an analysisResult",
+   "calls": [
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.v2Body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.v2Body": "1c05286fe3bb83f3"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.v2Body",
+   "hash": "ddf89f4e7c1450d8",
+   "does": "Header, 120pt ScoreRing (snappy), verdict text when a score exists, three stat tiles, View full report and Done buttons on a card.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsHeader",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringState",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.verdictText(_:)",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsMetrics",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.viewFullReportButton",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsDoneButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "scoredVerdict non-nil",
+     "effect": "true: verdict word + subverdict shown; false: omitted (ring shows .noData)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.verdictText(_:)": "25cd20f699110d57",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsDoneButton": "12709bde0b280c45",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsHeader": "213c889c2c659e08",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsMetrics": "1404f17216b1decc",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringState": "90fb01bc2842f67a",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict": "b303c965b6ff176f",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.viewFullReportButton": "14837c9e99231fec",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.score10",
+   "hash": "c7663631a0c45210",
+   "does": "0–10 score: session.recoveryScore, else result.ansMetrics.readinessScore; nil when neither exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionState.currentSession.recoveryScore (via session input)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.recoveryScore ?? ansMetrics?.readinessScore",
+     "effect": "recoveryScore used when set; readinessScore when recoveryScore nil; nil when both nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.scoredVerdict",
+   "hash": "23b8771d684ad5ca",
+   "does": "Maps score10 to a ScoreVerdict via ScoreVerdict(score:) on the 0–100 clamped/rounded display score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.score10",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.score10": "6290d9fc096ef32d"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.ringState",
+   "hash": "95fcf0e4090035b7",
+   "does": "Ring state: .noData without a score, else .default(score: safeDisplayScore(score10*10), verdict).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.score10",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "score10 and scoredVerdict both non-nil",
+     "effect": "false: returns .noData; true: .default with 0–100 score"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.score10": "6290d9fc096ef32d",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict": "b303c965b6ff176f"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.quickResultsHeader",
+   "hash": "2a5f22d103651998",
+   "does": "Header row: uppercase 'Reading complete' and the session start time (hour:minute).",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func QuickResultsCard.verdictText(_:)",
+   "hash": "774ce707ae7078b1",
+   "does": "Verdict localized word (verdict colour) and localized subverdict line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedSubverdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedSubverdict": "faf1dbfaddf2ced8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.quickResultsMetrics",
+   "hash": "22c78854a50850f8",
+   "does": "Three stat tiles: RMSSD (ms, rounded), Avg HR (bpm, rounded), and Readiness (x.x /10) when ANS readiness exists else SDNN (ms).",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2Stat(label:value:unit:)",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.msUnit",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "result.ansMetrics?.readinessScore non-nil",
+     "effect": "true: Readiness tile formatted %.1f in app locale; false: SDNN tile"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2Stat(label:value:unit:)": "a99eeaa1f5357804",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.msUnit": "ee0c47d42f994e72"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.msUnit",
+   "hash": "cf4b77036031de34",
+   "does": "Localized 'ms' unit string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.quickResultsDoneButton",
+   "hash": "f0bd721f5f711565",
+   "does": "Plain 'Done' text button (44pt hit area) that calls onDone (RecordView.clearFinishedQuickReading: collector.resetSession, clear tags).",
+   "entry": "Button tap by user",
+   "calls": [
+    "closure:onDone set by RecordView+Sections.swift:285 to RecordView.clearFinishedQuickReading (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading())",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.viewFullReportButton",
+   "hash": "a191186a2c8ec5db",
+   "does": "Filled 'View full report' button that calls onViewReport (RecordView.presentQuickReport: loads recent sessions then sets quickPresentation).",
+   "entry": "Button tap by user",
+   "calls": [
+    "closure:onViewReport set by RecordView+Sections.swift:284 to RecordView.presentQuickReport (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.presentQuickReport(session:result:))",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func QuickResultsCard.v2Stat(label:value:unit:)",
+   "hash": "46875c32c587d287",
+   "does": "Stat tile: uppercase label above value+unit, combined into one accessibility element.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2StatValue(_:unit:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2StatValue(_:unit:)": "816af0ef50ab1268",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func QuickResultsCard.v2StatValue(_:unit:)",
+   "hash": "9ab395314813dbd0",
+   "does": "Value (rounded, monospaced digits) followed by the unit on a shared baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

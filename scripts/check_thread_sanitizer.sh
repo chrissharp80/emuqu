@@ -5,11 +5,13 @@ source "$(dirname "$0")/lib/preflight.sh"
 
 # Data-race detection over the unit suite.
 #
-# The app carries 45 `@unchecked Sendable` / `nonisolated(unsafe)` escapes and
-# 84 `DispatchQueue` sites, in Swift 5 language mode where the compiler treats
-# `Sendable` diagnostics as advisory. `check_unchecked_sendable.sh` proves the
-# *count* of those escapes has not grown; it can prove nothing about whether any
-# single one is correct.
+# The app builds in Swift 6 language mode with complete strict concurrency
+# (`check_strict_concurrency_enabled.sh`), but it still carries
+# `@unchecked Sendable` / `nonisolated(unsafe)` escapes, counted against
+# `.ci/unchecked_sendable_budget.txt`, and `DispatchQueue` sites that the
+# compiler takes on trust. `check_unchecked_sendable.sh` proves the *count* of
+# those escapes has not grown; it can prove nothing about whether any single one
+# is correct.
 #
 # Thread Sanitizer is the only thing that can. It instruments every memory
 # access and reports actual races at runtime, so it tests the escapes as
@@ -47,6 +49,9 @@ xcodebuild test \
 status=$?
 set -e
 
+# An empty log would read as zero races and zero failures.
+gate_require_nonempty "$log" "the xcodebuild log"
+
 races="$(grep -c 'WARNING: ThreadSanitizer' "$log" || true)"
 passed="$(grep -c "' passed" "$log" || true)"
 failed="$(grep -c "' failed" "$log" || true)"
@@ -64,13 +69,18 @@ if (( status != 0 )); then
     echo >&2
     if (( failed > 0 )); then
         echo "ERROR: the sanitized test run failed (no races, so this is a test failure):" >&2
-        grep "' failed" "$log" | head -20 >&2
+        # `|| true`: under pipefail, head closing the pipe early would end the
+        # script here with grep's SIGPIPE status instead of xcodebuild's.
+        grep "' failed" "$log" | head -20 >&2 || true
     else
         # No test failed, so the run never got that far: the build failed or
         # the test host crashed. Print why, or the CI log says nothing.
         echo "ERROR: the sanitized run failed before any test failed (build error or test host crash):" >&2
+        # `|| true`: no marker line is a normal outcome here, and under
+        # `set -e -o pipefail` grep's status 1 would end the script before the
+        # log tail and with the wrong exit status.
         grep -E "error:|Testing failed|crashed|Restarting after unexpected exit|The following build commands failed" "$log" \
-            | head -40 >&2
+            | head -40 >&2 || true
         echo "--- last 40 lines of the xcodebuild log ---" >&2
         tail -40 "$log" >&2
     fi

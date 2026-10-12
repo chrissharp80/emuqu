@@ -1,0 +1,771 @@
+{
+ "file": "Emuqu/Sources/Views/NotificationsSettingsPage.swift",
+ "hash": "f16148d751310056",
+ "role": "Settings → Notifications screen: denied-permission banner, Daily morning report (enable, Smart/Fixed delivery, time, Auto/Full/Teaser format) with a live preview, workout coach, mile-marker check-ins, route turn alerts and a no-marketing statement; keeps MorningNotificationScheduler in sync with the daily-report settings.",
+ "types": [
+  "NotificationsSettingsPage: struct View"
+ ],
+ "state": [
+  "@State systemAuthDenied — local banner flag",
+  "@Environment scenePhase — triggers the permission re-read on return to active"
+ ],
+ "toplevel": "Doc comment states the former alerts section (HRV anomaly, battery-low, sync failure) was removed because it was never wired. Reached from SettingsView.swift:287, SettingsSearchIndex.swift:222 and MainTabView.swift:514.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var NotificationsSettingsPage.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Returns dependencies.app.settingsManager from the SwiftUI environment.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.app.settingsManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.body",
+   "hash": "4ad54665c1ba262e",
+   "does": "Renders bodyContent wrapped in navigation chrome and the scheduler-sync onChange handlers.",
+   "entry": "SwiftUI body when the page is pushed.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withSchedulerSync(_:)",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withChrome(_:)",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.bodyContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withChrome(_:)": "73e0c72cc9ba5410",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withSchedulerSync(_:)": "c1b3b327c8715899",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.bodyContent": "e5e63299ea4c1862"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.bodyContent",
+   "hash": "50be18eeb148f149",
+   "does": "Form with sections: auth-denied banner, daily report, preview, workout coach, periodic check-ins, turn alerts, never-sent.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.authorizationDeniedSection",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportSection",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportPreviewSection",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.workoutCoachSection",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.periodicCheckInsSection",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.turnAlertsSection",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.neverSentSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.authorizationDeniedSection": "431ca69e614591a7",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportPreviewSection": "f4939a1edb749a5a",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportSection": "9530840129b522de",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.neverSentSection": "9581193ef11cf382",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.periodicCheckInsSection": "fd1c9fab63488127",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.turnAlertsSection": "0d19cc2fe76647ff",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.workoutCoachSection": "c8208e6eb3580265"
+   }
+  },
+  {
+   "key": "func NotificationsSettingsPage.withChrome(_:)",
+   "hash": "68bf64269de92822",
+   "does": "Adds title 'Notifications', hidden scroll background over AppTheme.background, a .task that checks notification authorization, and a scenePhase observer that re-checks it whenever the app becomes active again (e.g. back from iOS Settings with the page open).",
+   "entry": "SwiftUI .task on appear and onChange(of: scenePhase)",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.checkAuthorisationStatus()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "phase != .active",
+     "effect": "ignored; active → checkAuthorisationStatus"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.checkAuthorisationStatus()": "a0e3e8cd8c2c65cb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "func NotificationsSettingsPage.withSchedulerSync(_:)",
+   "hash": "d8e408cc7ef34dcd",
+   "does": "Attaches onChange handlers: dailyReportEnabled → rescheduleForEnabledChange; dailyReportFixedTime and dailyReportDelivery → reschedule. dailyReportFormat is deliberately not watched.",
+   "entry": "SwiftUI .onChange observers on settings fields.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.rescheduleForEnabledChange(newValue:)",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.reschedule()",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportEnabled",
+    "mem:SettingsManager.settings.dailyReportFixedTime",
+    "mem:SettingsManager.settings.dailyReportDelivery"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::let UserSettings.dailyReportFixedTime": "7e0baea1441894e4",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.reschedule()": "5b487b48bdf82cf3",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.rescheduleForEnabledChange(newValue:)": "8b3d2a13cc796e70",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "func NotificationsSettingsPage.rescheduleForEnabledChange(newValue:)",
+   "hash": "e7158818ba5771c5",
+   "does": "In a main-actor Task: when the report was turned on, awaits requestAuthorizationIfNeeded (prompts only when status is .notDetermined) and sets the local systemAuthDenied banner flag to status == .denied; then always awaits rescheduleIfNeeded, which removes the pending set-time request when the report is off or not authorized, else replaces it with a repeating UNCalendarNotificationTrigger at dailyReportFixedTime.",
+   "entry": "onChange(of: dailyReportEnabled).",
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.requestAuthorizationIfNeeded()",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()",
+    "ext:UNUserNotificationCenter.requestAuthorization"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportEnabled (read by rescheduleIfNeeded through AppDependencies.current, MorningNotificationScheduler.swift:91)",
+    "mem:SettingsManager.settings.dailyReportFixedTime"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newValue is true (report enabled)",
+     "effect": "requests authorization and updates systemAuthDenied before rescheduling; false → only reschedules (which cancels)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "The page edits the SettingsManager taken from the SwiftUI environment dependencies (line 19), but rescheduleIfNeeded reads settings from the AppDependencies.current global; in a preview/test that injects a different dependencies environment the scheduler acts on a different settings document than the one the toggle changed.",
+     "evidence": [
+      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:19",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:91"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.requestAuthorizationIfNeeded()": "896c11b22b2ffa02",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "func NotificationsSettingsPage.reschedule()",
+   "hash": "4fd258815c4b9484",
+   "does": "In a main-actor Task calls MorningNotificationScheduler.rescheduleIfNeeded to replace the pending set-time push.",
+   "entry": "onChange of dailyReportFixedTime / dailyReportDelivery.",
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportEnabled (via AppDependencies.current in rescheduleIfNeeded, MorningNotificationScheduler.swift:91)",
+    "mem:SettingsManager.settings.dailyReportFixedTime"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.authorizationDeniedSection",
+   "hash": "65779313fb87f7ee",
+   "does": "Shows a caution-coloured section telling the user notifications are disabled in iOS Settings when systemAuthDenied.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "systemAuthDenied",
+     "effect": "renders the banner section; otherwise renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText": "86bb825991469512"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.dailyReportSection",
+   "hash": "b9299e2e9eb3a38d",
+   "does": "Section 'Daily report' with fields and a footer.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportFields",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportFields": "ce631ccc5104cbbf",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportFooter": "62c568162a2ec3bf"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.dailyReportFields",
+   "hash": "3bf764bbad760ab7",
+   "does": "Toggle bound to settings.dailyReportEnabled (default false) with caption 'On' / 'Off — no morning push will be sent', followed by the delivery options.",
+   "entry": "SwiftUI Toggle binding.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportOptions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportEnabled"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.dailyReportEnabled",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "dailyReportEnabled",
+     "effect": "caption 'On'; false → 'Off — no morning push will be sent'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.dailyReportOptions": "d94b3fc30b4ab169",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.dailyReportOptions",
+   "hash": "ee1ff889f73b7411",
+   "does": "When the report is enabled shows the Delivery picker (Smart/Fixed), the 'At' time picker bound to dailyReportFixedTime and the format picker.",
+   "entry": "SwiftUI Picker/DatePicker bindings.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.formatPicker",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportDelivery",
+    "mem:SettingsManager.settings.dailyReportFixedTime"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.dailyReportDelivery",
+    "mem:SettingsManager.settings.dailyReportFixedTime",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dailyReportEnabled",
+     "effect": "shows delivery/time/format controls; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::let UserSettings.dailyReportFixedTime": "7e0baea1441894e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.formatPicker": "9897f0e85911274e",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.formatPicker",
+   "hash": "ce2b85ddd4b6ce68",
+   "does": "When delivery is Smart shows the Format picker (Auto / Full readout / Teaser) bound to dailyReportFormat.",
+   "entry": "SwiftUI Picker binding.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportFormat"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.dailyReportFormat",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dailyReportDelivery == .smart",
+     "effect": "shows the format picker; Fixed → hidden (the set-time push never carries a score)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.dailyReportFooter",
+   "hash": "b699ca7930c653f2",
+   "does": "Footer: the enabled explanation when the report is on, else 'Once enabled, Emuqu sends a morning push about your recovery. Never marketing.'",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.enabledDailyReportFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dailyReportEnabled",
+     "effect": "shows enabledDailyReportFooter; otherwise the opt-in sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.enabledDailyReportFooter": "39febef94b3c2a28",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.enabledDailyReportFooter",
+   "hash": "ecb53380a405ba8a",
+   "does": "Footer explaining Smart vs Fixed timing, (Smart only) that Auto sends a teaser until 30 nights then the score — matching resolvedFormat's >=30 reliable overnight nights (MorningNotificationScheduler.swift:244-256) — and that the set-time push never shows a score.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "dailyReportDelivery == .smart",
+     "effect": "adds the Auto/Full format explanation; Fixed → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.dailyReportPreviewSection",
+   "hash": "9c346f407d5a8c84",
+   "does": "When the report is enabled shows a 'Preview' section containing notificationPreviewRow.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.notificationPreviewRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dailyReportEnabled",
+     "effect": "shows preview section; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.notificationPreviewRow": "3927b8f20a786181",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.notificationPreviewRow",
+   "hash": "5f9a270431f0f80e",
+   "does": "Mock notification row: bell icon, 'Emuqu' title and previewBody text.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.previewBody",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.previewBody": "1cfb0a6400825053",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.workoutCoachSection",
+   "hash": "c2104b57575a8c9c",
+   "does": "Section 'Workout coach' with its toggle and footer.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.workoutCoachFields",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.workoutCoachFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.workoutCoachFields": "c35e85ac0aadb270",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.workoutCoachFooter": "faa4406269fd3ebe"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.workoutCoachFields",
+   "hash": "871b86f3b42fe1a3",
+   "does": "Toggle 'Coach alerts during workouts' bound to settings.coachAlertsEnabled (default true).",
+   "entry": "SwiftUI Toggle binding.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.coachAlertsEnabled"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.coachAlertsEnabled",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.workoutCoachFooter",
+   "hash": "e4501b646f429a2d",
+   "does": "Footer describing coach threshold alerts and the per-session mute.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.periodicCheckInsSection",
+   "hash": "e5da0f06243eadd1",
+   "does": "Section 'Periodic check-ins' with mile-marker fields and footer.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.periodicCheckInsFields",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.periodicCheckInsFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.periodicCheckInsFields": "3477572b317cee9e",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.periodicCheckInsFooter": "d1843e6453eee535"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.periodicCheckInsFields",
+   "hash": "2f521ef9a7410d74",
+   "does": "Toggle 'Mile-marker notifications' bound to enableMileMarkerNotifications (default false) followed by the interval picker.",
+   "entry": "SwiftUI Toggle binding.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.mileMarkerIntervalPicker",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableMileMarkerNotifications"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.enableMileMarkerNotifications",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.mileMarkerIntervalPicker": "15e5a64f4f9c61dd",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.mileMarkerIntervalPicker",
+   "hash": "53f65673bac923af",
+   "does": "Shows the mile-marker interval picker only when mile-marker notifications are on.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.intervalPicker"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableMileMarkerNotifications"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "enableMileMarkerNotifications",
+     "effect": "shows intervalPicker; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.intervalPicker": "97d5c3eab5151a80",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.intervalPicker",
+   "hash": "049b22cc63fd5efc",
+   "does": "Picker 'Interval' over MileMarkerInterval.allCases (labels from displayName) bound to settings.mileMarkerInterval.",
+   "entry": "SwiftUI Picker binding.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerInterval.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.mileMarkerInterval"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.mileMarkerInterval",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerInterval.displayName": "a5343a97a4fba4bd",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.periodicCheckInsFooter",
+   "hash": "fc49a49ef64873e5",
+   "does": "Footer describing mile-marker announcements (off by default, queued during AI conversations).",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.turnAlertsSection",
+   "hash": "a92399b532fab675",
+   "does": "Section 'Navigation (when a route is engaged)' with turn toggles and footer.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.turnAlertsFields",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.turnAlertsFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.turnAlertsFields": "6e266397ffd01ea0",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.turnAlertsFooter": "4c09e1546b50eb1e"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.turnAlertsFields",
+   "hash": "dce2022bc26277dd",
+   "does": "Two toggles bound to enableTurnByTurnAlerts and enableTurnMarkerUpdates (both default false).",
+   "entry": "SwiftUI Toggle bindings.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableTurnByTurnAlerts",
+    "mem:SettingsManager.settings.enableTurnMarkerUpdates"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.enableTurnByTurnAlerts",
+    "mem:SettingsManager.settings.enableTurnMarkerUpdates",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.turnAlertsFooter",
+   "hash": "cd49381207be7e73",
+   "does": "Footer describing turn alert distances (~500/200/0 ft; 150/60/0 m) and turn-as-marker updates.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Footer gives the metric at-turn distance as 0 m, but TurnAlertEngine fires the at-turn alert at <= 25 m (~75 ft), and the far/near alerts fire at <= 165 m / <= 67.5 m windows.",
+     "evidence": [
+      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:268",
+      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:93",
+      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:97"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.neverSentSection",
+   "hash": "088cf6b8c1de966c",
+   "does": "Section 'What you'll never get' with neverSentFields.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.neverSentFields",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.neverSentFields": "b77517e4f963e26e"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.neverSentFields",
+   "hash": "42b798fe8d3daddf",
+   "does": "Caption 'Emuqu never sends marketing or re-engagement pushes.'",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var NotificationsSettingsPage.previewBody",
+   "hash": "6269c1110907357e",
+   "does": "Preview text: for Fixed delivery the scheduler's number-free set-time body; for Smart, the chosen format resolved by MorningNotificationScheduler.resolvedFormat against the environment dependencies' archive (.auto → full after 30 nights, else teaser): the sample full readout 'Recovery 84 · A good score — normal training fits today.' when full, else the teaser 'Your recovery is in.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.dailyReportDelivery",
+    "mem:SettingsManager.settings.dailyReportFormat"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dailyReportDelivery != .smart (guard)",
+     "effect": "returns buildPayload().1"
+    },
+    {
+     "at": "+7",
+     "cond": "resolved format == .full",
+     "effect": "sample score line; else teaser"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "15eb08f1045f2698",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "1056fa14292f3976",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
+   }
+  },
+  {
+   "key": "func NotificationsSettingsPage.checkAuthorisationStatus()",
+   "hash": "313322ed95dde785",
+   "does": "Awaits UNUserNotificationCenter.current().notificationSettings() and sets systemAuthDenied to (authorizationStatus == .denied), so it both raises and clears the banner flag.",
+   "entry": "SwiftUI .task on page appear (via withChrome).",
+   "calls": [
+    "ext:UNUserNotificationCenter.notificationSettings"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

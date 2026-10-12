@@ -1,0 +1,1013 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift",
+ "hash": "7e69694591b70d4b",
+ "role": "Derived/cross-referenced half of the workout.live.* fact namespace: trend metrics (HR drift, decoupling, splits, cadence drift, GAP), sport-wide and route-specific historical baselines, Daniels pace zones, today's readiness, a decimated recent-sample timeline, and a consolidated location bundle with cached reverse-geocoded road context.",
+ "types": [
+  "WorkoutLiveNamespace: extension — derived fact entries for the live-workout namespace",
+  "WorkoutLiveNamespace.RouteHistoryTotals: struct — running sums (distance, duration, HR, alpha1) over prior route sessions"
+ ],
+ "state": [
+  "mem:WorkoutLiveNamespace.workoutLiveHistoricalBaselineDescription (static let, tool description text)",
+  "mem:WorkoutLiveNamespace.routeHistoryScanLimit = 120 (static let, max recent workouts scanned for route history)",
+  "mem:WorkoutLiveNamespace.routeHistoryBaselineDescription (static let)",
+  "mem:WorkoutLiveNamespace.workoutLiveTodayReadinessDescription (static let)",
+  "mem:WorkoutLiveNamespace.workoutLiveTimelineSecondsDescription (static let)",
+  "mem:WorkoutLiveNamespace.workoutLiveLocationBundleDescription (static let)"
+ ],
+ "toplevel": "Extension only; six static description/limit lets. Fact keys declared: workout.live.units_preference, hr_drift_percent, aerobic_decoupling_percent, reverse_split_delta_sec_per_km, cadence_drift_spm, grade_adjusted_pace_sec_per_km, historical_baseline, route_history_baseline, training_pace_zones, today_readiness, timeline($seconds), location_bundle. Route match cap of 20 is a literal at F1:191, scan limit 120 at F1:201. The timeline description marks hr optional (hr?).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutLiveNamespace.derivedEntries",
+   "hash": "1e7632d6fb28a285",
+   "does": "Concatenates the units-preference entry, the nine liveTrendEntries, and the timeline + location-bundle entries into the derived half of WorkoutLiveNamespace.entries (consumed at AppFactResolver+WorkoutLive.swift:198).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveUnitsPreferenceEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.liveTrendEntries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTimelineSecondsEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveLocationBundleEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.liveTrendEntries": "f85ddf977201f5a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveLocationBundleEntry": "f7293174fac1d66c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTimelineSecondsEntry": "7647b525d6b7f489",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveUnitsPreferenceEntry": "3c912c4a2366cdea"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.liveTrendEntries",
+   "hash": "db5ffa84ba78c1ad",
+   "does": "Returns the nine first-class live trend/baseline fact entries (HR drift, decoupling, reverse split, cadence drift, GAP, sport baseline, route baseline, pace zones, today readiness).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveHrDriftPercentEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveAerobicDecouplingPercentEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.reverseSplitDeltaEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveCadenceDriftSpmEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.gradeAdjustedPaceEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveHistoricalBaselineEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveRouteHistoryBaselineEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTrainingPaceZonesEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTodayReadinessEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.gradeAdjustedPaceEntry": "1611adec24ab74da",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.reverseSplitDeltaEntry": "0be7dd91ae0d30f2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveAerobicDecouplingPercentEntry": "2c6a6c9640e2bc03",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveCadenceDriftSpmEntry": "09eac14a77125b3b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveHistoricalBaselineEntry": "2606555560d09afa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveHrDriftPercentEntry": "efb3b50ded46821f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveRouteHistoryBaselineEntry": "7d25867d036e8d83",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTodayReadinessEntry": "593c893546451af6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTrainingPaceZonesEntry": "1815a84b65f48e88"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveUnitsPreferenceEntry",
+   "hash": "8ba07025351bab68",
+   "does": "Declares fixed fact workout.live.units_preference (String): the snapshot's resolved unitsPreference string, or missing('no workout active') when no snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot is nil (?? fallback)",
+     "effect": "returns missing('no workout active'); otherwise .string(unitsPreference)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveHrDriftPercentEntry",
+   "hash": "e1052471374040b5",
+   "does": "Declares fixed fact `workout.live.hr_drift_percent` (Double); resolver returns the live snapshot's `liveHRDriftPercent` as .double, or .missing(notRecorded) with 'no workout active' when no snapshot and 'not enough samples yet' when the field is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no live workout snapshot",
+     "effect": "returns missing('no workout active')"
+    },
+    {
+     "at": "+10",
+     "cond": "liveHRDriftPercent nil (?? fallback)",
+     "effect": "missing('not enough samples yet'); else .double"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveAerobicDecouplingPercentEntry",
+   "hash": "cf86379c0ab4249b",
+   "does": "Declares fixed fact `workout.live.aerobic_decoupling_percent` (Double); resolver returns the live snapshot's `aerobicDecouplingPercent` as .double, or .missing(notRecorded) with 'no workout active' when no snapshot and 'not enough samples yet' when the field is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no live workout snapshot",
+     "effect": "returns missing('no workout active')"
+    },
+    {
+     "at": "+10",
+     "cond": "aerobicDecouplingPercent nil (?? fallback)",
+     "effect": "missing('not enough samples yet'); else .double"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.reverseSplitDeltaEntry",
+   "hash": "2e1891a119aa6b70",
+   "does": "Declares fixed fact `workout.live.reverse_split_delta_sec_per_km` (Double); resolver returns the live snapshot's `reverseSplitDeltaSecPerKm` as .double, or .missing(notRecorded) with 'no workout active' when no snapshot and 'not enough samples yet' when the field is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no live workout snapshot",
+     "effect": "returns missing('no workout active')"
+    },
+    {
+     "at": "+7",
+     "cond": "reverseSplitDeltaSecPerKm nil (?? fallback)",
+     "effect": "missing('not enough samples yet'); else .double"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveCadenceDriftSpmEntry",
+   "hash": "bdb8b1f717e2a4b5",
+   "does": "Declares fixed fact `workout.live.cadence_drift_spm` (Double); resolver returns the live snapshot's `cadenceDriftSpm` as .double, or .missing(notRecorded) with 'no workout active' when no snapshot and 'no cadence source or not enough samples' when the field is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no live workout snapshot",
+     "effect": "returns missing('no workout active')"
+    },
+    {
+     "at": "+7",
+     "cond": "cadenceDriftSpm nil (?? fallback)",
+     "effect": "missing('no cadence source or not enough samples'); else .double"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.gradeAdjustedPaceEntry",
+   "hash": "c034568a579117f1",
+   "does": "Declares fixed fact `workout.live.grade_adjusted_pace_sec_per_km` (Double); resolver returns the live snapshot's `gradeAdjustedPaceSecPerKm` as .double, or .missing(notRecorded) with 'no workout active' when no snapshot and 'missing current pace or grade' when the field is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no live workout snapshot",
+     "effect": "returns missing('no workout active')"
+    },
+    {
+     "at": "+10",
+     "cond": "gradeAdjustedPaceSecPerKm nil (?? fallback)",
+     "effect": "missing('missing current pace or grade'); else .double"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveHistoricalBaselineEntry",
+   "hash": "1372832736dc96dc",
+   "does": "Declares fixed fact workout.live.historical_baseline (Record) whose resolver is resolveWorkoutLiveHistoricalBaseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveHistoricalBaseline()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveHistoricalBaseline()": "fbc6c637fb75edcd",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.resolveWorkoutLiveHistoricalBaseline()",
+   "hash": "6a2f8b8b43dd3699",
+   "does": "Builds the sport-wide baseline record: sportBaselineRecord(data_source=sport_wide, sport, sample_count, comparison_safe) plus optional avg_pace_sec_per_km, avg_hr, avg_alpha1 from the snapshot's historical fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.sportBaselineRecord(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no live snapshot",
+     "effect": "returns missing('no workout active')"
+    },
+    {
+     "at": "+2",
+     "cond": "historicalSportSampleCount <= 0",
+     "effect": "returns missing('no prior workouts of this sport')"
+    },
+    {
+     "at": "+4",
+     "cond": "historicalSportAvgPaceSecPerKm present",
+     "effect": "adds avg_pace_sec_per_km; omitted otherwise"
+    },
+    {
+     "at": "+5",
+     "cond": "historicalSportAvgHR present",
+     "effect": "adds avg_hr; omitted otherwise"
+    },
+    {
+     "at": "+6",
+     "cond": "historicalSportAvgAlpha1 present",
+     "effect": "adds avg_alpha1; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.sportBaselineRecord(_:)": "555019825e53d5bc"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.sportBaselineRecord(_:)",
+   "hash": "3bc77a20bae1d928",
+   "does": "Returns the fixed fields of the sport-wide baseline: data_source 'sport_wide', sport, sample_count, comparison_safe = sampleCount >= 2.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveRouteHistoryBaselineEntry",
+   "hash": "e8763f686c264537",
+   "does": "Declares fixed fact workout.live.route_history_baseline (Record) whose resolver is resolveWorkoutLiveRouteHistoryBaseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()": "5ae5a446b28fab8f",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()",
+   "hash": "95b7d8489ad3005d",
+   "does": "Resolves the route-specific baseline: requires a live snapshot with a non-empty recognizedRouteName, gathers prior archived workouts on that route, and returns routeBaselineRecord.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.routeHistorySessions(named:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.routeBaselineRecord(_:candidates:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no live snapshot",
+     "effect": "missing('no workout active')"
+    },
+    {
+     "at": "+2",
+     "cond": "recognizedRouteName nil or empty",
+     "effect": "missing('no recognized route bound to this workout')"
+    },
+    {
+     "at": "+6",
+     "cond": "no prior sessions matched",
+     "effect": "missing('first run on this route — no prior history yet'); else .record(routeBaselineRecord)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.routeBaselineRecord(_:candidates:)": "8e6f8a88cbe535b9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.routeHistorySessions(named:)": "e22852b4e0253354"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.routeHistorySessions(named:)",
+   "hash": "d80c3ca9a2914385",
+   "does": "Takes archive index entries of sessionType .workout, newest first, capped at 120 (routeHistoryScanLimit); for each while fewer than 20 matches, lightweight-decodes the session and keeps it when its workoutMetadata.recognizedRouteName case-insensitively equals routeName.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (index)",
+    "archive:SessionArchive.retrieveLightweight (session files)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for-where loop: matches.count < 20",
+     "effect": "entries after 20 matches are skipped without decoding (loop keeps iterating the remaining prefix but does nothing)"
+    },
+    {
+     "at": "+8",
+     "cond": "guard: session decoded AND route name matches",
+     "effect": "decode failure (logged and counted by retrieveLightweightOrLog) or non-matching route → continue; else append"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Each workout.live.route_history_baseline call during a workout can lightweight-decode up to 120 archived workouts (each with its per-second workoutMetadata.samples) synchronously on the main actor when the route has fewer than 20 prior runs; the result is not cached between calls.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:185",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:189",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:192",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:20"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "1df22bd32140c82a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.isSameRoute(_:_:)",
+   "hash": "4b8edaec823110c0",
+   "does": "Returns true when recorded route name is non-nil and equals routeName ignoring case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recorded is nil",
+     "effect": "returns false; else caseInsensitiveCompare == .orderedSame"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveNamespace.routeBaselineRecord(_:candidates:)",
+   "hash": "b3d32c6d6d79c9e6",
+   "does": "Builds the route-specific baseline record (data_source 'route_specific', route_name, prior_session_count, comparison_safe = count >= 2) and adds avg pace (total duration*1000/total distance), avg HR and avg alpha1 from routeHistoryTotals when available.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.routeHistoryTotals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "summed qualifying distance > 100 m",
+     "effect": "adds avg_pace_sec_per_km = dur*1000/dist; omitted otherwise"
+    },
+    {
+     "at": "+11",
+     "cond": "hrCount > 0",
+     "effect": "adds avg_hr (mean of all positive per-sample HRs across sessions); omitted otherwise"
+    },
+    {
+     "at": "+12",
+     "cond": "alphaCount > 0",
+     "effect": "adds avg_alpha1 (sample-weighted mean); omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.routeHistoryTotals(_:)": "f835e621b04cb38e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.routeHistoryTotals(_:)",
+   "hash": "8da1c6c9cf384eb3",
+   "does": "One pass over candidate sessions: sums distance and duration for sessions with distance > 100 m and duration > 60 s, and sums/counts every positive heartRate and alpha1 sample from workoutMetadata.samples.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each candidate session",
+     "effect": "accumulates totals per session"
+    },
+    {
+     "at": "+3",
+     "cond": "distanceMeters > 100 and duration > 60 both present",
+     "effect": "adds distance and duration to totals; otherwise session contributes no pace data (still contributes HR/alpha)"
+    },
+    {
+     "at": "+8",
+     "cond": "workoutMetadata or samples nil (?? fallback)",
+     "effect": "uses [] so the session adds no HR/alpha samples"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveTrainingPaceZonesEntry",
+   "hash": "c8925f35d43e5de0",
+   "does": "Declares fixed fact workout.live.training_pace_zones (Record) resolved by resolveWorkoutLiveTrainingPaceZones.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveTrainingPaceZones()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveTrainingPaceZones()": "632eff1b87838ee3",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.resolveWorkoutLiveTrainingPaceZones()",
+   "hash": "4486a26b35aabe1f",
+   "does": "Derives Daniels-style zones from the snapshot's predictedRaceTime5KSec / 5 via TrainingPaceZones.from5KPace and returns easy/marathon/threshold/interval/repetition sec/km.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no live snapshot",
+     "effect": "missing('no workout active')"
+    },
+    {
+     "at": "+2",
+     "cond": "predictedRaceTime5KSec nil or from5KPace returns nil (pace <= 0)",
+     "effect": "missing('no 5K race basis in history'); else record of 5 zone paces"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveTodayReadinessEntry",
+   "hash": "bbc28ac295c75c4b",
+   "does": "Declares fixed fact workout.live.today_readiness (Record) resolved by resolveWorkoutLiveTodayReadiness.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveTodayReadiness()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveTodayReadiness()": "7cf4dc9943fe5616",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.resolveWorkoutLiveTodayReadiness()",
+   "hash": "8170c730c8f68b4c",
+   "does": "Builds today's readiness record: recovery_score and training_readiness frozen in the live snapshot, plus live atl/ctl/tsb from TrainingLoadRegistry.live() via liveTrainingLoad().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.liveTrainingLoad()"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)",
+    "mem:TrainingLoadRegistry.live()"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no live snapshot",
+     "effect": "missing('no workout active')"
+    },
+    {
+     "at": "+6",
+     "cond": "none of recovery score, readiness, live load present",
+     "effect": "missing('no morning reading captured yet today')"
+    },
+    {
+     "at": "+8",
+     "cond": "todayRecoveryScore present",
+     "effect": "adds recovery_score"
+    },
+    {
+     "at": "+9",
+     "cond": "todayTrainingReadiness present",
+     "effect": "adds training_readiness"
+    },
+    {
+     "at": "+10",
+     "cond": "live training load available",
+     "effect": "adds atl, ctl, tsb; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.liveTrainingLoad()": "7cd1c18f677d0b4b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveTimelineSecondsEntry",
+   "hash": "f44d0f77951ea770",
+   "does": "Declares parameterized fact workout.live.timeline($seconds) whose closure calls resolveWorkoutLiveTimelineSeconds(param).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveTimelineSeconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveTimelineSeconds(_:)": "84c6d7d83698992c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.resolveWorkoutLiveTimelineSeconds(_:)",
+   "hash": "728fc0ac3959f848",
+   "does": "Parses the lookback as an integer via FactNumericArgument.lookbackSeconds, requires an active snapshot and non-empty broker sample buffer, clamps lookback to 30-3600 s, windows and decimates (≤~120 points) and returns a list of per-sample records.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.windowedSamples(_:lookback:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.decimated(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.timelineRecord(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)",
+    "mem:LiveWorkoutBroker samplesProvider (recorder per-tick samples)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch FactArgumentError from integer parse",
+     "effect": "returns error.factValue (.missing invalidParameter naming the accepted range)"
+    },
+    {
+     "at": "+7",
+     "cond": "no live snapshot",
+     "effect": "missing(notRecorded,'no workout active')"
+    },
+    {
+     "at": "+11",
+     "cond": "broker returned no samples",
+     "effect": "missing('no samples captured yet')"
+    },
+    {
+     "at": "+15",
+     "cond": "no samples within the clamped window",
+     "effect": "missing('no samples in lookback window'); else .list of decimated records"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "903bc0b6e3a3a86c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.decimated(_:)": "3a37774c863b2c81",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.timelineRecord(_:)": "29c2f6e2bfbb50a7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.windowedSamples(_:lookback:)": "5960a0c92ba520d4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.windowedSamples(_:lookback:)",
+   "hash": "5d330664dbd0ce9a",
+   "does": "Keeps samples whose offsetSec >= (last sample offset - lookback), floor 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples empty (last nil, ?? fallback)",
+     "effect": "latestOffset 0 → cutoff 0 → all (zero) samples kept"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveNamespace.decimated(_:)",
+   "hash": "7ab2425be3bba7af",
+   "does": "Keeps every stride-th sample where stride = max(1, ceil(count/120)), so at most 120 points remain.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "idx % stride == 0 (ternary)",
+     "effect": "keeps the sample; otherwise drops it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveNamespace.timelineRecord(_:)",
+   "hash": "754ca850403d7de6",
+   "does": "Renders one WorkoutSample as a record with offset_sec plus each present field (hr, altitude_m, distance_m, pace_sec_per_km, cadence_spm, alpha1, mets, power_w).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "heartRate present",
+     "effect": "adds hr"
+    },
+    {
+     "at": "+5",
+     "cond": "altitudeMeters present",
+     "effect": "adds altitude_m"
+    },
+    {
+     "at": "+6",
+     "cond": "distanceMeters present",
+     "effect": "adds distance_m"
+    },
+    {
+     "at": "+7",
+     "cond": "paceSecPerKm present",
+     "effect": "adds pace_sec_per_km"
+    },
+    {
+     "at": "+8",
+     "cond": "cadenceStepsPerMin present",
+     "effect": "adds cadence_spm"
+    },
+    {
+     "at": "+9",
+     "cond": "alpha1 present",
+     "effect": "adds alpha1"
+    },
+    {
+     "at": "+10",
+     "cond": "mets present",
+     "effect": "adds mets"
+    },
+    {
+     "at": "+11",
+     "cond": "powerWatts present",
+     "effect": "adds power_w; each absent field is omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "var WorkoutLiveNamespace.workoutLiveLocationBundleEntry",
+   "hash": "34e8d0ad8636f3be",
+   "does": "Declares fixed fact workout.live.location_bundle (Record) resolved by resolveWorkoutLiveLocationBundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveLocationBundle()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveLocationBundle()": "1b80b33255ca815b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.resolveWorkoutLiveLocationBundle()",
+   "hash": "0d7f20355c62a6af",
+   "does": "Builds the location bundle: GPS fix fields from the snapshot, cached road context (street/city/cross street/intersection) and an address_status string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveFixFields(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveRoadContext(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.addRoadFields(_:road:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveAddressStatus(_:road:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker snapshot (AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no live snapshot",
+     "effect": "missing('no workout active')"
+    },
+    {
+     "at": "+2",
+     "cond": "both latitude and longitude nil",
+     "effect": "missing('no GPS fix yet'); proceeds when either is present"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.addRoadFields(_:road:)": "cb3c2af9cc5d89a9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveAddressStatus(_:road:)": "c5af0dd8bc74a6ea",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveFixFields(_:)": "04be9d667993a0fb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveRoadContext(_:)": "87206159bc524d2b"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.liveFixFields(_:)",
+   "hash": "e5060a1d165819fb",
+   "does": "Copies present snapshot fix fields into a record: latitude, longitude, altitude_m, heading_degrees, speed_m_per_s, grade_percent, gps_accuracy_m.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentLatitude present",
+     "effect": "adds latitude"
+    },
+    {
+     "at": "+3",
+     "cond": "currentLongitude present",
+     "effect": "adds longitude"
+    },
+    {
+     "at": "+4",
+     "cond": "currentAltitudeMeters present",
+     "effect": "adds altitude_m"
+    },
+    {
+     "at": "+5",
+     "cond": "currentHeadingDegrees present",
+     "effect": "adds heading_degrees"
+    },
+    {
+     "at": "+6",
+     "cond": "currentSpeedMS present",
+     "effect": "adds speed_m_per_s"
+    },
+    {
+     "at": "+7",
+     "cond": "currentGradePercent present",
+     "effect": "adds grade_percent"
+    },
+    {
+     "at": "+8",
+     "cond": "gpsAccuracyMeters present",
+     "effect": "adds gps_accuracy_m; absent fields omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca046840e972fc1"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.liveRoadContext(_:)",
+   "hash": "a1d46cbd5f4705d6",
+   "does": "On the main actor (assumeIsolated), returns RoadGeocodingService.cachedIfCloseTo(current fix) — the cached road context only if within 100 m, kicking a background refresh; nil when the fix lacks latitude or longitude (no distance check possible).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.cachedIfCloseTo(_:maxDistanceMeters:)"
+   ],
+   "reads": [
+    "mem:RoadGeocodingService.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "latitude or longitude missing",
+     "effect": "returns nil (address_status pending); else cachedIfCloseTo(CLLocation)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.cachedIfCloseTo(_:maxDistanceMeters:)": "0e8cad09a45265ed",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.addRoadFields(_:road:)",
+   "hash": "7371c6a6d1856167",
+   "does": "Adds street, city, cross_street and nearest_intersection from the road context when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "road context nil",
+     "effect": "returns without adding fields"
+    },
+    {
+     "at": "+2",
+     "cond": "road.road present",
+     "effect": "adds street"
+    },
+    {
+     "at": "+3",
+     "cond": "road.locality present",
+     "effect": "adds city"
+    },
+    {
+     "at": "+4",
+     "cond": "nearestCrossStreet present",
+     "effect": "adds cross_street"
+    },
+    {
+     "at": "+7",
+     "cond": "nearestIntersection present",
+     "effect": "adds nearest_intersection"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.nearestIntersection": "a46cf43c59a92ca5"
+   }
+  },
+  {
+   "key": "func WorkoutLiveNamespace.liveAddressStatus(_:road:)",
+   "hash": "921658bfbadb1a44",
+   "does": "Computes address_status: 'pending' without road context or without a street (a city alone included); 'ready' when street and cross_street are present; 'partial_no_cross_street' when a street is present without a cross street.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "road nil or no street",
+     "effect": "'pending'"
+    },
+    {
+     "at": "+5",
+     "cond": "cross_street present",
+     "effect": "'ready'; otherwise 'partial_no_cross_street'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

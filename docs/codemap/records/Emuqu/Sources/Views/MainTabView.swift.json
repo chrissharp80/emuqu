@@ -1,0 +1,1229 @@
+{
+ "file": "Emuqu/Sources/Views/MainTabView.swift",
+ "hash": "4a831e2585bd1f9b",
+ "role": "Root tab container (Dashboard / Record / Fitness / Flo / More): owns the dashboard's 35-session slice, per-tab NavigationPaths reset on every tab selection, the dashboard toolbar (notifications, Send report menu, Ask Flo menu), the report mail/share sheets and the recovery-detail sheet; reacts to archive changes, CloudKit pulls, foreground, settings toggles and assistant open requests.",
+ "types": [
+  "MainTabView: struct (View) — app root tabs and dashboard data owner",
+  "MainTabView.SendReportKind: enum — recovery | daily | workout send-report menu items",
+  "MainTabView.Tab: enum — the five tab ids (dashboard, record, fitness, coach, more)",
+  "MainTabView.AskFloPrompt: private struct — title/icon/prompt for the Ask Flo menu",
+  "DashboardLoadTiming: struct — timestamps of one dashboard reload for slow-load logging"
+ ],
+ "state": [
+  "@State selectedTab, dashboardPath/recordPath/fitnessPath/coachPath/morePath, sessions, totalSessionCount, seedScore, seedSummary, selectedReportSession, refreshTask, lastDashboardReloadAt, dashboardReloadInFlight/Pending/DebounceScheduled/Deferred, scrollToTopToken, launchWorkStarted, preparingReportKind, pendingReportMailURL, reportPrepError (all view-local)",
+  "@Binding requestedTab (owned by EmuquApp/onboarding)",
+  "mem:MainTabView.dashboardSessionLoadLimit (static let 35)",
+  "mem:MainTabView.slowDashboardReloadMs (static let 1500)",
+  "file:tmp/emuqu-report-<epoch>.pdf (deleted by discardReportPDF when its sheet goes)"
+ ],
+ "toplevel": "Environment: dependencies, RRCollector, ArchiveSignal, LanguageManager, CloudKitSyncManager, scenePhase. #Preview builds MainTabView() with a fresh RRCollector and the shared CloudKitSyncManager/LanguageManager.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MainTabView.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Returns SettingsManager from dependencies.app.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var MainTabView.assistantInbox",
+   "hash": "8f486a42fb5a1d46",
+   "does": "Returns AssistantInbox from dependencies.assistant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93"
+   }
+  },
+  {
+   "key": "init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)",
+   "hash": "357338c7cae15ad0",
+   "does": "Seeds totalSessionCount, seedScore and seedSummary @State from launch-time index values and binds requestedTab (defaults 0/nil/nil/.constant(nil)).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MainTabView.SendReportKind.label",
+   "hash": "0960c1141cb60e53",
+   "does": "Localized menu title for each report kind.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .recovery",
+     "effect": "'Send recovery report'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .daily",
+     "effect": "'Send daily report'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .workout",
+     "effect": "'Send workout report'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MainTabView.SendReportKind.icon",
+   "hash": "0237cb62c0b33aa5",
+   "does": "SF Symbol for each report kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .recovery",
+     "effect": "moon.stars.fill"
+    },
+    {
+     "at": "+3",
+     "cond": "case .daily",
+     "effect": "doc.text.image.fill"
+    },
+    {
+     "at": "+4",
+     "cond": "case .workout",
+     "effect": "figure.run"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MainTabView.Tab.localizedName(bundle:)",
+   "hash": "7016ee469bbf7004",
+   "does": "Localizes the tab's rawValue as a catalog key in the given bundle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MainTabView.Tab.icon",
+   "hash": "0f0ce11c815a646a",
+   "does": "Outline SF Symbol per tab.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+27",
+     "cond": "case .dashboard",
+     "effect": "heart.text.square"
+    },
+    {
+     "at": "+28",
+     "cond": "case .record",
+     "effect": "waveform.circle"
+    },
+    {
+     "at": "+29",
+     "cond": "case .fitness",
+     "effect": "figure.run"
+    },
+    {
+     "at": "+30",
+     "cond": "case .coach",
+     "effect": "sparkles"
+    },
+    {
+     "at": "+31",
+     "cond": "case .more",
+     "effect": "ellipsis.circle"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MainTabView.Tab.iconFilled",
+   "hash": "630989e35812dacc",
+   "does": "Filled SF Symbol per tab (fitness and coach reuse the outline symbol).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .dashboard",
+     "effect": "heart.text.square.fill"
+    },
+    {
+     "at": "+3",
+     "cond": "case .record",
+     "effect": "waveform.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": "case .fitness",
+     "effect": "figure.run (same as outline)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .coach",
+     "effect": "sparkles"
+    },
+    {
+     "at": "+6",
+     "cond": "case .more",
+     "effect": "ellipsis.circle.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MainTabView.tabSelectionBinding",
+   "hash": "1f52f5573fcea2c6",
+   "does": "Binding for the TabView selection: a re-tap of the active tab resets that tab's NavigationPath (resetNavigationPath), then selectedTab is assigned; a switch to another tab is reset by resetPath (the selectedTab observer), so each tap resets once.",
+   "entry": "TabView selection setter on tab-bar taps.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetNavigationPath(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "re-tap of the active tab",
+     "effect": "reset its path; else left to resetPath via onChange"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetNavigationPath(for:)": "792867cdb0f4b3dc"
+   }
+  },
+  {
+   "key": "var MainTabView.body",
+   "hash": "b7b5be3b912ae78c",
+   "does": "Emits a keyboard-perf signpost, renders tabsWithObservers with the report mail sheet (its PDF deleted once the sheet goes, discardReportPDF), the 'Couldn't prepare report' alert (shown while reportPrepError is set; OK clears it) and the recovery-detail sheet for selectedReportSession.",
+   "entry": "SwiftUI body; sheet/alert closures driven by @State.",
+   "calls": [
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabsWithObservers",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "reportPrepError ?? \"\"",
+     "effect": "alert message falls back to empty string when the error is nil (alert not presented then)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)": "d5c8cc34cfe587ba",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "9ee52c796fdeaa45",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)": "d046cf72ee41825b",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabsWithObservers": "805d565f1e8d2138"
+   }
+  },
+  {
+   "key": "func MainTabView.reportMailSheet(_:)",
+   "hash": "3b490227342c6a4f",
+   "does": "Report delivery sheet: Mail composer pre-filled with subject 'Emuqu report', training-email recipient (or the default recipient) and CC, attaching the PDF; falls back to the system share sheet when no mail account is configured.",
+   "entry": "SwiftUI .sheet(item: pendingReportMailURL).",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC",
+    "ext:MFMailComposeViewController.canSendMail",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.makeUIViewController(context:)",
+    "Emuqu/Sources/Views/Utilities/ShareSheet.swift::func ShareSheet.makeUIViewController(context:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "file:tmp/emuqu-report-<epoch>.pdf"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "MFMailComposeViewController.canSendMail()",
+     "effect": "true: MailComposerView (onDismiss clears pendingReportMailURL); false: ShareSheet with the URL"
+    },
+    {
+     "at": "+4",
+     "cond": "defaultTrainingEmailRecipient ?? resolvedDefaultEmailRecipient, then .map ?? []",
+     "effect": "training recipient first, else the general default recipient, else no recipient"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "9fa516b2dcf25514",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "1a3b52db4e9c1356",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.makeUIViewController(context:)": "000e14dc3a803814",
+    "Emuqu/Sources/Views/Utilities/ShareSheet.swift::func ShareSheet.makeUIViewController(context:)": "5ac15667ff37e889"
+   }
+  },
+  {
+   "key": "func MainTabView.discardReportPDF(_:next:)",
+   "hash": "5a18ad13b01e411a",
+   "does": "When pendingReportMailURL moves off a report (sheet dismissed or replaced), deletes that report's PDF from the temp directory (failure only logged through attempt).",
+   "entry": "onChange(of: pendingReportMailURL) in body",
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-report-<epoch>.pdf (removed)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no previous report, or the same one",
+     "effect": "nothing deleted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func MainTabView.reportSheet(_:)",
+   "hash": "23ef4a458d0059a8",
+   "does": "Recovery Score detail sheet content when the session has an analysis result; otherwise missingAnalysisNavigation ('No analysis data available' with the Done button), so the sheet can always be closed.",
+   "entry": "SwiftUI .sheet(item: selectedReportSession).",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportNavigation(_:result:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.missingAnalysisNavigation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.analysisResult non-nil",
+     "effect": "show reportNavigation; nil: missingAnalysisNavigation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportNavigation(_:result:)": "ad09e18e7c8e50cc",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.missingAnalysisNavigation": "ebf664cc53cae41e"
+   }
+  },
+  {
+   "key": "var MainTabView.missingAnalysisNavigation",
+   "hash": "c0859115ade11402",
+   "does": "NavigationStack with a secondary 'No analysis data available' text and the report Done toolbar, for a report session with no analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar": "9bcef52da556a5f1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MainTabView.reportNavigation(_:result:)",
+   "hash": "11003603830c0c28",
+   "does": "NavigationStack wrapping the recovery detail with a Done toolbar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.recoveryScoreDetail(_:result:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.recoveryScoreDetail(_:result:)": "f792d64842c98a7b",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar": "9bcef52da556a5f1"
+   }
+  },
+  {
+   "key": "func MainTabView.recoveryScoreDetail(_:result:)",
+   "hash": "b9a92bf85cb2cc07",
+   "does": "Builds RecoveryScoreDetailView with the dashboard slice, the collector's scoring baseline for the session, baseline days collected, and reanalyze callbacks that write the updated session back to the sheet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReport(_:method:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReport(_:method:)": "e66e6fade754f2b8",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "2d65b59b24a27b3f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "c6edb2ba34b25dab"
+   }
+  },
+  {
+   "key": "func MainTabView.rescoreReport(_:method:)",
+   "hash": "1f3fc4c90a463411",
+   "does": "Re-analyzes the session with the chosen window method via collector and, if it returns a session, replaces selectedReportSession so the sheet re-renders.",
+   "entry": "onReanalyze closure from RecoveryScoreDetailView.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:reanalyzeSession (via RRCollector)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "reanalyzeSession returned a session",
+     "effect": "assign to selectedReportSession; nil: sheet keeps the old copy, no message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)": "ca68f24877ba3120"
+   }
+  },
+  {
+   "key": "func MainTabView.rescoreReportAt(_:targetMs:)",
+   "hash": "51ca132675c98bb7",
+   "does": "Manual-window reanalysis at targetMs: collector.reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet.",
+   "entry": "onReanalyzeAt closure from RecoveryScoreDetailView.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:applyManualAnalysis (via RRCollector)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both reanalyzeAtPosition and applyManualAnalysis return non-nil",
+     "effect": "assign updated session; either nil: nothing happens, no message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "5769cb4022f1481b",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "1c0421a2b011d161"
+   }
+  },
+  {
+   "key": "var MainTabView.reportDoneToolbar",
+   "hash": "01e97dbe2194c044",
+   "does": "Leading 'Done' toolbar button that clears selectedReportSession (dismisses the sheet).",
+   "entry": "Button action.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MainTabView.tabsWithObservers",
+   "hash": "3c8542a990a9e666",
+   "does": "Attaches observers to the styled tabs: hideFitnessTab change, archiveSignal.version change, scenePhase change, CloudKit pullVersion change, selectedTab change, assistant openRequestToken change, requestedTab change; cancels refreshTask on disappear.",
+   "entry": "SwiftUI .onChange/.onDisappear callbacks.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.styledTabs",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.leaveHiddenFitnessTab(_:)",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.refreshOnForeground(from:to:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.openCoachIfRequested(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.openRequestedTab(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.assistantInbox"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "mem:ArchiveSignal.version",
+    "mem:CloudKitSyncManager.pullVersion",
+    "mem:AssistantInbox.openRequestToken"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.leaveHiddenFitnessTab(_:)": "d0beeaa8bd93f4f3",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.openCoachIfRequested(_:)": "f1159f9f3aa275d1",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.openRequestedTab(_:)": "32fe4d872e86686d",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.refreshOnForeground(from:to:)": "0db46bdafeac0731",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)": "29453bfad12c6b97",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.assistantInbox": "d2b5754e18d96ad2",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager": "66ee0a645c18f8c3",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.styledTabs": "e8645f79d8043659"
+   }
+  },
+  {
+   "key": "func MainTabView.leaveHiddenFitnessTab(_:)",
+   "hash": "94e08111a1b4ace1",
+   "does": "If Fitness was hidden while selected, switches to Dashboard.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "hidden && selectedTab == .fitness",
+     "effect": "selectedTab = .dashboard; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MainTabView.refreshOnForeground(from:to:)",
+   "hash": "1c80b9e126fb62f8",
+   "does": "On a transition into .active from any other phase (background or inactive): logs, reloads the dashboard slice and asynchronously re-pulls today's sleep from HealthKit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.refreshTodaysSleep()",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newPhase == .active && oldPhase != .active",
+     "effect": "reload + sleep refresh; else return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.refreshTodaysSleep()": "6a7b574e339fa564"
+   }
+  },
+  {
+   "key": "func MainTabView.refreshTodaysSleep()",
+   "hash": "0d9b8a4751381d48",
+   "does": "Awaits collector.autoRefreshTodaysSleepIfImproved() (HealthKit sleep re-read; archive notify on change).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.autoRefreshTodaysSleepIfImproved()"
+   ],
+   "reads": [
+    "hk:sleepAnalysis (via RRCollector)"
+   ],
+   "writes": [
+    "archive:sleepSnapshot update (via RRCollector)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.autoRefreshTodaysSleepIfImproved()": "9c0f07cca7443fae"
+   }
+  },
+  {
+   "key": "func MainTabView.resetPath(from:to:)",
+   "hash": "5ee28f650e840759",
+   "does": "On a real tab change: bumps scrollToTopToken and resets the new tab's path through resetNavigationPath (Dashboard additionally runs a deferred reload).",
+   "entry": "onChange(of: selectedTab).",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetNavigationPath(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newTab == oldTab",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetNavigationPath(for:)": "792867cdb0f4b3dc"
+   }
+  },
+  {
+   "key": "func MainTabView.resetNavigationPath(for:)",
+   "hash": "be464cdfa680ec1f",
+   "does": "The one per-tab path reset: Dashboard → resetDashboardPath (also runs a deferred reload); Record, Fitness, Flo, More → their NavigationPath emptied.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetDashboardPath()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .dashboard",
+     "effect": "resetDashboardPath()"
+    },
+    {
+     "at": "+3",
+     "cond": "case .record",
+     "effect": "recordPath reset"
+    },
+    {
+     "at": "+4",
+     "cond": "case .fitness",
+     "effect": "fitnessPath reset"
+    },
+    {
+     "at": "+5",
+     "cond": "case .coach",
+     "effect": "coachPath reset"
+    },
+    {
+     "at": "+6",
+     "cond": "case .more",
+     "effect": "morePath reset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetDashboardPath()": "75b03fde5beeef4d"
+   }
+  },
+  {
+   "key": "func MainTabView.resetDashboardPath()",
+   "hash": "8971a149da28a4f5",
+   "does": "Resets the dashboard path and runs a reload that was deferred while another tab showed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "dashboardReloadDeferred",
+     "effect": "clear flag and reloadDashboardSessions(); else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41"
+   }
+  },
+  {
+   "key": "func MainTabView.openCoachIfRequested(_:)",
+   "hash": "b9d5c86657352933",
+   "does": "Switches to the Coach tab when AssistantInbox.openRequestToken is bumped, only if the AI assistant is enabled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "enableAIAssistant is false",
+     "effect": "return (request ignored)"
+    },
+    {
+     "at": "+2",
+     "cond": "token != nil && selectedTab != .coach",
+     "effect": "selectedTab = .coach; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager": "66ee0a645c18f8c3"
+   }
+  },
+  {
+   "key": "func MainTabView.openRequestedTab(_:)",
+   "hash": "7c35de890d6c15c7",
+   "does": "Applies a tab requested from outside (onboarding) and clears the request.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tab is nil",
+     "effect": "return; else selectedTab = tab and requestedTab = nil (no check that the tab is visible, e.g. .fitness while hidden)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MainTabView.styledTabs",
+   "hash": "fda3c7b8133388d0",
+   "does": "Tabs with blue tint, SettingsManager in environment, an .id composed of appearanceTheme + hideFitnessTab (forces a TabView rebuild when either changes), an onAppear log and a .task running bootstrapTabs.",
+   "entry": "SwiftUI .onAppear/.task.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabs",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.bootstrapTabs()",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager",
+    "ext:NSLog"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.bootstrapTabs()": "06eb25628d3f7f63",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager": "66ee0a645c18f8c3",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabs": "a64166dd76f4355d",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func MainTabView.bootstrapTabs()",
+   "hash": "4b2591c0c9045639",
+   "does": "Logs and reloads the dashboard slice; the first time only (launchWorkStarted) also starts a Task to auto-recover an interrupted workout, so a TabView rebuild (theme or Fitness-tab toggle re-firing .task) does not re-run launch recovery or pull the user onto Record.",
+   "entry": "SwiftUI .task on the tab view.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.recoverInterruptedWorkoutOnLaunch()",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "launch work already started",
+     "effect": "return after the reload"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.recoverInterruptedWorkoutOnLaunch()": "b4bd493f0cc955f6"
+   }
+  },
+  {
+   "key": "func MainTabView.recoverInterruptedWorkoutOnLaunch()",
+   "hash": "9255d5ae5d51ae55",
+   "does": "Auto-recovers a workout interrupted by a crash (strap merge), surfaces any already-archived recovered workout awaiting review, and switches to the Record tab if a review is pending.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.autoRecoverInterruptedWorkoutOnLaunch()",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.surfaceExistingRecoveredWorkoutForReview()"
+   ],
+   "reads": [
+    "mem:MorningCoordination.recoveredWorkoutReview"
+   ],
+   "writes": [
+    "mem:MorningCoordination.recoveredWorkoutReview",
+    "archive:recovered workout (via RRCollector)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "recoveredWorkoutReview == nil after auto-recover",
+     "effect": "surfaceExistingRecoveredWorkoutForReview(); else skip"
+    },
+    {
+     "at": "+10",
+     "cond": "recoveredWorkoutReview != nil",
+     "effect": "selectedTab = .record; else stay"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.autoRecoverInterruptedWorkoutOnLaunch()": "c55369c4468a8c88",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.surfaceExistingRecoveredWorkoutForReview()": "8dd10238139ebef6"
+   }
+  },
+  {
+   "key": "var MainTabView.tabs",
+   "hash": "d660932e8a0d3fb5",
+   "does": "TabView bound to tabSelectionBinding with dashboard, record, fitness, coach and more tabs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabSelectionBinding",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardTab",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.recordTab",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.fitnessTab",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.coachTab",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.moreTab"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.moreTab": "723125a5bac41e9d",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.coachTab": "4d393662bc7f76b2",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardTab": "dad4e70500a2c9cf",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.fitnessTab": "af5f98220f2edb70",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.recordTab": "ec5a0db17558afb6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabSelectionBinding": "e06b66ebccc07697"
+   }
+  },
+  {
+   "key": "var MainTabView.dashboardRoot",
+   "hash": "645a940245f91b7c",
+   "does": "DashboardV2View with sessions, count, seeds, isActive, scroll token and callbacks for start recording, view report (sets selectedReportSession) and reanalyze; no delete or tag-save callbacks (History does both itself), so DashboardV2View's no-op defaults apply.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startRecording()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)": "ca68f24877ba3120",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startRecording()": "d083ab5211ec519c"
+   }
+  },
+  {
+   "key": "var MainTabView.dashboardTab",
+   "hash": "cf2e7e5afede8e42",
+   "does": "Dashboard NavigationStack with title and toolbar, tab item (filled icon when selected), tag and accessibility ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardToolbar",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selectedTab == .dashboard",
+     "effect": "filled icon; else outline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "dbfbdba03a68cf31",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "1f05f416ecad4647",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardToolbar": "16483311b61c65f9"
+   }
+  },
+  {
+   "key": "var MainTabView.dashboardToolbar",
+   "hash": "c41982ae203c1cea",
+   "does": "Dashboard toolbar: notifications link, Send report menu, and Ask Flo menu when the AI assistant is on.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.notificationsToolbarItem",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportToolbarItem",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloToolbarItem",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "enableAIAssistant",
+     "effect": "include Ask Flo menu; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloToolbarItem": "cf53cd41544aea9c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.notificationsToolbarItem": "9a43a01cc1037798",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportToolbarItem": "a4ec8faf4f20617f",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager": "66ee0a645c18f8c3"
+   }
+  },
+  {
+   "key": "var MainTabView.notificationsToolbarItem",
+   "hash": "379dbabc11a22dad",
+   "does": "Bell toolbar link to NotificationsSettingsPage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label": "c4d46020c47fa81d"
+   }
+  },
+  {
+   "key": "var MainTabView.sendReportToolbarItem",
+   "hash": "5806769c7dcad744",
+   "does": "Paperplane Menu toolbar item holding sendReportMenu.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenu",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenuLabel",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label": "c4d46020c47fa81d",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenu": "d4cd2cf4b59426f7",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenuLabel": "9b1627624e1e9bc2"
+   }
+  },
+  {
+   "key": "var MainTabView.sendReportMenu",
+   "hash": "a7201d3b6860be83",
+   "does": "Three send-report buttons (enabled when there is a recent overnight / workout+night pair / workout in the slice) and a 'Browse all reports' link to ReportsListView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.sendReportButton(_:enabled:)",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "2358ab79f93dc47e",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight": "0c11fceac50c25be",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout": "5f2f6d7fd8736046",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.sendReportButton(_:enabled:)": "fe00a445daf630b3",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label": "c4d46020c47fa81d"
+   }
+  },
+  {
+   "key": "func MainTabView.sendReportButton(_:enabled:)",
+   "hash": "eb9ca6f5b8a963c9",
+   "does": "Button that calls prepareAndSendReport(kind); disabled while any report is being prepared or when the kind has no data.",
+   "entry": "Button action (menu tap).",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.prepareAndSendReport(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.icon"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.prepareAndSendReport(_:)": "ff07743c5bc6cad2",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.icon": "6df6ce56dcb2aa20",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label": "c4d46020c47fa81d"
+   }
+  },
+  {
+   "key": "var MainTabView.sendReportMenuLabel",
+   "hash": "44862c406a7d4c61",
+   "does": "Menu label: spinner while preparing a report, else paperplane icon.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "preparingReportKind != nil",
+     "effect": "ProgressView; else paperplane image"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MainTabView.askFloToolbarItem",
+   "hash": "26c79d195215a751",
+   "does": "Sparkles Menu toolbar item holding the Ask Flo prompts, with accessibility label/hint/id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloMenu",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label": "c4d46020c47fa81d",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloMenu": "9b8e77e18668ec3e"
+   }
+  },
+  {
+   "key": "var MainTabView.askFloMenu",
+   "hash": "d0cf44df27d3fb6e",
+   "does": "One button per Ask Flo prompt, a divider, and 'Open AI Assistant…'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloPrompts",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.openAssistantPrompt",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.askFloButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.askFloButton(_:)": "07e102980287545e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloPrompts": "94f29f2eb69eb052",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.openAssistantPrompt": "ac2d11c2cda12743"
+   }
+  },
+  {
+   "key": "var MainTabView.askFloPrompts",
+   "hash": "e2925fc61fa8e16c",
+   "does": "Three localized quick prompts (why this score, should I train, what changed), recomputed each access so a language switch applies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MainTabView.openAssistantPrompt",
+   "hash": "51d56355a3351326",
+   "does": "'Open AI Assistant…' item with an empty prompt (opens the Coach tab without a draft).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MainTabView.askFloButton(_:)",
+   "hash": "e1b98fd9036d8f7d",
+   "does": "Button that sends the item's prompt to askAssistant.",
+   "entry": "Button action (menu tap).",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.askAssistant(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.askAssistant(_:)": "c869ab529e9253c1",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.SendReportKind.label": "c4d46020c47fa81d"
+   }
+  },
+  {
+   "key": "var MainTabView.recordTab",
+   "hash": "6d60894b21e33004",
+   "does": "Lazily-built Record tab (NavigationStack + RecordView bound to selectedTab) with tab item and accessibility ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "selectedTab == .record",
+     "effect": "filled icon; else outline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "dbfbdba03a68cf31",
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "2e0c755eae0e07db"
+   }
+  },
+  {
+   "key": "var MainTabView.fitnessTab",
+   "hash": "6260904407712f1a",
+   "does": "Lazily-built Fitness tab, present only when hideFitnessTab is false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!hideFitnessTab",
+     "effect": "build the tab; hidden: no tab"
+    },
+    {
+     "at": "+9",
+     "cond": "selectedTab == .fitness",
+     "effect": "icon (filled and outline are both figure.run)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "dbfbdba03a68cf31",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager": "66ee0a645c18f8c3",
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "2e0c755eae0e07db"
+   }
+  },
+  {
+   "key": "var MainTabView.coachTab",
+   "hash": "d3b3f2e7961362fd",
+   "does": "Lazily-built Flo (Coach) tab with CoachHomeV2View, present only when enableAIAssistant is true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "enableAIAssistant",
+     "effect": "build the tab; false: no tab"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.settingsManager": "66ee0a645c18f8c3",
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "2e0c755eae0e07db"
+   }
+  },
+  {
+   "key": "init DashboardLoadTiming(requestedAt:)",
+   "hash": "47134a9d225df859",
+   "does": "Sets requestedAt and defaults started/decrypted/counted to it so unrun phases read zero.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DashboardLoadTiming.milliseconds(from:to:)",
+   "hash": "239feeaf180c8e8f",
+   "does": "Milliseconds between two dates, truncated to Int.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

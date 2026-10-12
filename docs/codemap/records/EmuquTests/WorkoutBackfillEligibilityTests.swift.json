@@ -1,0 +1,176 @@
+{
+ "file": "EmuquTests/WorkoutBackfillEligibilityTests.swift",
+ "hash": "52655b8a40b97bad",
+ "role": "XCTest suite pinning HealthKitManager.needsBackfill eligibility rules for exporting archived workouts to HealthKit.",
+ "types": [
+  "WorkoutBackfillEligibilityTests: class — XCTestCase for HealthKitManager.needsBackfill"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)",
+   "hash": "8dce31cb6f73c945",
+   "does": "Fixture: builds an HRVSession(sessionType: .workout) with configurable endDate offset (nil = still recording), workoutMetadata (default walk), healthKitExportedAt and healthKitExportFailureCount.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testACompletedWorkoutIsEligible()",
+   "hash": "cc1870f7c1a4101d",
+   "does": "Asserts a 30-minute completed, unexported workout with metadata is eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testAZeroLengthWorkoutIsNotEligible()",
+   "hash": "715d5e1c82e58430",
+   "does": "Asserts a zero-length workout (endDate == startDate) is not eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testABackwardsWorkoutIsNotEligible()",
+   "hash": "817e85b30f1c7ce5",
+   "does": "Asserts an endDate 60 s before startDate is not eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testAOneSecondWorkoutIsStillEligible()",
+   "hash": "21e7ec8ba9bc0716",
+   "does": "Asserts a 1-second workout is eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testAWorkoutStillRecordingIsNotEligible()",
+   "hash": "6e58c674857181d0",
+   "does": "Asserts a workout with nil endDate (still recording) is not eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testAnAlreadyExportedWorkoutIsNotEligible()",
+   "hash": "e804dde0edb8461c",
+   "does": "Asserts a workout with healthKitExportedAt set is not eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testAWorkoutPastItsRetryCeilingIsNotEligible()",
+   "hash": "16ffcfbd93a55c3d",
+   "does": "Asserts failures = ceiling-1 is eligible and failures = HRVSession.healthKitExportRetryCeiling (5) is not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  },
+  {
+   "key": "func WorkoutBackfillEligibilityTests.testASessionWithNoWorkoutMetadataIsNotEligible()",
+   "hash": "d356f48680df6689",
+   "does": "Asserts a session with nil workoutMetadata is not eligible.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "EmuquTests/WorkoutBackfillEligibilityTests.swift::func WorkoutBackfillEligibilityTests.workout(start:durationSeconds:exportedAt:failures:metadata:)": "d14713719262c6cb"
+   }
+  }
+ ],
+ "deps": {}
+}

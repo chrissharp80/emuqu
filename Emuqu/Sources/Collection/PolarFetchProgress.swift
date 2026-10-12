@@ -27,7 +27,4 @@ struct StrapFetchProgress: Equatable {
     var attempt: Int
     var maxAttempts: Int
     var statusMessage: String
-
-    static let idle = StrapFetchProgress(stage: .stopping, progress: 0, attempt: 0, maxAttempts: 3, statusMessage: "")
-
 }

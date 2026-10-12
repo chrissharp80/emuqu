@@ -1,0 +1,48 @@
+{
+ "file": "scripts/check_aggregate_type_size.sh",
+ "hash": "ecd679210eb35917",
+ "role": "CI gate: sums each Swift type's lines across every declaration/extension under Emuqu/Sources and fails if the count of types over 1500 lines or the summed excess exceeds .ci budgets.",
+ "types": [],
+ "state": [
+  "file:.ci/aggregate_type_size_budget.txt",
+  "file:.ci/aggregate_type_excess_budget.txt",
+  "env:AGGREGATE_TYPE_BUDGET_FILE",
+  "env:AGGREGATE_TYPE_EXCESS_BUDGET_FILE",
+  "env:AGGREGATE_TYPE_THRESHOLD"
+ ],
+ "toplevel": "cd to repo root. SCAN_DIR=$1 or Emuqu/Sources (exit 2 if missing). Budgets from AGGREGATE_TYPE_BUDGET_FILE (.ci/aggregate_type_size_budget.txt, value 0) and AGGREGATE_TYPE_EXCESS_BUDGET_FILE (.ci/aggregate_type_excess_budget.txt, value 0); THRESHOLD env default 1500. Embedded Python: each file is masked (// and nestable /* */ comments, single-line, multi-line and raw string literals blanked, newlines kept); regex DECL matches top-level class/struct/enum/actor/extension/protocol headers on masked lines; private/fileprivate non-extension types are keyed name@file; body_end brace-counts to the closing line (no line cap); a body that never closes is reported UNBALANCED; otherwise the span is added to sizes[name] and scanning jumps past the body (nested types not measured separately). Prints count, total excess, top 12 'OVER' rows and UNBALANCED rows. Empty output or any UNBALANCED -> exit 2. Fails (exit 1) if count>budget or excess>excess_budget; prints 'lower budget' hint when below; else 'clean'. Header documents that file-scope code and sibling types are not attributed to a type. Wired: Makefile aggregate-type-size, gates.yml (push), ci.yml.",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "med",
+   "text": "Only named type/extension bodies are summed, so code moved to file-scope functions or a sibling enum leaves the type's measure. Source comments record doing exactly that because of this gate (Archive+PendingEncryption.swift:5-8 keeps SessionArchive policy at file scope; HelpContent+ScienceArticles.swift:5-9 uses a separate enum). Measured at threshold 1400: VoiceConversationController 1499, WindowSelector 1497, FitnessSummaryCards 1495, RecoveryScoreDetailView 1492, DashboardV2View 1486, RRCollector 1485 - six types within 15 lines of the 1500 limit. Archive+PendingEncryption.swift:5 says SessionArchive is over 1,500; the gate measures it at 1223.",
+   "evidence": [
+    "scripts/check_aggregate_type_size.sh:74",
+    "scripts/check_aggregate_type_size.sh:115",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:5",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:7"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn read_budget",
+   "hash": "1239e21877dc4380",
+   "does": "Reads budget file $1: missing -> stderr + exit 2; strips whitespace; non-integer -> exit 2; assigns the value into the variable named by $2 via printf -v (run in the current shell so its exit 2 ends the script).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:.ci/aggregate_type_size_budget.txt",
+    "file:.ci/aggregate_type_excess_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_aggregate_type_size.sh::fn read_budget": "e76e6126eb42d4d7"
+ }
+}

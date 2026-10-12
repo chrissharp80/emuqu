@@ -1,0 +1,584 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift",
+ "hash": "6937bcd777df0fd9",
+ "role": "Google Gemini AIProvider: model catalog, request body types, SSE streaming of generateContent with function calling, thought-signature round-trip and HTTP error mapping.",
+ "types": [
+  "GeminiProvider: class — AIProvider for Gemini (Sendable)",
+  "GeminiProvider.RequestBody: struct — Encodable generateContent body (systemInstruction, contents, tools)",
+  "RequestBody.Part/FunctionCall/FunctionResponse/Content/SystemInstruction/Tool/FunctionDeclaration: structs — wire shapes",
+  "extension GeminiProvider.RequestBody.FunctionDeclaration — CodingKeys + custom encode that omits empty parameters"
+ ],
+ "state": [
+  "mem:GeminiProvider.models (static catalog: gemini-3.5-flash-lite, gemini-3.8-flash default, gemini-3.1-pro-preview)",
+  "GeminiProvider.signatureSeparator = \"#sig:\"",
+  "net:generativelanguage.googleapis.com/v1beta/models/<model>:streamGenerateContent?alt=sse (sent through ProviderHTTP.streamSession)",
+  "kc:com.chrissharp.flowrecovery.assistant.apikey account gemini (read via APIKeyStore)"
+ ],
+ "toplevel": "Static model catalog with prices/context windows pinned by ProviderModelCatalogTests; id = .gemini; RequestBody nested Encodable structs use synthesized encoding except FunctionDeclaration (custom encode in an extension at the file end). The URL session, cache-marker split, <live_state> envelope, error-body draining and status mapping are ProviderHTTP's.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var GeminiProvider.availableModels",
+   "hash": "761626cd7f4ea4b6",
+   "does": "Returns the static Gemini model catalog GeminiProvider.models.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [],
+   "reads": [
+    "mem:GeminiProvider.models"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var GeminiProvider.requiresKey",
+   "hash": "e9238caebf755141",
+   "does": "Always true: Gemini needs an API key.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var GeminiProvider.isAvailable",
+   "hash": "62a10e54bd7e028c",
+   "does": "True when the Keychain holds a Gemini API key (synchronous SecItemCopyMatching through APIKeyStore.hasKey).",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey:gemini"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "5a0347f6fc0a3094",
+   "does": "AIProvider.send witness: returns ProviderStream.make wrapping GeminiProvider.stream with all inputs, so failures are normalised to AIProviderError and the request task is cancelled when the consumer stops.",
+   "entry": "AIProvider protocol witness called by the assistant tool loop (AssistantViewModel+Tools) via dyn:AIProvider.send.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)": "ade202aa4f87a902",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+   }
+  },
+  {
+   "key": "init GeminiProvider.RequestBody.Part(text:)",
+   "hash": "30b6e3ad42ba5cd9",
+   "does": "Memberwise init producing a text-only part (other fields nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+   }
+  },
+  {
+   "key": "init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)",
+   "hash": "49d6a1cd70c90a24",
+   "does": "Memberwise init producing a functionCall part with optional thoughtSignature echo.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+   }
+  },
+  {
+   "key": "init GeminiProvider.RequestBody.Part(functionResponse:)",
+   "hash": "5edb5384d89baf9c",
+   "does": "Memberwise init producing a functionResponse part.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+   }
+  },
+  {
+   "key": "func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)",
+   "hash": "8062964efc58feec",
+   "does": "Maps chat turns to Gemini contents (user→\"user\", everything else→\"model\"), appending the live_state block to the text of the last user turn; if there is no user turn and the block is non-empty it inserts a synthetic user turn at index 0; then appends a model/user content pair per non-empty tool round.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolRoundContents(_:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "turn.role == .user",
+     "effect": "role \"user\"; otherwise \"model\" (assistant and any other role become model)."
+    },
+    {
+     "at": "+10",
+     "cond": "splice (this is the last user turn and liveStateBlock non-empty)",
+     "effect": "text = turn.text + liveStateBlock; otherwise turn.text unchanged."
+    },
+    {
+     "at": "+17",
+     "cond": "no user message exists and liveStateBlock non-empty",
+     "effect": "inserts a standalone user content holding only the live-state block at position 0; otherwise nothing."
+    },
+    {
+     "at": "+20",
+     "cond": "for each tool round, skipping empty rounds",
+     "effect": "appends toolRoundContents(round) (model call turn + user response turn); empty rounds contribute nothing."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolRoundContents(_:)": "35faf72c4ad67d19",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "5b360682065815b2"
+   }
+  },
+  {
+   "key": "func GeminiProvider.toolRoundContents(_:)",
+   "hash": "03cba2db411accdf",
+   "does": "Builds one tool round as a model content of functionCall parts (args parsed from inputJSON, thought signature recovered from the tool-use id) followed by a user content of functionResponse parts whose response is {\"result\": <parsed resultJSON>}, or {\"result\": \"<the text>\"} when the result is not JSON (a plain-text resolver error reaches the model as written).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionResponse:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "inputJSON parses to a JSON object (try? ... as? [String:Any])",
+     "effect": "uses parsed dictionary; ?? fallback [:] when parse fails or the JSON is not an object — the call is echoed with empty args."
+    },
+    {
+     "at": "+9",
+     "cond": "resultJSON parses as any JSON",
+     "effect": "uses parsed value; ?? the raw resultJSON string otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)": "9ca17d9e1a71af27",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "0e1707e59e7b617f",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)": "c059c355307e51bd",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionResponse:)": "8255ab3785a8dda8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee"
+   }
+  },
+  {
+   "key": "func GeminiProvider.toolUseID(counter:thoughtSignature:)",
+   "hash": "0f033634d7bb9464",
+   "does": "Builds the synthetic tool-use id \"gemini_call_<counter>\", appending \"#sig:<thoughtSignature>\" when a non-empty signature exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "thoughtSignature is nil or empty",
+     "effect": "returns base id only; otherwise base + \"#sig:\" + signature."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+   }
+  },
+  {
+   "key": "func GeminiProvider.thoughtSignature(fromToolUseID:)",
+   "hash": "0146a59d278f66bd",
+   "does": "Recovers the thought signature from a synthetic tool-use id: the substring after the first \"#sig:\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id contains \"#sig:\"",
+     "effect": "returns the text after it; otherwise nil (no signature echoed)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func GeminiProvider.streamEndpoint(for:)",
+   "hash": "ad0f5f6979e49b45",
+   "does": "Builds https://generativelanguage.googleapis.com/v1beta/models/<apiID>:streamGenerateContent?alt=sse.",
+   "entry": null,
+   "calls": [
+    "ext:URLComponents"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "URLComponents produced a URL",
+     "effect": "returns it; otherwise throws AIProviderError.invalidResponse(\"bad endpoint\")."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)",
+   "hash": "ccb2d349dfa08bf0",
+   "does": "Reads the Gemini key from Keychain, splits the system prompt at the cache marker (ProviderHTTP.splitOnCacheMarker: stable half → systemInstruction, variable half + contextRendered → ProviderHTTP.liveStateEnvelope on the last user turn), builds tool declarations, POSTs via ProviderHTTP.streamSession, maps non-2xx to errors, parses the SSE stream (which throws on an error or blocked-prompt chunk), then yields .done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolDeclarations(for:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)",
+    "ext:URLSession.bytes(for:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey:gemini",
+    "mem:ProviderHTTP.streamSession"
+   ],
+   "writes": [
+    "net:generativelanguage.googleapis.com"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "Keychain has no Gemini key",
+     "effect": "throws AIProviderError.missingKey(.gemini); otherwise continues."
+    },
+    {
+     "at": "+23",
+     "cond": "response is HTTP and status outside 200-299",
+     "effect": "throwForStatus throws (never returns); otherwise streams the body."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "bf6f84c3e63dd1fd",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "dc64e42a1118fc64",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "29eb0d71383239cf",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "18f297d3a59aae36",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)": "d9c70a11dc2059ba",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "bb51f5c63044a7f1",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "f46bd1180a0842b9",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4fe788384695667f",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "b1943435eb4afee4",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolDeclarations(for:)": "67b1ae1d43bd4d34",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "5b360682065815b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func GeminiProvider.toolDeclarations(for:)",
+   "hash": "0a110b1ae21bb6a9",
+   "does": "Maps ToolSpecs to one Gemini Tool of functionDeclarations, omitting parameters for tools with an empty properties map (Gemini rejects empty OBJECT schemas).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tools empty",
+     "effect": "returns nil so the tools key is omitted; otherwise one Tool."
+    },
+    {
+     "at": "+6",
+     "cond": "tool inputSchema.properties empty",
+     "effect": "parameters nil (omitted in JSON); otherwise the schema."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.makeRequest(url:apiKey:body:)",
+   "hash": "105a5155852af83c",
+   "does": "Builds the POST URLRequest with Content-Type JSON, Accept text/event-stream, x-goog-api-key header and a sortedKeys JSON body.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.consumeSSE(_:continuation:)",
+   "hash": "77e2e2cbee68d43e",
+   "does": "Reads SSE lines, parses each data: JSON chunk; an {\"error\":...} chunk (ProviderHTTP.streamFailure) or a blocked-prompt chunk (blockedPrompt) throws, so a failed or blocked reply reaches the chat as an AIProviderError rather than an empty success; otherwise yields text deltas / synthesized tool uses per content part, keeps the last usageMetadata and yields one .usage after the stream ends.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)",
+    "ext:URLSession.AsyncBytes.lines",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each line of the byte stream",
+     "effect": "loop; network errors propagate as thrown errors."
+    },
+    {
+     "at": "+10",
+     "cond": "line starts with \"data:\"",
+     "effect": "processed; otherwise skipped."
+    },
+    {
+     "at": "+12",
+     "cond": "payload non-empty, UTF-8 and parses to a JSON object",
+     "effect": "processed; otherwise the chunk is skipped silently."
+    },
+    {
+     "at": "+15",
+     "cond": "chunk is an error object or a blocked prompt",
+     "effect": "throws that AIProviderError"
+    },
+    {
+     "at": "+16",
+     "cond": "for each content part in candidates[0]",
+     "effect": "yieldPart emits text or tool use."
+    },
+    {
+     "at": "+19",
+     "cond": "chunk has usageMetadata dict",
+     "effect": "lastUsage replaced; ?? keeps previous lastUsage when absent."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:)": "d6335216cd3aa563",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "cb9c15da83aa7bf7",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)": "0c371f56fe7e5dab",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)": "09e47fa51b16fd7d",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "ac3c99f3b0baedd4"
+   }
+  },
+  {
+   "key": "func GeminiProvider.blockedPrompt(in:)",
+   "hash": "95bd1948cdea638c",
+   "does": "For a chunk with no candidates whose promptFeedback carries a blockReason, returns .invalidResponse('Gemini blocked the request (<reason>)'); nil for any other chunk.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "candidates present, or no promptFeedback.blockReason",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.contentParts(in:)",
+   "hash": "f30c571cb1b77e12",
+   "does": "Returns candidates[0].content.parts as dictionaries, or [] when any level is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "candidates/content/parts all present with expected types",
+     "effect": "returns parts; otherwise []."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.yieldPart(_:counter:continuation:)",
+   "hash": "ceb395668cf1f8f1",
+   "does": "Turns one Gemini part into a stream event: non-empty text → .textDelta; else a functionCall with name → increments counter and yields .toolUse with synthesized id (with thought signature) and sortedKeys args JSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)",
+    "ext:JSONSerialization.data"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "part has non-empty text",
+     "effect": "yields .textDelta and returns (a functionCall in the same part would be ignored)."
+    },
+    {
+     "at": "+9",
+     "cond": "part has functionCall with a String name",
+     "effect": "continues; otherwise returns without emitting."
+    },
+    {
+     "at": "+11",
+     "cond": "args is a dictionary",
+     "effect": "uses it; ?? fallback [:]."
+    },
+    {
+     "at": "+12",
+     "cond": "args serialise to UTF-8 JSON",
+     "effect": "uses it; ?? fallback \"{}\"."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "0e1707e59e7b617f"
+   }
+  },
+  {
+   "key": "func GeminiProvider.yieldUsage(_:to:)",
+   "hash": "db1665c487cc3e44",
+   "does": "Converts Gemini usageMetadata to .usage: input = promptTokenCount − cachedContentTokenCount (floored at 0), output = candidatesTokenCount + thoughtsTokenCount (thinking tokens are billed as output), cached = cachedContentTokenCount, cacheCreation 0; emits nothing when all are zero.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "usage is nil",
+     "effect": "returns without emitting."
+    },
+    {
+     "at": "+5",
+     "cond": "cachedContentTokenCount present as Int",
+     "effect": "used; ?? 0 otherwise."
+    },
+    {
+     "at": "+6",
+     "cond": "promptTokenCount present as Int",
+     "effect": "used; ?? 0 otherwise."
+    },
+    {
+     "at": "+7",
+     "cond": "candidatesTokenCount / thoughtsTokenCount present as Int",
+     "effect": "each used; ?? 0 otherwise."
+    },
+    {
+     "at": "+9",
+     "cond": "input, output and cached all zero",
+     "effect": "returns without emitting; otherwise yields .usage."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.throwForStatus(_:bytes:)",
+   "hash": "523831fd726ff901",
+   "does": "Drains up to 4096 bytes of the error body (ProviderHTTP.errorBody), redacts API keys, throws .outOfCredit(.gemini) when the body/status indicate exhausted credit, .authFailed for a 400 whose body names API_KEY_INVALID (Gemini's answer to a bad key), otherwise ProviderHTTP.statusError with the parsed error.message (or the body's first 300 chars) and the localized 'Gemini is overloaded' sentence for 5xx.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "body decodes as UTF-8",
+     "effect": "uses it; ?? \"\" otherwise."
+    },
+    {
+     "at": "+3",
+     "cond": "ProviderAccountReply.isCreditExhausted",
+     "effect": "throws AIProviderError.outOfCredit(.gemini); otherwise falls through."
+    },
+    {
+     "at": "+6",
+     "cond": "status 400 and body contains API_KEY_INVALID",
+     "effect": "throws .authFailed"
+    },
+    {
+     "at": "+9",
+     "cond": "errorMessage parsed",
+     "effect": "uses it; ?? fallback first 300 chars of redacted body."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "84c7ba7bcbd4dbfb",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "9bac1ed0f47f5240",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)": "7fcde1cc804f07bd",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func GeminiProvider.RequestBody.FunctionDeclaration.encode(to:)",
+   "hash": "45f3a7d93043a59c",
+   "does": "Encodes name, description and parameters only when non-nil, so no-argument tools carry no parameters key.",
+   "entry": "Encodable conformance invoked by JSONEncoder when GeminiProvider.makeRequest encodes RequestBody.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

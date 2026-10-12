@@ -1,0 +1,94 @@
+{
+ "file": "Emuqu/Sources/Collection/METLookup.swift",
+ "hash": "26d1d2881c0b2bda",
+ "role": "Pure MET tables by speed band per sport (Ainsworth Compendium; Concept2 for rowing) used for workout active-energy and MET load.",
+ "types": [
+  "METLookup: enum — lookup namespace",
+  "METLookup.Band: struct — (upperKmh, mets)"
+ ],
+ "state": [
+  "mem:METLookup.walk/run/bike/hike/row tables (const)",
+  "mem:METLookup.crossFitConstantMETs=8.0",
+  "mem:METLookup.allTables (const, tests only)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func METLookup.mets(sport:speedKmh:)",
+   "hash": "d943238bb76147dc",
+   "does": "MET value for sport at speed: nil below 1.2 km/h or non-finite; crossFit constant 8.0; else first band whose ceiling exceeds the speed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "speed not finite or < 1.2 km/h",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "sport has no table (crossFit)",
+     "effect": "8.0"
+    },
+    {
+     "at": "+5",
+     "cond": "first band match ?? last band",
+     "effect": "tables end in .infinity so first always matches; fallback never used"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce"
+   }
+  },
+  {
+   "key": "func METLookup.bands(for:)",
+   "hash": "63c7c9d00fa68f49",
+   "does": "Table for the sport, nil for crossFit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".walk",
+     "effect": "walk"
+    },
+    {
+     "at": "+3",
+     "cond": ".run/.trailRun/.treadmill",
+     "effect": "run"
+    },
+    {
+     "at": "+4",
+     "cond": ".bike/.indoorBike/.airBike",
+     "effect": "bike"
+    },
+    {
+     "at": "+5",
+     "cond": ".hike",
+     "effect": "hike"
+    },
+    {
+     "at": "+6",
+     "cond": ".row",
+     "effect": "row"
+    },
+    {
+     "at": "+7",
+     "cond": ".crossFit",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

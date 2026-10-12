@@ -35,6 +35,7 @@ struct GetMeBackView: View {
     private var recorder: BreadcrumbRecorder { dependencies.location.breadcrumbRecorder }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var showClearConfirm = false
     @State private var showSOSConfirm = false
@@ -60,6 +61,9 @@ struct GetMeBackView: View {
     @State private var brightnessOverride: Double = Double(UIScreen.main.brightness)
     @State private var systemBrightnessAtAppear: CGFloat = UIScreen.main.brightness
     @State private var didSetBrightnessOverride = false
+    /// True when this screen turned auto-lock off, so leaving turns it back
+    /// on only then — never under another flow that holds keep-awake.
+    @State private var didDisableIdleTimer = false
 
     /// Surface a banner + Settings deep-link when
     /// location authorization is denied / restricted. Without this, the
@@ -88,11 +92,21 @@ struct GetMeBackView: View {
 
     private var trail: BreadcrumbTrail? { recorder.activeTrail }
     private var originFix: BreadcrumbFix? { trail?.origin }
-    private var latestLocation: CLLocation? { recorder.latestLocation }
+    /// The recorder's latest fix, unless it predates the active trail: the
+    /// recorder keeps the previous trail's last fix in memory, and a new
+    /// trail must not show that fix's accuracy (or a direction) before its
+    /// own first fix arrives.
+    private var latestLocation: CLLocation? {
+        guard let fix = recorder.latestLocation else { return nil }
+        if let startedAt = trail?.startedAt, fix.timestamp < startedAt { return nil }
+        return fix
+    }
     private var latestHeading: CLHeading? { recorder.latestHeading }
 
     /// The country the user is in now, from the reverse geocode the ambient
-    /// location service keeps current while this screen is open. Nil with no
+    /// location service keeps current while this screen is open (started on
+    /// appear, and again whenever the app returns to the foreground with the
+    /// screen still up, since backgrounding stops it). Nil with no
     /// fix, with no geocode (offline), or when the last geocode is too far
     /// from the current fix to vouch for the country.
     private var currentCountryCode: String? {
@@ -115,7 +129,8 @@ struct GetMeBackView: View {
     /// origin. nil when we don't have either. North = 0.
     private var bearingToOriginDegrees: Double? {
         guard let here = latestLocation?.coordinate, let origin = originFix?.coordinate else { return nil }
-        return Self.bearing(from: here, to: origin)
+        // The shared, tested forward-azimuth formula (RoadGeocodingSupport).
+        return bearingDegrees(from: here, to: origin)
     }
 
     /// The compass has produced a usable true heading. False on devices
@@ -149,8 +164,14 @@ struct GetMeBackView: View {
         latestLocation?.horizontalAccuracy
     }
 
-    private var accuracyState: AccuracyState {
-        AccuracyState(GPSAccuracyLevel.classify(horizontalAccuracyMetres: currentAccuracyMeters))
+    private var accuracyState: GPSAccuracyLevel {
+        GPSAccuracyLevel.classify(horizontalAccuracyMetres: currentAccuracyMeters)
+    }
+
+    /// The arrow is drawn only with a usable fix, a valid compass heading and
+    /// a bearing to an origin; any one missing would point it the wrong way.
+    private var showsArrow: Bool {
+        accuracyState != .waiting && hasValidHeading && bearingToOriginDegrees != nil
     }
 
     /// Headline text under the arrow. Always honest about which mode
@@ -301,6 +322,21 @@ struct GetMeBackView: View {
             .onDisappear {
                 resetScreenState()
             }
+            .onChange(of: scenePhase) { _, phase in handleScenePhase(phase) }
+    }
+
+    /// Backgrounding stops the ambient location service and leaves the
+    /// screen at whatever brightness the slider set. Back in the foreground
+    /// with the screen still up, restart the service (without prompting) so
+    /// the SOS country stays current, and re-apply the user's brightness;
+    /// going to the background hands the system brightness back.
+    private func handleScenePhase(_ phase: ScenePhase) {
+        if phase == .active {
+            dependencies.location.ambientLocationService.startIfAuthorized()
+            if didSetBrightnessOverride { UIScreen.main.brightness = CGFloat(brightnessOverride) }
+        } else if phase == .background, didSetBrightnessOverride {
+            UIScreen.main.brightness = systemBrightnessAtAppear
+        }
     }
 
     /// Keep-awake is gated on the user preference (default off so iOS auto-lock
@@ -312,8 +348,10 @@ struct GetMeBackView: View {
     /// arrow-back-to-origin display have a warm cache the moment Get-Me-Back is
     /// engaged. A restored trail resumes recording here too.
     private func prepareScreenState() {
-        if dependencies.app.settingsManager.settings.shouldKeepScreenOnDuringRecording {
+        if dependencies.app.settingsManager.settings.shouldKeepScreenOnDuringRecording,
+           !UIApplication.shared.isIdleTimerDisabled {
             UIApplication.shared.isIdleTimerDisabled = true
+            didDisableIdleTimer = true
         }
         dependencies.location.ambientLocationService.start()
         // A no-op without a restored trail or while already engaged.
@@ -322,16 +360,15 @@ struct GetMeBackView: View {
         brightnessOverride = Double(systemBrightnessAtAppear)
     }
 
-    /// Always reset, whether or not this view set it — that covers the
-    /// toggle-flip-mid-view case. Better to over-reset than leave the screen
-    /// pinned awake.
+    /// Turns auto-lock back on only if this screen turned it off — whatever
+    /// the setting says by now, so a toggle flipped mid-view cannot leave the
+    /// screen pinned awake — and never under another flow (a recording, a
+    /// recovery fetch) that already held keep-awake when this screen opened.
     private func resetScreenState() {
-        // Always reset, regardless of whether we set it — covers
-        // the toggle-flip-mid-view case where we set the timer
-        // to disabled, then the user changed the setting, then
-        // navigated away. Better to over-reset than leave the
-        // screen pinned awake.
-        UIApplication.shared.isIdleTimerDisabled = false
+        if didDisableIdleTimer {
+            UIApplication.shared.isIdleTimerDisabled = false
+            didDisableIdleTimer = false
+        }
         if didSetBrightnessOverride {
             UIScreen.main.brightness = systemBrightnessAtAppear
             didSetBrightnessOverride = false
@@ -440,13 +477,14 @@ struct GetMeBackView: View {
     private var arrowDial: some View {
         ZStack {
             roseRing
-            // The actual arrow. Hidden without a valid compass heading: an
-            // arrow pointing "up" would send the user the wrong way.
+            // The actual arrow. Hidden without a fix, a compass heading or an
+            // origin to point at: an arrow pointing "up" would send the user
+            // the wrong way.
             CompassArrow(opacity: accuracyState.arrowOpacity, fuzz: accuracyState.fuzzRadius)
                 .rotationEffect(.degrees(arrowRotationDegrees))
-                .opacity(accuracyState == .waiting || !hasValidHeading ? 0 : 1)
+                .opacity(showsArrow ? 1 : 0)
                 .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: arrowRotationDegrees)
-            if accuracyState == .waiting {
+            if accuracyState == .waiting || (trail != nil && originFix == nil) {
                 ProgressView().controlSize(.large)
             } else if !hasValidHeading {
                 compassUnavailableNote
@@ -551,7 +589,8 @@ struct GetMeBackView: View {
     }
 
     /// "Talk to AI" while a trail is active. Optional layer per
-    /// spec; only active when connectivity exists. The AI sees
+    /// spec; always enabled (there is no connectivity check), so offline the
+    /// conversation itself fails. The AI sees
     /// `breadcrumb.active` so it can answer "how far back is the trailhead",
     /// "I'm getting tired, should I turn around now", "what direction is home".
     /// Network failures degrade gracefully — the offline arrow keeps working
@@ -682,19 +721,6 @@ struct GetMeBackView: View {
         }
     }
 
-    /// Initial great-circle bearing (forward azimuth, the atan2 formula).
-    /// Good enough for the short distances the breadcrumb mode covers — a
-    /// few km at most. North = 0, East = 90.
-    static func bearing(from start: CLLocationCoordinate2D, to end: CLLocationCoordinate2D) -> Double {
-        let lat1 = start.latitude * .pi / 180
-        let lat2 = end.latitude * .pi / 180
-        let dLon = (end.longitude - start.longitude) * .pi / 180
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        let radians = atan2(y, x)
-        let degrees = radians * 180 / .pi
-        return (degrees + 360).truncatingRemainder(dividingBy: 360)
-    }
 }
 
 // MARK: - Emergency numbers
@@ -890,18 +916,9 @@ private struct CardinalLabel: View {
 
 // MARK: - Accuracy state
 
-private enum AccuracyState {
-    init(_ level: GPSAccuracyLevel) {
-        switch level {
-        case .good: self = .good
-        case .ok: self = .ok
-        case .poor: self = .poor
-        case .waiting: self = .waiting
-        }
-    }
-
-    case good, ok, poor, waiting
-
+/// How each accuracy level looks on this screen. An extension of the tested
+/// `GPSAccuracyLevel` itself rather than a private copy of its cases.
+extension GPSAccuracyLevel {
     var color: Color {
         switch self {
         case .good: return .green

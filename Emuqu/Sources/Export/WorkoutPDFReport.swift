@@ -245,7 +245,9 @@ final class WorkoutPDFReport: Sendable {
         if let decoupling = meta?.decouplingPercent, decoupling > Self.decouplingDriftPercent {
             flags.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f %%", locale: LanguageManager.appLocale, decoupling)) > 5 % benchmark — review for dehydration, heat stress, or insufficient base fitness for this duration.", bundle: bundle))
         }
-        if let one = meta?.hrrSamples?.bestAtOneMinute, one.drop < 8 {
+        // A zero or negative drop is a capture problem, not a low recovery
+        // (the "What this means" page gates on drop > 0 the same way).
+        if let one = meta?.hrrSamples?.bestAtOneMinute, one.drop > 0, one.drop < 8 {
             flags.append(String(localized: "1-min HRR \(one.drop) bpm below the 8 bpm threshold. Persistent low HRR over multiple sessions may warrant review of recovery status or autonomic function.", bundle: bundle))
         }
         if userMaxHR > 0,
@@ -281,10 +283,20 @@ final class WorkoutPDFReport: Sendable {
         // pattern.
         drawing.drawHeroVerdict(at: &y, contentW: contentW)
         drawSubjectAnchors(at: &y, contentW: contentW)
-        drawClinicalInterpretationBlock(at: &y, contentW: contentW)
-        drawNotableObservationsBlock(at: &y, contentW: contentW)
-        drawKeyMetricsGrid(at: &y, contentW: contentW)
+        drawClinicalInterpretationBlock(at: &y, contentW: contentW, ctx: ctx)
+        drawNotableObservationsBlock(at: &y, contentW: contentW, ctx: ctx)
+        drawKeyMetricsGrid(at: &y, contentW: contentW, ctx: ctx)
         drawing.drawFooter()
+    }
+
+    /// Starts a continuation page — this one closed with its footer — when
+    /// `needed` points would run into the footer at pageHeight − margin + 6.
+    /// A block taller than a whole page starts at the top and is not split.
+    private func ensureExecSummaryRoom(_ needed: CGFloat, y: inout CGFloat, ctx: UIGraphicsPDFRendererContext) {
+        guard y + needed > config.pageSize.height - config.margin else { return }
+        drawing.drawFooter()
+        PDFReadingDirection.beginPage(ctx)
+        y = config.margin + 6
     }
 
     /// Masthead, sport and date.
@@ -334,26 +346,31 @@ final class WorkoutPDFReport: Sendable {
         y += 6
     }
 
-    private func drawClinicalInterpretationBlock(at y: inout CGFloat, contentW: CGFloat) {
+    private func drawClinicalInterpretationBlock(at y: inout CGFloat, contentW: CGFloat, ctx: UIGraphicsPDFRendererContext) {
+        let text = clinicalInterpretation()
+        let font = UIFont.systemFont(ofSize: 11, weight: .regular)
+        ensureExecSummaryRoom(14 + PDFPagePrimitives.wrappedTextHeight(text, width: contentW, font: font, lineHeight: 15) + 12, y: &y, ctx: ctx)
         drawing.drawSectionHeading(String(localized: "INTERPRETATION", bundle: LanguageManager.appBundle), at: &y)
         y = drawing.drawWrappedText(
-            clinicalInterpretation(),
+            text,
             at: CGPoint(x: config.margin, y: y),
             width: contentW,
-            font: UIFont.systemFont(ofSize: 11, weight: .regular),
+            font: font,
             color: config.textPrimary,
             lineHeight: 15
         )
         y += 8
     }
 
-    /// Omitted entirely for a textbook-normal session.
-    private func drawNotableObservationsBlock(at y: inout CGFloat, contentW: CGFloat) {
-        // Notable observations / flags — only shown if non-empty
+    /// Omitted entirely for a textbook-normal session. Each observation moves
+    /// to a continuation page when it would run into the footer.
+    private func drawNotableObservationsBlock(at y: inout CGFloat, contentW: CGFloat, ctx: UIGraphicsPDFRendererContext) {
         let flags = notableObservations()
         if !flags.isEmpty {
+            ensureExecSummaryRoom(14 + 30, y: &y, ctx: ctx)
             drawing.drawSectionHeading(String(localized: "NOTABLE OBSERVATIONS", bundle: LanguageManager.appBundle), at: &y)
             for flag in flags {
+                ensureExecSummaryRoom(PDFPagePrimitives.wrappedTextHeight("• \(flag)", width: contentW, font: config.bodyFont, lineHeight: 13) + 6, y: &y, ctx: ctx)
                 y = drawing.drawWrappedText(
                     "• \(flag)",
                     at: CGPoint(x: config.margin, y: y),
@@ -368,11 +385,14 @@ final class WorkoutPDFReport: Sendable {
         }
     }
 
-    private func drawKeyMetricsGrid(at y: inout CGFloat, contentW: CGFloat) {
-        drawing.drawSectionHeading(String(localized: "KEY METRICS", bundle: LanguageManager.appBundle), at: &y)
+    /// The whole grid moves to a continuation page when it would run into
+    /// the footer.
+    private func drawKeyMetricsGrid(at y: inout CGFloat, contentW: CGFloat, ctx: UIGraphicsPDFRendererContext) {
         let heroItems = execSummaryMetrics()
         let columns = 3
         let rowH: CGFloat = 48
+        ensureExecSummaryRoom(14 + CGFloat((heroItems.count + columns - 1) / columns) * rowH, y: &y, ctx: ctx)
+        drawing.drawSectionHeading(String(localized: "KEY METRICS", bundle: LanguageManager.appBundle), at: &y)
         for (i, item) in heroItems.enumerated() {
             drawKeyMetricCell(item, index: i, columns: columns, colW: contentW / CGFloat(columns), rowH: rowH, topY: y)
         }
@@ -421,7 +441,7 @@ final class WorkoutPDFReport: Sendable {
             ("HRSS", meta?.hrTSS.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),
             (String(localized: "Calories", bundle: bundle), drawing.calorieString(), String(localized: "est · METs × kg × hr", bundle: bundle)),
             (String(localized: "DFA α1 avg", bundle: bundle), drawing.alphaAvgString(), String(localized: "LT1 proxy", bundle: bundle)),
-            (String(localized: "1-min HRR", bundle: bundle), drawing.hrrDropString(minute: 1), String(localized: "vagal reactivation", bundle: bundle)),
+            (String(localized: "1-min HRR", bundle: bundle), drawing.oneMinuteHRRString(), String(localized: "vagal reactivation", bundle: bundle)),
             (String(localized: "Best Split", bundle: bundle), drawing.bestSplitString(), String(localized: "fastest effort", bundle: bundle))
         ]
     }
@@ -434,9 +454,10 @@ final class WorkoutPDFReport: Sendable {
 // it. `private` at file scope is fileprivate, so every call site in this
 // file resolves exactly as before.
 
-/// The 1-minute drop, read against the trained-endurance benchmarks.
+/// The 1-minute drop, read against the trained-endurance benchmarks. A zero
+/// or negative drop is a failed capture and is not read at all.
 private func hrrSentences(meta: WorkoutMetadata?, bundle: Bundle) -> [String] {
-    guard let one = meta?.hrrSamples?.bestAtOneMinute else { return [] }
+    guard let one = meta?.hrrSamples?.bestAtOneMinute, one.drop > 0 else { return [] }
     var auto: [String] = []
     let interp: String = one.drop > 18 ? String(localized: "exceeds the > 18 bpm benchmark cited for trained endurance athletes", bundle: bundle)
         : one.drop >= 12 ? String(localized: "at or above the 12 bpm convention from clinical exercise testing", bundle: bundle)

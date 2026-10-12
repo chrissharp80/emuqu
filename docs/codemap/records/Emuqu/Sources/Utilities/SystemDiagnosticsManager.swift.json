@@ -1,0 +1,1124 @@
+{
+ "file": "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift",
+ "hash": "49b0b37c4f5f8d78",
+ "role": "Singleton MetricKit subscriber and memory/thermal sampler: persists MXMetricPayload/MXDiagnosticPayload summaries and 5 s memory/thermal samples as JSONL in the App Group Diagnostics folder (every file write serialized on samplingQueue, both files size-capped, the folder re-created when missing), logs crash stacks and heartbeats to the debug log, and serves bounded read-back for the diagnostics UI and termination report.",
+ "types": [
+  "SystemDiagnosticsManager: class (NSObject, MXMetricManagerSubscriber, @unchecked Sendable) — diagnostics collector singleton"
+ ],
+ "state": [
+  "mem:SystemDiagnosticsManager.shared (singleton, private init)",
+  "file:<AppGroup>/Diagnostics/metrickit_history.jsonl",
+  "file:<AppGroup>/Diagnostics/memory_trace.jsonl",
+  "mem:SystemDiagnosticsManager.samplingTimer (DispatchSourceTimer, samplingQueue)",
+  "mem:SystemDiagnosticsManager.samplingQueue (label com.chrissharp.flowrecovery.diagnostics, .utility)",
+  "mem:SystemDiagnosticsManager.memoryWarningCount (@objc dynamic)",
+  "mem:SystemDiagnosticsManager.lastHeartbeatMemoryWarningCount",
+  "mem:SystemDiagnosticsManager.samplerTickCounter (UInt64, wraps)",
+  "mem:SystemDiagnosticsManager.maxLoggedCrashFrames = 40",
+  "mem:SystemDiagnosticsManager.approximateSampleBytes = 256",
+  "mem:SystemDiagnosticsManager.memoryTraceMaxBytes = 2_000_000",
+  "mem:SystemDiagnosticsManager.metricKitHistoryMaxBytes = 1_000_000",
+  "notif:UIApplication.didReceiveMemoryWarningNotification (observed)",
+  "notif:ProcessInfo.thermalStateDidChangeNotification (observed)"
+ ],
+ "toplevel": "Stored-property initializers: shared singleton, samplingQueue, the @objc dynamic memoryWarningCount, constants above. Conforms to MXMetricManagerSubscriber. No deinit: the only instance is the never-released shared singleton.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test in EmuquTests references SystemDiagnosticsManager (trim/tail/JSONL parsing and heartbeat throttling are untested).",
+   "evidence": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:560",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:572",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:470"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SystemDiagnosticsManager.diagnosticsDirectory",
+   "hash": "8696cf69d06c90d4",
+   "does": "App Group container (AppConfig.sharedContainerURL, falls back to Documents) + 'Diagnostics' directory URL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
+   }
+  },
+  {
+   "key": "var SystemDiagnosticsManager.metricKitLogURL",
+   "hash": "8be6affa0aa565d0",
+   "does": "URL of Diagnostics/metrickit_history.jsonl.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "97d2c3a1cad66557"
+   }
+  },
+  {
+   "key": "var SystemDiagnosticsManager.memoryTraceURL",
+   "hash": "5a6accf4196b1604",
+   "does": "URL of Diagnostics/memory_trace.jsonl.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "97d2c3a1cad66557"
+   }
+  },
+  {
+   "key": "init SystemDiagnosticsManager()",
+   "hash": "674bab61d8ff17db",
+   "does": "Private NSObject init for the singleton; no setup (install() does the work).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.install()",
+   "hash": "8b561cc1439e6804",
+   "does": "Ensures the Diagnostics directory exists, registers with MXMetricManager, installs memory-warning/thermal observers, and synchronously takes a 'launch' sample on samplingQueue so it is on disk before the termination report reads the trace. Called once per process from EmuquApp.installDiagnostics(), which the @main EmuquMain.main() runs before EmuquApp.main().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()",
+    "ext:MetricKit.MXMetricManager.add",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.installSystemObservers()",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()": "b1693dafc9f3e370",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.installSystemObservers()": "8edbdd3e7f7ee635",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.ensureDiagnosticsDirectory()",
+   "hash": "8d01bcd5e9275cd5",
+   "does": "Creates <AppGroup>/Diagnostics (with intermediates) if missing; a failure is logged by attempt().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "97d2c3a1cad66557"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.installSystemObservers()",
+   "hash": "b66575e4664b95f1",
+   "does": "Registers selector observers on NotificationCenter for UIApplication.didReceiveMemoryWarningNotification → handleMemoryWarning and ProcessInfo.thermalStateDidChangeNotification → handleThermalChange.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.didReceiveMemoryWarningNotification",
+    "notif:ProcessInfo.thermalStateDidChangeNotification"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.handleMemoryWarning()": "ce3036a172b6c39d",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.handleThermalChange()": "0e64de4dac2044d7"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.startSamplingDuringRecording()",
+   "hash": "85a0bd44b5d6035f",
+   "does": "On samplingQueue: cancels any existing timer, trims memory_trace.jsonl to its newest half if over 2 MB, and starts a DispatchSourceTimer firing every 5 s (first after 5 s) that calls sampleMemoryAndThermal('tick'); logs start.",
+   "entry": "Called when recording starts: WorkoutRecorder+Start.swift and RRCollector+OvernightStreaming.swift.",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)",
+    "ext:DispatchSource.makeTimerSource",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl",
+    "mem:SystemDiagnosticsManager.samplingTimer"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self was deallocated before the block ran",
+     "effect": "returns without starting a timer; otherwise sets up the timer (self is the immortal singleton, so false in practice)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "ca43fcf754558ad2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "2b273c204b0ca258"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.stopSamplingAfterRecording()",
+   "hash": "972184af0aba509c",
+   "does": "On samplingQueue: cancels and nils the timer, takes a final 'stop' sample, logs stop.",
+   "entry": "Called when recording ends: WorkoutRecorder+Stop.swift:154, RRCollector+OvernightGather.swift:82, RRCollector+OvernightStreaming.swift:604.",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl",
+    "mem:SystemDiagnosticsManager.samplingTimer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.didReceive(_: [MXMetricPayload])",
+   "hash": "cc80fe8248e6e330",
+   "does": "MXMetricManagerSubscriber callback for aggregated metric payloads: persists each one.",
+   "entry": "MetricKit delivers MXMetricPayloads (~daily) on its own queue.",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistMetricPayload(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each payload",
+     "effect": "persistMetricPayload; empty array does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistMetricPayload(_:)": "fa3ce3dbd3da1851"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.didReceive(_: [MXDiagnosticPayload])",
+   "hash": "ede39f1d25fe2a20",
+   "does": "MXMetricManagerSubscriber callback for diagnostic payloads (crash/hang/CPU/disk-write): persists each one.",
+   "entry": "MetricKit delivers MXDiagnosticPayloads on its own queue.",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistDiagnosticPayload(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each payload",
+     "effect": "persistDiagnosticPayload; empty array does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistDiagnosticPayload(_:)": "57e139f2786d33ac"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.persistMetricPayload(_:)",
+   "hash": "39ad7f6fdad57313",
+   "does": "Summarizes a metric payload, hands it to enqueueMetricKitLine (encoded here, appended to metrickit_history.jsonl on samplingQueue), and logs the summary string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeMetricPayload(_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "summary['summary'] is a String",
+     "effect": "logs it; otherwise ?? fallback '(no summary)' (when applicationExitMetrics is nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)": "1ee9dfaac4bcb13b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeMetricPayload(_:)": "9597f5fcfaf1132b"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.persistDiagnosticPayload(_:)",
+   "hash": "ca7e23a57b461e33",
+   "does": "Summarizes a diagnostic payload, hands it to enqueueMetricKitLine (appended to metrickit_history.jsonl on samplingQueue), logs the summary, then logs each crash's call stack to the debug log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeDiagnosticPayload(_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logCrashCallStack(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "summary['summary'] is a String",
+     "effect": "logs it; otherwise '(no summary)' (cannot happen: summarizeDiagnosticPayload always sets it)"
+    },
+    {
+     "at": "+4",
+     "cond": "payload.crashDiagnostics nil",
+     "effect": "?? [] → no crash stacks logged"
+    },
+    {
+     "at": "+4",
+     "cond": "for each crash diagnostic",
+     "effect": "logCrashCallStack(crash)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)": "1ee9dfaac4bcb13b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logCrashCallStack(_:)": "f5e068c525c4619b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeDiagnosticPayload(_:)": "55fe0fd371f96553"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.enqueueMetricKitLine(_:)",
+   "hash": "eb069aa6946da55b",
+   "does": "Encodes a payload summary to a JSON line on the caller's (MetricKit's) queue, then on samplingQueue appends it to metrickit_history.jsonl and trims that file to its newest half when it exceeds 1 MB — so payload appends are serialized with sample appends and trims.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)",
+    "ext:DispatchQueue.async"
+   ],
+   "reads": [
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "summary cannot be JSON-encoded",
+     "effect": "returns (failure logged by jsonLineData's attempt)"
+    },
+    {
+     "at": "+4",
+     "cond": "self deallocated before the block ran",
+     "effect": "returns (never: immortal singleton)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "a2e436a235c1ab5c",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "ba4a2045934e52d5",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "ca43fcf754558ad2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "64ed22fea755660e"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.logCrashCallStack(_:)",
+   "hash": "e6c14b478d8bddf7",
+   "does": "Logs a warning-level header (signal, exception type/code, termination reason, appBuildVersion from metaData JSON) then up to 40 symbolicatable frames at default level; logs a 'no call stack' warning if the stack tree yields no frames.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonObject(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logFrames(_:)",
+    "ext:MetricKit.MXCrashDiagnostic.callStackTree.jsonRepresentation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "metaData JSON has appBuildVersion string",
+     "effect": "uses it; otherwise '?'"
+    },
+    {
+     "at": "+4",
+     "cond": "crash.signal nil",
+     "effect": "prints '?'"
+    },
+    {
+     "at": "+5",
+     "cond": "exceptionType nil",
+     "effect": "prints '?'"
+    },
+    {
+     "at": "+6",
+     "cond": "exceptionCode nil",
+     "effect": "prints '?'"
+    },
+    {
+     "at": "+7",
+     "cond": "terminationReason nil",
+     "effect": "prints '?'"
+    },
+    {
+     "at": "+11",
+     "cond": "frames is empty",
+     "effect": "logs 'no call stack in payload' warning and returns; otherwise logFrames"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "7f61c081676aff5a",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonObject(_:)": "9a1d7d64e7b7abb3",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logFrames(_:)": "e3ba23ffe2fc12b5"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.logFrames(_:)",
+   "hash": "aa0ac547919a9aed",
+   "does": "Logs the first 40 frames to the debug log at default level as '#index frame'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of first maxLoggedCrashFrames (40) frames",
+     "effect": "one debugLog line per frame"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.jsonObject(_:)",
+   "hash": "4503b5c89b371a43",
+   "does": "Parses Data as JSON (errors logged by attempt) and returns it as [String: Any], else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "parse failed (parsed nil)",
+     "effect": "returns nil; otherwise casts to dictionary (nil if not a dictionary)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.summarizeMetricPayload(_:)",
+   "hash": "2e0584967863f2fb",
+   "does": "Builds a dictionary {kind:'metric', received_at, begin, end} plus background/foreground exit-count dicts and a readable summary when applicationExitMetrics exists, plus CPU/memory rollups. Only these fields are kept.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(background:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(foreground:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeExitCounts(bg:fg:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.addResourceRollups(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "payload.applicationExitMetrics non-nil",
+     "effect": "adds exit_background/exit_foreground/summary; otherwise no 'summary' key (persistMetricPayload then logs '(no summary)')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.addResourceRollups(_:to:)": "101d61b64f9a719f",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(background:)": "cb1d82a1f45aa3e8",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(foreground:)": "f9fb6de1e2ddd4c6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeExitCounts(bg:fg:)": "334be1c3bebb7797"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.addResourceRollups(_:to:)",
+   "hash": "9989b5e9890ac23a",
+   "does": "Adds cpu_seconds (cumulativeCPUTime) and peak_memory_bytes / avg_suspended_memory_bytes when the respective metrics exist.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "payload.cpuMetrics non-nil",
+     "effect": "adds cpu_seconds; otherwise omitted"
+    },
+    {
+     "at": "+4",
+     "cond": "payload.memoryMetrics non-nil",
+     "effect": "adds peak and average suspended memory bytes; otherwise omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.exitCounts(background:)",
+   "hash": "8a76588936d98f7e",
+   "does": "Maps MXBackgroundExitData's nine cumulative exit counters (memory, CPU, bg task assertion timeout, bad access, abnormal, illegal instruction, watchdog, suspended-with-locked-file, normal) into a [String: Int].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.exitCounts(foreground:)",
+   "hash": "d1d7c3929ba6d62e",
+   "does": "Maps MXForegroundExitData's six cumulative exit counters into a [String: Int].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.summarizeExitCounts(bg:fg:)",
+   "hash": "bb396c4803e97158",
+   "does": "Builds 'bg_<key>=n · fg_<key>=n' (sorted) from non-zero non-normal counters, or 'no abnormal exits this period'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "background counter > 0 and key != 'normal'",
+     "effect": "appends bg_ part"
+    },
+    {
+     "at": "+5",
+     "cond": "foreground counter > 0 and key != 'normal'",
+     "effect": "appends fg_ part"
+    },
+    {
+     "at": "+8",
+     "cond": "no parts",
+     "effect": "returns 'no abnormal exits this period'; otherwise sorted joined string"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.summarizeDiagnosticPayload(_:)",
+   "hash": "836d8ecd057ca647",
+   "does": "Builds {kind:'diagnostic', received_at, begin, end} plus crash/hang fields, cpu_exception_count, disk_write_exception_count and a summary string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.crashAndHangFields(_:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "cpuExceptionDiagnostics non-empty",
+     "effect": "adds count + summary part"
+    },
+    {
+     "at": "+13",
+     "cond": "diskWriteExceptionDiagnostics non-empty",
+     "effect": "adds count + summary part"
+    },
+    {
+     "at": "+17",
+     "cond": "no summary parts",
+     "effect": "summary 'no diagnostic events'; otherwise joined with ' · '"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.crashAndHangFields(_:into:)": "0f5660e195ff55f8"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.crashAndHangFields(_:into:)",
+   "hash": "5e54db3fff95f648",
+   "does": "Writes crash_count, crash_signals, crash_frames (≤40 per crash) and hang_count, hang_durations_s into dict and returns summary fragments.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistedFrames(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "crashDiagnostics non-empty",
+     "effect": "adds crash fields and fragment; otherwise skipped"
+    },
+    {
+     "at": "+11",
+     "cond": "hangDiagnostics non-empty",
+     "effect": "adds hang fields and fragment with max duration"
+    },
+    {
+     "at": "+15",
+     "cond": "durations.max() nil",
+     "effect": "?? 0 (cannot happen: array non-empty)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistedFrames(_:)": "99cd2b687e2769ca"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.persistedFrames(_:)",
+   "hash": "8b565d57caae9969",
+   "does": "Returns the first 40 frames parsed from the crash's callStackTree JSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)",
+    "ext:MetricKit.MXCrashDiagnostic.callStackTree.jsonRepresentation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "7f61c081676aff5a"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.handleMemoryWarning()",
+   "hash": "e3c93feccb7d3741",
+   "does": "On samplingQueue: increments memoryWarningCount, takes a 'memory_warning' sample, logs a warning.",
+   "entry": "NotificationCenter selector observer for UIApplication.didReceiveMemoryWarningNotification (registered in installSystemObservers).",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "notif:UIApplication.didReceiveMemoryWarningNotification"
+   ],
+   "writes": [
+    "mem:SystemDiagnosticsManager.memoryWarningCount",
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self deallocated",
+     "effect": "returns; otherwise counts and samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.handleThermalChange()",
+   "hash": "155c84c11d1aed80",
+   "does": "On samplingQueue: reads the current thermal state, takes a 'thermal_<state>' sample and logs the transition at info level.",
+   "entry": "NotificationCenter selector observer for ProcessInfo.thermalStateDidChangeNotification.",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "notif:ProcessInfo.thermalStateDidChangeNotification"
+   ],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self deallocated",
+     "effect": "returns; otherwise samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "9a5f576f030c6f19"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)",
+   "hash": "ff875cd7beee2e2e",
+   "does": "Reads phys_footprint and thermal state, appends {ts, reason, memory_bytes, memory_mb, thermal, memory_warnings_total} to memory_trace.jsonl, and maybe logs a heartbeat. Runs on samplingQueue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.currentResidentMemoryBytes()",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendJSONLine(at:line:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logHeartbeat(reason:bytes:thermal:)"
+   ],
+   "reads": [
+    "mem:SystemDiagnosticsManager.memoryWarningCount"
+   ],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendJSONLine(at:line:)": "72ba9ad8a6388c68",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.currentResidentMemoryBytes()": "fe3ac68a44b7bd92",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logHeartbeat(reason:bytes:thermal:)": "2f2ac2f660c21317",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "9a5f576f030c6f19",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "2b273c204b0ca258"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.logHeartbeat(reason:bytes:thermal:)",
+   "hash": "13765c6745f651a1",
+   "does": "Advances the heartbeat tick counter on every call, then logs a heartbeat line (reason, MB, thermal, warnings) when thermal is non-nominal, a memory warning arrived since the last heartbeat, or it is a heartbeat tick (every 12th 5 s tick, or any non-tick reason); level is warning for serious/critical thermal or a new memory warning, else info.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.isHeartbeatTick(reason:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SystemDiagnosticsManager.memoryWarningCount"
+   ],
+   "writes": [
+    "mem:SystemDiagnosticsManager.lastHeartbeatMemoryWarningCount",
+    "mem:SystemDiagnosticsManager.samplerTickCounter"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "not non-nominal and not a heartbeat tick",
+     "effect": "returns without logging (the tick counter was already advanced, so the once-a-minute cadence is unbroken by warm spells)"
+    },
+    {
+     "at": "+10",
+     "cond": "isAlarming (serious/critical thermal or new memory warning)",
+     "effect": "logs at .warning (lands in error catalog); otherwise .info"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.isHeartbeatTick(reason:)": "6299cd6e026ef6b2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "9a5f576f030c6f19"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.isHeartbeatTick(reason:)",
+   "hash": "58eecfd5fb0500fc",
+   "does": "True for any non-'tick' reason (launch/stop/memory_warning/thermal); for 'tick' increments samplerTickCounter (wrapping) and returns true every 12th tick (~60 s).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SystemDiagnosticsManager.samplerTickCounter"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reason != 'tick'",
+     "effect": "returns true without counting; otherwise counts and returns counter % 12 == 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.currentResidentMemoryBytes()",
+   "hash": "ae1cf0f00804ef53",
+   "does": "Calls task_info(TASK_VM_INFO) and returns phys_footprint bytes; 0 if the call fails.",
+   "entry": null,
+   "calls": [
+    "ext:Darwin.task_info"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "task_info result != KERN_SUCCESS",
+     "effect": "returns 0 (sample then records 0 MB as if real); otherwise phys_footprint"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.thermalStateName(_:)",
+   "hash": "a8b63e683677c3bd",
+   "does": "Maps ProcessInfo.ThermalState to 'nominal'/'fair'/'serious'/'critical'/'unknown'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .nominal",
+     "effect": "'nominal'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .fair",
+     "effect": "'fair'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .serious",
+     "effect": "'serious'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .critical",
+     "effect": "'critical'"
+    },
+    {
+     "at": "+6",
+     "cond": "@unknown default",
+     "effect": "'unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemDiagnosticsManager.readMetricKitHistory()",
+   "hash": "3d2494ee5904650c",
+   "does": "Reads at most the last 1 MB (the trim cap) of metrickit_history.jsonl and returns its complete JSON lines parsed, newest-first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL"
+   ],
+   "reads": [
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)": "bd6c3868c91fd327",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "64ed22fea755660e"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)",
+   "hash": "5cc9be57cf7ddf4a",
+   "does": "Reads only the last limit×256 bytes of memory_trace.jsonl, parses the complete JSON lines and returns the last `limit` samples (oldest-first).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Called, with readMetricKitHistory, from a SwiftUI view body (ExportAndArchiveViews diagnosticsLinks), so a file tail read and JSON parse (up to 1000 samples here, up to 1 MB of payload history there) run on the main thread on every re-render of that view.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:538",
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:890",
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:891"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)": "bd6c3868c91fd327",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "2b273c204b0ca258"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)",
+   "hash": "9772e9f85c6421ed",
+   "does": "If the file exists and exceeds maxBytes, rewrites it (via createDiagnosticsFile, atomically) with its last maxBytes/2 bytes minus the partial first line. Runs on samplingQueue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.attributesOfItem",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl",
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl",
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file missing",
+     "effect": "returns without trimming (no attributes read, no warning)"
+    },
+    {
+     "at": "+2",
+     "cond": "attributes read failed / size not Int",
+     "effect": "attempt → nil, `?? nil` flattens to nil → returns without trimming"
+    },
+    {
+     "at": "+4",
+     "cond": "size <= maxBytes",
+     "effect": "returns without trimming; otherwise tails"
+    },
+    {
+     "at": "+7",
+     "cond": "tail contains no newline",
+     "effect": "returns without rewriting; otherwise writes the remainder after the first newline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "71d5db7c5965fd59",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.tail(of:maxBytes:)",
+   "hash": "660b4eeba3ac4f90",
+   "does": "Returns the last maxBytes of a file via FileHandle seek/readToEnd, or empty Data when missing or on any error (errors logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileHandle.seekToEnd",
+    "ext:FileHandle.readToEnd"
+   ],
+   "reads": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file missing or FileHandle open failed",
+     "effect": "returns empty Data"
+    },
+    {
+     "at": "+4",
+     "cond": "seek/read threw",
+     "effect": "attempt logs, ?? Data() returns empty"
+    },
+    {
+     "at": "+6",
+     "cond": "file size > maxBytes",
+     "effect": "seeks to end − maxBytes; otherwise to 0"
+    },
+    {
+     "at": "+7",
+     "cond": "readToEnd returned nil",
+     "effect": "?? Data() → empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.appendJSONLine(at:line:)",
+   "hash": "ca49280e74279235",
+   "does": "Encodes the dictionary as one JSON line (jsonLineData) and appends it to the file (appendLine). Runs on samplingQueue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encoding failed",
+     "effect": "returns (logged by jsonLineData's attempt)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "a2e436a235c1ab5c",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "ba4a2045934e52d5"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.jsonLineData(_:)",
+   "hash": "760dac8faba1257f",
+   "does": "JSONSerialization-encodes the dictionary and appends a newline byte; nil (logged via attempt 'diagnostics.encode') when it cannot be encoded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:JSONSerialization.data"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "serialization threw",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.appendLine(_:to:)",
+   "hash": "3071d66e8d57c018",
+   "does": "Appends the encoded bytes to the file (seekToEnd + write(contentsOf:), then close, each logged via attempt on failure); when the file does not exist, creates it — and its folder — through createDiagnosticsFile. Runs on samplingQueue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.fileExists",
+    "ext:FileHandle.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl",
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file does not exist",
+     "effect": "creates it with this line and returns; otherwise appends"
+    },
+    {
+     "at": "+5",
+     "cond": "opening FileHandle for writing failed",
+     "effect": "returns, line lost, failure logged by attempt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "71d5db7c5965fd59"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)",
+   "hash": "d346f3c26290f691",
+   "does": "Ensures the Diagnostics directory exists (it is swept by Delete All My Data while the app runs), writes the first line atomically to a new file and sets FileProtectionType.completeUntilFirstUserAuthentication; failures logged via attempt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:Data.write",
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/Diagnostics/",
+    "file:<AppGroup>/Diagnostics/metrickit_history.jsonl",
+    "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()": "b1693dafc9f3e370"
+   }
+  },
+  {
+   "key": "func SystemDiagnosticsManager.readJSONLines(from:)",
+   "hash": "c4029aabdc851646",
+   "does": "Splits bytes on '\\n', parses each non-empty line as a JSON dictionary, silently skipping lines that fail to parse.",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

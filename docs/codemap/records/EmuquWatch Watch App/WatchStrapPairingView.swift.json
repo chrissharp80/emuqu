@@ -1,0 +1,511 @@
+{
+ "file": "EmuquWatch Watch App/WatchStrapPairingView.swift",
+ "hash": "332eb685899c3efa",
+ "role": "watchOS SwiftUI screen for pairing the Watch directly with a BLE heart-rate strap via WatchStrapConnector: status header, live HR/battery/RR when connected, discovered-device list with Refresh, and Forget Strap.",
+ "types": [
+  "WatchStrapPairingView: struct (View) — strap pairing screen; reads WatchStrapConnector from @EnvironmentObject"
+ ],
+ "state": [
+  "@EnvironmentObject connector: WatchStrapConnector (injected by WatchApp .environmentObject(strapConnector), EmuquWatch Watch App/WatchApp.swift:29)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The screen is reachable in display-only mode when a strap is saved (WatchLiveView.swift:251), and there startScanning runs a discovery scan (auto-reconnect is off) whose rows connect the wrist directly via connect(to:); didConnect then saves it. So the wrist can take a link to the strap the iPhone owns, which the autoReconnectEnabled doc says display-only mode avoids for automatic reconnects only.",
+   "evidence": [
+    "EmuquWatch Watch App/WatchLiveView.swift:251",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift:195",
+    "EmuquWatch Watch App/WatchStrapConnector.swift:517",
+    "EmuquWatch Watch App/WatchStrapConnector.swift:132"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WatchStrapPairingView.body",
+   "hash": "2d1bd7783510e250",
+   "does": "Scrollable screen: stateHeader, Divider, content; title \"Strap\"; starts a scan/reconnect on appear and stops discovery on disappear.",
+   "entry": "SwiftUI body; pushed by NavigationLink in WatchLiveView (EmuquWatch Watch App/WatchLiveView.swift:252). .onAppear → connector.startScanning(); .onDisappear → connector.stopScanning().",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.stateHeader",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/USERS_MANUAL.md says 'Pair from Watch app → Strap → Scan'; the screen has no Scan button (Refresh), and the Strap entry is hidden in the default display-only mode unless a strap is already saved, so the documented path is not reachable by default.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1417",
+      "EmuquWatch Watch App/WatchLiveView.swift:251",
+      "EmuquWatch Watch App/WatchStrapPairingView.swift:236"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "d864a2733fc9463a",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "d0106163df13122f",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content": "5356d98c9c3b75fa",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.stateHeader": "ba952dd44da8ae34"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.stateHeader",
+   "hash": "678d82b4142827da",
+   "does": "Header chosen by connector.connectionState.",
+   "entry": "SwiftUI view builder evaluated from body.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectedHeader(name:)",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectingHeader(name:)",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.disconnectedHeader(reason:)"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .connected(name)",
+     "effect": "connectedHeader(name)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .connecting(name)",
+     "effect": "connectingHeader(name)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .scanning",
+     "effect": "status row 'Searching…' / 'Wear your strap so it advertises'"
+    },
+    {
+     "at": "+8",
+     "cond": "case .poweredOff",
+     "effect": "'Bluetooth is off' / settings hint"
+    },
+    {
+     "at": "+11",
+     "cond": "case .unauthorized",
+     "effect": "'Bluetooth not allowed' / privacy settings hint (also shown for .unsupported via mapBluetoothState)"
+    },
+    {
+     "at": "+14",
+     "cond": "case .waitingForBluetooth",
+     "effect": "'Bluetooth warming up', no subtitle"
+    },
+    {
+     "at": "+16",
+     "cond": "case .disconnected(reason)",
+     "effect": "disconnectedHeader(reason)"
+    },
+    {
+     "at": "+17",
+     "cond": "case .idle",
+     "effect": "'Ready to scan', no subtitle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectedHeader(name:)": "6a69eed37f6b86dd",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectingHeader(name:)": "653c15c8b43d22be",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.disconnectedHeader(reason:)": "319d773fcfa44cd1",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "25a59a6181ba6e58"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.connectingHeader(name:)",
+   "hash": "e0e7a8cde8bcc277",
+   "does": "Status row 'Connecting <name>…' / 'Hold the strap close to your wrist'.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "25a59a6181ba6e58"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.disconnectedHeader(reason:)",
+   "hash": "08fcb0cf59b4dd6e",
+   "does": "Status row 'Disconnected' with the radio's reason or a reconnect hint.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "reason is nil",
+     "effect": "subtitle falls back to 'Tap a strap below to reconnect.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "25a59a6181ba6e58"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.statusRow(_:_:_:_:)",
+   "hash": "9f34f123dc7bd492",
+   "does": "Positional wrapper around simpleStatusRow.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.simpleStatusRow(icon:tint:title:subtitle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.simpleStatusRow(icon:tint:title:subtitle:)": "c4298ea06c0281bd"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.content",
+   "hash": "ecda046e4da2e92b",
+   "does": "Body below the divider: when connected shows only the Forget button; otherwise the discovered list and, if a strap is saved, the Forget button too.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.connectedActions",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.discoveredList",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState",
+    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState is .connected",
+     "effect": "true: connectedActions only (no Refresh/list while connected); false: discoveredList"
+    },
+    {
+     "at": "+6",
+     "cond": "connector.hasSavedStrap",
+     "effect": "true: also show connectedActions (Forget); false: nothing more"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "89d099d8821999c6",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.connectedActions": "7d94d2c9934c5edf",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.discoveredList": "60082d657cbe4374"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.connectedHeader(name:)",
+   "hash": "848e810c2efdbd94",
+   "does": "Connected header: green heart, device name, liveReadings and rrIntervals.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.liveReadings",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.liveReadings": "b57335d50cbfa19e",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.liveReadings",
+   "hash": "6185b58c510a1144",
+   "does": "Shows '<bpm> bpm' and '<battery>%' labels when available.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.liveHeartRate",
+    "mem:WatchStrapConnector.batteryPercent"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "liveHeartRate non-nil",
+     "effect": "true: bpm label; false: omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "batteryPercent non-nil",
+     "effect": "true: battery label; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WatchStrapPairingView.rrIntervals",
+   "hash": "b9dd1e9573e544c9",
+   "does": "Shows last RR batch as 'RR: a, b ms' rounded to whole ms in monospaced 10pt scaled font.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.lastRRMillis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastRRMillis non-empty",
+     "effect": "true: text shown; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.connectedActions",
+   "hash": "528ef07c03745ae6",
+   "does": "Destructive 'Forget Strap' bordered button calling connector.disconnectAndForget().",
+   "entry": "Button action is a user tap.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnectAndForget()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnectAndForget()": "d42282495d5b43b7"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.discoveredList",
+   "hash": "e39310314526ee74",
+   "does": "Empty list: empty state + Refresh button; otherwise a row per discovered device + Refresh button.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.emptyDiscoveryState",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanButton",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRow(_:)"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.discovered"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "discovered is empty",
+     "effect": "true: emptyDiscoveryState + rescanButton; false: ForEach deviceRow + rescanButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRow(_:)": "7d59829a5d68fb51",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.emptyDiscoveryState": "6b66967923292e5c",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanButton": "5924d8fa0bc66585"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.emptyDiscoveryState",
+   "hash": "9b51ac505033dc35",
+   "does": "Empty-discovery hint: spinner while scanning, 'Searching…' or 'No straps yet', plus wear/wet-pad/2 m instruction.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState is .scanning",
+     "effect": "true: show ProgressView; false: none"
+    },
+    {
+     "at": "+6",
+     "cond": "connectionState == .scanning",
+     "effect": "true: 'Searching…'; false: 'No straps yet'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.deviceRow(_:)",
+   "hash": "bf3ca7240697250e",
+   "does": "Bordered button per discovered device; tap → select(device).",
+   "entry": "Button action is a user tap.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.select(_:)",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRowLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRowLabel(_:)": "9a44e2998f1a114f",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.select(_:)": "44b335d3f7549f8e"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.select(_:)",
+   "hash": "def168f0b8f7eee5",
+   "does": "Plays a click haptic and calls connector.connect(to: device).",
+   "entry": null,
+   "calls": [
+    "ext:WKInterfaceDevice.play",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: DiscoveredDevice)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: DiscoveredDevice)": "72940cdf8b28d1bc"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.deviceRowLabel(_:)",
+   "hash": "a4868ac1a02e3655",
+   "does": "Row label: antenna icon, device name, '<rssi> dBm'.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.rescanButton",
+   "hash": "10a3be2f493b00df",
+   "does": "Refresh button: click haptic and connector.rescan(); disabled while state is .scanning.",
+   "entry": "Button action is a user tap.",
+   "calls": [
+    "ext:WKInterfaceDevice.play",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rescan()",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanLabel"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Refresh is disabled whenever state is .scanning and a scan never ends on its own (no timeout in WatchStrapConnector), so once scanning the button stays disabled until a device is tapped or the screen is left.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchStrapPairingView.swift:225",
+      "EmuquWatch Watch App/WatchStrapConnector.swift:214"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rescan()": "4c7dc290ab145577",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanLabel": "a2fe85f027404b7d"
+   }
+  },
+  {
+   "key": "var WatchStrapPairingView.rescanLabel",
+   "hash": "c5d2e1c5d229a0a8",
+   "does": "Refresh label: spinner + 'Searching…' while scanning, else arrow + 'Refresh'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState is .scanning",
+     "effect": "true: ProgressView; false: arrow.clockwise icon"
+    },
+    {
+     "at": "+7",
+     "cond": "connectionState == .scanning",
+     "effect": "true: 'Searching…'; false: 'Refresh'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.simpleStatusRow(icon:tint:title:subtitle:)",
+   "hash": "af449c40d937661f",
+   "does": "Icon + bold title + optional subtitle row.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusSubtitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusSubtitle(_:)": "11d257b87fc50f6f"
+   }
+  },
+  {
+   "key": "func WatchStrapPairingView.statusSubtitle(_:)",
+   "hash": "20038c1e9a39e27b",
+   "does": "Secondary scaled 11pt subtitle text, omitted when empty.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "subtitle non-empty",
+     "effect": "true: Text shown; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+   }
+  }
+ ],
+ "deps": {}
+}

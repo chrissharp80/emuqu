@@ -18,6 +18,11 @@ extension ArchiveStore {
     /// The file is kept, not erased. Restore used to rebuild the session
     /// from its raw beats, which lost its tags, notes, morning feeling and
     /// sleep edits, and brought a workout back as an overnight reading.
+    ///
+    /// The moved file is dated now: a move keeps the date of the session's
+    /// last write, and `expiredDeletionIds` falls back to the file's date when no
+    /// deletion time is recorded, which discarded an old session's file at
+    /// the next launch instead of after 90 days.
     func moveToTrash(_ fileURL: URL, id: UUID) {
         let fm = archive.fileManager
         do {
@@ -25,6 +30,7 @@ extension ArchiveStore {
             let destination = trashURL(for: id)
             if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
             try fm.moveItem(at: fileURL, to: destination)
+            attempt("Archive.trash.dateMove") { try fm.setAttributes([.modificationDate: Date()], ofItemAtPath: destination.path) }
         } catch {
             debugLog("[Archive] ⚠️ Could not keep session \(id.uuidString.prefix(8)) in the trash, deleting it: \(error)", level: .warning)
             removeQuietly(fileURL, id: id)
@@ -67,13 +73,17 @@ extension ArchiveStore {
         }
     }
 
-    /// Help says deleted sessions are kept for 90 days; without this they
-    /// were kept for ever. Aged by the recorded deletion time, or the file's
-    /// own date when none was recorded.
-    func expireTrash(keepDays: Int = 90) {
+    /// Deleted sessions older than `keepDays`: Help says deleted sessions are
+    /// kept for 90 days. Covers every deleted id, trashed file or not (a
+    /// deleted session with only a raw backup is listed in the Trash too).
+    /// Aged by the recorded deletion time, or the trashed file's own date
+    /// when none was recorded (set to the deletion moment by `moveToTrash`);
+    /// an id with neither is never treated as expired. The caller removes
+    /// each one completely (`SessionRecoveryService.permanentlyDelete`).
+    func expiredDeletionIds(keepDays: Int = 90) -> [UUID] {
         let cutoff = Date().addingTimeInterval(-Double(keepDays) * 86_400)
-        for id in trashedIds where (deletionTime(of: id) ?? trashFileDate(id) ?? Date()) < cutoff {
-            discardTrashed(id)
+        return deletedIds.union(trashedIds).filter { id in
+            (deletionTime(of: id) ?? trashFileDate(id) ?? Date()) < cutoff
         }
     }
 

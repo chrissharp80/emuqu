@@ -21,7 +21,7 @@ final class RedactionPatternTests: XCTestCase {
     /// `testEveryLivePatternIsCoveredHere` below rather than a silent gap.
     private static let patterns: [String] = [
         #"(?i)(\b(?:lat|lon|latitude|longitude|coord(?:inate)?)\s*[:=]?\s*)[-+]?\d+\.\d+"#,
-        #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP)"#,
+        #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP)"#,
         #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#,
         #"\s*(?:[:=]|->|→|<|>)?\s*"#
     ]
@@ -44,6 +44,28 @@ final class RedactionPatternTests: XCTestCase {
         let unit = #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#
         let chain = "(<redacted>\\s*(?:->|→|<|>|to|vs\\.?|,|/)\\s*)[-+]?\\d+(?:\\.\\d+)?\(unit)"
         XCTAssertNoThrow(try NSRegularExpression(pattern: "(?i)\(chain)", options: []))
+    }
+
+    /// The main `scrubPHI` pattern is also composed at runtime, from the
+    /// metric, separator and unit patterns above. Compose it the same way.
+    func testComposedMetricPatternCompiles() {
+        let metric = Self.patterns[1], unit = Self.patterns[2], separator = Self.patterns[3]
+        let composed = "(?i)(\\b\(metric)\\b\(separator))[-+]?\\d+(?:\\.\\d+)?\(unit)"
+        XCTAssertNoThrow(try NSRegularExpression(pattern: composed, options: []))
+    }
+
+    // MARK: - Redaction output
+
+    /// Compiling is not redacting: these pin what `scrubPHI` actually leaves
+    /// in `debug_log.txt` — metric names and units stay, the values go, and a
+    /// line with no health value passes through untouched.
+    func testScrubPHIRedactsHealthValues() {
+        XCTAssertEqual(DebugLogger.scrubPHI("RMSSD: 42.5 ms"), "RMSSD: <redacted>")
+        XCTAssertEqual(DebugLogger.scrubPHI("RMSSD 42.0→51.3"), "RMSSD <redacted>→<redacted>")
+        XCTAssertEqual(DebugLogger.scrubPHI("(start=x, score=72.00) into"), "(start=x, score=<redacted>) into")
+        XCTAssertEqual(DebugLogger.scrubPHI("frozenScore=55.20"), "frozenScore=<redacted>")
+        XCTAssertEqual(DebugLogger.scrubPHI("lat=37.1234 lon=-122.4567"), "lat=<redacted> lon=<redacted>")
+        XCTAssertEqual(DebugLogger.scrubPHI("session 3 started"), "session 3 started")
     }
 
     /// `DebugLogger.compiledPattern` returns nil rather than trapping on a bad

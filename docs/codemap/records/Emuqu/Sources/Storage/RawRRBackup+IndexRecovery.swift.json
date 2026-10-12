@@ -1,0 +1,145 @@
+{
+ "file": "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift",
+ "hash": "d4b58dacb1f0edbb",
+ "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<ts>.json backups) when backup_index.json does not decode.",
+ "types": [
+  "RawRRBackup: extension — index recovery"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RawRRBackup.recoverIndexFromFiles()",
+   "hash": "3ff5d1fc6fab0ed7",
+   "does": "Renames the undecodable index to backup_index.json.unreadable_<ts>, lists the backup directory, builds entries from *_header.json files and from one-shot files (latest per session, excluding ids already found via headers), logs counts and returns them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromHeaderNamed:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.moveItem",
+    "ext:FileManager.contentsOfDirectory"
+   ],
+   "reads": [
+    "file:<backupDir> listing",
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_<ts>.json"
+   ],
+   "writes": [
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile) (renamed aside)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "directory listing failed",
+     "effect": "?? [] → returns no entries (index becomes empty)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)": "fd5b5faa19ff30f8",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromHeaderNamed:)": "7a08edee21741ea6",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)": "34f4424a9b68b1de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.recoveredEntry(fromHeaderNamed:)",
+   "hash": "cc657ad70067904c",
+   "does": "Reads and decodes a header file and counts readable point lines; returns an index row (archived false, hash '', beatCount count ?? 0, backedUpCount count or nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "header read and decode succeeded",
+     "effect": "continue; else nil"
+    },
+    {
+     "at": "+11",
+     "cond": "points count unknown",
+     "effect": "beatCount 0 and backedUpCount nil (next append rewrites in full; retrieve() then takes the legacy path with fileName nil and returns nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)": "bc72b027b9038e69",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.recoveredEntry(fromOneShotNamed:)",
+   "hash": "30d083e6b7f5ac37",
+   "does": "Parses <uuid>_<digits>.json names, decodes the (possibly encrypted) one-shot backup and returns an index row with its fileName, beat count and hash.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_<ts>.json",
+    "kc:session-encryption-key (FR files)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "name ends .json",
+     "effect": "continue; else nil"
+    },
+    {
+     "at": "+3",
+     "cond": "two parts, valid UUID, numeric suffix",
+     "effect": "continue; else nil"
+    },
+    {
+     "at": "+6",
+     "cond": "decode succeeded",
+     "effect": "row; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "fc8e5d2d1f1cbf7e",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
+   }
+  },
+  {
+   "key": "func RawRRBackup.latestOneShotPerSession(_:)",
+   "hash": "4eb241b53c24e12c",
+   "does": "Groups entries by id and keeps the one with the greatest fileName string per id.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fileName nil",
+     "effect": "?? \"\" sorts lowest"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

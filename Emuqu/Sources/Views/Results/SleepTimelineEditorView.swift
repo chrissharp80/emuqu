@@ -23,19 +23,28 @@ struct SleepTimelineEditorView: View {
     /// that don't have HealthKit access (legacy / preview / unit
     /// tests) keep working.
     let onRefreshFromHealthKit: (() async -> SleepData?)?
+    /// Called on Done when the user refreshed from Apple Health and made no
+    /// edit after it, with the refreshed night, so the caller can store it as
+    /// a fresh snapshot rather than a user adjustment. When nil, such a
+    /// refresh is shown but not kept.
+    let onRefreshAccepted: ((SleepData) -> Void)?
 
     @Environment(\.dismiss) var dismiss
 
     @State var state: SleepTimelineState
     @State var undo = SleepTimelineUndoStack()
     @State var selectedSegmentId: UUID?
-    @State var dragPreview: BoundaryDrag?
+    /// The boundary drag in progress. Gesture state, so SwiftUI clears it
+    /// when the drag ends or is cancelled.
+    @GestureState var dragPreview: BoundaryDrag?
     /// Snapshot of the data the editor opened with (or last refreshed to).
     /// Used as the target of "Reset" (undoes this visit's edits) and for the
     /// summary card's "net change" computation.
     @State var originalSleepData: SleepData
     @State var refreshing: Bool = false
     @State var refreshError: String?
+    /// True once a refresh from Apple Health replaced the starting point.
+    @State var refreshedFromHealth = false
 
     /// Sheet state for add-segment and carve flows.
     @State private var pendingAdd: PendingRange?
@@ -47,11 +56,13 @@ struct SleepTimelineEditorView: View {
     init(
         sleepData: SleepData,
         onSave: @escaping (SleepData) -> Void,
-        onRefreshFromHealthKit: (() async -> SleepData?)? = nil
+        onRefreshFromHealthKit: (() async -> SleepData?)? = nil,
+        onRefreshAccepted: ((SleepData) -> Void)? = nil
     ) {
         self.sleepData = sleepData
         self.onSave = onSave
         self.onRefreshFromHealthKit = onRefreshFromHealthKit
+        self.onRefreshAccepted = onRefreshAccepted
         _state = State(initialValue: SleepTimelineState.initial(from: sleepData))
         _originalSleepData = State(initialValue: sleepData)
     }
@@ -100,20 +111,33 @@ struct SleepTimelineEditorView: View {
         .accessibilityLabel(String(localized: "Undo last edit", bundle: LanguageManager.appBundle))
     }
 
+    /// The sheet only confirms a range that would change the timeline: an
+    /// add wholly inside existing segments adds nothing.
     private func addSleepSheet(_ range: PendingRange) -> some View {
-        AddSleepSheet(range: range) { confirmed in
+        SleepRangeSheet(purpose: .addSleep, range: range) { picked in
+            changesTimeline(.addSegment(start: picked.start, end: picked.end))
+        } onConfirm: { confirmed in
             apply(.addSegment(start: confirmed.start, end: confirmed.end))
             pendingAdd = nil
         } onCancel: { pendingAdd = nil }
             .presentationDetents([.medium])
     }
 
+    /// The sheet only confirms a window that overlaps a segment: marking
+    /// awake over no sleep changes nothing.
     private func carveAwakeSheet(_ range: PendingRange) -> some View {
-        CarveAwakeSheet(range: range) { confirmed in
+        SleepRangeSheet(purpose: .carveAwake, range: range) { picked in
+            changesTimeline(.carveAwake(start: picked.start, end: picked.end))
+        } onConfirm: { confirmed in
             apply(.carveAwake(start: confirmed.start, end: confirmed.end))
             pendingCarve = nil
         } onCancel: { pendingCarve = nil }
             .presentationDetents([.medium])
+    }
+
+    /// Whether applying `edit` now would change the timeline.
+    private func changesTimeline(_ edit: SleepTimelineEdit) -> Bool {
+        state.applying(edit) != state
     }
 
     private func splitSegmentSheet(_ split: PendingSplit) -> some View {
@@ -172,11 +196,12 @@ struct SleepTimelineEditorView: View {
     }
 
     /// `totalSleep` already sums detailed (deep/rem/core) + unspecified —
-    /// user-declared segments (stored as unspecified) contribute here.
+    /// user-declared segments and the envelope of a strap-only /
+    /// HR-estimated night (both stored as unspecified) contribute here.
     ///
-    /// Interval-less envelope segments (strap-only / HR-estimated
-    /// nights) count their duration, matching what
-    /// `buildSleepDataFromTimelineState` persists on Done.
+    /// A segment with no intervals counts its whole duration, matching what
+    /// `buildSleepDataFromTimelineState` persists on Done; the edit model
+    /// gives every segment intervals, so this is a guard, not a path.
     private var editedTotalSleepMinutes: Int {
         state.segments.reduce(0) { acc, seg in
             if seg.intervals.isEmpty {
@@ -246,13 +271,7 @@ struct SleepTimelineEditorView: View {
 
     private func ticksLayer(width: CGFloat, height: CGFloat, vp: (start: Date, end: Date)) -> some View {
         let totalSeconds = vp.end.timeIntervalSince(vp.start)
-        let cal = Calendar.current
-        var ticks: [Date] = []
-        var t = cal.nextDate(after: vp.start, matching: DateComponents(minute: 0), matchingPolicy: .nextTime) ?? vp.start
-        while t < vp.end {
-            ticks.append(t)
-            t = t.addingTimeInterval(3600)
-        }
+        let ticks = SleepTimelineAxis.wholeHours(from: vp.start, to: vp.end, stepHours: 1)
         return ZStack(alignment: .topLeading) {
             ForEach(ticks, id: \.self) { tick in
                 let x = CGFloat(tick.timeIntervalSince(vp.start) / totalSeconds) * width
@@ -322,28 +341,16 @@ struct SleepTimelineEditorView: View {
     /// Every other hour, to avoid crowding the axis.
     private var axisHours: [Date] {
         let vp = viewport
-        let cal = Calendar.current
-        var hours: [Date] = []
-        var t = cal.nextDate(after: vp.start, matching: DateComponents(minute: 0), matchingPolicy: .nextTime) ?? vp.start
-        while t < vp.end {
-            hours.append(t)
-            t = t.addingTimeInterval(2 * 3600)
-        }
-        return hours
+        return SleepTimelineAxis.wholeHours(from: vp.start, to: vp.end, stepHours: 2)
     }
 
     private func hourLabel(_ tick: Date, geo: GeometryProxy, vp: (start: Date, end: Date)) -> some View {
         let totalSeconds = vp.end.timeIntervalSince(vp.start)
         let x = CGFloat(tick.timeIntervalSince(vp.start) / totalSeconds) * geo.size.width
-        return Text(shortHour(tick))
+        return Text(SleepTimelineAxis.compactHourLabel(tick))
             .font(.caption2.monospacedDigit())
             .foregroundColor(AppTheme.textTertiary)
             .offset(x: x - 12)
-    }
-
-    private func shortHour(_ date: Date) -> String {
-        LocalizedDateFormat.string(from: date, template: "j").lowercased()
-            .replacingOccurrences(of: "\u{202F}", with: " ")
     }
 
     // MARK: - Segment bar

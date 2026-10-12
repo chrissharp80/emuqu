@@ -1,0 +1,1815 @@
+{
+ "file": "EmuquTests/RoadAwarenessEngineTests.swift",
+ "hash": "4e106c7ab0f7d1fa",
+ "role": "Characterisation tests for RoadAwarenessEngine (pure road-graph snap, lookahead and spoken phrase for the AI Coach) using invented OSM-like tiles at 40N/40W; three XCTestCase classes share a private RoadFixture enum.",
+ "types": [
+  "RoadFixture: enum (private) — builders for points, segments, nodes, tiles, CLLocations, a crossroads tile and a chain tile",
+  "RoadAwarenessGeometryTests: class — haversine, bearing, projection, formatDistance, bearingTrust",
+  "RoadAwarenessSnapTests: class — snap and lookahead",
+  "RoadAwarenessPhrasingTests: class — constructPhrase, phraseFromFallback, pure awareness(for:tile:)"
+ ],
+ "state": [],
+ "toplevel": "File-scope private enum RoadFixture with static builders. Doc comment at lines 98-105 (Main St/Oak diagram) sits above snapFixture but describes crossroadsTile.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Phrasing and formatDistance assertions compare exact English strings ('on Main St, approaching Oak Ave in 328 ft', '0.2 mi'); production localizes via LanguageManager.appBundle and formats with LanguageManager.appLocale, so the tests pass only when the host app language/locale is English.",
+   "evidence": [
+    "EmuquTests/RoadAwarenessEngineTests.swift:741",
+    "EmuquTests/RoadAwarenessEngineTests.swift:361",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift:580",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift:641"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RoadFixture.point(_:_:)",
+   "hash": "dbebd7431bcc3dbb",
+   "does": "Builds a RoadGraphService.Point from lat/lon.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+   "hash": "901d1c1193399b25",
+   "does": "Builds a RoadSegment with id, optional name/ref, highway class (default residential), geometry and nodeIds; oneway flags false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+   "hash": "91613bdf0315f2d0",
+   "does": "Builds a GraphNode with id, coord, wayIds, tags and roundabout flag.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadFixture.tile(segments:nodes:)",
+   "hash": "343ccbf3c8c15b0e",
+   "does": "Builds a Tile centred at 40,-40 from segment and node arrays keyed by id, fetchedAt epoch 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)",
+   "hash": "2ef46c07a3c4a5bd",
+   "does": "Builds a CLLocation with explicit course (default 90), courseAccuracy (5), speed (2.5), 5 m accuracies, epoch timestamp.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadFixture.snapFixture(name:ref:)",
+   "hash": "7068ba3a2eb84362",
+   "does": "Builds a SnapResult (segment 1, given name/ref, residential, forward=true, confidence 0.9, 4 m) for phrasing tests.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadFixture.crossroadsTile(roundabout:)",
+   "hash": "d7cb3bfe9e425d6d",
+   "does": "Builds the crossroads tile: Main St as two ways (1: nodes 100-101, 2: 101-102) east-west at 0.001° (~85 m) steps, and Oak Ave (way 3) crossing north-south through node 101; node 101 optionally flagged onRoundaboutWay.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadFixture.chainTile(segmentCount:stepDegrees:)",
+   "hash": "301ec6616ba88e6a",
+   "does": "Builds a chain of segmentCount same-named 'Long Rd' ways of stepDegrees longitude, with a 'Cross i' way hanging north off every interior node, and nodes listing their incident ways.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each segment index 0..<segmentCount",
+     "effect": "appends a Long Rd way and records its two endpoint nodes' way ids"
+    },
+    {
+     "at": "+24",
+     "cond": "for each interior node 1..<segmentCount",
+     "effect": "appends a Cross i way and its far node; records way ids on junction and cross nodes (traps if segmentCount < 1 since 1..<0 is invalid)"
+    },
+    {
+     "at": "+40",
+     "cond": "for each main node 0...segmentCount",
+     "effect": "appends a node with its collected way ids"
+    },
+    {
+     "at": "+43",
+     "cond": "nodeWays[nodeId] is nil",
+     "effect": "?? [] gives the node no ways (cannot happen: every main node got at least one way in the first loop)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testHaversineIsZeroForIdenticalPoints()",
+   "hash": "cbfdffade21c81b9",
+   "does": "Asserts haversineMeters(p,p) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testHaversineMatchesOneDegreeOfLatitude()",
+   "hash": "637fcecee6b7d0cb",
+   "does": "Asserts 1° of latitude at 40N equals R·π/180 (6,371 km sphere) within 0.5 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testHaversineShrinksLongitudeDistanceWithLatitude()",
+   "hash": "f57075d4426058e3",
+   "does": "Asserts the ratio of 1° longitude at 40° to at the equator equals cos(40°) within 0.001.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testHaversineIsSymmetric()",
+   "hash": "8852211879cebd6d",
+   "does": "Asserts haversine is symmetric.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingCardinalDirections()",
+   "hash": "070045642deb0259",
+   "does": "Asserts bearings to points due N/E/S/W are 0/90/180/270 within 0.01°.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingIsNormalisedToZeroThreeSixty()",
+   "hash": "f3aa0c92d1c72185",
+   "does": "Asserts a south-west bearing lies in (180,270), i.e. normalised positive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testProjectionOntoMidpoint()",
+   "hash": "4d3276daee060e1a",
+   "does": "Asserts projecting a point north of a segment's midpoint gives t=0.5 and the midpoint.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testProjectionClampsBeforeSegmentStart()",
+   "hash": "2bdeecf0fb2362f3",
+   "does": "Asserts a point west of the segment start clamps to t=0 and the start point.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testProjectionClampsPastSegmentEnd()",
+   "hash": "068d8c2337f5119c",
+   "does": "Asserts a point past the segment end clamps to t=1 and the end point.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testProjectionOntoDegenerateSegmentReturnsStart()",
+   "hash": "57f6d95e1b9d8396",
+   "does": "Asserts projection onto a zero-length segment returns (start, 0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testFormatDistanceUsesFeetBelowThreeHundredMeters()",
+   "hash": "6662522e4bb72bb6",
+   "does": "Asserts imperial formatDistance gives '0 ft', '328 ft' for 100 m and rounded feet for 299.9 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testFormatDistanceSwitchesToMilesAtThreeHundredMeters()",
+   "hash": "beb1a4c9b384290b",
+   "does": "Asserts imperial formatDistance switches to miles at exactly 300 m ('0.2 mi') and gives '1.0 mi'/'2.0 mi' for 1609.34/3218.68 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingDistrustedWhenCourseIsNegative()",
+   "hash": "8c21ff2f62ff5611",
+   "does": "Asserts course -1 gives untrusted with reason 'course=-1'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingDistrustedBelowWalkingSpeed()",
+   "hash": "5e9b498e6484669d",
+   "does": "Asserts speed 0.2 m/s (< 0.7) gives untrusted with reason prefix 'speed<'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingDistrustedWhenCourseAccuracyIsPoor()",
+   "hash": "6c750bd66856a2c5",
+   "does": "Asserts courseAccuracy 45° (> 30) gives untrusted with reason prefix 'courseAccuracy>'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingTrustedWhenCourseAccuracyUnavailableButSpeedIsGood()",
+   "hash": "75819cf536b1ad1e",
+   "does": "Asserts courseAccuracy -1 with speed 2.0 is trusted ('ok').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingTrustedWhenSpeedIsUnavailable()",
+   "hash": "d29a72bb3bb63eef",
+   "does": "Asserts speed -1 (unknown) is trusted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e"
+   }
+  },
+  {
+   "key": "func RoadAwarenessGeometryTests.testBearingTrustedForNormalRunningFix()",
+   "hash": "03b5c501deff9e0f",
+   "does": "Asserts a normal running fix (course 87, accuracy 10, speed 3.2) is trusted ('ok').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapReturnsNilForEmptyTile()",
+   "hash": "dec49c733c70f027",
+   "does": "Asserts snap returns nil on an empty tile.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapReturnsNilWhenNoSegmentIsWithinThreshold()",
+   "hash": "279cc940239c136d",
+   "does": "Asserts snap returns nil 222 m north of Main St (beyond the 40 m cap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapFindsNearestSegmentAndPosition()",
+   "hash": "3a0bcbd3afa02967",
+   "does": "Snaps a fix 5.6 m north of Main St's west end with course 90 and asserts segment 1, 'Main St', residential, node index 0, perpendicular distance 5.56±0.2 m, snapped lat 40.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return; otherwise assertions on the result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapDetectsForwardTravelAlongNodeOrder()",
+   "hash": "1263fa5ca5354554",
+   "does": "Asserts course 90 along west→east Main St gives walkingForwardAlongNodeIds true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapDetectsReverseTravelAlongNodeOrder()",
+   "hash": "aec09f51af7d5140",
+   "does": "Asserts course 270 gives walkingForwardAlongNodeIds false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapLeavesDirectionUnknownWithoutTrustedBearing()",
+   "hash": "95073297e5f6d15c",
+   "does": "Asserts useBearing false leaves walkingForwardAlongNodeIds nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapConfidenceFallsWithDistanceAndRisesWithBearingTrust()",
+   "hash": "0319eb4849223593",
+   "does": "Snaps near (5.6 m) and far (33 m) with bearing and near without bearing; asserts near > far and near > untrusted confidence, the bearing gap is exactly 0.15, and confidences within [0,1].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "any of the three snaps is nil",
+     "effect": "XCTFail and return; otherwise confidence assertions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testSnapPrefersTheRoadTheUserIsTravellingAlong()",
+   "hash": "6902f63848f769b7",
+   "does": "At the Main/Oak crossing (Oak 1.7 m away, Main 2.2 m) with course 90, asserts the bearing penalty makes snap pick Main St rather than Oak Ave.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadReportsCrossStreetThenDeadEnd()",
+   "hash": "8d2226acd0ada58a",
+   "does": "Snaps on Main St heading east and asserts lookahead yields exactly an intersection with ['Oak Ave'] (not roundabout) at ~85.4 m then a roadEnds with no continuations at ~170.8 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+12",
+     "cond": "events[0] is not .intersection",
+     "effect": "XCTFail and return; else checks cross streets, roundabout flag and distance"
+    },
+    {
+     "at": "+19",
+     "cond": "events[1] is not .roadEnds",
+     "effect": "XCTFail and return; else asserts empty continuations and distance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadFlagsRoundabouts()",
+   "hash": "c2532d598087dd0c",
+   "does": "With node 101 on a roundabout way, asserts the first lookahead event is an intersection flagged isRoundabout.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+10",
+     "cond": "no first event or it is not .intersection",
+     "effect": "XCTFail and return; else asserts isRoundabout"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadReturnsEmptyWhenSnapSegmentIsNotInTile()",
+   "hash": "b7adf2c5e70ea6b5",
+   "does": "Asserts lookahead from a SnapResult whose segment 9999 is absent from the tile returns [].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadStopsAtThreeIntersections()",
+   "hash": "bd91eaed351fa178",
+   "does": "On a 6-block ~85 m chain, asserts lookahead returns exactly maxLookaheadIntersections (3) events, all intersections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+13",
+     "cond": "for each event",
+     "effect": "checks kind"
+    },
+    {
+     "at": "+14",
+     "cond": "event is not .intersection",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)": "7192de85fe0eea7d",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadStopsAtSixHundredMeters()",
+   "hash": "e0c0f0b504aa59a8",
+   "does": "On a 4-block ~427 m chain, asserts lookahead returns 1 event within 600 m (second junction at ~854 m is beyond the cap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)": "7192de85fe0eea7d",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadDistancesAreMonotonicallyIncreasing()",
+   "hash": "744f0a076748085a",
+   "does": "Asserts lookahead distances on the 6-block chain are sorted and distinct.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)": "7192de85fe0eea7d",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessSnapTests.testLookaheadNamesEachCrossStreetInOrder()",
+   "hash": "be84503b9f2b1e21",
+   "does": "Asserts the cross-street lists of lookahead events on the chain are [['Cross 1'],['Cross 2'],['Cross 3']].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snap returns nil",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+11",
+     "cond": "event is not .intersection",
+     "effect": "compactMap drops it (returns nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.chainTile(segmentCount:stepDegrees:)": "7192de85fe0eea7d",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseNamesTheCurrentRoadWithNoUpcomingEvents()",
+   "hash": "c8dc96f6aef82380",
+   "does": "Asserts phrase with a named road and no events is 'on Main St'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseFallsBackToRouteRefWhenTheRoadIsUnnamed()",
+   "hash": "96af8e94933f715a",
+   "does": "Asserts an unnamed road with ref 'RT-100' phrases as 'on RT-100'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseUsesNeighbourhoodWhenTheRoadHasNoNameAtAll()",
+   "hash": "19bc44053b374ab0",
+   "does": "Asserts an unnamed, ref-less road with neighbourhood 'Northside' phrases as 'walking through Northside'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseIsNilWhenThereIsNothingSafeToSay()",
+   "hash": "ac4634194d1cc542",
+   "does": "Asserts no name, no ref and no neighbourhood returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseAnnouncesTheNextCrossStreet()",
+   "hash": "c235c993a8f1d733",
+   "does": "Asserts an intersection event at 100 m with ['Oak Ave','Elm St'] phrases 'on Main St, approaching Oak Ave in 328 ft' (first cross street only).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhrasePrefersRoundaboutOverCrossStreetName()",
+   "hash": "b55c63b30accb798",
+   "does": "Asserts a roundabout intersection phrases 'approaching a roundabout in 328 ft' instead of the cross-street name.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseFallsBackToRoadLengthAtAnUnnamedIntersection()",
+   "hash": "f908e3dc3f539752",
+   "does": "Asserts an unnamed intersection with roadContinuesForMeters 500 phrases 'road continues 0.3 mi before the next change'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseOmitsTheClauseWhenAnUnnamedIntersectionHasNoDistanceEither()",
+   "hash": "838b6aa53405ba3d",
+   "does": "Asserts an unnamed intersection with no roadContinuesForMeters omits the clause ('on Main St').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseAnnouncesWhereTheRoadEnds()",
+   "hash": "da45cb4a0b522902",
+   "does": "Asserts roadEnds with continuations ['Oak Ave','Elm St'] at 200 m phrases 'ends at Oak Ave in 656 ft'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseAnnouncesADeadEndWithoutNamingAnything()",
+   "hash": "51b07d5f53f53774",
+   "does": "Asserts roadEnds with no continuations phrases 'ends in 656 ft'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseUsesOnlyTheFirstEvent()",
+   "hash": "7835406dc2b27403",
+   "does": "Asserts only the first event (Oak intersection) is phrased and 'Elm' from the later roadEnds is absent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "phrase is nil",
+     "effect": "?? true makes XCTAssertFalse fail; otherwise checks contains('Elm') is false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseLeavesOutTheRoadAheadWhenTheDirectionIsUnknown()",
+   "hash": "b8ff786ae000fdff",
+   "does": "Asserts with walkingForwardAlongNodeIds nil the approaching clause is omitted ('on Main St').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.snapFixture(name:ref:)": "7795fba74233d996"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testFormatDistanceUsesMetresAndKilometresForMetric()",
+   "hash": "379b902eb7d58137",
+   "does": "Asserts metric formatDistance gives '250 m' and '1.5 km'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseFromFallbackWrapsTheNeighbourhood()",
+   "hash": "6eda3fdb9c83e060",
+   "does": "Asserts phraseFromFallback('Riverside') == 'walking through Riverside'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testPhraseFromFallbackIsNilWithoutANeighbourhood()",
+   "hash": "cd3567e6b96b43a8",
+   "does": "Asserts phraseFromFallback(nil) is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testAwarenessComposesSnapLookaheadAndPhrase()",
+   "hash": "2deaf5a3fd24e3c7",
+   "does": "Runs the pure awareness(for:tile:neighborhoodFallback:) on the crossroads tile heading east and asserts road 'Main St', 2 events, confidence > 0.8, roadContinuesForMeters ≈170.8 (first roadEnds, not first event), phrase prefix 'on Main St, approaching Oak Ave in ' and suffix ' ft' or ' m'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite, then legacy UserDefaults.standard)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group suite; copied from legacy standard suite on first read if present)"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "roadContinuesForMeters is nil",
+     "effect": "?? 0 makes the ≈170.8 assertion fail"
+    },
+    {
+     "at": "+12",
+     "cond": "phrase is nil",
+     "effect": "?? '' makes the prefix assertion fail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The pure awareness(for:tile:) call takes constructPhrase's default imperial argument, which reads UnitsPreferenceStore.current from the host app's App Group UserDefaults (and may migrate a legacy value into it); the test therefore depends on the app host's stored unit preference and only asserts the suffix is ' ft' or ' m' rather than a pinned distance string.",
+     "evidence": [
+      "EmuquTests/RoadAwarenessEngineTests.swift:891",
+      "EmuquTests/RoadAwarenessEngineTests.swift:904",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:173",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:578",
+      "Emuqu/Sources/Models/UnitsPreference.swift:128"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "d4cc3511c4681e6c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds": "2717045fa4fdd405",
+    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "f2b4e78896f45915",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testAwarenessDegradesToNeighbourhoodWhenTheSnapFails()",
+   "hash": "b1bc88811dfc70fb",
+   "does": "Asserts awareness 222 m from any road with fallback 'Riverside' returns no road, no events, confidence 0, nil roadContinues, phrase 'walking through Riverside'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "8ddf45d1a8d99b3a",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "f2b4e78896f45915",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testAwarenessSaysNothingWhenTheSnapFailsAndThereIsNoFallback()",
+   "hash": "289c8e8026b4c62c",
+   "does": "Asserts awareness with failed snap and no fallback has nil phrase and confidence 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "8ddf45d1a8d99b3a",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.crossroadsTile(roundabout:)": "7d2c7b11aefe35d3",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.point(_:_:)": "dcd13b51f7bfc89c",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.segment(id:name:ref:highway:geometry:nodeIds:)": "800ceb83c09c7419",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  },
+  {
+   "key": "func RoadAwarenessPhrasingTests.testAwarenessOnAnEmptyTileIsSilentRatherThanWrong()",
+   "hash": "20275aae4d1cf199",
+   "does": "Asserts awareness on an empty tile returns nil road name, nil phrase and no events.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "8ddf45d1a8d99b3a",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "f2b4e78896f45915",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.location(lat:lon:course:courseAccuracy:speed:)": "edcbc34ffe32022e",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.tile(segments:nodes:)": "8bd1349e4fd0023f"
+   }
+  }
+ ],
+ "deps": {}
+}

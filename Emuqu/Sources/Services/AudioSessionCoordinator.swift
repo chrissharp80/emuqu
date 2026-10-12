@@ -96,11 +96,6 @@ final class AudioSessionCoordinator: Sendable {
         applyResolvedCategory()
     }
 
-    /// Whether voice is currently a live claimant.
-    func isVoiceActive() -> Bool {
-        state.withLock { $0.claims[.voice] != nil }
-    }
-
     /// Whether any subsystem still holds a claim. Every claimant checks this
     /// after its own `release()` before deactivating: if another claimant (a
     /// workout cue, voice, dictation, the breathing guide) is still live, it
@@ -121,8 +116,9 @@ final class AudioSessionCoordinator: Sendable {
     }
 
     /// Must be called holding `applyLock`, so the claims it reads are the
-    /// ones it applies.
-    private func applyCurrentClaims() {
+    /// ones it applies. `isRetry` marks the one deferred re-apply after a
+    /// failed `setCategory`.
+    private func applyCurrentClaims(isRetry: Bool = false) {
         let snapshot = state.withLock { $0.claims }
         guard !snapshot.isEmpty else { return }
         let needsRecord = snapshot.values.contains(.voiceRecord)
@@ -138,7 +134,7 @@ final class AudioSessionCoordinator: Sendable {
         // component set directly is still corrected.
         let session = AVAudioSession.sharedInstance()
         if session.category == category, session.categoryOptions == options { return }
-        apply(category: category, mode: needsRecord ? .measurement : .default, options: options)
+        apply(category: category, mode: needsRecord ? .measurement : .default, options: options, isRetry: isRetry)
     }
 
     /// `.mixWithOthers` so the user's audiobook / podcast keeps playing
@@ -160,17 +156,30 @@ final class AudioSessionCoordinator: Sendable {
         return ducks ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
     }
 
-    /// A throw here is common during interruptions; the next claim/refresh
-    /// cycle retries. Not actionable at this level.
+    /// A throw here is common during interruptions. A first failure is
+    /// logged and the current claims are re-resolved once, a second later
+    /// (by then a voice claim may be gone, or the interruption over); if
+    /// that fails too, the session keeps its previous category until the
+    /// next `claim` or `release` re-resolves.
     private func apply(
         category: AVAudioSession.Category,
         mode: AVAudioSession.Mode,
-        options: AVAudioSession.CategoryOptions
+        options: AVAudioSession.CategoryOptions,
+        isRetry: Bool
     ) {
         do {
             try AVAudioSession.sharedInstance().setCategory(category, mode: mode, options: options)
         } catch {
-            debugLog("[AudioSession] setCategory failed: \(error.localizedDescription)", level: .info)
+            debugLog("[AudioSession] setCategory failed\(isRetry ? " again" : ", retrying in 1 s"): \(error.localizedDescription)", level: .warning)
+            guard !isRetry else { return }
+            scheduleRetry()
+        }
+    }
+
+    /// Re-resolve the current claims once, a second from now, as a retry.
+    private func scheduleRetry() {
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1) { [self] in
+            applyLock.withLock { applyCurrentClaims(isRetry: true) }
         }
     }
 }

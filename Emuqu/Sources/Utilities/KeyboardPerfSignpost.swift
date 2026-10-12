@@ -231,13 +231,21 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
     /// the UI saying "capturing" and the heartbeat timer running.
     @discardableResult
     func stopCapture() -> [Entry] {
-        let stopped: (wasCapturing: Bool, entries: [Entry]) = queue.sync {
-            guard capturing else { return (false, []) }
+        finishCapture().entries
+    }
+
+    /// End a running capture and return its events together with the wall
+    /// time it started, both read in one hop onto `queue` (where that state
+    /// is confined), so the trace header never reads it from another thread
+    /// or from a capture started after this one stopped.
+    private func finishCapture() -> (entries: [Entry], startedAt: Date) {
+        let stopped: (wasCapturing: Bool, entries: [Entry], startedAt: Date) = queue.sync {
+            guard capturing else { return (false, [], .distantPast) }
             capturing = false
             captureAutoStopWorkItem?.cancel()
             captureAutoStopWorkItem = nil
             os_signpost(.event, log: log, name: "capture.stop")
-            return (true, events)
+            return (true, events, captureStartWall)
         }
         if stopped.wasCapturing {
             Task { @MainActor in
@@ -245,7 +253,7 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
                 self.tearDownHeartbeat()
             }
         }
-        return stopped.entries
+        return (stopped.entries, stopped.startedAt)
     }
 
     /// Stop the capture, write a JSONL trace to the temp dir, and
@@ -256,9 +264,10 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
     /// pick it up.
     @discardableResult
     func stopCaptureAndExportTrace() -> URL? {
-        let entries = stopCapture()
+        let stopped = finishCapture()
+        let entries = stopped.entries
         guard !entries.isEmpty else { return nil }
-        let url = writeTrace(entries: entries)
+        let url = writeTrace(entries: entries, startedAt: stopped.startedAt)
         if let url {
             let count = entries.count
             Task { @MainActor in
@@ -296,13 +305,13 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
         }
     }
 
-    private func writeTrace(entries: [Entry]) -> URL? {
+    private func writeTrace(entries: [Entry], startedAt: Date) -> URL? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let stamp = formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("keyboard-perf-\(stamp).jsonl")
-        var lines = [Self.jsonLine(traceHeader(entryCount: entries.count, formatter: formatter))]
+        var lines = [Self.jsonLine(traceHeader(entryCount: entries.count, startedAt: startedAt, formatter: formatter))]
         lines += entries.map { Self.jsonLine(Self.traceLine($0)) }
         let content = lines.compactMap { $0 }.joined(separator: "\n") + "\n"
         do {
@@ -314,12 +323,12 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
     }
 
     /// First JSONL line: what device produced this trace and when.
-    private func traceHeader(entryCount: Int, formatter: ISO8601DateFormatter) -> [String: Any] {
+    private func traceHeader(entryCount: Int, startedAt: Date, formatter: ISO8601DateFormatter) -> [String: Any] {
         [
             "kind": "header",
             "subsystem": "com.chrissharp.flowrecovery",
             "category": "keyboard-perf",
-            "captured_at": formatter.string(from: captureStartWall),
+            "captured_at": formatter.string(from: startedAt),
             "device_model": DeviceInfo.model,
             "system_name": DeviceInfo.systemName,
             "system_version": DeviceInfo.systemVersion,
@@ -356,6 +365,8 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
     ///     in/out endpoints
     ///   • `keyboardWillHide` / `keyboardDidHide`
     ///   • `UITextField.textDidEndEditing`
+    ///   • the same begin/end pair for `UITextView`, which backs SwiftUI's
+    ///     multi-line `TextField(axis: .vertical)` (the Coach composer)
     /// These markers anchor the timeline so when reading the trace
     /// we can answer "between user tap and willShow, who ran?".
     private func installNotificationObservers() {
@@ -366,7 +377,9 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
             (UIResponder.keyboardWillHideNotification, "keyboard.willHide"),
             (UIResponder.keyboardDidHideNotification, "keyboard.didHide"),
             (UITextField.textDidBeginEditingNotification, "textField.didBeginEditing"),
-            (UITextField.textDidEndEditingNotification, "textField.didEndEditing")
+            (UITextField.textDidEndEditingNotification, "textField.didEndEditing"),
+            (UITextView.textDidBeginEditingNotification, "textView.didBeginEditing"),
+            (UITextView.textDidEndEditingNotification, "textView.didEndEditing")
         ]
         for (name, marker) in pairs {
             nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in

@@ -136,9 +136,11 @@ final class MorningProcessingService {
     /// Window selection also runs off the main actor: it's the single heaviest
     /// synchronous pass (two full sliding-window sweeps over the night). The
     /// inputs are captured on the main actor, then scanned on a background
-    /// task. WindowSelector is stateless (default config). The baseline is
-    /// passed so window ranking matches the scorer; otherwise auto picks a
-    /// high-RMSSD window while a user-picked one scores higher.
+    /// task on a fresh WindowSelector (default config), whose organized
+    /// recovery zones are put on the analysis result as the analysis
+    /// pipeline does. The baseline is passed so window ranking matches the
+    /// scorer; otherwise auto picks a high-RMSSD window while a user-picked
+    /// one scores higher.
     private func runAnalysisPhase(
         series: RRSeries,
         analyzingSession: HRVSession,
@@ -161,17 +163,17 @@ final class MorningProcessingService {
             series: series, effectiveStartDate: effectiveStartDate, totalBeats: totalBeats, isBackgroundRefinement: isBackgroundRefinement, sleepSchedule: settings.sleepSchedule, prefetchedSleepData: prefetchedSleepData, statusCallback: statusCallback
         )
         // Step 7: Select recovery window and run analysis.
-        let windowResult = await Self.selectWindow(
+        let window = await Self.selectWindow(
             in: series, flags: flags, sleepResult: sleepResult,
             baselineStats: windowBaseline(for: analyzingSession, settings: settings)
         )
-        let analysisResult = await timedAnalysis(
+        let analysisResult = await Self.withOrganizedZones(window.zones, on: timedAnalysis(
             analyzingSession: analyzingSession, series: series, flags: flags,
-            windowResult: windowResult, trainingContext: trainingContext, ansConfig: settings.ansConfig
-        )
+            windowResult: window.result, trainingContext: trainingContext, ansConfig: settings.ansConfig
+        ))
         return AnalysisPhaseResult(
             flags: flags, verifyResult: verifyResult, sleepResult: sleepResult,
-            windowResult: windowResult, analysisResult: analysisResult
+            windowResult: window.result, analysisResult: analysisResult
         )
     }
 
@@ -277,9 +279,7 @@ final class MorningProcessingService {
             sessionMergeMode: request.settings.sessionMergeMode,
             mergeGapSeconds: request.settings.mergeGapSeconds
         )
-        // Step 3: Log gap detection
-        logGapDetection(series: merged.series)
-        // Step 4: Build analyzing session
+        // Step 3: Build analyzing session
         let analyzingSession = makeAnalyzingSession(request: request, merged: merged)
         // Steps 5–7: artifacts, sleep boundaries, window selection, analysis.
         let phase = await analysisPhase(request: request, merged: merged, analyzingSession: analyzingSession)
@@ -344,7 +344,9 @@ final class MorningProcessingService {
             session: finalSession,
             verificationResult: phase.verifyResult,
             recoveryWindow: phase.windowResult?.recoveryWindow,
-            baselineDeviation: baselineTracker.deviation(for: finalSession),
+            // Against the nights before this one, like the window ranking,
+            // the insufficient gate and the score.
+            baselineDeviation: baselineTracker.deviation(for: finalSession, sleepSchedule: request.settings.sleepSchedule),
             sameNightLinks: merged.sameNightLinks
         )
     }
@@ -400,23 +402,28 @@ final class MorningProcessingService {
         session.vitalsSnapshot = vitals.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
     }
 
-    /// Applied BEFORE scoring so the score computation uses the baseline-HRV
-    /// fallback when the session doesn't have enough signal. Reanalysis
-    /// applies the identical check, so both paths converge on the same
-    /// `.insufficient` marker for the same session — no more "first-run looks
-    /// fine, reanalysis flips it to insufficient" surprise. The baseline is
-    /// the nights before this one, the one the window and the score use.
+    /// Applied BEFORE scoring, with the classifier acceptance uses
+    /// (`SessionAcceptanceService.classifyHRVQuality`), so the mark set here
+    /// and the one acceptance sets agree for the same sleep, and the score
+    /// below stands the baseline HRV in exactly when acceptance's will
+    /// (`computeRecoveryScore` reads the mark). Only an `.insufficient` or
+    /// `.preSleep` verdict is stored; a trusted one leaves the field as it
+    /// was. The baseline is the nights before this one, the one the window
+    /// and the score use. (Reanalysis has its own check,
+    /// `ReanalysisService.hasInsufficientData`.)
     private func applyInsufficientDataGate(
         to session: inout HRVSession, analysisResult: HRVAnalysisResult?, settings: SettingsSnapshot
     ) {
         guard let result = analysisResult else { return }
-        let baselineRmssd = windowBaseline(for: session, settings: settings).map { exp($0.lnRmssdMean) } ?? 0
-        guard ReanalysisService.hasInsufficientData(
-            session: session, analysisResult: result, baselineRmssd: baselineRmssd
-        ) else { return }
-        session.hrvDataQuality = .insufficient
+        let quality = SessionAcceptanceService.classifyHRVQuality(
+            result: result, sleepData: session.sleepSnapshot,
+            baselineStats: windowBaseline(for: session, settings: settings),
+            recordingStart: session.startDate, recordingEnd: session.endDate ?? session.startDate
+        )
+        guard quality.useBaselineHRV else { return }
+        session.hrvDataQuality = quality.dataQuality
         // RMSSD / baseline are PHI and debugLog is user-exportable —
         // log the transition without the numeric health values.
-        debugLog("[MorningProcessingService] Marked initial session insufficient (window too short or no organized recovery)")
+        debugLog("[MorningProcessingService] Marked initial session \(quality.dataQuality) — scoring with baseline HRV")
     }
 }

@@ -1,0 +1,171 @@
+{
+ "file": "EmuquTests/HealthRebuildSignalsTests.swift",
+ "hash": "4dcc1ebf310dad60",
+ "role": "XCTest suite for HealthWorkoutImporter rebuild conversions: metres per flight climbed, which passive HealthKit distance type each sport reads, and the empty-steps vs no-bout failure classification.",
+ "types": [
+  "HealthRebuildSignalsTests: class — XCTestCase over HealthWorkoutImporter static rebuild helpers"
+ ],
+ "state": [],
+ "toplevel": "private typealias Importer = HealthWorkoutImporter.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "HealthWorkoutImporter.passiveDistanceType (HealthWorkoutImporter+Rebuild.swift:397) and HealthKitWorkoutExport.distanceType (HealthKitWorkoutExport.swift:258) are the same Sport→distance-type switch maintained twice; these tests and HealthKitWorkoutExportTests each pin one copy only.",
+   "evidence": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:397",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:258"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HealthRebuildSignalsTests.testFlightClimbedIsTenFeetInMetres()",
+   "hash": "1aa45b1086642b44",
+   "does": "Asserts HealthWorkoutImporter.metersPerFlightClimbed == 3.048 (±0.0001).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Tautology: compares a static constant (HealthWorkoutImporter+Rebuild.swift:307) to its own literal value; it does not exercise the elevation computation at line 303 that uses it.",
+     "evidence": [
+      "EmuquTests/HealthRebuildSignalsTests.swift:16",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:307",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:303"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HealthRebuildSignalsTests.testTwentyFlightsIsAboutSixtyMetresOfClimb()",
+   "hash": "3fc252cb8f916490",
+   "does": "Asserts 20 * metersPerFlightClimbed ≈ 60.96 m (±0.01).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Arithmetic on the same constant as testFlightClimbedIsTenFeetInMetres; adds no coverage of the rebuild code that applies it.",
+     "evidence": [
+      "EmuquTests/HealthRebuildSignalsTests.swift:20",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:307"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HealthRebuildSignalsTests.testFootSportsReadWalkingRunningDistance()",
+   "hash": "c3bb83d220641027",
+   "does": "Asserts passiveDistanceType is .distanceWalkingRunning for run, trailRun, treadmill, walk, hike.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 5 foot sports",
+     "effect": "asserts walking/running distance type"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95"
+   }
+  },
+  {
+   "key": "func HealthRebuildSignalsTests.testBikeSportsReadCyclingDistance()",
+   "hash": "5adc43b639c5d577",
+   "does": "Asserts passiveDistanceType is .distanceCycling for bike and indoorBike.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 2 bike sports",
+     "effect": "asserts cycling distance type"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95"
+   }
+  },
+  {
+   "key": "func HealthRebuildSignalsTests.testSportsWithNoPassiveDistanceReadNothing()",
+   "hash": "f5fe0b18d9a4548f",
+   "does": "Asserts passiveDistanceType is nil for row, airBike, crossFit.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 3 sports without passive distance",
+     "effect": "asserts nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95"
+   }
+  },
+  {
+   "key": "func HealthRebuildSignalsTests.testNoStepSamplesAtAllReadsAsAPermissionProblem()",
+   "hash": "3a334bb08d88ed50",
+   "does": "Asserts failure(whenBoutNotFoundWith: []) == .noSamplesAtAll.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "024555b660039acb"
+   }
+  },
+  {
+   "key": "func HealthRebuildSignalsTests.testStepsPresentButNoBoutReadsAsNoActivity()",
+   "hash": "d1c4bbed04ae4881",
+   "does": "Asserts failure(whenBoutNotFoundWith:) with one zero-value step window == .noActivityAfterStart.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "024555b660039acb"
+   }
+  }
+ ],
+ "deps": {}
+}

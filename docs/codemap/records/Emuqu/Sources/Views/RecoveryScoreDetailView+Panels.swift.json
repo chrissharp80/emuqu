@@ -1,0 +1,894 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift",
+ "hash": "6927507b5d2d1ad3",
+ "role": "Extension of RecoveryScoreDetailView with the Analysis Window segmented picker and its re-analysis actions, the 'Recording details' engine room rows, the insufficient-data banner with Retry, the building-baseline block, section heading helper and the share-recap action.",
+ "types": [
+  "RecoveryScoreDetailView.AnalysisWindowSegment: enum (String, CaseIterable, Identifiable) — bestRecovery / pickWindow / lastFiveMin"
+ ],
+ "state": [
+  "ud:engineRoom.recoveryDetail (one key for every session, passed to EngineRoomDisclosure, which stores the last-expanded timestamp in UserDefaults.standard)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "low",
+   "text": "The segmented picker always starts on Best Recovery (RecoveryScoreDetailView.swift:62) whatever method produced the shown result, so for a peak/manual/last-5-min result the control highlights Best Recovery while the Window method row names the stored method; tapping the already-selected Best Recovery does not fire onChange, so re-running it needs a detour through Pick Window.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:62",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:40",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:198"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecoveryScoreDetailView.AnalysisWindowSegment.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Identifiable id = rawValue.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.AnalysisWindowSegment.shortName",
+   "hash": "b323dfdefcab8f5e",
+   "does": "Localized short label for each segment.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .bestRecovery",
+     "effect": "'Best Recovery'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .pickWindow",
+     "effect": "'Pick Window'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .lastFiveMin",
+     "effect": "'Last 5 min'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.analysisWindowPicker",
+   "hash": "f8a075ce45816bb4",
+   "does": "Section: 'Analysis window' heading, segmented picker, and the re-analyzing indicator.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowSegmentPicker",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.reAnalyzingSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.reAnalyzingSection": "5bc3d8a61f7e9bf7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowSegmentPicker": "4d40a889c6e82cb2"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.windowSegmentPicker",
+   "hash": "69408ba2122b2b67",
+   "does": "Segmented Picker over AnalysisWindowSegment bound to selectedWindowSegment, disabled while reanalyzing; onChange records the pre-pick segment, skips Cancel restores, snaps Pick Window / Last 5 min back (restoreSegment) when the session has no beat stream to place a window on, and otherwise dispatches handleWindowSegmentChange.",
+   "entry": "SwiftUI Picker selection + .onChange(of: selectedWindowSegment) when the user taps a segment or Cancel restores one",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.restoreSegment(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.handleWindowSegmentChange(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.segmentBeforePick",
+    "mem:RecoveryScoreDetailView.restoringSegment"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "new segment is .pickWindow",
+     "effect": "segmentBeforePick = old segment"
+    },
+    {
+     "at": "+10",
+     "cond": "restoringSegment",
+     "effect": "clear flag, return (Cancel / snap-back path)"
+    },
+    {
+     "at": "+14",
+     "cond": "new != .bestRecovery && recordingMidpointMs == nil",
+     "effect": "restoreSegment(old): no analysis, the control returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.handleWindowSegmentChange(_:)": "dbf6e1759c4a6382",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.restoreSegment(_:)": "a3a6ad7e6efdeb4d",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName": "3fdbae6f8a2d4d48",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs": "4e9cd9bf3710b8a7"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.restoreSegment(_:)",
+   "hash": "51cb6cb0f3990888",
+   "does": "Sets restoringSegment and puts selectedWindowSegment back, so the resulting onChange is skipped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.restoringSegment",
+    "mem:RecoveryScoreDetailView.selectedWindowSegment"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.reAnalyzingSection",
+   "hash": "422d0682abe49254",
+   "does": "Shows a small spinner and 'Re-analyzing…' while isReanalyzing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isReanalyzing",
+     "effect": "true: indicator; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.handleWindowSegmentChange(_:)",
+   "hash": "eabef99fc797c8c2",
+   "does": "Acts on a segment change: Best Recovery clears preview, marks windowChangedHere and re-runs consolidated-recovery analysis; Pick Window seeds the preview at recordingMidpointMs (no analysis); Last 5 min clears preview, marks windowChangedHere and re-analyses at end-2.5 min.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeLastFiveMinutes()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.previewWindowMs",
+    "mem:RecoveryScoreDetailView.windowChangedHere"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .bestRecovery",
+     "effect": "previewWindowMs=nil, windowChangedHere=true, reanalyzeBestRecovery()"
+    },
+    {
+     "at": "+6",
+     "cond": "case .pickWindow",
+     "effect": "previewWindowMs = recordingMidpointMs"
+    },
+    {
+     "at": "+11",
+     "cond": "case .lastFiveMin",
+     "effect": "previewWindowMs=nil, windowChangedHere=true, reanalyzeLastFiveMinutes()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()": "54187b5fb4c2eea2",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeLastFiveMinutes()": "8b4df0b87d1031a1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs": "4e9cd9bf3710b8a7"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.reanalyzeBestRecovery()",
+   "hash": "a74d86e2240aed22",
+   "does": "Runs onReanalyze(.consolidatedRecovery) in a Task with isReanalyzing toggled around it; Settings' default method untouched.",
+   "entry": null,
+   "calls": [
+    "closure:onReanalyze — set by MainTabView.recoveryScoreDetail to rescoreReport(session, method:) which re-analyses and writes selectedReportSession"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.isReanalyzing"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "onReanalyze is nil",
+     "effect": "returns, nothing happens; otherwise Task runs"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreDetailView.reanalyzeLastFiveMinutes()",
+   "hash": "5672ac4017515361",
+   "does": "Runs onReanalyzeAt(max(0, recordingEnd − 150 000 ms)) in a Task with isReanalyzing toggled.",
+   "entry": null,
+   "calls": [
+    "closure:onReanalyzeAt — MainTabView.rescoreReportAt (collector.reanalyzeAtPosition + applyManualAnalysis)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.isReanalyzing"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onReanalyzeAt nil or recordingEndMs nil (no RR series loaded)",
+     "effect": "returns silently; otherwise Task runs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.recordingEndMs",
+   "hash": "99fb6629cd038e26",
+   "does": "Last RR point's t_ms of effectiveRRSeries (nil without a series).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.recordingStartMs",
+   "hash": "4255d24664aaca5c",
+   "does": "First RR point's t_ms of effectiveRRSeries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.recordingMidpointMs",
+   "hash": "c01c92bbe6f21b33",
+   "does": "Middle of the effective RR series (start + (end - start)/2), where Pick Window starts; nil without a series or when end <= start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "start/end known and end > start",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs": "77dfbabbc87e6644"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.analysisWindowDateRange",
+   "hash": "5dd1bf11aa3d4dd8",
+   "does": "Committed analysis window as Dates from result.windowStartMs/windowEndMs relative to session.startDate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either bound missing or end <= start",
+     "effect": "nil; otherwise (start,end)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.analysisWindowRangeText",
+   "hash": "69d26f55fd0ea841",
+   "does": "'h:mm – h:mm' text of the analysis window via the cached 'jmm' formatter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowDateRange",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no window range",
+     "effect": "nil (Window time row hidden)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowDateRange": "b3491324cc43dfb3"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.engineRoomSection",
+   "hash": "b554c2738ffd64c3",
+   "does": "EngineRoomDisclosure titled 'Recording details' with one memory key for all sessions, wrapping engineRoomDetails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::init EngineRoomDisclosure(title:memoryKey:content:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomDetails"
+   ],
+   "reads": [
+    "ud:engineRoom.recoveryDetail"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::init EngineRoomDisclosure(title:memoryKey:content:)": "d70435f8b743b847",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomDetails": "cdcdb9e1552e123f"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.engineRoomDetails",
+   "hash": "df99d416b8b4551f",
+   "does": "Stacks capture, window, nadir, nadir-time, HR range and data-source rows in a tinted card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.captureRows",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowRows",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirRows",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtRow",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.hrRangeRow",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataSourceRows"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.captureRows": "88328e7fd9532d70",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataSourceRows": "9a24baa08a7ca76a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.hrRangeRow": "bfad075f4797e0e0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtRow": "a122138df41eb3ec",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirRows": "bc783b06b7eb1639",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowRows": "1647b5a5f384b655",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.captureRows",
+   "hash": "1bcde810b8049592",
+   "does": "Rows: session start, session end, beats recorded, beats analysed (cleanBeatCount), artifact rate, then the data-loss row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.formattedDate(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataLossRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.endDate non-nil",
+     "effect": "Session end row shown; otherwise omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "effectiveRRSeries non-nil",
+     "effect": "Beats recorded row shown; otherwise omitted (lightweight session before the reload)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.formattedDate(_:)": "6832509485cc8489",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataLossRow": "6b95e7917572c246",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.dataLossRow",
+   "hash": "996b1d545acd6275",
+   "does": "Shows 'Data loss' when the RR series' estimated loss exceeds 0.5%.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.estimatedDataLossPercent",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "series present, estimatedDataLossPercent non-nil and > 0.5",
+     "effect": "row shown; otherwise hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.estimatedDataLossPercent": "2838c7c9dfe5791e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.windowMethodText",
+   "hash": "844d52f6f45bab91",
+   "does": "Window-method label read from the shown result: no recognised stored reason → Best Recovery; a custom result chosen here (windowChangedHere, segment not Best Recovery) → the segment name (Pick Window / Last 5 min); otherwise the stored method name (Highest RMSSD/SDNN/Total Power, Custom Window). A failed or skipped re-analysis leaves the row naming what is on screen.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.storedWindowMethod(_:)",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "storedWindowMethod(reason) == nil",
+     "effect": "consolidatedRecovery.shortName"
+    },
+    {
+     "at": "+4",
+     "cond": "stored == .custom && windowChangedHere && segment != .bestRecovery",
+     "effect": "true: segment name; false: stored.shortName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName": "3fdbae6f8a2d4d48",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.storedWindowMethod(_:)": "38b4aafe992a3d04"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.windowRows",
+   "hash": "c1396f97475b74be",
+   "does": "Window method row plus Window time row when a window range exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowMethodText",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowRangeText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "analysisWindowRangeText non-nil",
+     "effect": "Window time row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowRangeText": "a5c048900d55cbc6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowMethodText": "017accbeb5463c34"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.nadirAtRow",
+   "hash": "127441719c7b291c",
+   "does": "'Nadir at' clock-time row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtText",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nadirAtText non-nil",
+     "effect": "row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtText": "2dea6c9cc12bf5c2"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.nadirRows",
+   "hash": "dec6d81fbdf7e100",
+   "does": "'Sleep HR nadir' row from result.overnightNadirHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overnightNadirHR non-nil",
+     "effect": "row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.hrRangeRow",
+   "hash": "2fb8acd8be5b9b34",
+   "does": "'HR range' row from result.overnightMinHR/MaxHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "both min and max present",
+     "effect": "row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.dataSourceRows",
+   "hash": "c16216267ddf0dbf",
+   "does": "Streaming beats, optional device beats, and source-label rows (RecoveryDetailCopy.dataSourceLabel) from session.dataSourceSummary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.dataSourceLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dataSourceSummary non-nil",
+     "effect": "rows shown; else nothing"
+    },
+    {
+     "at": "+4",
+     "cond": "deviceBeats non-nil",
+     "effect": "Device beats row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.dataSourceLabel(_:)": "b11d9869c055f3ca"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.detailRow(_:value:)",
+   "hash": "90ed662c343b64a0",
+   "does": "Wraps DetailLabelValueRow(label:value:).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.nadirAtText",
+   "hash": "97d474ad216837c3",
+   "does": "Clock time of the HR nadir (session.startDate + overnightNadirTimeMs).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnightNadirTimeMs nil",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.formattedDate(_:)",
+   "hash": "1cb0f0f0caf970eb",
+   "does": "Localized date+time string (template 'yMMMdjmm').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.isInsufficient",
+   "hash": "07f2f8e08c541cd7",
+   "does": "True when session.hrvDataQuality == .insufficient.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.insufficientBanner",
+   "hash": "07607f44915c6f76",
+   "does": "Caution-tinted banner with warning icon and the insufficient-data body.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBannerBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBannerBody": "827210e159036bc2",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.insufficientBannerBody",
+   "hash": "fd89c48ac3374e95",
+   "does": "Banner text 'Reading was incomplete — analysis based on partial data.' plus the retry button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButton": "cd5abb889a9b08d2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.retryAnalysisButton",
+   "hash": "8af22c0b261c5e15",
+   "does": "Shows the Retry button only when an onReanalyze hook was supplied.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButtonBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onReanalyze non-nil",
+     "effect": "button shown; else hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButtonBody": "2a19af01c99cb616"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.retryAnalysisButtonBody",
+   "hash": "887c67a800ec3d98",
+   "does": "Retry analysis button running reanalyzeBestRecovery (isReanalyzing on while it runs): label reads 'Re-analyzing…' and the button is disabled meanwhile.",
+   "entry": "SwiftUI Button action (Retry analysis tap)",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecoveryScoreDetailView.isReanalyzing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isReanalyzing",
+     "effect": "label Re-analyzing…, disabled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()": "54187b5fb4c2eea2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.isBuildingBaseline",
+   "hash": "4d70adebaabce0e6",
+   "does": "True while baselineNights (totalSessionCount) is below ScoreAppearancePolicy.scoreShownNights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.buildingBaselineBlock",
+   "hash": "5719887938c6c453",
+   "does": "Building-baseline ring 'Day N of M' with explanatory text, replacing all score sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.sectionHeading(_:)",
+   "hash": "5b72fc6e3693e28e",
+   "does": "Section heading text with shared heading style.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()": "ae482180fa05dd0a",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.shareButton",
+   "hash": "f7c8aee5fb125a2d",
+   "does": "Toolbar share button invoking shareRecapCard.",
+   "entry": "SwiftUI Button action (share tap)",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.shareRecapCard()",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.shareRecapCard()": "ccf5b234fda5ee26",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.shareRecapCard()",
+   "hash": "913ea588ef92a7fc",
+   "does": "Unless the score is held back (isBuildingBaseline), renders a RecapCard(.recovery(score, verdict, date)) to an image and presents a UIActivityViewController from the topmost view controller with a named PNG file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.renderImage()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapActivityItem(image:score:date:)",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)",
+    "ext:UIActivityViewController"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-<yyyy-MM-dd>-score-<n>.png (via recapActivityItem)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isBuildingBaseline",
+     "effect": "return, nothing shared"
+    },
+    {
+     "at": "+7",
+     "cond": "renderImage returns nil or no topmost presenter",
+     "effect": "returns silently; otherwise share sheet presented"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.renderImage()": "0d7efbc90488a034",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "f014e5701c2cc0e6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "4a8f255fd29dc101",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "28d9ca8b9705db3a",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapActivityItem(image:score:date:)": "7b22442c036abcde",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "6ff0e54075a6ddbf"
+   }
+  }
+ ],
+ "deps": {}
+}

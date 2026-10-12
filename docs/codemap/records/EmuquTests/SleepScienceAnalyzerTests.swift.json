@@ -1,0 +1,789 @@
+{
+ "file": "EmuquTests/SleepScienceAnalyzerTests.swift",
+ "hash": "d0a5ca702214bf94",
+ "role": "XCTest suites for SleepScienceAnalyzer (fragmentation, cycle detection, stage scoring, age norms, architecture, enhanced score, full analyze, unmeasured efficiency) and SleepData.plausiblyBelongsToRecording.",
+ "types": [
+  "SleepScienceAnalyzerTests: class — XCTestCase for SleepScienceAnalyzer",
+  "SleepDataPlausibilityTests: class — XCTestCase for SleepData.plausiblyBelongsToRecording",
+  "SleepScienceAnalyzerTests: extension — unmeasured-efficiency test and efficiencyNight helper"
+ ],
+ "state": [
+  "baseDate: TestDate.from(2025-01-15 22:00) (default calendar/time zone of TestDate.from)"
+ ],
+ "toplevel": "baseDate stored-property initializer calls TestDate.from(DateComponents(2025,1,15,22)).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+   "hash": "a2e29e77fd33f96d",
+   "does": "Builds a SleepStageInterval of the stage from baseDate+startMin lasting durationMin.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.makeStandardSleepData()",
+   "hash": "eeb62a9c10d956bd",
+   "does": "Builds a 7h SleepData (410 asleep, 420 in bed, deep 60, REM 110, awake 10, 97.6%) with 19 stage intervals in five cycles.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testZeroAwakeningsFragmentation()",
+   "hash": "90da6fc91cf7a3bb",
+   "does": "Asserts computeFragmentation of core/deep/REM with no awake gives 0 awakenings and index 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testSingleAwakeningFragmentation()",
+   "hash": "cdd6137be777a150",
+   "does": "Asserts one 5-min awakening gives count 1 and an index in (0, 20).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testHighFragmentation()",
+   "hash": "02b7b28d5525c59f",
+   "does": "Builds 20 core/awake pairs and asserts count 20 and index > 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0..<20",
+     "effect": "appends a 20-min core and a 4-min awake interval each iteration"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testZeroTotalSleepMinutes()",
+   "hash": "aaed22f526e07145",
+   "does": "Asserts empty intervals with 0 sleep yields index 0 and count 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testDetectsCyclesFromStages()",
+   "hash": "1657ed43352b45b4",
+   "does": "Asserts detectSleepCycles finds at least 2 cycles in a NREM→REM→NREM→REM pattern and the first is complete.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertGreaterThanOrEqual(cycles.count, 2) does not stop the test; if detection returned no cycles, cycles[0] traps with index out of range and aborts the whole test process instead of failing one case.",
+     "evidence": [
+      "EmuquTests/SleepScienceAnalyzerTests.swift:146",
+      "EmuquTests/SleepScienceAnalyzerTests.swift:147"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testNoCyclesFromEmptyIntervals()",
+   "hash": "12a62c87058c4ae5",
+   "does": "Asserts no cycles from empty intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testNoCyclesFromOnlyAwake()",
+   "hash": "6c50b64e49b43ba5",
+   "does": "Asserts no cycles from awake-only intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testIncompleteCycleHasNoREM()",
+   "hash": "702a816da1259d18",
+   "does": "Core+deep without REM: if a cycle is returned asserts it is incomplete with 0 REM.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "cycles.first exists",
+     "effect": "true: asserts isComplete false and remMinutes 0; false: no assertion runs"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Assertions are inside `if let cycle = cycles.first`; if detectSleepCycles returns no cycles the test passes with zero assertions, so the 'one incomplete cycle' comment is never enforced.",
+     "evidence": [
+      "EmuquTests/SleepScienceAnalyzerTests.swift:173",
+      "EmuquTests/SleepScienceAnalyzerTests.swift:174"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testCycleMinutesAddUpToTheNight()",
+   "hash": "b81292aac8097e2f",
+   "does": "Asserts cycle durations sum to 240 min, the first cycle ends at 80 min (end of REM) with 60 NREM and the second has 80 NREM.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testNREMInterruptionInsideREMStaysInTheCycle()",
+   "hash": "f2b82a073974571c",
+   "does": "Asserts a 5-min core break inside REM stays in the first cycle (NREM 65, REM 25) and durations total 130.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.stagedNight(deep:rem:)",
+   "hash": "093164d3857f5ef3",
+   "does": "Builds a 7h staged SleepData (420 asleep, 450 in bed, 93%) with the given deep/REM minutes and no intervals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.score(_:)",
+   "hash": "af4b0dec22817ac9",
+   "does": "Scores a SleepData via computeEnhancedScore with 8h typical, fragmentation 20, 4 cycles, unknown architecture, no age norms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testZeroDeepScoresBelowALittleDeep()",
+   "hash": "c182d4da53d1fe19",
+   "does": "Asserts deep 0 scores lower than deep 5 at REM 90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)": "291af47ec233f570"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testMissingREMGetsNeutralCreditNotZero()",
+   "hash": "87c27138817b30c8",
+   "does": "Asserts nil REM scores higher than 0 REM, and the deep contribution (60 vs nil) is identical whether REM is nil or 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)": "291af47ec233f570"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAgeNormsForYoungAdult()",
+   "hash": "720a0ada30ad63f0",
+   "does": "Asserts age 25 norms: deep 18% and REM 22% are in range.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAgeNormsForOlderAdult()",
+   "hash": "f5c9d647bdf981d5",
+   "does": "Asserts age 65 norms: deep 8% and REM 18% in range.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAgeNormsDeepBelowRange()",
+   "hash": "12f73330a8e02f45",
+   "does": "Asserts age 30 with deep 5% is out of range with negative deep deviation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAgeNormsForTeenager()",
+   "hash": "e6f6a1655d90223a",
+   "does": "Asserts age 16 norms: deep 20% and REM 23% in range, expected efficiency 90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAgeNormsForElderly()",
+   "hash": "4131d229059e46e6",
+   "does": "Asserts age 75 norms: deep range 3–10, REM 15–20, expected efficiency 75.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testDeepFrontLoadedArchitecture()",
+   "hash": "fcf49197a9d9af96",
+   "does": "Asserts deep entirely in the first half and REM entirely in the second half give deepFrontLoaded, remBackLoaded and score > 80.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testEvenlySpreadNightEarnsNoArchitectureCredit()",
+   "hash": "5eff649f0d5ac6bc",
+   "does": "Asserts deep and REM split 50/50 across halves give architecture score 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testNoSleepBoundariesDefaultsArchitecture()",
+   "hash": "ad5f8fb8791e2606",
+   "does": "Asserts nil sleep boundaries yield a neutral architecture score of 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testEnhancedScoreGoodSleep()",
+   "hash": "25ec0c92a0e96eca",
+   "does": "Asserts the standard 7h night with good architecture and low fragmentation scores in (60, 100].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "df77079112631766",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testEnhancedScorePoorSleep()",
+   "hash": "7093668c9844a8b3",
+   "does": "Asserts a 150-min fragmented night with poor architecture scores below 55.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testFullAnalysisWithStages()",
+   "hash": "cc66145679ef24b2",
+   "does": "Asserts analyze on the standard night with age 35 returns a result with score in (0,100] and age norms for 35.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "result is non-nil",
+     "effect": "true: runs the field assertions; false: only the earlier XCTAssertNotNil fails"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertGreaterThanOrEqual(analysis.cycleCount, 0) on an Int count is a tautology; cycle detection on the five-cycle fixture is not checked.",
+     "evidence": [
+      "EmuquTests/SleepScienceAnalyzerTests.swift:449"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "df77079112631766"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testFullAnalysisNoAge()",
+   "hash": "1d1b71ac1903f731",
+   "does": "Asserts analyze without age returns a result with nil ageNorms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "df77079112631766"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testFullAnalysisZeroSleepReturnsNil()",
+   "hash": "3b97989251e72397",
+   "does": "Asserts analyze returns nil for zero sleep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAboveRangeDeepAndREMGetsFullCredit()",
+   "hash": "fe61822e1090c157",
+   "does": "Asserts age-55 norms for 28% deep/43% REM are out of range with positive deviations and computeEnhancedScore with those norms exceeds 75.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testBelowRangeDeepStillPenalized()",
+   "hash": "4c929af62b4d14f7",
+   "does": "Asserts 3% deep at age 30 is below range with negative deviation and scores lower than 16% deep with the same everything else.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testAnalysisWithoutStageData()",
+   "hash": "b778ae34c216db51",
+   "does": "Asserts analyze on a core+awake night with nil deep/REM gives 0 cycles, nil age norms and architecture 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+22",
+     "cond": "result is non-nil",
+     "effect": "true: runs field assertions; false: only XCTAssertNotNil fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+   }
+  },
+  {
+   "key": "func SleepDataPlausibilityTests.sleep(start:end:)",
+   "hash": "35dd040359f3991b",
+   "does": "Builds a healthKit SleepData from start to end with total = in-bed = whole minutes between them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepDataPlausibilityTests.testRejectsFullNightOnShortClip()",
+   "hash": "f8f84f70e968c5c8",
+   "does": "Asserts a 7h block starting at the end of a 12.8-min recording is rejected by plausiblyBelongsToRecording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+   }
+  },
+  {
+   "key": "func SleepDataPlausibilityTests.testAcceptsMatchingOvernight()",
+   "hash": "08aaf0812049c3fa",
+   "does": "Asserts a night inside an 8h recording is accepted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+   }
+  },
+  {
+   "key": "func SleepDataPlausibilityTests.testAcceptsStrapRemovedBeforeWake()",
+   "hash": "68d5497e839c61e7",
+   "does": "Asserts sleep 13 min–6.75 h against a 5h recording (strap removed) is accepted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+   }
+  },
+  {
+   "key": "func SleepDataPlausibilityTests.testAcceptsStrapLeftRunningLongPastWake()",
+   "hash": "4f51083b4f5df754",
+   "does": "Asserts a 7h block inside a 15h recording is accepted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+   }
+  },
+  {
+   "key": "func SleepDataPlausibilityTests.testNoSleepWindowIsPermitted()",
+   "hash": "eccd94c77ed35af5",
+   "does": "Asserts SleepData with no sleep window is accepted (returns true).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.testUnmeasuredEfficiencyGetsNeutralCredit()",
+   "hash": "bf29bb7e457c006d",
+   "does": "Asserts a healthKitHREstimated night at 100% efficiency has nil measuredSleepEfficiency and scores the same as a healthKit night at goodEfficiency/2, and that a healthKit 88% night reports 88.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.efficiencyNight(_:source:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.efficiencyNight(_:source:)": "aecafe6d2ee5fb8b",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+   }
+  },
+  {
+   "key": "func SleepScienceAnalyzerTests.efficiencyNight(_:source:)",
+   "hash": "15127c3ef10d36e2",
+   "does": "Builds a 7h unstaged SleepData with the given efficiency and boundary source.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  }
+ ],
+ "deps": {}
+}

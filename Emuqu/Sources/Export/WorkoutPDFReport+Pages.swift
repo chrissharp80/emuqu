@@ -12,11 +12,9 @@ import UIKit
 // call them.
 
 extension WorkoutPDFRenderer {
-    func hrrDropString(minute: Int) -> String {
-        let hrr = report.session.workoutMetadata?.hrrSamples
-        if minute == 1, let s = hrr?.bestAtOneMinute { return "\(s.drop) bpm" }
-        if minute == 2, let s = hrr?.bestAtTwoMinutes { return "\(s.drop) bpm" }
-        return "—"
+    /// The best 1-minute HRR drop for the key-metrics grid, or "—".
+    func oneMinuteHRRString() -> String {
+        report.session.workoutMetadata?.hrrSamples?.bestAtOneMinute.map { "\($0.drop) bpm" } ?? "—"
     }
 
     // MARK: - Page: Splits + derived + HRR
@@ -169,7 +167,7 @@ extension WorkoutPDFRenderer {
         drawText(String(localized: "Physiology", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.sectionFont, color: report.config.textPrimary)
         y += 18
         if let d = report.session.workoutMetadata?.decouplingPercent {
-            let desc = d < 5 ? String(localized: "strong aerobic efficiency", bundle: bundle) : String(localized: "efficiency drifted", bundle: bundle)
+            let desc = d <= WorkoutPDFReport.decouplingDriftPercent ? String(localized: "strong aerobic efficiency", bundle: bundle) : String(localized: "efficiency drifted", bundle: bundle)
             drawText(String(localized: "Pa:Hr Decoupling: \(String(format: "%+.1f", locale: LanguageManager.appLocale, d))% (\(desc))", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.bodyFont, color: report.config.textPrimary)
             y += 14
         }
@@ -232,31 +230,18 @@ extension WorkoutPDFRenderer {
     }
 
     func drawText(_ text: String, at origin: CGPoint, font: UIFont, color: UIColor) {
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        text.pdfDraw(at: origin, withAttributes: attrs)
+        PDFPagePrimitives.drawText(text, at: origin, font: font, color: color)
     }
 
+    /// Wrapped text at its full measured height (`PDFPagePrimitives`); returns
+    /// the y 4 pt below it.
     @discardableResult
     func drawWrappedText(_ text: String, at origin: CGPoint, width: CGFloat, font: UIFont, color: UIColor, lineHeight: CGFloat) -> CGFloat {
-        let paragraph = PDFReadingDirection.paragraphStyle()
-        paragraph.lineBreakMode = .byWordWrapping
-        paragraph.lineSpacing = max(0, lineHeight - font.lineHeight)
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: color,
-            .paragraphStyle: paragraph
-        ]
-        let attr = NSAttributedString(string: text, attributes: attrs)
-        let rect = CGRect(x: origin.x, y: origin.y, width: width, height: 400)
-        let bounding = attr.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil)
-        attr.pdfDraw(with: rect, options: [.usesLineFragmentOrigin], context: nil)
-        return origin.y + bounding.height + 4
+        PDFPagePrimitives.drawWrappedText(text, at: origin, width: width, font: font, color: color, lineHeight: lineHeight) + 4
     }
 
     func formatDuration(_ sec: Int) -> String {
-        let h = sec / 3600, m = (sec % 3600) / 60, s = sec % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
-        return String(format: "%d:%02d", m, s)
+        PDFPagePrimitives.formatDuration(sec)
     }
 
     func avgPaceString() -> String {
@@ -282,21 +267,23 @@ extension WorkoutPDFRenderer {
         return String(format: "%.0f kcal", locale: LanguageManager.appLocale, kcal)
     }
 
+    /// Fastest full split from the same splits the table shows
+    /// (`resolvedSplitsForPDF`); a short last split does not count.
     func bestSplitString() -> String {
-        guard let splits = report.session.workoutMetadata?.splits, !splits.isEmpty else { return "—" }
+        let splits = resolvedSplitsForPDF()
+        guard let fullDistance = splits.map(\.distanceMeters).max(), fullDistance > 0 else { return "—" }
         let paced = splits.compactMap { s -> Double? in
-            guard let p = s.averagePaceSecPerKm, p > 0 else { return nil }
+            guard s.distanceMeters >= fullDistance * 0.99, let p = s.averagePaceSecPerKm, p > 0 else { return nil }
             return p
         }
         guard let best = paced.min() else { return "—" }
         return report.units.formatPace(secondsPerMeter: best / 1_000) ?? "—"
     }
 
+    /// The mean α1 the statistics table prints (`alpha1Stats`, beat-artifact
+    /// samples left out), so page 1 and page 2 agree.
     func alphaAvgString() -> String {
-        let samples = report.session.workoutMetadata?.samples ?? []
-        let vals = samples.compactMap(\.alpha1)
-        guard !vals.isEmpty else { return "—" }
-        let avg = vals.reduce(0, +) / Double(vals.count)
+        guard let avg = alpha1Stats().avgAlpha1 else { return "—" }
         return String(format: "%.2f", locale: LanguageManager.appLocale, avg)
     }
 
@@ -331,26 +318,23 @@ extension WorkoutPDFRenderer {
         return recomputed.isEmpty ? stored : recomputed
     }
 
-    /// Seconds a sample stands for: the gap since the previous one, capped,
-    /// because samples are taken once a second and a longer gap is a pause or
-    /// a dropout, not time spent at this reading. The first sample counts one
-    /// second rather than everything since the start.
-    static let maxCreditedGapSec = 5
-
-    static func creditedSeconds(since previous: Int?, to offset: Int) -> Int {
-        guard let previous else { return 1 }
-        return min(max(1, offset - previous), maxCreditedGapSec)
+    func hrZoneSeconds() -> [Int] {
+        Self.hrZoneSeconds(samples: report.session.workoutMetadata?.samples ?? [], maxHR: report.userMaxHR)
     }
 
-    func hrZoneSeconds() -> [Int] {
-        let samples = report.session.workoutMetadata?.samples ?? []
+    /// Seconds in each %HRmax zone (50-60 / 60-70 / 70-80 / 80-90 / 90+;
+    /// under 50 % is not zone time). Each sample stands for the seconds since
+    /// the previous one, 1 to 5 and 1 for the first
+    /// (`Alpha1ReportCards.sampleSeconds`), so a pause or dropout is not
+    /// credited as time in a zone — the timing the stored snapshot uses.
+    nonisolated static func hrZoneSeconds(samples: [WorkoutSample], maxHR: Int) -> [Int] {
         var zs = [0, 0, 0, 0, 0]
         var prev: Int?
         for s in samples {
-            let dt = Self.creditedSeconds(since: prev, to: s.offsetSec)
+            let dt = Alpha1ReportCards.sampleSeconds(at: s.offsetSec, previous: prev)
             prev = s.offsetSec
-            guard let hr = s.heartRate, report.userMaxHR > 0 else { continue }
-            let f = Double(hr) / Double(report.userMaxHR)
+            guard let hr = s.heartRate, maxHR > 0 else { continue }
+            let f = Double(hr) / Double(maxHR)
             switch f {
             case ..<0.50: break
             case 0.50 ..< 0.60: zs[0] += dt
@@ -375,24 +359,26 @@ extension WorkoutPDFRenderer {
         var totalSec: Int { secondsBelowAT1 + secondsBetween + secondsAboveAT2 }
     }
 
-    /// Band seconds and mean/min/max timed and filtered as the on-screen α1
-    /// card and the stored snapshot do: each α1 sample stands for the time
-    /// since the previous α1 sample, capped at 5 s
-    /// (`Alpha1ReportCards.sampleSeconds(at:previous:)`), and samples inside a
-    /// beat-artifact dip (`Alpha1ReportCards.ectopicShadows(in:)`) are left out.
+    /// Band seconds from the calculation the on-screen α1 card and the
+    /// stored snapshot use (`Alpha1ReportCards.alpha1BandTotals`), and the
+    /// mean/min/max of the α1 samples outside a beat-artifact dip
+    /// (`Alpha1ReportCards.ectopicShadows(in:)`).
     func alpha1Stats() -> Alpha1Stats {
         let samples = report.session.workoutMetadata?.samples ?? []
         let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
-        var acc = Alpha1Accumulator()
-        var previousOffset: Int?
-        for sample in samples {
-            guard let alpha = sample.alpha1 else { continue }
-            let seconds = Alpha1ReportCards.sampleSeconds(at: sample.offsetSec, previous: previousOffset)
-            previousOffset = sample.offsetSec
-            if Self.isBeatArtifact(sample, shadows: shadows) { continue }
-            acc.add(alpha, seconds: seconds)
+        let bands = Alpha1ReportCards.alpha1BandTotals(samples: samples, shadows: shadows)
+        let clean = samples.compactMap { sample -> Double? in
+            guard let alpha = sample.alpha1, !Self.isBeatArtifact(sample, shadows: shadows) else { return nil }
+            return alpha
         }
-        return acc.result
+        return Alpha1Stats(
+            avgAlpha1: clean.isEmpty ? nil : clean.reduce(0, +) / Double(clean.count),
+            maxAlpha1: clean.max(),
+            minAlpha1: clean.min(),
+            secondsBelowAT1: bands.belowAT1,
+            secondsBetween: bands.between,
+            secondsAboveAT2: bands.aboveAT2
+        )
     }
 
     /// Whether the sample falls inside a beat-artifact dip of the α1 trace.
@@ -400,41 +386,10 @@ extension WorkoutPDFRenderer {
         shadows.contains { $0.contains(offsetSec: sample.offsetSec) }
     }
 
-    /// Running totals for `alpha1Stats`. A struct rather than six locals so the
-    /// banding rule lives in one place next to the counters it moves.
-    private struct Alpha1Accumulator {
-        private var below = 0, between = 0, above = 0
-        private var sum = 0.0, count = 0
-        private var lo = Double.infinity, hi = -Double.infinity
-
-        mutating func add(_ alpha: Double, seconds: Int) {
-            sum += alpha
-            count += 1
-            lo = min(lo, alpha)
-            hi = max(hi, alpha)
-            if alpha >= HRVConstants.DFA.alpha1AerobicThreshold {
-                below += seconds
-            } else if alpha >= HRVConstants.DFA.alpha1AnaerobicThreshold {
-                between += seconds
-            } else {
-                above += seconds
-            }
-        }
-
-        var result: Alpha1Stats {
-            Alpha1Stats(
-                avgAlpha1: count > 0 ? sum / Double(count) : nil,
-                maxAlpha1: count > 0 ? hi : nil,
-                minAlpha1: count > 0 ? lo : nil,
-                secondsBelowAT1: below,
-                secondsBetween: between,
-                secondsAboveAT2: above
-            )
-        }
-    }
-
-    /// Warmup + sustained-cross α1 detector: 120 s warmup + 180 s sustain,
-    /// with the sample timing and beat-artifact exclusion `alpha1Stats` uses.
+    /// The first sustained downward AT1 crossing, from the detector the
+    /// on-screen α1 card uses (`Alpha1ReportCards.AT1CrossDetector` through
+    /// `alpha1BandTotals`): 120 s warmup + 180 s sustain, with the same
+    /// sample timing and beat-artifact exclusion.
     /// The sustain length is deliberately > the α1 rolling-window length so
     /// a single ectopic beat (which contaminates exactly one
     /// window-length of samples) cannot satisfy the sustain check. 180 s
@@ -446,86 +401,8 @@ extension WorkoutPDFRenderer {
     func firstDownwardAT1Crossing() -> (offsetSec: Int, hr: Int?)? {
         let samples = report.session.workoutMetadata?.samples ?? []
         let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
-        var run = AT1CrossingRun()
-        var previousOffset: Int?
-        for sample in samples {
-            guard let alpha = sample.alpha1 else { continue }
-            let dt = Alpha1ReportCards.sampleSeconds(at: sample.offsetSec, previous: previousOffset)
-            previousOffset = sample.offsetSec
-            guard sample.offsetSec >= AT1CrossingRun.warmupSec,
-                  !Self.isBeatArtifact(sample, shadows: shadows) else { continue }
-            if let hit = run.observe(alpha: alpha, sample: sample, seconds: dt) { return hit }
-        }
-        return nil
-    }
-
-    /// The candidate crossing being timed. Isolated so the reset-on-recovery rule
-    /// sits next to the counters it clears, rather than three lines below them.
-    private struct AT1CrossingRun {
-        static let warmupSec = 120
-        static let sustainSec = 180
-
-        private var pendingOffset: Int?
-        private var pendingHR: Int?
-        private var sustained = 0
-        /// Set once α1 has been at or above 0.75, so a run below it is a
-        /// crossing rather than where the session started.
-        private var armed = false
-
-        /// Non-nil once a below-AT1 run that followed an above-AT1 reading
-        /// has lasted `sustainSec`.
-        mutating func observe(alpha: Double, sample: WorkoutSample, seconds: Int) -> (offsetSec: Int, hr: Int?)? {
-            guard alpha < HRVConstants.DFA.alpha1AerobicThreshold else {
-                armed = true
-                sustained = 0
-                pendingOffset = nil
-                pendingHR = nil
-                return nil
-            }
-            guard armed else { return nil }
-            if pendingOffset == nil {
-                pendingOffset = sample.offsetSec
-                pendingHR = sample.heartRate
-            }
-            sustained += seconds
-            guard sustained >= Self.sustainSec, let offset = pendingOffset else { return nil }
-            return (offset, pendingHR)
-        }
-    }
-
-    func alpha1PlainEnglish(stats: Alpha1Stats) -> String {
-        let bundle = LanguageManager.appBundle
-        guard stats.totalSec >= 60 else {
-            return String(localized: "Not enough clean RR data to characterise α1 this session.", bundle: bundle)
-        }
-        if let single = alpha1SingleBandSummary(stats: stats, bundle: bundle) { return single }
-        if let crossing = alpha1CrossingSummary(stats: stats, bundle: bundle) { return crossing }
-        let easy = stats.secondsBelowAT1 / 60, thr = stats.secondsBetween / 60, hard = stats.secondsAboveAT2 / 60
-        return String(localized: "Easy \(easy)m · Threshold \(thr)m · Above AT2 \(hard)m.", bundle: bundle)
-    }
-
-    /// The two sessions that never changed band: all easy, or all hard.
-    private func alpha1SingleBandSummary(stats: Alpha1Stats, bundle: Bundle) -> String? {
-        let total = stats.totalSec / 60
-        if stats.secondsBetween == 0, stats.secondsAboveAT2 == 0 {
-            return String(localized: "You stayed below aerobic threshold for the full \(total) min — pure Zone-2 base work, α1 never crossed 0.75. Ideal aerobic-base session.", bundle: bundle)
-        }
-        if stats.secondsBelowAT1 == 0, stats.secondsBetween == 0 {
-            return String(localized: "You were above anaerobic threshold the entire session (\(total) min at α1 < 0.50). Very hard physiological cost — short, intense efforts only.", bundle: bundle)
-        }
-        return nil
-    }
-
-    /// Narrated around the moment α1 first fell through AT1, when there was one.
-    private func alpha1CrossingSummary(stats: Alpha1Stats, bundle: Bundle) -> String? {
-        guard let cross = firstDownwardAT1Crossing() else { return nil }
-        let easy = stats.secondsBelowAT1 / 60, thr = stats.secondsBetween / 60, hard = stats.secondsAboveAT2 / 60
-        let mm = cross.offsetSec / 60, ss = cross.offsetSec % 60
-        let hrPart = cross.hr.map { String(localized: " at HR \($0) bpm", bundle: bundle) } ?? ""
-        if hard > 0 {
-            return String(localized: "You crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart), stayed at threshold / above for \(thr + hard) min, and spent \(hard) min above anaerobic threshold. Mixed-intensity session.", bundle: bundle)
-        }
-        return String(localized: "You crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart) and stayed at threshold for \(thr) min. \(easy) min easy, \(thr) min at threshold.", bundle: bundle)
+        guard let crossing = Alpha1ReportCards.alpha1BandTotals(samples: samples, shadows: shadows).firstCrossing else { return nil }
+        return (offsetSec: crossing.0, hr: crossing.1)
     }
 
     // MARK: - Hero verdict (page 1)
@@ -555,18 +432,19 @@ extension WorkoutPDFRenderer {
         let pctMax = peakHR.map { report.userMaxHR > 0 ? Double($0) / Double(report.userMaxHR) : 0 } ?? 0
         let hrr = report.session.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop ?? 0
         let durationMin = Int((report.session.duration ?? 0) / 60)
-        if let verdict = alphaVerdict(stats: stats, pctMax: pctMax, durationMin: durationMin, bundle: bundle) {
+        if let verdict = alphaVerdict(stats: stats, durationMin: durationMin, bundle: bundle) {
             return verdict
         }
         return heartRateVerdict(pctMax: pctMax, hrr: hrr, durationMin: durationMin, bundle: bundle)
     }
 
     /// α1 is the sharper signal when it is available — it distinguishes the
-    /// three training bands directly rather than inferring them from HR.
-    /// "The whole way" is claimed only when no α1 time fell below 0.75; an
-    /// easy average with some threshold minutes says it averaged above.
-    private func alphaVerdict(stats: Alpha1Stats, pctMax: Double, durationMin: Int, bundle: Bundle) -> (label: String, blurb: String, kind: Verdict)? {
-        if let a = stats.avgAlpha1, a >= 0.75, pctMax < 0.75 {
+    /// three training bands directly rather than inferring them from HR, so a
+    /// single HR peak does not override an easy α1 (page 2's α1 reading says
+    /// the same). "The whole way" is claimed only when no α1 time fell below
+    /// 0.75; an easy average with some threshold minutes says it averaged above.
+    private func alphaVerdict(stats: Alpha1Stats, durationMin: Int, bundle: Bundle) -> (label: String, blurb: String, kind: Verdict)? {
+        if let a = stats.avgAlpha1, a >= HRVConstants.DFA.alpha1AerobicThreshold {
             let wholeWay = stats.secondsBetween == 0 && stats.secondsAboveAT2 == 0
             return (
                 String(localized: "Easy aerobic — building base", bundle: bundle),
@@ -807,14 +685,14 @@ extension WorkoutPDFRenderer {
     }
 
     /// "What's working" bullets — pull genuinely positive signals only.
-    /// Order: HRR, α1, decoupling, EF, drift, TRIMP execution.
+    /// Order: HRR, α1, decoupling, EF.
     func whatsWorkingPoints() -> [String] {
         let bundle = LanguageManager.appBundle
         let meta = report.session.workoutMetadata
         var out: [String] = []
         if let line = hrrWorkingPoint(meta: meta, bundle: bundle) { out.append(line) }
         if let line = alphaWorkingPoint(bundle: bundle) { out.append(line) }
-        if let dec = meta?.decouplingPercent, dec < 5 {
+        if let dec = meta?.decouplingPercent, dec <= WorkoutPDFReport.decouplingDriftPercent {
             out.append(String(localized: "Pa:Hr decoupling at \(String(format: "%+.1f%%", locale: LanguageManager.appLocale, dec)) — well coupled, fitness held the workload through the whole session.", bundle: bundle))
         }
         if let ef = meta?.efficiencyFactor, ef * 60 >= Self.strongRunningEfficiency,
@@ -848,7 +726,7 @@ extension WorkoutPDFRenderer {
         var out: [String] = []
         let meta = report.session.workoutMetadata
 
-        if let dec = meta?.decouplingPercent, dec >= 5 {
+        if let dec = meta?.decouplingPercent, dec > WorkoutPDFReport.decouplingDriftPercent {
             if dec >= 7 {
                 out.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f%%", locale: LanguageManager.appLocale, dec)) is past the 7% threshold — meaningful cardiac drift. Most likely cause: dehydration, heat, or under-fueling for this duration.", bundle: bundle))
             } else {
@@ -874,7 +752,7 @@ extension WorkoutPDFRenderer {
         let stats = alpha1Stats()
         var out: [String] = []
         if stats.totalSec > 60 { out.append(tomorrowEffortAdvice(stats: stats, bundle: bundle)) }
-        if let dec = meta?.decouplingPercent, dec >= 5 {
+        if let dec = meta?.decouplingPercent, dec > WorkoutPDFReport.decouplingDriftPercent {
             out.append(String(localized: "Decoupling was elevated — front-load fluids and carbs earlier in the next long effort. If heat was a factor, shift the start time earlier.", bundle: bundle))
         }
         // Same gate as the "Watch" bullet: a zero or negative drop is a

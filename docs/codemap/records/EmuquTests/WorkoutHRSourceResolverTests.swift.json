@@ -1,0 +1,375 @@
+{
+ "file": "EmuquTests/WorkoutHRSourceResolverTests.swift",
+ "hash": "15d5dfe88e3feb6d",
+ "role": "XCTest suite for WorkoutHRSourceResolver.resolve (strap-busy refusal, reconnect, watch/none downgrade) and provenanceSource, including exhaustive sweeps over all boolean inputs.",
+ "types": [
+  "WorkoutHRSourceResolverTests: class — XCTestCase for the HR source downgrade cascade"
+ ],
+ "state": [],
+ "toplevel": "Typealiases Source = WorkoutRecorder.HRSource and Resolution = WorkoutHRSourceResolver.Resolution.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+   "hash": "ec4063b3032db31e",
+   "does": "Fixture: calls WorkoutHRSourceResolver.resolve with defaults requested .strap, not recording, connected, known devices, watch paired.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testNonStrapSourcesPassThroughUntouched()",
+   "hash": "62accfa898a66e38",
+   "does": "Asserts .watch and .none requests return .use(same) regardless of strap recording/connection/known/watch flags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testAStrapMidRecordingRefusesTheWorkout()",
+   "hash": "beddda2a167d51f7",
+   "does": "Asserts a strap request with the strap recording returns .strapBusy.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testABusyStrapRefusesEvenWhenDisconnected()",
+   "hash": "fe718284a17683cf",
+   "does": "Asserts a recording strap returns .strapBusy even when disconnected and with no known devices/watch.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testBusyOutranksEveryDowngrade()",
+   "hash": "f5de8b28880031f4",
+   "does": "Sweeps all 8 connected/known/watch combinations with recording=true and asserts every one is .strapBusy.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for connected in [true,false]",
+     "effect": "outer loop over connection state"
+    },
+    {
+     "at": "+2",
+     "cond": "for known in [true,false]",
+     "effect": "loop over known devices"
+    },
+    {
+     "at": "+3",
+     "cond": "for watch in [true,false]",
+     "effect": "loop over watch paired; each combination asserted strapBusy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testAConnectedFreeStrapIsUsed()",
+   "hash": "464347c61cb407a5",
+   "does": "Asserts default inputs (connected, free strap) give .use(.strap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testAConnectedStrapIgnoresTheFallbacks()",
+   "hash": "42673b27456bf8df",
+   "does": "Asserts a connected strap gives .use(.strap) even with no known devices and no watch.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testAKnownButDisconnectedStrapReconnectsRatherThanFailing()",
+   "hash": "3677f2125693f193",
+   "does": "Asserts disconnected but known strap gives .reconnectThenUseStrap.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testReconnectIsPreferredOverTheWatch()",
+   "hash": "191d3ca9af9bd950",
+   "does": "Asserts reconnect is chosen over a paired watch when disconnected and known.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testWithNoStrapEverPairedTheWatchStandsIn()",
+   "hash": "c10be00584bdbbe0",
+   "does": "Asserts disconnected, never-paired strap with a watch gives .use(.watch).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testWithNothingAvailableTheWorkoutStillStartsWithNoSource()",
+   "hash": "dc0d03c9784e0101",
+   "does": "Asserts nothing available gives .use(.none).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testProvenanceFollowsTheResolvedSourceNotTheRequestedOne()",
+   "hash": "b30e7de7f005c848",
+   "does": "Asserts provenanceSource returns the used source for .use(.none/.watch/.strap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "WorkoutHRSourceResolver.provenanceSource has no production caller (only these tests call it); WorkoutRecorder+Start re-implements the same Resolution-to-source mapping in its own switch. The provenance tests here (113, 121, 126, 134, 155) therefore pin a function the app never runs, and a change to the real mapping in WorkoutRecorder+Start would not fail them.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift:91",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:198",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:201",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:204",
+      "EmuquTests/WorkoutHRSourceResolverTests.swift:114"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)": "f33b5d50612d7ff4"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testAReconnectRecordsStrapProvenance()",
+   "hash": "60278e4ddd732054",
+   "does": "Asserts provenanceSource(.reconnectThenUseStrap) is .strap.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)": "f33b5d50612d7ff4"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testARefusedStartHasNoProvenance()",
+   "hash": "b126ac5c670056ba",
+   "does": "Asserts provenanceSource(.strapBusy) is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)": "f33b5d50612d7ff4"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testEveryStrapRequestResolvesToSomething()",
+   "hash": "8f05cad45443f0b4",
+   "does": "Sweeps all 16 boolean combinations: recording → .strapBusy; otherwise not busy and provenance non-nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for recording",
+     "effect": "loop"
+    },
+    {
+     "at": "+2",
+     "cond": "for connected",
+     "effect": "loop"
+    },
+    {
+     "at": "+3",
+     "cond": "for known",
+     "effect": "loop"
+    },
+    {
+     "at": "+4",
+     "cond": "for watch",
+     "effect": "loop"
+    },
+    {
+     "at": "+6",
+     "cond": "recording",
+     "effect": "true: asserts strapBusy; false: asserts not strapBusy and provenanceSource non-nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)": "f33b5d50612d7ff4",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolverTests.testStrapProvenanceRequiresAReachableStrap()",
+   "hash": "664b15a1e0e49e74",
+   "does": "Sweeps 8 non-recording combinations and asserts strap provenance only occurs when connected or known.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for connected",
+     "effect": "loop"
+    },
+    {
+     "at": "+2",
+     "cond": "for known",
+     "effect": "loop"
+    },
+    {
+     "at": "+3",
+     "cond": "for watch",
+     "effect": "loop"
+    },
+    {
+     "at": "+5",
+     "cond": "provenance == .strap",
+     "effect": "true: asserts connected || known; false: no assertion for that combination"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)": "f33b5d50612d7ff4",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)": "b8418e3e73967aef",
+    "EmuquTests/WorkoutHRSourceResolverTests.swift::func WorkoutHRSourceResolverTests.resolve(_:recording:connected:known:watch:)": "224b5e30b003767e"
+   }
+  }
+ ],
+ "deps": {}
+}

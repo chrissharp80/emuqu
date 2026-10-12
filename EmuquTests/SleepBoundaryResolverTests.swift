@@ -136,7 +136,8 @@ final class SleepBoundaryResolverTests: XCTestCase {
     }
 
     func testResolveFallsBackToRecordingBoundaries() async {
-        // Without HealthKit data, resolve should fall back to recording boundaries
+        // Without HealthKit data nothing is resolved; the caller (the window
+        // selector) falls back to the recording's own bounds.
         let resolver = SleepBoundaryResolver(healthKit: MockHealthKitService())
         let start = Date()
         let end = start.addingTimeInterval(28800) // 8 hours
@@ -146,10 +147,10 @@ final class SleepBoundaryResolverTests: XCTestCase {
             recordingEnd: end
         )
 
-        // Fallback should return 0 for start and duration for end
-        // (HealthKit will likely fail in test environment, so we get the fallback)
-        XCTAssertNotNil(boundaries.sleepStartMs)
-        XCTAssertNotNil(boundaries.wakeTimeMs)
+        // Unresolved boundaries are nil, never stand-ins (0 / the recording
+        // end); the window selector uses the recording bounds for a nil.
+        XCTAssertNil(boundaries.sleepStartMs)
+        XCTAssertNil(boundaries.wakeTimeMs)
     }
 
     // MARK: - validateBoundaries with hasDetailedStages

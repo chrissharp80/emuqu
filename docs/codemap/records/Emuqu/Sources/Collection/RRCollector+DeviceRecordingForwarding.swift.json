@@ -1,0 +1,82 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector forwarders into DeviceRecordingSession (built on demand) so existing call sites keep working.",
+ "types": [
+  "RRCollector: extension — device-recording forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RRCollector.deviceRecording",
+   "hash": "6573f142a8b435b0",
+   "does": "Returns a new DeviceRecordingSession wrapping this collector on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.startSession(sessionType:)",
+   "hash": "bccc0b4c1868990f",
+   "does": "Forwards to DeviceRecordingSession.startSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "d1a23d35118ec14d",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  },
+  {
+   "key": "func RRCollector.stopSession()",
+   "hash": "f07c494d3e12bb37",
+   "does": "Forwards to DeviceRecordingSession.stopSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "4f7ffc19d99f72c5",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  },
+  {
+   "key": "func RRCollector.fetchTrainingLoadIfEnabled()",
+   "hash": "e7131cf4e2b7ab1f",
+   "does": "Forwards to DeviceRecordingSession.fetchTrainingLoadIfEnabled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.cachedTrainingLoad"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()": "4ca8fe050a9e82ea",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  }
+ ],
+ "deps": {}
+}

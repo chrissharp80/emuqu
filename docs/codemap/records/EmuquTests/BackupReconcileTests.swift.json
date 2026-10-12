@@ -1,0 +1,132 @@
+{
+ "file": "EmuquTests/BackupReconcileTests.swift",
+ "hash": "d6307bf8354415cc",
+ "role": "XCTest suite for RawRRBackup.indicesNeedingArchivedFlag: which raw-RR backup index entries flagged unarchived actually have an archived session and should be corrected.",
+ "types": [
+  "BackupReconcileTests: class — XCTestCase for backup/archive reconciliation"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BackupReconcileTests.entry(_:archived:)",
+   "hash": "dc19ecb529a58966",
+   "does": "Builds a RawRRBackup.BackupIndex with the given id and archived flag (fixed 2027 capture date, 100 beats).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f"
+   }
+  },
+  {
+   "key": "func BackupReconcileTests.testABackupWhoseSessionIsArchivedIsCorrected()",
+   "hash": "e64ed17d72c4121b",
+   "does": "Asserts an unarchived backup whose id is in the archive returns index [0].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Both this suite's header and reconcileArchived's doc say reconciliation fixes backups that reached the archive through a merge under a different session id, but indicesNeedingArchivedFlag matches only the backup's own id against archived ids; a backup merged into another session's id never matches and stays counted as an \"Unarchived recording\". No test here covers that case.",
+     "evidence": [
+      "EmuquTests/BackupReconcileTests.swift:8",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:530",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:566"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)": "8e02c27bcbc8fb57",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)": "856251a6504b3e9e"
+   }
+  },
+  {
+   "key": "func BackupReconcileTests.testABackupWithNoArchivedSessionIsLeftFlagged()",
+   "hash": "dc112c5f3ea33cfe",
+   "does": "Asserts an unarchived backup whose id is not archived is not corrected.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)": "8e02c27bcbc8fb57",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)": "856251a6504b3e9e"
+   }
+  },
+  {
+   "key": "func BackupReconcileTests.testAlreadyArchivedEntriesAreNotTouched()",
+   "hash": "31572afaf79757b1",
+   "does": "Asserts an entry already flagged archived is not returned.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)": "8e02c27bcbc8fb57",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)": "856251a6504b3e9e"
+   }
+  },
+  {
+   "key": "func BackupReconcileTests.testOnlyTheMatchingEntriesAreReturnedFromAMixedIndex()",
+   "hash": "ce8e1bbdc2316ca8",
+   "does": "Asserts from [stranded, archived-unflagged, already-flagged] only index 1 is returned.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)": "8e02c27bcbc8fb57",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)": "856251a6504b3e9e"
+   }
+  },
+  {
+   "key": "func BackupReconcileTests.testAnEmptyArchiveCorrectsNothing()",
+   "hash": "b481167918c4a9d1",
+   "does": "Asserts an empty archived-id set corrects nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.indicesNeedingArchivedFlag(_:archivedSessionIds:)": "8e02c27bcbc8fb57",
+    "EmuquTests/BackupReconcileTests.swift::func BackupReconcileTests.entry(_:archived:)": "856251a6504b3e9e"
+   }
+  }
+ ],
+ "deps": {}
+}

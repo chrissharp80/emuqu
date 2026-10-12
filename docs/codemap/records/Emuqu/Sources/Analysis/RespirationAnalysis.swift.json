@@ -1,0 +1,214 @@
+{
+ "file": "Emuqu/Sources/Analysis/RespirationAnalysis.swift",
+ "hash": "56aed55db9f5adc5",
+ "role": "RR-interval-derived respiration rate: resamples RR at 4 Hz, mean-centres and Hann-windows the samples, zero-pads to a power of two, computes the power spectrum with a cached vDSP DFT and returns the 0.15-0.5 Hz peak as breaths/min.",
+ "types": [
+  "RespirationAnalyzer: enum — respiration-rate estimation"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RespirationAnalyzer.estimateRespirationRate(_:fs:)",
+   "hash": "39745895c2aaf5c0",
+   "does": "Estimates breaths/min from RR (ms): requires >=60 intervals and >=32 resampled points, gets the respiratory-band PSD peak, returns peak*60 if within 6-40, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.powerSpectrum(_:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr.count >= 60",
+     "effect": "false returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "resampled.count >= 32",
+     "effect": "false returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "powerSpectrum non-nil",
+     "effect": "nil (no DFT setup) returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "respiratoryPeakFrequency non-nil",
+     "effect": "nil (empty/flat band) returns nil"
+    },
+    {
+     "at": "+10",
+     "cond": "6 <= breathsPerMin <= 40",
+     "effect": "false returns nil; true returns rate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)": "370a51ed607d6998",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.powerSpectrum(_:)": "3c92a4cd4af203c3",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)": "342f29486d09ea7f",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)": "f8a48fa7b2e5bb60"
+   }
+  },
+  {
+   "key": "func RespirationAnalyzer.meanRemovedHannWindow(_:)",
+   "hash": "db0e065f83b6199e",
+   "does": "Mean-centres the series, multiplies it by a Hann window the length of the data (so the real signal tapers to zero at both ends), then zero-pads the windowed samples to the next power of two.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_meanvD",
+    "ext:Accelerate.vDSP_hann_windowD",
+    "ext:Accelerate.vDSP_vmulD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RespirationAnalyzer.powerSpectrum(_:)",
+   "hash": "6b25f8b35eec3553",
+   "does": "Single-sided power spectrum |X[k]|^2 for k=0...N/2 using the cached vDSP DFT setup; nil when setup unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+    "ext:Accelerate.vDSP_DFT_ExecuteD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "FrequencyDomainAnalyzer.getDFTSetup(size:) non-nil",
+     "effect": "nil returns nil"
+    },
+    {
+     "at": "+10",
+     "cond": "for k in 0...halfN",
+     "effect": "fills psd bins"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b"
+   }
+  },
+  {
+   "key": "func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)",
+   "hash": "4e4d609b9f7e21d8",
+   "does": "Finds the max-power bin between floor(0.15/freqRes) and min(floor(0.5/freqRes), N/2), returns its frequency; nil when the range is empty or peak power is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "maxBin > minBin",
+     "effect": "false returns nil"
+    },
+    {
+     "at": "+11",
+     "cond": "psd[k] > peakPower within band",
+     "effect": "updates peak bin"
+    },
+    {
+     "at": "+16",
+     "cond": "peakPower > 0",
+     "effect": "false returns nil (flat band)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RespirationAnalyzer.resampleRR(_:fs:)",
+   "hash": "d1c7fde8d1dc807f",
+   "does": "Resamples RR onto a uniform fs grid by linear interpolation over cumulative beat times; returns rr unchanged when <4 intervals or <4 samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.cumulativeTimeAxis(_:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.interpolated(_:t:at:index:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr.count >= 4",
+     "effect": "false returns rr as-is"
+    },
+    {
+     "at": "+3",
+     "cond": "time axis has first and last",
+     "effect": "false returns rr (unreachable for non-empty)"
+    },
+    {
+     "at": "+5",
+     "cond": "sampleCount >= 4",
+     "effect": "false returns rr"
+    },
+    {
+     "at": "+8",
+     "cond": "for each output sample",
+     "effect": "interpolates value"
+    },
+    {
+     "at": "+11",
+     "cond": "while next beat time < target",
+     "effect": "advances beat index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.cumulativeTimeAxis(_:)": "4411bdd86583a752",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.interpolated(_:t:at:index:)": "00f255df5c974d28"
+   }
+  },
+  {
+   "key": "func RespirationAnalyzer.cumulativeTimeAxis(_:)",
+   "hash": "11c0282a20d706ac",
+   "does": "Beat times in seconds from cumulative RR sum (first beat at 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each interval",
+     "effect": "accumulates time"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RespirationAnalyzer.interpolated(_:t:at:index:)",
+   "hash": "63552db04ed2570d",
+   "does": "Linear interpolation between beat tIdx and tIdx+1; returns rr[tIdx] at the end of series or on a zero-width interval.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tIdx < last and t[tIdx+1] > t[tIdx]",
+     "effect": "false returns rr[tIdx]; true returns interpolated value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

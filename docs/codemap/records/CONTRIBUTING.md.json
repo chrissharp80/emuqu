@@ -1,0 +1,254 @@
+{
+ "file": "CONTRIBUTING.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Maintainer's own change procedure: no outside contributions, gates are the reviewer, build/test commands, budgets, file registration, localization, PR steps, style, privacy-change rule.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ How a change lands in Emuqu",
+   "hash": "eb3a982c6e6a442b",
+   "does": "No outside contributions; PolyForm Strict license; Linux gates run on every push to main and every pull request (gates.yml triggers: push to main, pull_request, workflow_dispatch); Xcode work runs only on demand; points to docs/MAINTAINERS.md (exists).",
+   "entry": null,
+   "calls": [
+    ".github/workflows/gates.yml::job script-gates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > The one rule that matters",
+   "hash": "6e18fcd2f0de6afe",
+   "does": "Every gate enforced, none waived; zero swiftlint:disable directives in Emuqu/Sources — verified by grep (0 hits).",
+   "entry": null,
+   "calls": [
+    "Makefile::target lint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target lint": "ee78d83b950fa63a"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Before you start",
+   "hash": "d50cf7c36c402696",
+   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
+   "entry": null,
+   "calls": [
+    "Makefile::target setup-hooks",
+    "Makefile::target codemap-setup",
+    ".githooks/pre-commit::fn fail",
+    ".github/workflows/gates.yml::job script-gates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".githooks/pre-commit::fn fail": "c9514843e832b1c2",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target setup-hooks": "974b9e2eda3668e0"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work",
+   "hash": "1083e8c6f79c53cd",
+   "does": "Build and unit-test commands via xcodebuild; warnings are errors — SWIFT_TREAT_WARNINGS_AS_ERRORS = YES at project-level Debug and Release (project.pbxproj:4763,4822).",
+   "entry": null,
+   "calls": [
+    "Makefile::target budget-monotonicity",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "Makefile::target debt-budget",
+    "Makefile::target orphan-swift-guard",
+    "scripts/add_swift_file.py::def add_file_to_project",
+    "scripts/add_swift_file.py::def target_for_path",
+    "Makefile::target localization-bundle-guard",
+    "Makefile::target localization-guard",
+    "Makefile::target copy-perimeter",
+    "Tools/copy_linter/lint.py::def main",
+    "Tools/copy_linter/lint.py::def scan_swift_file",
+    "Tools/copy_linter/lint.py::def scan_xcstrings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc",
+    "Tools/copy_linter/lint.py::def scan_swift_file": "2119d1a831202458",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3",
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439",
+    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > The code map is part of the change",
+   "hash": "91ef1081e25cefae",
+   "does": "Says every function, script target, workflow step and doc section has a record in docs/codemap/records and that CI, make ci and the pre-commit hook fail until the records for a change are current. Steps: impact before the change (make codemap-impact or codemap.py impact <path::key>); make the change; make codemap-guard and rewrite each listed record, removing fixed flags; re-read each re-check caller (codemap.py status lists them) and change it or its record if its behaviour changed; stamp after re-reading, callees before callers; lowering .ci/codemap_open_high.txt or .ci/codemap_open_med.txt when a high/medium finding is fixed. Links docs/codemap/README.md. Every command named exists.",
+   "entry": null,
+   "calls": [
+    "Makefile::target codemap-impact",
+    "Makefile::target codemap-guard",
+    "scripts/codemap/codemap.py::def cmd_impact",
+    "scripts/codemap/codemap.py::def cmd_stamp",
+    "scripts/codemap/codemap.py::def dependency_problems",
+    "scripts/codemap/codemap.py::def budget_problems"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-guard": "86407f3ed9c5a020",
+    "Makefile::target codemap-impact": "2e8cdb2f0b3335c1",
+    "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
+    "scripts/codemap/codemap.py::def cmd_impact": "c2b034f3fdf0ef75",
+    "scripts/codemap/codemap.py::def cmd_stamp": "7132e97c28406a90",
+    "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > Budgets ratchet down, never up",
+   "hash": "82bb29c124121ad7",
+   "does": ".ci/*.txt budgets (shared_usage, try_optional, legacy_observable_object, swiftlint_warning, unchecked_sendable, etc. — all exist) ratchet down. Raising a ceiling or lowering a min_* floor needs a `budget-raise-ok: .ci/<name>.txt <reason>` trailer in a commit in the compared range (path exact, reason free text — check_budget_monotonicity.sh is_allowed). gates.yml enforces it: on a push to main against the tip before the push, on a pull request against the target branch. Locally `make budget-monotonicity` (Makefile, baseline ${BUDGET_BASE_REF:-HEAD}) compares the working tree with HEAD, catching an uncommitted raise but not seeing an uncommitted trailer or an already-committed raise; `BUDGET_BASE_REF=origin/main make budget-monotonicity` checks committed work.",
+   "entry": null,
+   "calls": [
+    "Makefile::target budget-monotonicity",
+    "Makefile::target debt-budget",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > Adding a new Swift file",
+   "hash": "d6b171d57b1f8ce4",
+   "does": "New Swift files under Emuqu, EmuquTests or EmuquUITests must be registered at PBXBuildFile, PBXFileReference, group children, Sources phase; `make orphan-swift-guard` (check_no_orphan_swift.sh) fails on files missing from the project. EmuquWatch Watch App is a PBXFileSystemSynchronizedRootGroup: files there are members by being on disk and must not be registered by hand, since a second entry fails with 'Multiple commands produce' (the orphan guard skips synchronised roots). Paths with '+' must be quoted.",
+   "entry": null,
+   "calls": [
+    "Makefile::target orphan-swift-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > Adding user-facing text",
+   "hash": "8b5d0b5198529048",
+   "does": "Strings localized into 17 languages (Localizable.xcstrings has 17 locales incl. en) with 100% coverage enforced; String(localized:bundle:) with LanguageManager.appBundle (LanguageManager.swift:36) and `make localization-bundle-guard` (Makefile:114); health copy linted by Tools/copy_linter/lint.py via `make copy-perimeter` (Makefile:171).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Makefile::target localization-guard",
+    "Makefile::target localization-bundle-guard",
+    "Makefile::target copy-perimeter",
+    "Tools/copy_linter/lint.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Before you open a pull request",
+   "hash": "f85c26207f72e8d5",
+   "does": "`make ci` is the enforcement: gates.yml runs bash/python gates on push incl. debt budgets and spec conformance; build/tests/SwiftLint need macOS and run on demand; `make ci` runs lint, budgets, spec conformance, localization, copy perimeter, doc links and the full test suite with coverage (Makefile ci). Says two ci.yml checks are not in `make ci`: `make thread-sanitizer` and `make release-build`, to run when a change touches concurrency or could differ under the optimizer. Adds that `make codemap-impact` lists everything the branch's changes can affect and that a pull request gets the same list in the gates.yml job summary.",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci",
+    ".github/workflows/gates.yml::job script-gates",
+    "Makefile::target test-coverage",
+    "Makefile::target codemap-impact",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request",
+    "Makefile::target thread-sanitizer",
+    "Makefile::target release-build"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "dee3ea42e8cd6b89",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target codemap-impact": "2e8cdb2f0b3335c1",
+    "Makefile::target release-build": "d6689b31b7356074",
+    "Makefile::target test-coverage": "06ed85ce10572ea0",
+    "Makefile::target thread-sanitizer": "5a3ae899b4053a7b"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Style",
+   "hash": "0f41fca6815e7711",
+   "does": "Style: docs/REFACTOR_SPEC.md is the standard and `make spec-conformance` (check_refactor_spec_conformance.sh) enforces declarations <=20 lines, nesting <=2, no commented-out code, no empty catches; written waivers for length and nesting are counted against the ratcheting .ci/spec_justified_* budgets, so a new waiver is a budget raise needing the budget-raise-ok trailer.",
+   "entry": null,
+   "calls": [
+    "Makefile::target spec-conformance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target spec-conformance": "060f9ad7c55731da"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Security and privacy",
+   "hash": "105131e9652c68ba",
+   "does": "no behavioural claim: report vulnerabilities privately; any change to off-device data must update consent, privacy manifest, policy and App Store Connect together.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

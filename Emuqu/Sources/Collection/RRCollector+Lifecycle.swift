@@ -15,7 +15,10 @@ extension RRCollector {
             phase: recordingPhase.description,
             useDeviceInternalBackup: useDeviceBackupForOvernight
         )
-        PersistedRecordingState.save(state)
+        guard PersistedRecordingState.save(state) else {
+            debugLog("[RRCollector] Could not persist recording state for session \(sessionId.uuidString.prefix(8)) — a crash now would not offer it at launch", level: .error)
+            return
+        }
         debugLog("[RRCollector] Persisted recording state: session=\(sessionId.uuidString.prefix(8)), start=\(startTime), phase=\(recordingPhase)")
     }
 
@@ -33,10 +36,11 @@ extension RRCollector {
         return (state.sessionId, state.startTime, state.sessionType)
     }
 
-    /// Retrieve the persisted capture mode preference (device internal backup flag).
-    /// Returns nil when no persisted state exists or state was saved before this field was added.
+    /// Retrieve the persisted capture mode preference (device internal backup flag):
+    /// the recording's, else the paused night's (its recording marker is
+    /// cleared at pause). Nil when neither holds one.
     func getPersistedCaptureMode() -> Bool? {
-        PersistedRecordingState.load()?.useDeviceInternalBackup
+        PersistedRecordingState.load()?.useDeviceInternalBackup ?? control.persistedPausedCaptureMode()
     }
 
     /// Check if there's a persisted recording that needs recovery
@@ -45,7 +49,8 @@ extension RRCollector {
     }
 
     /// Clear persisted recording state after recovery or dismissal from app launch alert.
-    /// Separate from the private method so the app layer can clear it after handling.
+    /// The same as `clearPersistedRecordingState`, which is not private either;
+    /// the app layer's launch-recovery callers still use this name.
     func clearPersistedRecordingStatePublic() {
         clearPersistedRecordingState()
     }
@@ -70,7 +75,8 @@ extension RRCollector {
     /// brief I/O (JSON + SHA256 + write) runs inside an operation the user is
     /// already waiting on. Dated by the recording's own start: recovery takes
     /// the capture date as the session start, and "now" would file last
-    /// night's beats under tonight.
+    /// night's beats under tonight. The strap no longer holds what was
+    /// downloaded, so a failed backup is shown to the user, not only logged.
     private func backUpRescuedRecording(_ recording: StrapRecording) {
         let rescueId = UUID()
         debugLog("[RRCollector] Rescuing \(recording.points.count) unrecovered points from device → backup \(rescueId.uuidString.prefix(8))")
@@ -82,12 +88,13 @@ extension RRCollector {
             debugLog("[RRCollector] Rescued \(recording.points.count) points to RawRRBackup (recoverable via Lost Sessions)")
         } catch {
             debugLog("[RRCollector] Failed to rescue device data: \(error)", level: .error)
+            lastError = error
         }
     }
 
     // MARK: - Emergency Backup
 
-    /// Force-flush streaming data to disk and iCloud immediately.
+    /// Force-flush streaming data to disk immediately (iCloud catches up later).
     /// Called on app lifecycle events (background, terminate) so iOS jetsam
     /// kills never lose more than the last few heartbeats.
     /// Debounced: willResignActive and didEnterBackground fire back-to-back;

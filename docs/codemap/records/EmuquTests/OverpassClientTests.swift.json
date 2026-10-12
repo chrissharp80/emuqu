@@ -1,0 +1,575 @@
+{
+ "file": "EmuquTests/OverpassClientTests.swift",
+ "hash": "fcbf1b3de42965eb",
+ "role": "XCTest suite for OverpassClient: endpoint order (private.coffee then overpass-api.de), per-failure cooldowns, fallback on transport error without cooldown, busy-host skipping, refusal when all hosts cool down, strict request serialisation, shared client wiring, User-Agent, form-POST body/encoding, status mapping; and TrailDiscoveryService's failure→SearchError mapping. Uses a scripted StubOverpass actor as transport.",
+ "types": [
+  "OverpassClientTests: class — XCTestCase over OverpassClient and TrailDiscoveryService error mapping",
+  "Result<Data, OverpassClient.Failure>: private extension — data/failure accessors",
+  "StubOverpass: private actor — scripted transport recording asked hosts and peak concurrency",
+  "StubOverpass.Reply: enum — status(Int) | offline"
+ ],
+ "state": [
+  "mem:OverpassClientTests.interpreter/coffee/main (URL and host constants)",
+  "mem:StubOverpass.script/inFlight/peakInFlight/askedHosts"
+ ],
+ "toplevel": "Stored-property initializers set the overpass-api.de interpreter URL and host strings. Free function postOutcome and the Result extension live at file scope.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func OverpassClientTests.testPermissiveInstanceIsAskedFirstAndMainInstanceSecond()",
+   "hash": "19339337a07105da",
+   "does": "Asserts OverpassClient.endpoints hosts are [overpass.private.coffee, overpass-api.de].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:OverpassClient.endpoints static let (OverpassClient.swift:59)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OverpassClientTests.testOnlyBusyOrRefusedHostsAreSetAside()",
+   "hash": "df560dce59a6a271",
+   "does": "Asserts cooldown(after:) is ≥30 s for .busy, refusalCooldown for .refused(403), nil for .unreachable and .cancelled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cooldown(.busy) ?? 0",
+     "effect": "nil is compared as 0 so the ≥30 assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "28b8f261ec751b82"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testTransportErrorTriesNextHostAndAllowsImmediateRetry()",
+   "hash": "2aab65f4758b9dcb",
+   "does": "With two scripted offline replies: first post fails .unreachable after trying both hosts; second post succeeds against coffee immediately; asked hosts [coffee, main, coffee].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)",
+    "EmuquTests/OverpassClientTests.swift::var Result.data",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "first outcome is not .failure(.unreachable)",
+     "effect": "XCTFail and return; else continues to the retry assertions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)": "89d2c243406835f8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "6453551b86226021",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)": "e60066c5a787e0d9",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "28b8f261ec751b82",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "964b151521a3c2bd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "26964bc7e81f6f27",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "155b28f2c5ca22e8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "22160adbfc9bcd70",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "3646d3a1c11d2341",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "c29bb423b29ecdd9",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "EmuquTests/OverpassClientTests.swift::func OverpassClientTests.failure(for:url:)": "633ffe2b07d537c9",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)": "39b3115fff0a8283",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)": "764f462c5b871a00",
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)": "4e1a8cbbf946e0f0",
+    "EmuquTests/OverpassClientTests.swift::var Result.data": "02966a773894eeef"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testBusyHostIsSkippedWhileItCoolsDown()",
+   "hash": "c428cc48c3595bb1",
+   "does": "With coffee answering 429: first post falls back to main and succeeds; second post skips cooling coffee and goes to main; asked [coffee, main, main].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)",
+    "EmuquTests/OverpassClientTests.swift::var Result.data",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)": "89d2c243406835f8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "6453551b86226021",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)": "e60066c5a787e0d9",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "28b8f261ec751b82",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "964b151521a3c2bd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "26964bc7e81f6f27",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "155b28f2c5ca22e8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "22160adbfc9bcd70",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "3646d3a1c11d2341",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "c29bb423b29ecdd9",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)": "39b3115fff0a8283",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)": "764f462c5b871a00",
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)": "4e1a8cbbf946e0f0",
+    "EmuquTests/OverpassClientTests.swift::var Result.data": "02966a773894eeef"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testNothingIsSentWhileEveryHostRefuses()",
+   "hash": "7f3c07e36e925b17",
+   "does": "With both hosts answering 403: first post fails .refused(403); second post sends nothing and fails .refused(403); asked count 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstCoolingFailure()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)": "89d2c243406835f8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "6453551b86226021",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)": "e60066c5a787e0d9",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "28b8f261ec751b82",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "964b151521a3c2bd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstCoolingFailure()": "77417b8783044814",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "26964bc7e81f6f27",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "155b28f2c5ca22e8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "22160adbfc9bcd70",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "3646d3a1c11d2341",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "c29bb423b29ecdd9",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)": "39b3115fff0a8283",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)": "764f462c5b871a00",
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)": "4e1a8cbbf946e0f0",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testConcurrentCallersNeverOverlapRequests()",
+   "hash": "8afd786381fadad2",
+   "does": "Fires 4 concurrent posts against a 30 ms-delayed stub and asserts peak in-flight is 1 and 4 requests were sent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for index 0..<4",
+     "effect": "adds one concurrent post task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)": "89d2c243406835f8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "6453551b86226021",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)": "e60066c5a787e0d9",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "28b8f261ec751b82",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "964b151521a3c2bd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "26964bc7e81f6f27",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "155b28f2c5ca22e8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "22160adbfc9bcd70",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "3646d3a1c11d2341",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "c29bb423b29ecdd9",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "EmuquTests/OverpassClientTests.swift::func StubOverpass.respond(to:)": "39b3115fff0a8283",
+    "EmuquTests/OverpassClientTests.swift::func postOutcome(_:query:)": "764f462c5b871a00",
+    "EmuquTests/OverpassClientTests.swift::init StubOverpass(_:delayNanoseconds:)": "4e1a8cbbf946e0f0"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testTrailSearchAndRoadAwarenessShareOneClient()",
+   "hash": "849a348683227d6d",
+   "does": "Builds AppDependencies() and asserts location.roadGraphService.overpass and trailDiscoveryService.overpass are the same instance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.trailDiscoveryService",
+    "Emuqu/Sources/Services/RoadGraphService.swift::init RoadGraphService(overpass:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)"
+   ],
+   "reads": [
+    "mem:OverpassServices.client/roadGraph/trailDiscovery (process-wide static lets)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "Emuqu/Sources/Services/RoadGraphService.swift::init RoadGraphService(overpass:)": "b4be5b4101ee65e9",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)": "65b121eb51d69d0e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "92c65c092a79595e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService": "b5844c996cbb2b5d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.trailDiscoveryService": "87bc90c759c7f1f8"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testUserAgentNamesAppVersionAndContact()",
+   "hash": "d140a24d5778d9fb",
+   "does": "Asserts userAgent starts with 'Emuqu/<appVersion> ' and contains '@'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:OverpassClient.userAgent static let (OverpassClient.swift:66)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testRequestIsFormPostCarryingQueryInDataField()",
+   "hash": "6318cb23d5480ac7",
+   "does": "Asserts request(query:to:timeout:) is a POST with timeout 8, User-Agent and form Content-Type headers, and body 'data=' + percent-encoded query that decodes back.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testFormEncodingEscapesFormSeparators()",
+   "hash": "a77d6a6fdc99e72e",
+   "does": "Asserts formEncoded escapes '+', '&', '=' and round-trips via removingPercentEncoding.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testStatusMapping()",
+   "hash": "4592c8764050dc14",
+   "does": "Asserts checkStatus maps 200→no error, 429/504→.busy, 403/500→.refused(code).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OverpassClientTests.swift::func OverpassClientTests.failure(for:url:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085",
+    "EmuquTests/OverpassClientTests.swift::func OverpassClientTests.failure(for:url:)": "633ffe2b07d537c9"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testTrailSearchErrorsForEachFailure()",
+   "hash": "fd128ef6a89c551b",
+   "does": "Asserts TrailDiscoveryService.searchError maps .busy→.rateLimited, .refused→.unavailable, .unreachable(msg)→.network(msg), .cancelled→CancellationError.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OverpassClientTests.swift::func OverpassClientTests.searchError(_:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)": "e84c542933b56ec3",
+    "EmuquTests/OverpassClientTests.swift::func OverpassClientTests.searchError(_:)": "6ef9cf11608f8309"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.testBlockedSearchSaysUnavailableNotCheckConnection()",
+   "hash": "f5392dbd7ae03428",
+   "does": "Asserts SearchError.unavailable has a non-empty description different from .network's.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.SearchError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "errorDescription ?? ''",
+     "effect": "nil description becomes '' and the non-empty assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.SearchError.errorDescription": "2ee98853de64c6ca"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.failure(for:url:)",
+   "hash": "0bb7be4f83cdd1b9",
+   "does": "Helper: builds an HTTPURLResponse with the status and returns the Failure checkStatus throws, or nil when it does not throw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HTTPURLResponse init returns nil",
+     "effect": "XCTFail and return nil; else proceeds"
+    },
+    {
+     "at": "+8",
+     "cond": "checkStatus throws",
+     "effect": "returns the typed Failure; no throw returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085"
+   }
+  },
+  {
+   "key": "func OverpassClientTests.searchError(_:)",
+   "hash": "b972988148b1d6c7",
+   "does": "Helper: TrailDiscoveryService.searchError(for:) cast to SearchError.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)": "e84c542933b56ec3",
+    "EmuquTests/OverpassClientTests.swift::func OverpassClientTests.failure(for:url:)": "633ffe2b07d537c9"
+   }
+  },
+  {
+   "key": "func postOutcome(_:query:)",
+   "hash": "251f633993adc4c6",
+   "does": "File-scope helper: awaits client.post(query:timeout:5) and wraps the result or typed failure in a Result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "post throws",
+     "effect": "returns .failure(error); success returns .success(data)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "var Result.data",
+   "hash": "33a1e5555560fe4c",
+   "does": "Result extension: the success Data or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .success",
+     "effect": "returns data; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Result.failure",
+   "hash": "35f08647c4a245d3",
+   "does": "Result extension: the Failure or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .failure",
+     "effect": "returns the failure; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init StubOverpass(_:delayNanoseconds:)",
+   "hash": "f89958b63a9c06be",
+   "does": "Stub actor init storing the reply script and per-request delay.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StubOverpass.respond(to:)",
+   "hash": "ea0c55b8d0b284f6",
+   "does": "Stub transport: records the request host, tracks in-flight peak, optionally sleeps, pops the next scripted reply (200 when empty), throws notConnectedToInternet for .offline, else returns '{}' with the scripted status.",
+   "entry": "closure:OverpassClient transport injected by the tests (OverpassClient(minRequestGap:transport:))",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "request.url ?? file:///",
+     "effect": "falls back to a file URL when the request has no URL"
+    },
+    {
+     "at": "+2",
+     "cond": "url.host ?? ''",
+     "effect": "records '' when no host"
+    },
+    {
+     "at": "+6",
+     "cond": "delayNanoseconds > 0",
+     "effect": "sleeps that long (throws on cancellation); else no delay"
+    },
+    {
+     "at": "+7",
+     "cond": "script empty",
+     "effect": "replies .status(200); else removes and uses the first scripted reply"
+    },
+    {
+     "at": "+8",
+     "cond": "reply is .offline",
+     "effect": "throws URLError(.notConnectedToInternet); .status continues"
+    },
+    {
+     "at": "+9",
+     "cond": "HTTPURLResponse init fails",
+     "effect": "throws URLError(.badServerResponse); else returns ('{}', response)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  }
+ ],
+ "deps": {}
+}
