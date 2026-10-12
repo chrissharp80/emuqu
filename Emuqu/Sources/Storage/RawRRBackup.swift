@@ -821,3 +821,14 @@ final class RawRRBackup: @unchecked Sendable {
         return csv
     }
 }
+
+extension RawRRBackup {
+    /// Whether any backup's capture date lies within `window` of `date`.
+    /// The strap's start sequence asks this before it clears a recording: a
+    /// rescue backup is dated by the recording's own start.
+    func holdsBackup(capturedWithin window: TimeInterval, of date: Date) -> Bool {
+        indexLock.lock()
+        defer { indexLock.unlock() }
+        return index.contains { abs($0.captureDate.timeIntervalSince(date)) <= window }
+    }
+}

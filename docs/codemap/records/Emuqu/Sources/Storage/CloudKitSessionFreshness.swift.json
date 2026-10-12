@@ -314,6 +314,44 @@
    }
   },
   {
+   "key": "func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)",
+   "hash": "2540a45099197298",
+   "does": "Inside one SessionArchive.update (read, change and write under the archive's lock), decides again whether the iCloud copy is newer than the archived one as it now stands; if so replaces it with replacing(local, with: remote) and returns the replacement, otherwise leaves the session as it is (the update rewrites it unchanged) and returns nil. So an edit saved while the iCloud copy downloaded is seen and kept. Throws what update throws (fileNotFound when the session is gone).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/index.json",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "archived copy is as new as or newer than remote",
+     "effect": "returns from the change unchanged; the function returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "remote still newer",
+     "effect": "session replaced; replacement returned"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)": "ea2b3c0c3b9fc296",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5"
+   }
+  },
+  {
    "key": "func CloudKitSessionFreshness.keepSleep(of:in:)",
    "hash": "17b2a440d2ecb7b0",
    "does": "Copies local sleep start/end/segments/userAdjusted into merged; snapshot = merged's ?? local's.",
@@ -379,20 +417,18 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)": "ea2b3c0c3b9fc296",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.replaceLocalCopy(from:sessionId:remoteModifiedAt:)": "f5ae62f876a88625",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.replaceLocalCopy(from:sessionId:remoteModifiedAt:)": "4bf0e0fd84eb6307",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56"
    }
   },
   {
    "key": "func CloudPullCoordinator.replaceLocalCopy(from:sessionId:remoteModifiedAt:)",
-   "hash": "aeb3acf70bac54af",
-   "does": "Decodes the iCloud payload off-main, sets its modifiedAt to the record's, merges via replacing() with the lightweight local copy, archives with skipSameNightMerge and no re-upload request, marks uploaded (dropping a pending older local upload); returns refreshed=1 and a backfill id if the merged copy lacks a sleep snapshot.",
+   "hash": "afa0549ac68f97dc",
+   "does": "Decodes the iCloud payload off-main and sets its modifiedAt to the record's, then hands it to CloudKitSessionFreshness.replaceIfStillNewer, which decides again under the archive's lock — the decision that started the download was made before it, and a local edit saved meanwhile is newer. When the local copy is now as new or newer it logs and returns an empty outcome, leaving the edit and its pending upload in place. Otherwise it marks the session uploaded (dropping the older pending local upload) and returns refreshed=1 with a backfill id if the merged copy lacks a sleep snapshot. A session deleted here during the download (fileNotFound) is an empty outcome.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)"
@@ -411,27 +447,30 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "local lightweight retrieve returns nil",
-     "effect": "RecordOutcome() — nothing replaced"
+     "cond": "replaceIfStillNewer returned nil (edited here during the download)",
+     "effect": "log, RecordOutcome() — nothing replaced, pending upload kept"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "replacement.sleepSnapshot == nil",
      "effect": "backfillId = sessionId; else nil"
     },
     {
-     "at": "+13",
-     "cond": "decode/retrieve/archive throws",
+     "at": "+14",
+     "cond": "fileNotFound (deleted here during the download)",
+     "effect": "RecordOutcome()"
+    },
+    {
+     "at": "+17",
+     "cond": "decode/update throws anything else",
      "effect": "importFailure: key-wait / newer-schema skipped quietly, others set lastPullErrorMessage"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)": "fb11f0d1ca6227d1",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "8706cc7b863388cb",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)": "d68a5f48b5e3ea2d",

@@ -255,8 +255,16 @@ final class PolarManager: NSObject {
     /// Called when a recording left on the strap is downloaded so the strap
     /// can be cleared or reused, or when a download turns out not to belong
     /// to the session that asked for it. RRCollector backs it up via
-    /// RawRRBackup, dated by the recording's own start.
-    var onUnrecoveredDataRescued: ((StrapRecording) -> Void)?
+    /// RawRRBackup, dated by the recording's own start, and returns whether
+    /// the backup is on disk.
+    var onUnrecoveredDataRescued: ((StrapRecording) -> Bool)?
+
+    /// Backs `recording` up through `onUnrecoveredDataRescued`. False when
+    /// the backup failed or nothing is set to take it: the strap then still
+    /// holds the only copy, and must not be cleared.
+    func rescueToBackup(_ recording: StrapRecording) -> Bool {
+        onUnrecoveredDataRescued?(recording) ?? false
+    }
 
     // Streaming mode state
     var isStreaming: Bool = false

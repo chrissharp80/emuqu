@@ -441,8 +441,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms > Respiration Rate Estimation",
-   "hash": "fd1e1c412d03c5db",
-   "does": "Claims respiration rate is spectral only: resample RR to 4 Hz, FFT, HF-band peak to breaths/min, needs >=60 RR, accepted range 6-40 breaths/min. Code matches RespirationAnalyzer.estimateRespirationRate (guards rr.count>=60, resampled>=32, 6...40).",
+   "hash": "9ac57d9481c1add8",
+   "does": "Claims respiration rate is spectral only: RR resampled to 4 Hz, FFT, HF-band peak → breaths/min, needs ≥ 60 RR intervals, reported only when the peak is breathing (≥ 40 % of the band's power within ±0.02 Hz, ≥ 5 % of the strongest peak above 0.04 Hz), 6-40 sanity check. Matches RespirationAnalyzer.estimateRespirationRate and isBreathingPeak.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
@@ -452,7 +452,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {

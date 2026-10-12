@@ -118,7 +118,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "63153052a6b17518",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "de93f4b77cee1231",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)": "e00468009c5d4a58"
    }
   },
@@ -152,7 +152,7 @@
     {
      "kind": "silent-failure",
      "sev": "low",
-     "text": "A failed rescue backup is only logged; the session then fails with the gate's error, which does not say the downloaded beats were lost.",
+     "text": "A failed rescue backup is only logged. The beats are not lost — nothing on the device holds the recording, so it is not saved (isStrapRecordingSaved): the Recover card offers it and the next start rescues it before clearing — but the session fails with the gate's error, which does not say any of this.",
      "evidence": [
       "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:86"
      ],

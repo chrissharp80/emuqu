@@ -215,23 +215,30 @@ enum StrapRecordingPolicy {
         storedRecordingStart: Date?,
         alreadyDownloaded: Bool,
         predatesDownloadRecord: Bool,
-        archiveHasSessionNearStart: Bool
+        heldOnDisk: Bool
     ) -> Bool {
         guard hasStoredRecording, storedRecordingStart != nil else { return false }
         return !recordingIsSaved(
             alreadyDownloaded: alreadyDownloaded, predatesDownloadRecord: predatesDownloadRecord,
-            archiveHasSessionNearStart: archiveHasSessionNearStart
+            heldOnDisk: heldOnDisk
         )
     }
 
-    /// Whether the app already holds a recording the strap stores: it was
-    /// downloaded, or it began before the app kept that record and the
-    /// archive has a session that close to it. Only a saved recording may be
-    /// cleared from the strap.
+    /// Whether the app already holds a recording the strap stores. Only a
+    /// saved recording may be cleared from the strap.
+    ///
+    /// It must have been downloaded (or begun before the app kept that
+    /// record) AND be on this device: an archived session or a rescue backup
+    /// near its start (`heldOnDisk`). A download alone is not enough: the
+    /// record is written when the beats arrive, before anything stores them,
+    /// so a backup that failed or an app killed before the night was saved
+    /// left a recording marked downloaded that only the strap held, and the
+    /// next start cleared it. A recording read twice files a second rescue
+    /// backup; that is the cost of never clearing one the app lacks.
     static func recordingIsSaved(
-        alreadyDownloaded: Bool, predatesDownloadRecord: Bool, archiveHasSessionNearStart: Bool
+        alreadyDownloaded: Bool, predatesDownloadRecord: Bool, heldOnDisk: Bool
     ) -> Bool {
-        alreadyDownloaded || (predatesDownloadRecord && archiveHasSessionNearStart)
+        (alreadyDownloaded || predatesDownloadRecord) && heldOnDisk
     }
 
     // MARK: - Arming the strap's own recording

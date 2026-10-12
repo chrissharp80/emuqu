@@ -91,21 +91,22 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "7fad25aed3840f53",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.setAsideRunningRecording()": "e3da40d120f597d7",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.setAsideRunningRecording()": "953c1fd06a71f20c",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "ffd15a39296cbea9"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.setAsideRunningRecording()",
-   "hash": "d0f712bb5b2a0eab",
-   "does": "Sets aside the recording the strap is running before arming. Calls beginTransfer. H10 (any non-Verity type): downloads it with fetchRecording(recordedSince: nil, .attended) — which stops it and puts its start on the download record, so the start's own rescue skips it — and hands non-empty points to onUnrecoveredDataRescued. Verity Sense: only stops it (stopWithinBudget) and waits 500 ms for the sensor to list it as complete; the start sequence's rescue step then reads it with every other unsaved recording, so it is filed once.",
+   "hash": "1dd209c652918a4f",
+   "does": "Sets aside the recording the strap is running before arming. Calls beginTransfer. H10 (any non-Verity type): downloads it with fetchRecording(recordedSince: nil, .attended) — which stops it and puts its start on the download record — and backs non-empty points up through rescueToBackup; when that backup fails it logs and throws strapHoldsUndownloadedRecording, so arming stops before the start sequence clears the strap. Verity Sense: only stops it (stopWithinBudget) and waits 500 ms for the sensor to list it as complete; the start sequence's rescue step then reads it with every other unsaved recording, so it is filed once.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
-    "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift:61) writes a RawRRBackup under a new UUID",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)"
    ],
    "reads": [
     "mem:PolarManager.connectedDeviceType",
@@ -121,20 +122,20 @@
     {
      "at": "+2",
      "cond": "connectedDeviceType != .veritySense",
-     "effect": "fetchRecording(recordedSince: nil, .attended) (errors propagate); rescue the points when non-empty; return"
+     "effect": "fetchRecording(recordedSince: nil, .attended) (errors propagate), then the backup check; return"
     },
     {
      "at": "+4",
-     "cond": "downloaded stale recording has points",
-     "effect": "true → onUnrecoveredDataRescued(stale); false → nothing backed up"
+     "cond": "points empty, or rescueToBackup(stale) succeeded",
+     "effect": "continue to return; otherwise log external error and throw strapHoldsUndownloadedRecording"
     },
     {
-     "at": "+7",
+     "at": "+10",
      "cond": "Verity: strapAPI or connectedDeviceId nil",
      "effect": "throw PolarError.notConnected"
     },
     {
-     "at": "+8",
+     "at": "+11",
      "cond": "Verity: stop fails or times out",
      "effect": "error propagates and aborts arming; otherwise sleep 500 ms and return"
     }
@@ -142,10 +143,12 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "7c80b02fd97316d4",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
@@ -277,7 +280,7 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2bfae4a309856faa",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()": "68b1174b4c02a415",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()": "8dc26cb81c24d0f8",
     "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.startOfflinePpiRecording()": "5bb1d6244f4b89f0",
     "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
    }
@@ -335,13 +338,13 @@
   },
   {
    "key": "func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()",
-   "hash": "b6e545504bc8c657",
-   "does": "Reads the Verity offline PPI recordings the app does not already hold (fetchUnsavedOfflinePpiRecordings, every one required) and passes non-empty results to onUnrecoveredDataRescued; returns true when nothing needs keeping (all saved, none stored, empty, or rescued) and false when a read failed so the caller skips the clear.",
+   "hash": "ab96db246f63e940",
+   "does": "Reads the Verity offline PPI recordings the app does not already hold (fetchUnsavedOfflinePpiRecordings, every one required) and backs non-empty results up through rescueToBackup; returns true when nothing needs keeping (all saved, none stored, empty, or backed up) and false when a read or the backup failed, so the caller skips the clear and the recordings stay on the strap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchUnsavedOfflinePpiRecordings()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift:61)"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)"
    ],
    "reads": [],
    "writes": [
@@ -354,12 +357,17 @@
      "effect": "return true (safe to clear)"
     },
     {
-     "at": "+7",
+     "at": "+5",
+     "cond": "rescueToBackup(existing) failed",
+     "effect": "log warning, return false — caller leaves the recordings on the strap"
+    },
+    {
+     "at": "+10",
      "cond": "catch PolarError.noRecordingFound (nothing stored, or everything stored is already saved)",
      "effect": "return true"
     },
     {
-     "at": "+11",
+     "at": "+14",
      "cond": "any other error (fetchFailed for a partial download, BLE error)",
      "effect": "log warning, return false — caller leaves recordings on the strap"
     }
@@ -368,6 +376,7 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "58f6b558451d4e72",
     "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchUnsavedOfflinePpiRecordings()": "c35bd53f92ab3439",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -437,14 +446,14 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10RecordingSurfacingFailure()": "32a40b0de7578e87",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2bfae4a309856faa",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUndownloadedH10Recordings()": "ba54bdfc1b92face",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUndownloadedH10Recordings()": "948d0c8dcf7cc743",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.rescueUndownloadedH10Recordings()",
-   "hash": "63f851e77ff993da",
-   "does": "For every stored H10 exercise the app does not hold, downloads it by id (attended budget) and hands it to onUnrecoveredDataRescued; a failed download aborts arming with strapHoldsUndownloadedRecording.",
+   "hash": "c7d8c11c5831eb3d",
+   "does": "For every stored H10 exercise the app does not hold, downloads it by id (attended budget) and backs it up through rescueToBackup; a failed download or a failed backup aborts arming with strapHoldsUndownloadedRecording, so the start sequence never reaches the clear while the strap holds the only copy.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.unsavedExerciseIds(api:deviceId:)",
@@ -452,7 +461,7 @@
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(exerciseId:budget:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)",
-    "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift:61)"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)"
    ],
    "reads": [
     "mem:PolarManager.connectedDeviceId",
@@ -472,17 +481,23 @@
     {
      "at": "+2",
      "cond": "for each unsaved exercise id",
-     "effect": "beginTransfer + fetch + rescue"
+     "effect": "beginTransfer + fetch + backup"
     },
     {
      "at": "+8",
      "cond": "fetchRecording(exerciseId:) throws",
      "effect": "log external error and throw strapHoldsUndownloadedRecording (original error discarded)"
+    },
+    {
+     "at": "+12",
+     "cond": "rescueToBackup(rescued) failed",
+     "effect": "log external error and throw strapHoldsUndownloadedRecording"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.unsavedExerciseIds(api:deviceId:)": "633ab7b20353f39a",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(exerciseId:budget:)": "7854c4cd6d2a0ee8",

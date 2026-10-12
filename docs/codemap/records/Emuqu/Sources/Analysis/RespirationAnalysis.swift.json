@@ -1,18 +1,22 @@
 {
  "file": "Emuqu/Sources/Analysis/RespirationAnalysis.swift",
- "hash": "56aed55db9f5adc5",
- "role": "RR-interval-derived respiration rate: resamples RR at 4 Hz, mean-centres and Hann-windows the samples, zero-pads to a power of two, computes the power spectrum with a cached vDSP DFT and returns the 0.15-0.5 Hz peak as breaths/min.",
+ "hash": "89cce0780958aabd",
+ "role": "RR-interval-derived respiration rate: resamples RR at 4 Hz, mean-centres and Hann-windows the samples, zero-pads to a power of two, computes the power spectrum with a cached vDSP DFT and returns the 0.15-0.5 Hz peak as breaths/min, only when that peak is concentrated and not dwarfed by a slower rhythm (isBreathingPeak); otherwise nil.",
  "types": [
   "RespirationAnalyzer: enum — respiration-rate estimation"
  ],
- "state": [],
- "toplevel": "",
+ "state": [
+  "static RespirationAnalyzer.peakHalfWidthHz = 0.02",
+  "static RespirationAnalyzer.peakConcentrationMinimum = 0.4",
+  "static RespirationAnalyzer.peakHeightMinimum = 0.05"
+ ],
+ "toplevel": "Static threshold constants for isBreathingPeak; no other top-level code.",
  "flags": [],
  "units": [
   {
    "key": "func RespirationAnalyzer.estimateRespirationRate(_:fs:)",
    "hash": "39745895c2aaf5c0",
-   "does": "Estimates breaths/min from RR (ms): requires >=60 intervals and >=32 resampled points, gets the respiratory-band PSD peak, returns peak*60 if within 6-40, else nil.",
+   "does": "Estimates breaths/min from RR (ms): requires >=60 intervals and >=32 resampled points, gets the respiratory-band PSD peak when it is a breathing peak, returns peak*60 if within 6-40, else nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)",
@@ -41,7 +45,7 @@
     {
      "at": "+6",
      "cond": "respiratoryPeakFrequency non-nil",
-     "effect": "nil (empty/flat band) returns nil"
+     "effect": "nil (empty/flat band, noise or leakage) returns nil"
     },
     {
      "at": "+10",
@@ -54,7 +58,7 @@
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)": "370a51ed607d6998",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.powerSpectrum(_:)": "3c92a4cd4af203c3",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)": "342f29486d09ea7f",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)": "f8a48fa7b2e5bb60"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)": "3cd85b66762c1acf"
    }
   },
   {
@@ -103,10 +107,12 @@
   },
   {
    "key": "func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)",
-   "hash": "4e4d609b9f7e21d8",
-   "does": "Finds the max-power bin between floor(0.15/freqRes) and min(floor(0.5/freqRes), N/2), returns its frequency; nil when the range is empty or peak power is 0.",
+   "hash": "447082d6cbd16d5b",
+   "does": "Finds the max-power bin between floor(0.15/freqRes) and min(floor(0.5/freqRes), N/2) and returns its frequency when it is a breathing peak (isBreathingPeak); nil when the range is empty, the peak power is 0, or the peak is noise or leakage.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.isBreathingPeak(psd:peakBin:band:freqRes:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -122,8 +128,28 @@
     },
     {
      "at": "+16",
-     "cond": "peakPower > 0",
-     "effect": "false returns nil (flat band)"
+     "cond": "peakPower > 0 and isBreathingPeak",
+     "effect": "false returns nil (flat band, noise or leakage)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.isBreathingPeak(psd:peakBin:band:freqRes:)": "2b41644deed31c5c"
+   }
+  },
+  {
+   "key": "func RespirationAnalyzer.isBreathingPeak(psd:peakBin:band:freqRes:)",
+   "hash": "6d98252f20c81e48",
+   "does": "Whether the band's largest bin is breathing: the bins within ±peakHalfWidthHz (0.02 Hz, at least one bin) of it hold at least peakConcentrationMinimum (40 %) of the band's power, and it is at least peakHeightMinimum (5 %) of the strongest bin from 0.04 Hz to the band's top. Rejects white or 1/f noise (power spread over the band) and leakage from a slower rhythm (a band peak a millionth of the slow peak). Thresholds from synthetic five-minute windows: 95-100 % of breathing kept, 0-3 % of noise passed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "near-peak power >= 40 % of band power AND peak >= 5 % of the strongest bin above 0.04 Hz",
+     "effect": "true; else false"
     }
    ],
    "flags": [],

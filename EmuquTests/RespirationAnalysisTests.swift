@@ -85,14 +85,23 @@ final class RespirationAnalysisTests: XCTestCase {
 
         let result = RespirationAnalyzer.estimateRespirationRate(rr)
 
-        // Should return nil or a rate >= 6 bpm
-        if let rate = result {
-            XCTAssertGreaterThanOrEqual(
-                rate,
-                6.0,
-                "Respiration rate should not be below 6 bpm"
-            )
+        // The band's largest bin is leakage from the slow rhythm (8.9 at the
+        // band's edge, a millionth of its power), not breathing.
+        XCTAssertNil(result, "a 3 breaths/min modulation was reported as \(result.map { String($0) } ?? "nil") breaths/min")
+    }
+
+    /// Beat-to-beat noise with no breathing in it has a largest bin like any
+    /// spectrum; that is not a breathing rate.
+    func testNoiseWithoutBreathingReturnsNil() {
+        var state: UInt64 = 12_345
+        func uniform() -> Double {
+            state = (1_103_515_245 &* state &+ 12_345) % 2_147_483_648
+            return Double(state) / 2_147_483_648
         }
+        // Sum of 12 uniforms minus 6: approximately normal, unit variance.
+        let rr = (0 ..< 360).map { _ in 950.0 + 40.0 * ((0 ..< 12).reduce(0.0) { sum, _ in sum + uniform() } - 6.0) }
+
+        XCTAssertNil(RespirationAnalyzer.estimateRespirationRate(rr))
     }
 
     func testRejectsImplausiblyHighRate() {

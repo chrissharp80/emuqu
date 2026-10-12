@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Storage/RawRRBackup.swift",
- "hash": "b318906aa9f92bb8",
+ "hash": "83ffd4617253c01f",
  "role": "Crash-safety net for raw RR beats: writes every recording's beats to RRBackup/ in the App Group container (one-shot encrypted single-file JSON, or append-only header+JSONL via RawRRBackup+Streaming.swift), keeps a JSON index of backups, and serves retrieve/list/discard/purge/reconcile APIs to recovery, archive and diagnostics code.",
  "types": [
-  "RawRRBackup: class (@unchecked Sendable) — raw RR backup store; extended by RawRRBackup+Streaming.swift, RawRRBackup+IndexRecovery.swift and SessionStorageDiagnostic.swift",
+  "RawRRBackup: class (@unchecked Sendable) — raw RR backup store; extended by an in-file extension (holdsBackup), RawRRBackup+Streaming.swift, RawRRBackup+IndexRecovery.swift and SessionStorageDiagnostic.swift",
   "RawRRBackup.BackupEntry: struct (Codable) — decoded backup (id, captureDate, deviceId, points, hash)",
   "RawRRBackup.BackupHeader: struct (Codable) — header file of the append-only format",
   "RawRRBackup.BackupIndex: struct (Codable) — index row (fileName for one-shot, backedUpCount for append-only, archived flag, lastBackupTime) with schemaVersion key",
@@ -895,7 +895,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "976677304095d851",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "bb0f59a12a13d1fe",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.isDue(lastBackup:interval:)": "0b21d536a80fc8f6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1333,6 +1333,20 @@
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "91d7a1453b421595"
    }
+  },
+  {
+   "key": "func RawRRBackup.holdsBackup(capturedWithin:of:)",
+   "hash": "98b2a39095e68cfd",
+   "does": "Whether any indexed backup's capture date lies within `window` seconds of `date`, read under indexLock. Used by RRCollector.isStrapRecordingSaved: a rescue backup is dated by the strap recording's start.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RawRRBackup.index"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}
