@@ -1,11 +1,12 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift",
- "hash": "7032d0c3afa31d85",
+ "hash": "d69cb76a78ca7326",
  "role": "Main-actor @Observable chat view model shared by typed chat and voice: holds turns, streaming state, consent/queued sends, cached fact registry/tool schema, and the public chat actions (send, cancel, clear, export, regenerate, remember, refresh context). ComposerState is the narrow observable the input bar binds to.",
  "types": [
   "ComposerState: class (@Observable @MainActor) — canSend + returnedDraft for the chat input bar",
   "AssistantViewModel: class (@Observable @MainActor) — singleton chat conversation owner; extended by +Routing/+RoutingForwarding/+Tools/+Context files",
-  "AssistantViewModel.SendOutcome: enum — dispatched/queued/rejectedEmpty/rejectedNoProvider/requiresConsent(ProviderID)"
+  "AssistantViewModel.SendOutcome: enum — dispatched/queued/rejectedEmpty/rejectedNoProvider/requiresConsent(ProviderID)",
+  "AssistantViewModel.PendingConsentRequest: struct — a message or regeneration held for the consent sheet (provider, text, fromVoice, regenerate)"
  ],
  "state": [
   "mem:AssistantViewModel.shared (static singleton)",
@@ -404,7 +405,7 @@
   },
   {
    "key": "func AssistantViewModel.send(text:fromVoice:)",
-   "hash": "b0b062a6d2321c4c",
+   "hash": "5895353aa5828dd9",
    "does": "Entry for a user message: trims, rejects empty, refuses if Flo off/notice not accepted, answers locally if the medical guard fires, rejects with an error if the active provider is unavailable, serves a voice turn from DeterministicIntent when matched and no stream is in flight (on the device, so before the consent check), holds the text and returns .requiresConsent if the active provider needs consent, queues behind an in-flight stream, otherwise appends the user turn and dispatches to the provider.",
    "entry": null,
    "calls": [
@@ -1062,7 +1063,7 @@
   },
   {
    "key": "func AssistantViewModel.holdRegenerationForConsent(userText:)",
-   "hash": "1f965fc0865ca1bb",
+   "hash": "f08ad06a10034c26",
    "does": "When the selected provider has no data-sharing consent, holds a regeneration request (provider, the user text, regenerate: true) in pendingConsentRequest so the chat shows the consent sheet, and returns true; false when consent is on file. Routing moves turns only to consented providers, so the selected one is the only one that can need it.",
    "entry": null,
    "calls": [

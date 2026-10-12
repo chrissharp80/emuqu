@@ -1,0 +1,100 @@
+{
+ "file": "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift",
+ "hash": "cd537eac605cc2e3",
+ "role": "WatchSessionManager's pure helpers: how the iPhone's voice-chat reply reads on the Watch (refusal status line, state word) and how long a queued control request stays actionable (expiresAt stamping). Split out of WatchSessionManager.swift.",
+ "types": [
+  "WatchSessionManager: extension — voice-chat reply wording and queued-request expiry"
+ ],
+ "state": [
+  "mem:WatchSessionManager.queuedRequestLifetime = 60 s",
+  "mem:WatchSessionManager.queuedStopLifetime = 12 h"
+ ],
+ "toplevel": "Static constants only; main-actor by the Watch target's default isolation, as in WatchSessionManager.swift.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WatchSessionManager.voiceChatRefusalStatus(_:)",
+   "hash": "e669d198f795bfed",
+   "does": "Refusal status for a voice-chat reply: nil unless ok == false and needsDisclaimer is not true; then the shared controlReplyStatus wording with empty success text.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ok == false and needsDisclaimer != true",
+     "effect": "false (accepted, ok missing, or disclaimer case): nil; true: controlReplyStatus wording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5"
+   }
+  },
+  {
+   "key": "func WatchSessionManager.voiceChatStateWord(_:)",
+   "hash": "4402ec3a6ca8f163",
+   "does": "Maps the iPhone voice-chat token to a localized word; nil for idle or an unknown token, where callers supply their own resting word (\"Off\" here, \"Talk to AI\" on StartScreen). The one table for both.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "starting",
+     "effect": "\"Connecting…\""
+    },
+    {
+     "at": "+3",
+     "cond": "listening",
+     "effect": "\"Listening\""
+    },
+    {
+     "at": "+4",
+     "cond": "thinking",
+     "effect": "\"Thinking…\""
+    },
+    {
+     "at": "+5",
+     "cond": "speaking",
+     "effect": "\"Speaking\""
+    },
+    {
+     "at": "+6",
+     "cond": "alert",
+     "effect": "\"Alert\""
+    },
+    {
+     "at": "+7",
+     "cond": "default (idle/unknown)",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchSessionManager.withQueueExpiry(_:)",
+   "hash": "c9c980f418c8582f",
+   "does": "Returns a copy of payload with expiresAt (seconds since 1970) = now + queuedStopLifetime (12 h) for an End (stopWorkoutFromWatch), else now + queuedRequestLifetime (60 s).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "payload is an End",
+     "effect": "12 h lifetime; else 60 s"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

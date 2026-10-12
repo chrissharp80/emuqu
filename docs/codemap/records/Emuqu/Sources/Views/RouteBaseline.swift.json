@@ -1,0 +1,83 @@
+{
+ "file": "Emuqu/Sources/Views/RouteBaseline.swift",
+ "hash": "e21fd0a4f58916a9",
+ "role": "RouteBaseline: the distance-weighted pace and sample-weighted HR totals over a route's prior runs, used by FitnessSummaryCards.routeHistorySummary. Split out of FitnessPostSummaryView+Cards.swift.",
+ "types": [
+  "RouteBaseline: struct — summed distance/duration and HR sum/count over a route's prior runs, built by init(priorRuns:)"
+ ],
+ "state": [],
+ "toplevel": "Stored-property defaults are zero. No other top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init RouteBaseline(priorRuns:)",
+   "hash": "9d8c9e285b156bc5",
+   "does": "Folds every prior run into the baseline via accumulatePace and accumulateHR (distance-weighted pace totals plus a sample-weighted HR sum/count).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RouteBaseline.swift::func RouteBaseline.accumulatePace(from:)",
+    "Emuqu/Sources/Views/RouteBaseline.swift::func RouteBaseline.accumulateHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each prior run",
+     "effect": "accumulate pace and HR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RouteBaseline.swift::func RouteBaseline.accumulateHR(from:)": "75d4dda83ecbf2dd",
+    "Emuqu/Sources/Views/RouteBaseline.swift::func RouteBaseline.accumulatePace(from:)": "b5d587a98ac88ba8"
+   }
+  },
+  {
+   "key": "func RouteBaseline.accumulatePace(from:)",
+   "hash": "c07598e25c256584",
+   "does": "Adds a prior run's distance and duration to the totals only when distance > 100 m and duration > 60 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance missing/<=100 m or duration missing/<=60 s",
+     "effect": "return without contributing; else add distance and duration"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func RouteBaseline.accumulateHR(from:)",
+   "hash": "ac3d585f49126849",
+   "does": "Adds every positive per-sample heart rate of a prior run to the HR sum and count (sample-weighted, so longer runs weigh more; zero readings are strap dropouts).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil",
+     "effect": "?? [] → contributes nothing"
+    },
+    {
+     "at": "+1",
+     "cond": "hr > 0 (for-where)",
+     "effect": "positive HR added; zero/negative skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

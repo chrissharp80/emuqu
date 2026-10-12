@@ -1,15 +1,16 @@
 {
  "file": "Emuqu/Sources/Models/HRVSession.swift",
- "hash": "8b6b412d35527453",
+ "hash": "71e0268be94a3ca4",
  "role": "Despite its name, holds the skipRRSeries decoding flag, the ReadingTag model with its 14 system preset tags, and the Color hex helpers.",
  "types": [
   "CodingUserInfoKey: extension — adds skipRRSeries flag",
   "ReadingTag: struct — user/system tag on a session (id,name,colorHex,isSystem)",
+  "ReadingTag.SystemTagDefinition: private struct (Sendable) — one system-tag table row: suffix, English name, hex, @Sendable closure returning the localized name",
   "Color: extension — init?(hex:) and hexString"
  ],
  "state": [
   "mem:CodingUserInfoKey.skipRRSeries (static let)",
-  "mem:ReadingTag.systemTagDefinitions (private static table of 14 (suffix, English name, hex, @Sendable closure returning the localized name))",
+  "mem:ReadingTag.systemTagDefinitions (private static table of 14 SystemTagDefinition rows)",
   "mem:ReadingTag.morning…menstrual (14 static lets built from the table, ids 00000000-0000-0000-0000-00000000000{1..E})"
  ],
  "toplevel": "Static let skipRRSeries = decodeFlag(\"skipRRSeries\"); 14 static let system tags each initialised via definedTag(suffix) at first access. ReadingTag synthesized Codable/Hashable/Identifiable/Sendable.",
@@ -146,6 +147,18 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
+  },
+  {
+   "key": "init ReadingTag.SystemTagDefinition(_:_:_:_:)",
+   "hash": "57aa403639c8fcbc",
+   "does": "Unlabelled memberwise init for one system-tag table row: stores the uuid suffix, English storage name, color hex and the closure returning the localized name.",
+   "entry": "Called once per row of ReadingTag.systemTagDefinitions when the table is first read.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ReadingTag.systemTag(suffix:name:colorHex:)",

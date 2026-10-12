@@ -337,7 +337,14 @@ final class AssistantViewModel {
     /// the user doesn't have to retype after accepting the sheet.
     /// `regenerate` marks a request held by `regenerateLast()`: accepting
     /// re-runs the regeneration instead of sending `text` as a new message.
-    var pendingConsentRequest: (provider: ProviderID, text: String, fromVoice: Bool, regenerate: Bool)?
+    var pendingConsentRequest: PendingConsentRequest?
+
+    struct PendingConsentRequest {
+        let provider: ProviderID
+        let text: String
+        let fromVoice: Bool
+        let regenerate: Bool
+    }
 
     /// Send a free-form user message. `fromVoice` flags the next dispatch()
     /// so the system prompt includes the voice overlay (1–3 sentences, no
@@ -375,7 +382,7 @@ final class AssistantViewModel {
         if fromVoice, !isStreaming, servedDeterministically(trimmed) { return .dispatched }
         let activeProvider = registry.activeProvider.id
         if AppDependencies.current.providers.providerConsentTracker.requiresConsent(activeProvider) {
-            pendingConsentRequest = (provider: activeProvider, text: trimmed, fromVoice: fromVoice, regenerate: false)
+            pendingConsentRequest = PendingConsentRequest(provider: activeProvider, text: trimmed, fromVoice: fromVoice, regenerate: false)
             return .requiresConsent(activeProvider)
         }
         if isStreaming { return queueBehindStream(trimmed, fromVoice: fromVoice) }
@@ -710,7 +717,7 @@ final class AssistantViewModel {
     private func holdRegenerationForConsent(userText: String) -> Bool {
         let active = registry.activeProvider.id
         guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(active) else { return false }
-        pendingConsentRequest = (provider: active, text: userText, fromVoice: false, regenerate: true)
+        pendingConsentRequest = PendingConsentRequest(provider: active, text: userText, fromVoice: false, regenerate: true)
         return true
     }
 

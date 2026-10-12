@@ -216,10 +216,11 @@ final class EmailContactStore {
     /// place; otherwise saves stay blocked.
     private static func setAsideUndecodable(_ url: URL, reason: Error) -> Bool {
         let backup = url.deletingLastPathComponent().appendingPathComponent(undecodableBackupName)
-        let copied = attempt("emailContacts.setAside") { () throws -> Void in
+        let setAside: Void? = attempt("emailContacts.setAside") {
             if FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.removeItem(at: backup) }
             try FileManager.default.copyItem(at: url, to: backup)
-        } != nil
+        }
+        let copied = setAside != nil
         debugLog("[EmailContact] store failed to decode (\(reason)) — \(copied ? "set aside; starting an empty book" : "could not set it aside; blocking saves")", level: .error)
         return copied
     }

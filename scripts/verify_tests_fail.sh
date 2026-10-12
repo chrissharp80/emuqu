@@ -887,8 +887,8 @@ mutate "morning_fetch_skips_the_stop" "EmuquTests/StrapNightTests" \
 # yet, so "silent" is the starting state of every workout. Without the grace
 # the user is told their strap is missing on the first tick.
 mutate "strap_notice_before_strap_can_speak" "EmuquTests/WorkoutTickLogicTests" \
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift');s=p.read_text();o='                  TimeInterval(inputs.recordingElapsedSeconds) > strapNoticeGraceSec,\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift');s=p.read_text();o='                  TimeInterval(inputs.recordingElapsedSeconds) > strapNoticeGraceSec,\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # Only one thread crashed. Flattening every thread buries the frames that
 # matter under hundreds of idle ones, which is how a crash report becomes

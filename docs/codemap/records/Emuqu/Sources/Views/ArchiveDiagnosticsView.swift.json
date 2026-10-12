@@ -1,0 +1,908 @@
+{
+ "file": "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift",
+ "hash": "0f850bb2c0ca0b6e",
+ "role": "ArchiveDiagnosticsView: the archive diagnostics/maintenance settings screen (index listing, file-system scan, repair, clear-all, RR storage audit, MetricKit/memory trace links). Split out of ExportAndArchiveViews.swift.",
+ "types": [
+  "ArchiveDiagnosticsView: struct (View) — archive diagnostics/maintenance screen"
+ ],
+ "state": [
+  "mem:ArchiveDiagnosticsView.diagnosticInfo/isRepairing/showingRepairConfirm/showingClearConfirm/repairResult/showingResult/rrAuditReport/rrAuditRunning (@State)",
+  "file:<group.com.chrissharp.flowrecovery>/<AppConfig.archiveDirectoryName> (scanned / wiped)",
+  "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace (@State, loaded once per appear)",
+  "static ArchiveDiagnosticsView.nonSessionFileNames (index, deleted list and CloudKitSyncState sidecars)"
+ ],
+ "toplevel": "diagnosticInfo initial value is localized 'Loading...'. Reached from SettingsPages+DiagnosticActions.swift:306.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ArchiveDiagnosticsView.body",
+   "hash": "dbbee4333908d121",
+   "does": "withAlerts(List of archiveIndexSection, actionsSection, fileSystemSection) with title 'Archive Diagnostics' and a .task that runs refreshDiagnostics().",
+   "entry": "SwiftUI body; .task on appear",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.withAlerts(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.archiveIndexSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.fileSystemSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "3976bbadecc8b0ef",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.withAlerts(_:)": "a3e712c46f995143",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection": "613bf2300f9eee9f",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.archiveIndexSection": "d3ba28e525b9d241",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.fileSystemSection": "3ce5751edd7f9941",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.withAlerts(_:)",
+   "hash": "40b1040b1ce95650",
+   "does": "Attaches three alerts: 'Repair Archive?' (repairDialogActions), 'Clear All Data?' (clearDialogActions, message says iCloud copies sync back), and 'Result' showing repairResult.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairDialogActions",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearDialogActions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:ArchiveDiagnosticsView.repairResult"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearDialogActions": "0d119013a2a05cb5",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairDialogActions": "ff99b27cdd94e5f5"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.archiveIndexSection",
+   "hash": "5bed5f6ad16296a0",
+   "does": "Section 'Archive Index' showing diagnosticInfo monospaced and selectable.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.actionsSection",
+   "hash": "d1b1c0dba04f113b",
+   "does": "Sample data section, RR storage audit, system diagnostics and actions sections.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.demoSessionSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.rrStorageAuditSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.systemDiagnosticsSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection2": "e235c8e06fca77bb",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.demoSessionSection": "94a986d5ab1fd10c",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.rrStorageAuditSection": "5235a11fa911b4ec",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.systemDiagnosticsSection": "c219383344700074"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.demoSessionSection",
+   "hash": "6880fbc2fd60cb40",
+   "does": "Renders SampleDataSection().",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.body": "575c025b9196edff"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.actionsSection2",
+   "hash": "0c9a870a67216558",
+   "does": "Section 'Actions' with refresh, repair and clear-all buttons; repair and clear-all are disabled while a repair runs.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.refreshButton",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairArchiveButton",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearAllArchiveDataButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearAllArchiveDataButton": "d070b47e87fb23a1",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.refreshButton": "33481d05b1154852",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairArchiveButton": "8343b24501651e64"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.refreshButton",
+   "hash": "95c8ffcfda7826d2",
+   "does": "Button 'Refresh' running refreshDiagnostics in a Task.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "3976bbadecc8b0ef"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.repairArchiveButton",
+   "hash": "7cef07655148cee7",
+   "does": "Button 'Repair Archive' setting showingRepairConfirm.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.showingRepairConfirm"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.clearAllArchiveDataButton",
+   "hash": "c38537955fe5f5bc",
+   "does": "Destructive button 'Clear All Archive Data' setting showingClearConfirm.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.showingClearConfirm"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.fileSystemSection",
+   "hash": "48fc3a647a3a2cea",
+   "does": "Section 'File System' with the scan button.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.scanArchiveDirectoryButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.scanArchiveDirectoryButton": "b76d17183f0a05b3"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.scanArchiveDirectoryButton",
+   "hash": "33d12ce7acb3147c",
+   "does": "Button 'Scan Archive Directory' running scanFileSystem in a Task.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.scanFileSystem()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.scanFileSystem()": "fc86f92b3a71529b"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.refreshDiagnostics()",
+   "hash": "971aaacc0e5f20d9",
+   "does": "Snapshots archive entries and sets diagnosticInfo to indexReport(entries) computed on a detached userInitiated task.",
+   "entry": ".task on view appear, Refresh button, after repair/clear",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.indexReport(entries:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.diagnosticInfo"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.indexReport(entries:)": "efcb883f4b785ee6"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.indexReport(entries:)",
+   "hash": "016e07088ae0b07b",
+   "does": "Builds the index report: count, then for up to 50 entries the POSIX date, RMSSD (1 dp, app locale, '?' if nil), 8-char id prefix and last 40 chars of filePath, plus '… and N more'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "entries empty",
+     "effect": "true: return count + 'No sessions in index.'; false: list entries"
+    },
+    {
+     "at": "+9",
+     "cond": "loop over first 50 entries",
+     "effect": "one block per entry"
+    },
+    {
+     "at": "+10",
+     "cond": "entry.meanRMSSD nil",
+     "effect": "nil: '?'; else formatted"
+    },
+    {
+     "at": "+15",
+     "cond": "entries.count > 50",
+     "effect": "true: appends '… and N more'; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.scanFileSystem()",
+   "hash": "ee6723d03e29f0cb",
+   "does": "Snapshots the index's file names and sets diagnosticInfo to fileSystemReport computed on a detached task.",
+   "entry": "Scan button",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.fileSystemReport(indexedFileNames:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.diagnosticInfo"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.fileSystemReport(indexedFileNames:)": "1cf2e63fa256c7c6"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.fileSystemReport(indexedFileNames:)",
+   "hash": "a8146ec961baf54c",
+   "does": "Lists the App Group archive directory and returns its path plus fileCensus, or an error string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.containerUnavailableMessage",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.fileCensus(_:indexedFileNames:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "file:<app group>/<archiveDirectoryName>/*"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "App Group container URL unavailable",
+     "effect": "nil: returns containerUnavailableMessage (even though SessionArchive falls back to Documents at Archive.swift:225, which this scan never looks at); else continue"
+    },
+    {
+     "at": "+10",
+     "cond": "contentsOfDirectory threw",
+     "effect": "catch: appends 'Error scanning: <error>' to the report"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.fileCensus(_:indexedFileNames:)": "1f0abc31f397c217",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.containerUnavailableMessage": "94f11d97ec029fd8"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.containerUnavailableMessage",
+   "hash": "d3aa3a3959480bfc",
+   "does": "Localized 'Error: the app's storage container can't be opened.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.fileCensus(_:indexedFileNames:)",
+   "hash": "9d1332c26849fae5",
+   "does": "Counts .json files other than nonSessionFileNames (index, deleted list, CloudKit sync sidecars) as session files, .encrypted files and index.json presence; appends encryptedFileReport, the index entry count and the number of session files whose name no index entry carries ('Files not in the index').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.encryptedFileReport(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "index.json found",
+     "effect": "'present', else 'missing'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.encryptedFileReport(_:)": "48d0ea02fd0447d4"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.encryptedFileReport(_:)",
+   "hash": "5753f906dd9b9318",
+   "does": "Lists up to 10 .encrypted file names, '… and N more', and a hint to run Repair; '' when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no encrypted files",
+     "effect": "return ''"
+    },
+    {
+     "at": "+4",
+     "cond": "loop over first 10",
+     "effect": "one line each"
+    },
+    {
+     "at": "+7",
+     "cond": "more than 10",
+     "effect": "append '… and N more'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.performRepair()",
+   "hash": "ca02ca1dee38c1f9",
+   "does": "Sets isRepairing, notes the index size, runs SessionArchive.repairArchive() on a detached task (deletes .encrypted files, rebuilds index from .json files, saves index), posts the archive-changed signal, then reports 'N sessions recovered' as rebuilt size minus the earlier size (never below 0), shows the result and refreshes diagnostics.",
+   "entry": "Repair alert 'Repair' button",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [
+    "file:archive dir"
+   ],
+   "writes": [
+    "file:archive/*.encrypted (deleted)",
+    "archive:index.json (rebuilt)",
+    "mem:ArchiveDiagnosticsView.isRepairing",
+    "mem:ArchiveDiagnosticsView.repairResult"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same repair flow as TroubleshootingPage.repairArchive (detached repairArchive + result alert) with different message text.",
+     "evidence": [
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:719",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:497"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "7f0719dde14f31e9",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "3976bbadecc8b0ef"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.clearAllData()",
+   "hash": "93d0c1f40b4c9998",
+   "does": "Runs wipeArchiveDirectory on a detached task; on success resets the archive's in-memory index and CloudKitSyncManager's local sync state (its sidecar files were in the wiped directory) and bumps ArchiveSignal; shows outcome message and refreshes diagnostics. RawRRBackup is a separate store and is left alone.",
+   "entry": "Clear alert 'Clear Everything' button",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive in-memory index (reset)",
+    "file:<app group>/<archiveDirectoryName> (deleted + recreated)",
+    "mem:ArchiveDiagnosticsView.repairResult",
+    "mem:CloudKitSyncManager sync state (reset)",
+    "notif:flowRecoveryArchiveChanged (via ArchiveSignal)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "outcome.cleared",
+     "effect": "true: reset archive memory + notify; false: only message"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "The directory is removed on a detached task without archiveLock while the archive's in-memory index is still full; resetInMemoryStateAfterPurge runs only afterwards on main, so an index save landing in between (sleep refresh, sync pull) rewrites index.json listing files that no longer exist.",
+     "evidence": [
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:740",
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:742"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "68bf143978c6bac0",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "3976bbadecc8b0ef",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()": "5aaf333466e29f4a",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "405b128d24c6a5b0"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.wipeArchiveDirectory()",
+   "hash": "9f862013f819a65c",
+   "does": "Deletes and recreates <App Group>/<archiveDirectoryName>; returns (true, 'All archive data cleared. Restart…') or (false, error message).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.containerUnavailableMessage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<app group>/<archiveDirectoryName>"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "App Group container URL unavailable",
+     "effect": "nil: (false, container-unavailable message); else continue"
+    },
+    {
+     "at": "+10",
+     "cond": "removeItem/createDirectory threw",
+     "effect": "catch: (false, 'Error clearing data: …'); a removeItem success followed by createDirectory failure leaves the archive dir missing and reports failure, so the in-memory index is not reset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.containerUnavailableMessage": "94f11d97ec029fd8"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.rrStorageAuditSection",
+   "hash": "dd522e4f8f2c19e9",
+   "does": "Section 'RR Storage Audit': summary and detail link when a report exists, else explanatory text; always the run button.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.rrAuditSummary(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.rrAuditDetailLink(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.auditingSection",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rrAuditReport non-nil",
+     "effect": "true: summary + per-session link; false: explanatory caption"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.rrAuditDetailLink(_:)": "e614b67d0435f7b5",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.rrAuditSummary(_:)": "7b8471251a0df13b",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.auditingSection": "0cc2b145ef4a4864",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.auditingSection",
+   "hash": "1e1f3bbf67afa6b9",
+   "does": "Button running runRRAudit, disabled while an audit runs.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.runRRAudit()",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.rrAuditButtonLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.runRRAudit()": "6f9613606ae9dfaa",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.rrAuditButtonLabel": "698c46f688e64e8f"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.rrAuditButtonLabel",
+   "hash": "753977f00d955373",
+   "does": "Spinner + 'Auditing…' while running, else 'Run RR Storage Audit' label.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rrAuditRunning",
+     "effect": "true: progress + Auditing…; false: magnifyingglass label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.rrAuditDetailLink(_:)",
+   "hash": "dcb033161d1eef80",
+   "does": "NavigationLink to RRStorageAuditDetailView(report) labelled with the session count.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body; link tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.body": "cbb59a348b5bf5be"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.rrAuditSummary(_:)",
+   "hash": "79527d9fe4af8585",
+   "does": "Monospaced VStack of audit counts (total, both, archive only, backup-only, neither), exceptions, divider and archive/backup directory sizes.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.auditRow(_:_:color:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.rrAuditExceptions(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.byteString(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.auditRow(_:_:color:)": "98e673d13fe0ecea",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.byteString(_:)": "4111b288819957bf",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.rrAuditExceptions(_:)": "6a32efb93b5cff2e"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.rrAuditExceptions(_:)",
+   "hash": "77b386adadbcb79c",
+   "does": "Adds rows for unreadable files and orphaned backups when non-zero.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.auditRow(_:_:color:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "unreadableCount > 0",
+     "effect": "true: red 'Unreadable file' row; false: none"
+    },
+    {
+     "at": "+5",
+     "cond": "orphanedBackupIds non-empty",
+     "effect": "true: blue orphaned backups row; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.auditRow(_:_:color:)": "98e673d13fe0ecea"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.auditRow(_:_:color:)",
+   "hash": "1be620d95e02ee69",
+   "does": "HStack label (secondary) and value in the given colour (default .primary).",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.byteString(_:)",
+   "hash": "00967ff9118fdd4d",
+   "does": "ByteCountFormatter file-style string for a byte count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.runRRAudit()",
+   "hash": "631d9c1b6337daa5",
+   "does": "Sets rrAuditRunning, runs SessionStorageDiagnostic.run(archive, backup) on a detached task, then on main stores the report and clears the running flag.",
+   "entry": "Audit button",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.run(archive:backup:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "file:RRBackup directory"
+   ],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.rrAuditReport",
+    "mem:ArchiveDiagnosticsView.rrAuditRunning"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.run(archive:backup:)": "08526c5b72abadef"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.systemDiagnosticsSection",
+   "hash": "3015a31788ac547c",
+   "does": "Section 'System Diagnostics' with explanation, keyboard-capture link and diagnosticsLinks; a .task loads the diagnostic files once per appear.",
+   "entry": ".task on appear",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.diagnosticsLinks",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.loadDiagnosticFiles()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.loadDiagnosticFiles()": "f24a603700b24b34",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection": "cf7ea619f1ddb4d1",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.diagnosticsLinks": "898a271b494fd275",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.loadDiagnosticFiles()",
+   "hash": "1465c3fb0a96c9d6",
+   "does": "Reads MetricKit history and the last 1000 memory-trace samples from SystemDiagnosticsManager into @State.",
+   "entry": "systemDiagnosticsSection .task",
+   "calls": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)"
+   ],
+   "reads": [
+    "file:MetricKit JSONL / memory trace (tails)"
+   ],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()": "0738a50dce829631",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "305a731977df20f5"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.diagnosticsLinks",
+   "hash": "ce14f46f931a69ab",
+   "does": "From the loaded metricKitHistory / memoryTrace state: 'No diagnostic data yet…' when both empty, else the two links.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.metricKitHistoryLink(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.memoryTraceLink(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "file:SystemDiagnosticsManager metricKit JSONL",
+    "file:SystemDiagnosticsManager memory trace JSONL"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "history and trace both empty",
+     "effect": "explanatory text; else links"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.memoryTraceLink(_:)": "859f5cf85599e1c7",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.metricKitHistoryLink(_:)": "d0a5a9abe3264e3d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.metricKitHistoryLink(_:)",
+   "hash": "225676b5aa1a8f7d",
+   "does": "NavigationLink to MetricKitHistoryView when history non-empty.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body; link tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MetricKitHistoryView.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "history non-empty",
+     "effect": "true: link; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MetricKitHistoryView.body": "83d3102804c5309e"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.memoryTraceLink(_:)",
+   "hash": "6cc2b244996f2ca3",
+   "does": "NavigationLink to MemoryTraceView when trace non-empty.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body; link tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trace non-empty",
+     "effect": "true: link; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.body": "7dd41f3a576dec2e"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.repairDialogActions",
+   "hash": "798196c25c674514",
+   "does": "Repair alert buttons: Cancel (no-op) and Repair → performRepair().",
+   "entry": "Alert button taps",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.performRepair()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.performRepair()": "f23750028110c5a8"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.clearDialogActions",
+   "hash": "1cb96372b60c5148",
+   "does": "Clear alert buttons: Cancel (no-op) and destructive 'Clear Everything' → clearAllData().",
+   "entry": "Alert button taps",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.clearAllData()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.clearAllData()": "18938d5e0e80bc11"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection",
+   "hash": "fcca55b686f94fc8",
+   "does": "NavigationLink to KeyboardCaptureView labelled 'Capture keyboard performance profile'.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body; link tap",
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.body": "d12e0ecdda3e59ec"
+   }
+  }
+ ],
+ "deps": {}
+}

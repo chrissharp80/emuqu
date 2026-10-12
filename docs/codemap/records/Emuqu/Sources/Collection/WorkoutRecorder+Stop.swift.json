@@ -287,7 +287,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a"
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a"
    }
   },
   {
@@ -328,7 +328,7 @@
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS"
    ],
    "reads": [
     "mem:WorkoutLocationManager.track"
@@ -347,7 +347,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)": "151735d656b1bb70",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1"
    }
   },
   {
@@ -428,32 +428,38 @@
   },
   {
    "key": "func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)",
-   "hash": "8bfb7d64337102c5",
-   "does": "Builds an HRRCaptureService (120 s window) and launches a detached .userInitiated task running captureHRRAndRearchive with the session id, archive, Polar manager, the workout stream's start stamp (to recognise it later) and whether the source was the strap.",
+   "hash": "6b9eb3ba1bd3399d",
+   "does": "Builds an HRRCaptureService (120 s window) and launches a detached .userInitiated task running captureHRRAndRearchive with the session id, the archive and, when the workout's source was the strap, the Polar manager with the workout stream's start stamp (to recognise it later); nil otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::init HRRCaptureService(polarManager:healthKit:captureWindowSec:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:workoutStreamStart:archive:sessionId:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:strap:archive:sessionId:)"
    ],
    "reads": [
     "mem:WorkoutLifecycle.activeHRSource",
     "mem:PolarManager.streamingStartTime"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "activeHRSource == .strap",
+     "effect": "true: strap = (Polar manager, its streamingStartTime); false: strap = nil"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::init HRRCaptureService(polarManager:healthKit:captureWindowSec:)": "2983169857f5b2ed",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:workoutStreamStart:archive:sessionId:)": "cfaada935a859ba5",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:strap:archive:sessionId:)": "905eb74231b5a2af",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },
   {
-   "key": "func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:workoutStreamStart:archive:sessionId:)",
-   "hash": "4032c3ab0328c42f",
-   "does": "Detached body: awaits HRR samples (HRRCaptureService.captureHRR from stopDate/endHR), releases the strap when the source was the strap (only this workout's own stream), re-archives the session with hrrSamples and on the main actor announces/stages the coach report; when the archive copy cannot take them (update threw or session not archived) the samples still reach the summary on screen (showUnsavedHRR), so the HRR card never stays on 'capturing…'.",
+   "key": "func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:strap:archive:sessionId:)",
+   "hash": "9850a45bdb4198a7",
+   "does": "Detached body: awaits HRR samples (HRRCaptureService.captureHRR from stopDate/endHR), releases the strap when one was passed (the workout's source was the strap; only this workout's own stream, recognised by its start stamp), re-archives the session with hrrSamples and on the main actor announces/stages the coach report; when the archive copy cannot take them (update threw or session not archived) the samples still reach the summary on screen (showUnsavedHRR), so the HRR card never stays on 'capturing…'.",
    "entry": "Body of the detached task launched by launchHRRCaptureAndRearchive.",
    "calls": [
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)",
@@ -467,12 +473,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+11",
-     "cond": "wasStrap",
-     "effect": "true: releaseStrapAfterHRR; false: strap untouched"
+     "at": "+9",
+     "cond": "strap passed (non-nil)",
+     "effect": "true: releaseStrapAfterHRR(strap.manager, workoutStreamStart: strap.streamStart); false: strap untouched"
     },
     {
-     "at": "+14",
+     "at": "+12",
      "cond": "re-archive gave no session",
      "effect": "shows the samples on the summary (if still this session's) and returns; else announces/stages and logs completion"
     }

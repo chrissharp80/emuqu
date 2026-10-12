@@ -1,18 +1,12 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift",
- "hash": "66ba39902939671c",
- "role": "The 1 Hz live-workout loop on WorkoutTicker: timer, auto-pause/resume, RR ingest and HR derivation, Watch-routed strap fallback, HR-source arbitration (pure HRArbitration enum), motion/power mirroring, per-second samples, crash backups, live AI broker snapshot, Watch/Zwift pushes, environment refresh and voice-coach tick.",
+ "hash": "c81cb24d5d0a045b",
+ "role": "The 1 Hz live-workout loop on WorkoutTicker: timer, auto-pause/resume, RR ingest and HR derivation, Watch-routed strap fallback, applying the HR-source arbitration (HRArbitration is in WorkoutRecorder+HRArbitration.swift), motion/power mirroring, per-second samples, crash backups, live AI broker snapshot, Watch/Zwift pushes, environment refresh and voice-coach tick.",
  "types": [
   "WorkoutTicker: extension — per-tick stages",
-  "WorkoutTicker.HRArbitration: enum — pure HR source priority/strap-notice decision",
-  "WorkoutTicker.HRArbitration.Inputs: struct — per-tick arbitration inputs",
-  "WorkoutTicker.HRArbitration.Decision: struct — display HR update / strap notice / clear flag",
   "TrackBackupRows: struct — crash-backup track/baro rows kept between ticks and extended incrementally"
  ],
  "state": [
-  "HRArbitration.wristFallbackSilenceSec = 10 s",
-  "HRArbitration.strapNoticeGraceSec = 15 s",
-  "HRArbitration.wristHRMaxAgeSec = 30 s",
   "WorkoutTicker.pedometerCadenceStaleSeconds = 6 s"
  ],
  "toplevel": "Static constants and the file-scope TrackBackupRows struct; no other top-level code.",
@@ -122,7 +116,7 @@
    "does": "Decides whether the user is stopped: indoor sports use indoorCadence <= 1 spm (nil cadence = not stopped; a pedometer cadence whose step count stopped moving reads 0); GPS sports use CoreLocation speed < 0.3 m/s (negative/no fix = not stopped).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.indoorCadence(sport:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
    ],
@@ -158,7 +152,7 @@
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.indoorCadence(sport:)": "896fb51edef07ced",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1"
    }
   },
   {
@@ -167,7 +161,7 @@
    "does": "Decides whether the user is moving again: indoor cadence (indoorCadence) >= 60 spm (nil = no), GPS speed >= 0.8 m/s (no fix = -1 = no).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.indoorCadence(sport:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
    ],
@@ -198,7 +192,7 @@
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.indoorCadence(sport:)": "896fb51edef07ced",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1"
    }
   },
   {
@@ -864,7 +858,7 @@
    "does": "Builds HRArbitration inputs (source mode, elapsed, strap and Watch-routed silence durations, fresh wrist HR, strap feed status), applies the decision to the display HR, and updates lifecycle.strapNotice when it changes (logging a raised notice).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.decide(_:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.freshWristHR(now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.applyDisplayHR(_:)"
    ],
@@ -902,8 +896,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.applyDisplayHR(_:)": "f2aa30019d72abf4",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.freshWristHR(now:)": "a74548b55d880c70",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
@@ -917,7 +911,7 @@
    "does": "Applies a decision: copies wrist HR into currentHR (raising peak) or clears currentHR when all sources are silent; sets hrFromWrist via displayIsWrist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)"
    ],
    "reads": [
     "mem:WorkoutHR.peakHR",
@@ -947,8 +941,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d"
    }
   },
@@ -1194,7 +1188,7 @@
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.countsSteps(_:)",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::init LivePaceEstimator.GPSSpeed(_:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
    ],
    "reads": [
@@ -1235,7 +1229,7 @@
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::init LivePaceEstimator.GPSSpeed(_:)": "7971b6b61fa4e636",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "90b0600253a3d5e4",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "daa7367400cb053a"
    }
   },
@@ -1423,7 +1417,7 @@
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName",
     "closure:settingsProvider"
    ],
    "reads": [
@@ -1492,7 +1486,7 @@
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "dfc0c02aeeb3da4b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad",
@@ -1664,7 +1658,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.attemptAutoRouteDetection(sport:)",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS"
    ],
    "reads": [
     "mem:WorkoutRecorder.plannedRoute"
@@ -1681,7 +1675,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.attemptAutoRouteDetection(sport:)": "766cd2fabaff78d3",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.plannedRoute": "5e139adcaa347944",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1"
    }
   },
   {
@@ -1716,7 +1710,7 @@
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
     "closure:settingsProvider"
    ],
    "reads": [
@@ -1743,7 +1737,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "ad6dd15bfecf63ad",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -1768,149 +1762,6 @@
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tick(context:)": "25cf548ead54e485",
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.buildContext(sport:)": "744f28441f6286a2"
    }
-  },
-  {
-   "key": "func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)",
-   "hash": "f7ea51d7012ad769",
-   "does": "Whether the display after a decision is wrist HR: true if wrist HR copied in, false if cleared, else the previous value.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "decision has a display HR update",
-     "effect": "returns true"
-    },
-    {
-     "at": "+2",
-     "cond": "decision clears display",
-     "effect": "returns false; else wasWrist"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330"
-   }
-  },
-  {
-   "key": "func WorkoutTicker.HRArbitration.decide(_:)",
-   "hash": "e6aa35b842f71d22",
-   "does": "Pure decision: display HR update, strap notice, and clear flag (clear only when no update and all sources silent).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)": "ae58d48b0c2617b8",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a"
-   }
-  },
-  {
-   "key": "func WorkoutTicker.HRArbitration.allSourcesSilent(_:)",
-   "hash": "3f451e560d2ab8e4",
-   "does": "Whether every source the mode relies on is silent: strap mode — both strap channels silent > 10 s and no wrist HR; watch mode — no wrist HR; none — false.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .strap",
-     "effect": "both strap channels silent past 10 s and no wrist HR"
-    },
-    {
-     "at": "+6",
-     "cond": "case .watch",
-     "effect": "silent when no wrist HR"
-    },
-    {
-     "at": "+7",
-     "cond": "case .none",
-     "effect": "never silent (display not cleared)"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
-   }
-  },
-  {
-   "key": "func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
-   "hash": "9fd3f452dc3622be",
-   "does": "Wrist HR to copy into the display: strap mode only when both strap channels silent > 10 s; watch mode always the wrist HR; none → nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .strap",
-     "effect": "guard both channels silent > 10 s else nil; returns wrist HR (may be nil)"
-    },
-    {
-     "at": "+3",
-     "cond": "guard strap and Watch-routed silent > 10 s",
-     "effect": "false: nil (strap paths own the display)"
-    },
-    {
-     "at": "+7",
-     "cond": "case .watch",
-     "effect": "returns wrist HR"
-    },
-    {
-     "at": "+9",
-     "cond": "case .none",
-     "effect": "nil"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
-   }
-  },
-  {
-   "key": "func WorkoutTicker.HRArbitration.strapNotice(_:)",
-   "hash": "9db253ddfa39f988",
-   "does": "Strap notice: only for strap mode, after 15 s elapsed, with both channels silent > 10 s; .waitingForStrap → strapNotConnected, .stalled → strapSilent, .settingUp/.live → nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "strap mode, past grace, both channels silent",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+7",
-     "cond": "feed .waitingForStrap",
-     "effect": "returns .strapNotConnected"
-    },
-    {
-     "at": "+8",
-     "cond": "feed .stalled",
-     "effect": "returns .strapSilent"
-    },
-    {
-     "at": "+9",
-     "cond": "feed .settingUp or .live",
-     "effect": "nil"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   },
   {
    "key": "init TrackBackupRows(sessionId:)",

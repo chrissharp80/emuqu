@@ -294,7 +294,8 @@ extension WorkoutNamespace {
         .fixed(
             key: "hrv.peak.total_power_ms2",
             description: """
-            Peak total HRV power (VLF + LF + HF, ms²) observed in the latest reading's most-organized window — last night's, or on a day with no reliable overnight the nap or quick reading hrv.latest reports. A sharp drop vs the user's recent typical peak power is context for accumulated load, short sleep, alcohol or stress; \
+            Peak total HRV power (VLF + LF + HF, ms²) observed in the latest reading's most-organized window — last night's, or on a day with no reliable overnight the nap or quick reading hrv.latest reports. \
+            A sharp drop vs the user's recent typical peak power is context for accumulated load, short sleep, alcohol or stress; \
             it is not a forecast, so never present it as predicting illness. Use this when the user asks 'why do I feel off' or how last night compared. Returns nil for sessions where peak-capacity analysis didn't complete (short recordings).
             """,
             valueType: "Double",

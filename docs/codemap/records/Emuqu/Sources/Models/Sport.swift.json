@@ -1,0 +1,244 @@
+{
+ "file": "Emuqu/Sources/Models/Sport.swift",
+ "hash": "04539b629ddd951f",
+ "role": "The Sport enum: the supported workout activities with their display names, icons and whether each uses GPS. Split out of WorkoutMetadata.swift.",
+ "types": [
+  "Sport: enum (String, Codable, CaseIterable, Identifiable) — 10 activities with names, icons, GPS use"
+ ],
+ "state": [],
+ "toplevel": "Synthesized Codable on the raw value (stored inside WorkoutMetadata.sport). No other top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var Sport.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Identifiable id = rawValue.",
+   "entry": "Identifiable requirement used by SwiftUI ForEach over Sport.allCases.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Sport.displayName",
+   "hash": "02ca5e197dd423d0",
+   "does": "English display name per sport (used for assistant, exports, logs; 'Ride' for .bike).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".run",
+     "effect": "'Run'"
+    },
+    {
+     "at": "+3",
+     "cond": ".trailRun",
+     "effect": "'Trail Run'"
+    },
+    {
+     "at": "+4",
+     "cond": ".walk",
+     "effect": "'Walk'"
+    },
+    {
+     "at": "+5",
+     "cond": ".hike",
+     "effect": "'Hike'"
+    },
+    {
+     "at": "+6",
+     "cond": ".bike",
+     "effect": "'Ride'"
+    },
+    {
+     "at": "+7",
+     "cond": ".indoorBike",
+     "effect": "'Indoor Ride'"
+    },
+    {
+     "at": "+8",
+     "cond": ".treadmill",
+     "effect": "'Treadmill'"
+    },
+    {
+     "at": "+9",
+     "cond": ".row",
+     "effect": "'Row'"
+    },
+    {
+     "at": "+10",
+     "cond": ".airBike",
+     "effect": "'Air Bike'"
+    },
+    {
+     "at": "+11",
+     "cond": ".crossFit",
+     "effect": "'CrossFit'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Sport.localizedName",
+   "hash": "b33da76316cf642c",
+   "does": "Localized sport name via LanguageManager.appBundle for screens and the spoken start cue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".run",
+     "effect": "localized 'Run'"
+    },
+    {
+     "at": "+4",
+     "cond": ".trailRun",
+     "effect": "localized 'Trail Run'"
+    },
+    {
+     "at": "+5",
+     "cond": ".walk",
+     "effect": "localized 'Walk'"
+    },
+    {
+     "at": "+6",
+     "cond": ".hike",
+     "effect": "localized 'Hike'"
+    },
+    {
+     "at": "+7",
+     "cond": ".bike",
+     "effect": "localized 'Ride'"
+    },
+    {
+     "at": "+8",
+     "cond": ".indoorBike",
+     "effect": "localized 'Indoor Ride'"
+    },
+    {
+     "at": "+9",
+     "cond": ".treadmill",
+     "effect": "localized 'Treadmill'"
+    },
+    {
+     "at": "+10",
+     "cond": ".row",
+     "effect": "localized 'Row'"
+    },
+    {
+     "at": "+11",
+     "cond": ".airBike",
+     "effect": "localized 'Air Bike'"
+    },
+    {
+     "at": "+12",
+     "cond": ".crossFit",
+     "effect": "localized 'CrossFit'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var Sport.icon",
+   "hash": "1d4211b90e31b8e5",
+   "does": "SF Symbol name per sport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".run",
+     "effect": "figure.run"
+    },
+    {
+     "at": "+3",
+     "cond": ".trailRun",
+     "effect": "figure.hiking"
+    },
+    {
+     "at": "+4",
+     "cond": ".walk",
+     "effect": "figure.walk"
+    },
+    {
+     "at": "+5",
+     "cond": ".hike",
+     "effect": "figure.hiking"
+    },
+    {
+     "at": "+6",
+     "cond": ".bike",
+     "effect": "bicycle"
+    },
+    {
+     "at": "+7",
+     "cond": ".indoorBike",
+     "effect": "figure.indoor.cycle"
+    },
+    {
+     "at": "+8",
+     "cond": ".treadmill",
+     "effect": "figure.run"
+    },
+    {
+     "at": "+9",
+     "cond": ".row",
+     "effect": "figure.rower"
+    },
+    {
+     "at": "+10",
+     "cond": ".airBike",
+     "effect": "figure.mixed.cardio"
+    },
+    {
+     "at": "+11",
+     "cond": ".crossFit",
+     "effect": "figure.strengthtraining.functional"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Sport.usesGPS",
+   "hash": "b86a86cc16d6a05e",
+   "does": "Whether the sport records GPS: true for run, trailRun, walk, hike, bike; false for indoor sports.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "outdoor sport (.run,.trailRun,.walk,.hike,.bike)",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "indoor sport (.indoorBike,.treadmill,.row,.airBike,.crossFit)",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}
