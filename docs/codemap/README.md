@@ -3,6 +3,30 @@
 One record for every unit of code in this repository, a call graph over all of them, and CI rules
 that keep both in step with the code.
 
+## What was done, and where it stands
+
+Two pieces of work produced this directory.
+
+1. **The map.** Every line of every tracked file was read and a record written for each unit
+   (19,669 records), then a second reader checked each record against the code. Along the way the
+   readers recorded the problems they found: 40 high, 744 medium and 3,382 low.
+2. **The fix pass.** The high and medium findings were then fixed in app code, tests, docs, CI
+   scripts and config, together with about half of the low ones. Open findings after it: 1 high,
+   111 medium, 1,577 low. The remaining high is the HR-only sleep staging, which agrees with lab
+   sleep studies at about chance level; it needs a science decision, not a code fix. Most of the
+   remaining medium findings need a product decision, new user-facing text, or a test seam.
+
+Limits a reader should know:
+
+- The fix pass was done without a Swift compiler. Its changes were checked by reading, parsing and
+  the Linux gates, not by building or running the app; the first macOS build and test run is the
+  real check.
+- The fixes changed what many functions do. About 4,500 callers of those functions have not been
+  re-read against the change (the "re-check" lines below). The check counts them without failing on
+  them, and `codemap.py status` lists them.
+- Records describe the code; the check proves only that each was written after its code last
+  changed. A record can still be wrong.
+
 A unit is a Swift function, initializer, deinitializer, subscript, computed property, observed
 property, closure-initialised stored property or protocol requirement; a Python `def`; a shell
 function; a C or Objective-C function; a `Makefile` target; a workflow job or step; or a Markdown
@@ -90,8 +114,9 @@ editing a comment or a nested function does not make the outer record stale. Wha
 checked against is the callee's `does`, `entry`, `reads`, `writes`, branches and flags: rewording
 a record therefore sends its callers back, so change a record only when the behaviour changed.
 
-The check proves that each record was written after the last change to its code and to what its
-callees do. It cannot prove a record is right; that is the author's and the reviewer's job.
+The check proves that each record was written after the last change to its code, and lists the
+records whose callees have changed since. It cannot prove a record is right; that is the author's
+and the reviewer's job.
 
 ## Impact
 
