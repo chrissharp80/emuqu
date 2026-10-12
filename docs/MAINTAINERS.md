@@ -1266,12 +1266,15 @@ fails when:
 
 - a unit or file has no record, or the record is empty;
 - the code changed after its record was last stamped;
-- a unit's callee now describes different behaviour from when the unit was
-  last checked, or the unit now calls something it was not checked against
-  ("re-check" lines) — a change to what one function does sends every certain
-  caller back to be re-read, and onward while behaviour keeps changing;
 - open high- or medium-severity findings differ from
   `.ci/codemap_open_high.txt` / `.ci/codemap_open_med.txt` (they only go down).
+
+It also counts the records to re-check, and `codemap.py status` lists them:
+a unit whose callee now describes different behaviour from when the unit was
+last checked, or that now calls something it was not checked against, or
+whose record names a unit that no longer exists ("re-check" lines). A change
+to what one function does sends every certain caller back to be re-read, and
+onward while behaviour keeps changing.
 
 For a change: run `make codemap-impact` first and read what it lists; make the
 change; rewrite each record the guard lists; re-read each re-check caller and

@@ -317,8 +317,8 @@
   },
   {
    "key": "def cmd_check",
-   "hash": "29a593d63a4a8111",
-   "does": "Loads all records, builds the inventory and the call graph, and collects problems(), dependency_problems() and the open-findings ratchet (budget_problems over open_findings). Clean: prints success with the open high/medium/low counts and returns 0. Otherwise prints the problems grouped by file with how to fix each kind (update and stamp; re-check lines; sync), and returns 1 for `check` (strict) or 0 for `status`.",
+   "hash": "9960e329acd2d42a",
+   "does": "Loads all records, builds the inventory and the call graph. Failing problems: problems() except 'calls a unit that no longer exists', plus the open-findings ratchet (budget_problems over open_findings). Advisory (reported, never failing; a TODO(codemap-recheck) comment says to make them fail again once the backlog is worked off): those stale-call lines plus dependency_problems() re-check lines. Prints the advisory count, and for `status` lists them grouped by file. No failing problems: prints success with the open high/medium/low counts and returns 0. Otherwise prints the failing problems grouped by file with how to fix each kind, and returns 1 for `check` (strict) or 0 for `status`.",
    "entry": null,
    "calls": [
     "scripts/codemap/inventory.py::def inventory",
@@ -327,24 +327,36 @@
     "scripts/codemap/codemap.py::def dependency_problems",
     "scripts/codemap/graph.py::def build",
     "scripts/codemap/codemap.py::def budget_problems",
-    "scripts/codemap/codemap.py::def open_findings"
+    "scripts/codemap/codemap.py::def open_findings",
+    "scripts/codemap/codemap.py::def _print_grouped"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
-     "cond": "no problems",
+     "at": "+16",
+     "cond": "records to re-check",
+     "effect": "count printed"
+    },
+    {
+     "at": "+18",
+     "cond": "status",
+     "effect": "re-check lines listed"
+    },
+    {
+     "at": "+20",
+     "cond": "no failing problems",
      "effect": "success message with counts, 0"
     },
     {
-     "at": "+27",
-     "cond": "problems found",
+     "at": "+33",
+     "cond": "failing problems",
      "effect": "1 when strict (check), 0 for status"
     }
    ],
    "flags": [],
    "deps": {
+    "scripts/codemap/codemap.py::def _print_grouped": "2cf63dbe114b17f6",
     "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
     "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
     "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91",
@@ -353,6 +365,18 @@
     "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
     "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
    }
+  },
+  {
+   "key": "def _print_grouped",
+   "hash": "9049a6880a42636a",
+   "does": "Prints (path, key, message) items grouped by path: the path, then each key (or '(file record)') with its message, indented.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "def cmd_sync",

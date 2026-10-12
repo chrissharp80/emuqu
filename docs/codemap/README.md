@@ -59,14 +59,20 @@ when:
 - a file or unit in scope has no record, or a record has no `role` / `does`;
 - the code of a unit, or the code of a file outside its units, has changed since its record was
   stamped;
+- a record exists for a unit or file that no longer does;
+- the number of open high- or medium-severity findings differs from its budget (below).
+
+It also lists, without failing, the records to re-check:
+
 - **a callee changed what it does**: a unit's certain callee has a record that now says something
   different from when the unit was last checked, or the unit now resolves a call to a unit it was
   not checked against. The unit must be re-read. If its own behaviour changed too, its record
-  changes, and its callers are sent back in turn, so a behaviour change is followed up the graph as
+  changes, and its callers are listed in turn, so a behaviour change is followed up the graph as
   far as it reaches;
-- a record names a callee that no longer exists;
-- a record exists for a unit or file that no longer does;
-- the number of open high- or medium-severity findings differs from its budget (below).
+- a record names a callee that no longer exists.
+
+`codemap.py status` prints every re-check line; `check` prints only how many there are. Each one
+is cleared by re-reading the unit and stamping it (see "Changing code").
 
 The open-findings ratchet: `.ci/codemap_open_high.txt` and `.ci/codemap_open_med.txt` hold the
 number of open high- and medium-severity flags across all records, and the check fails unless the

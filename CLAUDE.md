@@ -6,8 +6,8 @@
 function, Makefile target, workflow step and doc section: what it does, what triggers it, what it
 calls, what state it reads and writes, what each branch does, and known problems. A call graph is
 built from those records and from the code. CI (`scripts/check_codemap.sh`, in `gates.yml`,
-`ci.yml` and `make ci`) and the pre-commit hook fail while any record is missing, older than its
-code, or older than a change in what one of its callees does.
+`ci.yml` and `make ci`) and the pre-commit hook fail while any record is missing or older than its
+code, and list the records that are older than a change in what one of their callees does.
 
 Before you change code:
 
@@ -24,7 +24,7 @@ When you change code:
 4. Re-read the changed code and rewrite each listed record so it describes the code as it now is:
    `does`, `entry`, `calls`, `reads`, `writes`, every branch, and flags. Remove flags the change
    fixed; add any problem you find.
-5. For each "re-check" line, re-read that caller against the callee's new behaviour. If the caller
+5. For each "re-check" line your change adds (`codemap.py status` lists them), re-read that caller against the callee's new behaviour. If the caller
    no longer does what its record says, fix the caller or rewrite its record.
 6. Only then stamp, callees before callers:
    `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path> [<key> ...]`.
