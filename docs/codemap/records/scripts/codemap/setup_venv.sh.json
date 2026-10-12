@@ -1,13 +1,14 @@
 {
  "file": "scripts/codemap/setup_venv.sh",
- "hash": "3f59ad8c45ec1e68",
- "role": "Builds .venv-codemap for the code map: picks a Python 3.10+ interpreter (tree-sitter 0.26 needs it; macOS's own python3 is 3.9), recreates the venv with it (--clear, so a venv an older interpreter made is rebuilt) and installs scripts/codemap/requirements.txt with hashes required. Run by `make codemap-setup` when the venv is missing or cannot import tree-sitter.",
+ "hash": "f32f1319768d3476",
+ "role": "Builds .venv-codemap for the code map: picks a Python 3.10+ interpreter (tree-sitter 0.26 needs it; macOS's own python3 is 3.9), and when none is installed fetches a pinned, checksum-verified standalone CPython 3.12.7 into .codemap-python/; recreates the venv with it (--clear, so a venv an older interpreter made is rebuilt) and installs scripts/codemap/requirements.txt with hashes required. Run by `make codemap-setup` when the venv is missing or cannot import tree-sitter.",
  "types": [],
  "state": [
   "file:.venv-codemap/ (recreated)",
+  "file:.codemap-python/ (standalone CPython, unpacked when no 3.10+ is installed)",
   "env:CODEMAP_BASE_PYTHON (optional interpreter override)"
  ],
- "toplevel": "set -euo pipefail; cd to the repo root. Without a 3.10+ interpreter (on PATH or in Homebrew, the python.org installer or pyenv): prints where it looked, which python3 was found and how to supply one, exit 1. Otherwise: python -m venv --clear .venv-codemap, pip install --quiet --disable-pip-version-check --require-hashes -r scripts/codemap/requirements.txt, prints the interpreter version used.",
+ "toplevel": "set -euo pipefail; cd to the repo root. Defines STANDALONE_RELEASE=20241016, STANDALONE_VERSION=3.12.7, STANDALONE_DIR=.codemap-python. Takes python_for_codemap's interpreter, else standalone_python's. With neither: prints where it looked, that the standalone build could not be fetched, which python3 was found and how to supply one, exit 1. Otherwise: python -m venv --clear .venv-codemap, pip install --quiet --disable-pip-version-check --require-hashes -r scripts/codemap/requirements.txt, prints the interpreter version used.",
  "flags": [],
  "units": [
   {
@@ -60,9 +61,167 @@
    "deps": {
     "scripts/codemap/setup_venv.sh::fn installed_pythons": "9e56e6c9df5f0738"
    }
+  },
+  {
+   "key": "fn standalone_sha256",
+   "hash": "816ff2033342095c",
+   "does": "Prints the pinned SHA-256 of the python-build-standalone CPython 3.12.7 (release 20241016) install_only archive for the given platform triple (aarch64/x86_64 apple-darwin, aarch64/x86_64 unknown-linux-gnu), taken from the release's SHA256SUMS; returns 1 for any other triple.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "one of the four pinned triples",
+     "effect": "prints its checksum"
+    },
+    {
+     "at": "+6",
+     "cond": "any other triple",
+     "effect": "return 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn standalone_platform",
+   "hash": "40955d76503063d9",
+   "does": "Maps uname -m (arm64/aarch64 → aarch64, x86_64) and uname -s (Darwin → apple-darwin, Linux → unknown-linux-gnu) to the python-build-standalone platform triple and prints it; returns 1 for any other architecture or OS.",
+   "entry": null,
+   "calls": [
+    "ext:uname"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "arm64 or aarch64",
+     "effect": "arch aarch64"
+    },
+    {
+     "at": "+4",
+     "cond": "x86_64",
+     "effect": "arch x86_64"
+    },
+    {
+     "at": "+5",
+     "cond": "other architecture",
+     "effect": "return 1"
+    },
+    {
+     "at": "+8",
+     "cond": "Darwin",
+     "effect": "os apple-darwin"
+    },
+    {
+     "at": "+9",
+     "cond": "Linux",
+     "effect": "os unknown-linux-gnu"
+    },
+    {
+     "at": "+10",
+     "cond": "other OS",
+     "effect": "return 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn file_sha256",
+   "hash": "5d887990b2d30fb8",
+   "does": "Prints the hex SHA-256 of the file given: shasum -a 256 when it exists (macOS), otherwise sha256sum (Linux).",
+   "entry": null,
+   "calls": [
+    "ext:shasum",
+    "ext:sha256sum",
+    "ext:cut"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shasum on PATH",
+     "effect": "shasum -a 256"
+    },
+    {
+     "at": "+1",
+     "cond": "no shasum",
+     "effect": "sha256sum"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn standalone_python",
+   "hash": "14cf892af121d8a8",
+   "does": "Prints the path of the standalone interpreter .codemap-python/python/bin/python3. If it is already unpacked, prints it and returns 0. Otherwise works out the platform (standalone_platform) and its pinned checksum (standalone_sha256), downloads the matching install_only archive from the python-build-standalone GitHub release into a mktemp file with curl (3 retries), compares its SHA-256 (file_sha256) with the pinned one, replaces .codemap-python with the unpacked archive and prints the interpreter. Every failure removes the temp archive and returns 1.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/setup_venv.sh::fn standalone_platform",
+    "scripts/codemap/setup_venv.sh::fn standalone_sha256",
+    "scripts/codemap/setup_venv.sh::fn file_sha256",
+    "ext:curl",
+    "ext:tar",
+    "ext:mktemp"
+   ],
+   "reads": [
+    "file:.codemap-python/python/bin/python3",
+    "env:TMPDIR",
+    "net:github.com/astral-sh/python-build-standalone releases"
+   ],
+   "writes": [
+    "file:.codemap-python/ (replaced)",
+    "file:$TMPDIR/codemap-python.* (temp, removed)",
+    "stderr: progress and checksum-mismatch messages"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "interpreter already unpacked and executable",
+     "effect": "prints it; return 0 (no download)"
+    },
+    {
+     "at": "+4",
+     "cond": "platform has no pinned build",
+     "effect": "return 1"
+    },
+    {
+     "at": "+9",
+     "cond": "download fails",
+     "effect": "temp file removed; return 1"
+    },
+    {
+     "at": "+10",
+     "cond": "checksum differs from the pinned one",
+     "effect": "prints that it is not used; temp removed; return 1 (nothing unpacked)"
+    },
+    {
+     "at": "+16",
+     "cond": "tar fails or the interpreter is not there after unpacking",
+     "effect": "removes .codemap-python and the archive; return 1"
+    },
+    {
+     "at": "+20",
+     "cond": "unpacked",
+     "effect": "temp removed; prints the interpreter"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/setup_venv.sh::fn file_sha256": "3b28951901aa5feb",
+    "scripts/codemap/setup_venv.sh::fn standalone_platform": "2073543c78b9b6b7",
+    "scripts/codemap/setup_venv.sh::fn standalone_sha256": "44cd2d55354b7a43"
+   }
   }
  ],
  "deps": {
-  "scripts/codemap/setup_venv.sh::fn python_for_codemap": "59db2ae39dc46ba5"
+  "scripts/codemap/setup_venv.sh::fn python_for_codemap": "59db2ae39dc46ba5",
+  "scripts/codemap/setup_venv.sh::fn standalone_python": "33ee470ab539483a"
  }
 }
