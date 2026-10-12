@@ -3,8 +3,9 @@ import CloudKit
 import XCTest
 
 /// Last-writer-wins between devices that hold the same session: a pull
-/// replaces a held copy only with a strictly newer one, and an upload never
-/// overwrites a newer iCloud copy.
+/// replaces a held copy only with a strictly newer one (or a same-second copy
+/// of a version this device does not hold), and an upload never overwrites a
+/// newer iCloud copy.
 final class CloudKitSessionFreshnessTests: XCTestCase {
     private let earlier = Date(timeIntervalSince1970: 1_800_000_000)
     private let later = Date(timeIntervalSince1970: 1_800_000_060)
@@ -42,6 +43,47 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         let precise = earlier.addingTimeInterval(0.75)
         XCTAssertEqual(decide(local: earlier, remote: precise), .keepLocal)
         XCTAssertEqual(decide(local: precise, remote: earlier), .keepLocal)
+    }
+
+    // MARK: - Same-second copies
+
+    /// Two devices that edit one session in the same second: the server's
+    /// copy wins on the device whose remembered version it is not, on upload
+    /// and on pull, so both end on the server's copy.
+    func testASameSecondCopyOfAnotherVersionGoesToTheServer() {
+        let tie = CloudKitSessionFreshness.onTie(serverVersion: "from-b", heldVersion: "before")
+        XCTAssertEqual(tie, .importRemote)
+        XCTAssertEqual(decide(local: later, remote: later, onTie: tie), .importRemote)
+    }
+
+    /// The device's own upload comes back as the version it remembers, and a
+    /// session synced before versions were kept has none: both keep the
+    /// local copy rather than re-download it.
+    func testTheHeldVersionOrAnUnknownOneKeepsTheLocalCopy() {
+        XCTAssertEqual(CloudKitSessionFreshness.onTie(serverVersion: "v1", heldVersion: "v1"), .keepLocal)
+        XCTAssertEqual(CloudKitSessionFreshness.onTie(serverVersion: "v1", heldVersion: nil), .keepLocal)
+        XCTAssertEqual(CloudKitSessionFreshness.onTie(serverVersion: nil, heldVersion: "v1"), .keepLocal)
+    }
+
+    /// The tie rule only decides equal stamps; a newer copy wins either way.
+    func testTheTieRuleDoesNotOverrideANewerStamp() {
+        XCTAssertEqual(decide(local: later, remote: earlier, onTie: .importRemote), .keepLocal)
+        XCTAssertEqual(decide(local: earlier, remote: later, onTie: .keepLocal), .importRemote)
+    }
+
+    /// The re-check inside the archive write applies the same tie rule the
+    /// pull decided with, so a same-second copy of another version replaces
+    /// the local one.
+    func testASameSecondICloudCopyOfAnotherVersionReplacesTheLocalCopy() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        let (local, newer) = try archivedSessionWithNewerICloudCopy(in: archive)
+        var remote = newer
+        remote.modifiedAt = local.modifiedAt
+
+        XCTAssertNil(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+        XCTAssertNotNil(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, onTie: .importRemote, in: archive))
+        XCTAssertEqual(try archive.retrieve(local.id)?.notes, "from iCloud")
     }
 
     func testStampIsWholeSeconds() {
@@ -338,8 +380,10 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         }
     }
 
-    private func decide(local: Date?, remote: Date?) -> CloudKitSessionFreshness.Decision {
-        CloudKitSessionFreshness.decide(localModifiedAt: local, remoteModifiedAt: remote)
+    private func decide(
+        local: Date?, remote: Date?, onTie: CloudKitSessionFreshness.Decision = .keepLocal
+    ) -> CloudKitSessionFreshness.Decision {
+        CloudKitSessionFreshness.decide(localModifiedAt: local, remoteModifiedAt: remote, onTie: onTie)
     }
 
     private func makeSession() -> HRVSession {

@@ -86,6 +86,13 @@ extension SessionArchive {
     /// files and we had no signal. So failures are logged (so future debug
     /// captures show what's stuck) and each one force-rewrites the file with
     /// the explicit protection-class option to break out of the stuck state.
+    ///
+    /// A session still written in plaintext (`PendingEncryptionLedger`) is
+    /// left alone: its `.completeFileProtection` stands in for the encryption
+    /// it lacks (`archiveWriteOptions`), and the re-encryption that follows
+    /// at launch does nothing while the key is unreachable, so lowering it
+    /// here left plaintext health data readable whenever the device was
+    /// unlocked once. The rewrite that encrypts it sets the class.
     func upgradeExistingFileProtection() {
         var attrFailureCount = 0
         for case let filename as String in fileManager.enumerator(atPath: archiveDirectory.path) ?? .init() {
@@ -102,19 +109,27 @@ extension SessionArchive {
     /// False when the attribute write failed and the file was force-rewritten
     /// instead. Log noise is capped at 5 lines; bulk failures surface via the
     /// caller's count log.
+    ///
+    /// Under `archiveLock`, which every session write holds: a save landing
+    /// between the pending check and the attribute write (a plaintext write
+    /// joins the ledger), or between the rewrite's read and write, would
+    /// otherwise be downgraded or reverted to the bytes read here.
     private func applyProtectionAttributes(at path: String, filename: String, failureCount: Int) -> Bool {
-        do {
-            try fileManager.setAttributes(Self.protectionAttributes, ofItemAtPath: path)
-            return true
-        } catch {
-            if failureCount < 5 {
-                debugLog("[Archive] WARN: setAttributes failed for \(filename): \(error.localizedDescription) — attempting rewrite", level: .warning)
+        let failure = archiveLock.withLock { () -> Error? in
+            if isPendingPlaintextSessionFile(filename, pending: PendingEncryptionLedger.pending) { return nil }
+            do {
+                try fileManager.setAttributes(Self.protectionAttributes, ofItemAtPath: path)
+                return nil
+            } catch {
+                rewriteWithProtection(at: path)
+                return error
             }
-            // Under the lock: a session save landing between this read and
-            // write would otherwise be reverted to the bytes read here.
-            archiveLock.withLock { rewriteWithProtection(at: path) }
-            return false
         }
+        guard let failure else { return true }
+        if failureCount < 5 {
+            debugLog("[Archive] WARN: setAttributes failed for \(filename): \(failure.localizedDescription) — rewritten with the protection class", level: .warning)
+        }
+        return false
     }
 
     /// Whether the in-memory index lists every session `index.json` held:

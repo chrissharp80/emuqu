@@ -216,7 +216,9 @@ extension CloudPullCoordinator {
         }
         guard !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
         guard let assetURL = await assetURL(for: record) else { return RecordOutcome() }
-        return await importPulledSession(from: assetURL, sessionId: sessionId, sessionIdString: sessionIdString)
+        return await importPulledSession(
+            from: assetURL, sessionId: sessionId, sessionIdString: sessionIdString, version: record.recordChangeTag
+        )
     }
 
     /// The local file of the record's backup, fetching the full record when
@@ -301,7 +303,7 @@ extension CloudPullCoordinator {
     /// build refuses to write it, and an error would keep sync failing on
     /// every pull until the app is updated.
     private func importPulledSession(
-        from assetURL: URL, sessionId: UUID, sessionIdString: String
+        from assetURL: URL, sessionId: UUID, sessionIdString: String, version: String?
     ) async -> RecordOutcome {
         do {
             let session = try await Task.detached(priority: .utility) {
@@ -309,6 +311,7 @@ extension CloudPullCoordinator {
             }.value
             try manager.archive.archive(session, skipSameNightMerge: true)
             manager.state.markUploaded(sessionId)
+            manager.state.noteRecordVersion(version, of: sessionId)
             return RecordOutcome(new: 1, backfillId: sessionId)
         } catch {
             return importFailure(error, sessionIdString: sessionIdString)

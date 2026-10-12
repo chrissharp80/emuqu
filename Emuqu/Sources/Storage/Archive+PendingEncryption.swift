@@ -29,6 +29,16 @@ func archiveWriteOptions(
     }
 }
 
+/// Whether `filename` (relative to the archive directory) is the session file,
+/// `<id>.json`, of a session in `pending`: plaintext whose
+/// `.completeFileProtection` the launch protection walk
+/// (`SessionArchive.upgradeExistingFileProtection`) must not lower.
+func isPendingPlaintextSessionFile(_ filename: String, pending: Set<UUID>) -> Bool {
+    let name = (filename as NSString).lastPathComponent
+    guard name.hasSuffix(".json"), let id = UUID(uuidString: String(name.dropLast(5))) else { return false }
+    return pending.contains(id)
+}
+
 /// Write archive bytes with the protection class their format demands.
 ///
 /// `archiveWriteOptions` brings the ledger in line before the write; when the

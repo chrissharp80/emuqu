@@ -354,17 +354,27 @@ final class RawRRBackup: @unchecked Sendable {
     /// — unreadable whenever the device is locked, not merely before the first
     /// unlock — and the backup is queued for `reencryptPendingBackups`; an
     /// encrypted write takes it off that queue.
-    private static func writeEntry(_ entry: BackupEntry, to url: URL, sessionId: UUID) throws {
+    ///
+    /// The queue changes only as far as the write succeeded. Plaintext is
+    /// queued before its write, so a process killed between the two leaves
+    /// it queued, and taken off again if the write throws, since nothing new
+    /// reached disk. An encrypted write clears the entry only once it has
+    /// landed: cleared first, a failed rewrite left the old plaintext on disk
+    /// with nothing queued to repair it.
+    static func writeEntry(_ entry: BackupEntry, to url: URL, sessionId: UUID) throws {
         let encoded = try encodedEntry(entry)
-        if encoded.encrypted {
-            PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
-        } else {
-            PendingEncryptionLedger.record(sessionId, in: .rawBackup)
-        }
+        let wasPending = PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId)
+        if !encoded.encrypted { PendingEncryptionLedger.record(sessionId, in: .rawBackup) }
         let options: Data.WritingOptions = encoded.encrypted
             ? [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
             : [.atomic, .completeFileProtection]
-        try encoded.bytes.write(to: url, options: options)
+        do {
+            try encoded.bytes.write(to: url, options: options)
+        } catch {
+            if !wasPending { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+            throw error
+        }
+        if encoded.encrypted { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
     }
 
     /// The one-shot file a new backup replaced. Its index row is gone, so
@@ -392,7 +402,8 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     /// A backup that is gone, or no longer a one-shot file, leaves the queue;
-    /// one that cannot be read yet stays for the next launch.
+    /// one that cannot be read or rewritten yet stays for the next launch
+    /// (`writeEntry` keeps it queued when its write fails).
     private func reencryptBackup(_ sessionId: UUID) {
         guard let fileName = existingIndexEntry(sessionId)?.fileName else {
             PendingEncryptionLedger.clear(sessionId, in: .rawBackup)

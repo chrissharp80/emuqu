@@ -176,6 +176,44 @@ final class WorkoutExportersTests: XCTestCase {
         XCTAssertFalse(csv.isEmpty)
     }
 
+    /// Without an RR series the heart rate comes from the 1 Hz samples, whose
+    /// offsets stop while paused. A trackpoint after a ten-minute pause must
+    /// take the reading recorded at that moment, not one ten minutes off.
+    func testTCXPlacesSampleHeartRatesOnTheWallClockAfterAPause() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        var session = HRVSession(startDate: start, sessionType: .workout)
+        session.endDate = start.addingTimeInterval(700)
+        var metadata = WorkoutMetadata(sport: .run)
+        metadata.samples = [
+            WorkoutSample(offsetSec: 10, heartRate: 101),
+            WorkoutSample(offsetSec: 20, heartRate: 177)
+        ]
+        metadata.pauseSpans = [WorkoutPauseSpan(atElapsed: 15, seconds: 600)]
+        session.workoutMetadata = metadata
+        let track = [10.0, 620.0].map { offset in
+            CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: 0.78, longitude: -0.65), altitude: 250,
+                horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: start.addingTimeInterval(offset)
+            )
+        }
+
+        let tcx = TCXExporter.export(session: session, track: track)
+
+        let values = tcx.components(separatedBy: "<HeartRateBpm><Value>").dropFirst().compactMap { tail in Int(tail.prefix(while: \.isNumber)) }
+        XCTAssertEqual(values, [101, 177])
+    }
+
+    func testWallClockSecondsAddThePausesBeforeTheActiveSecond() {
+        var metadata = WorkoutMetadata(sport: .run)
+        XCTAssertEqual(metadata.wallClockSeconds(forActiveOffset: 20), 20)
+        metadata.pauseSpans = [WorkoutPauseSpan(atElapsed: 15, seconds: 600), WorkoutPauseSpan(atElapsed: 30, seconds: 60)]
+        XCTAssertEqual(metadata.wallClockSeconds(forActiveOffset: 10), 10)
+        XCTAssertEqual(metadata.wallClockSeconds(forActiveOffset: 15), 15)
+        XCTAssertEqual(metadata.wallClockSeconds(forActiveOffset: 20), 620)
+        XCTAssertEqual(metadata.wallClockSeconds(forActiveOffset: 40), 700)
+        XCTAssertEqual(metadata.activeOffset(forWallClockSeconds: metadata.wallClockSeconds(forActiveOffset: 40)), 40)
+    }
+
     // MARK: - Fixtures
 
     private func makeTrack(count: Int) -> [CLLocation] {

@@ -349,7 +349,8 @@ final class SessionArchive: @unchecked Sendable {
 
     /// Includes the CloudKit sync state sidecars (`sync_state.json`,
     /// `pending_uploads.json`, `quarantined_uploads.json`,
-    /// `local_only_sessions.json` — every file `CloudKitSyncState` writes).
+    /// `local_only_sessions.json`, `record_versions.json` — every file
+    /// `CloudKitSyncState` writes).
     /// They live in the same archive directory
     /// but aren't session files; without this list the reconciler tries
     /// to decode them as HRVSession on every cold launch and logs
@@ -361,7 +362,8 @@ final class SessionArchive: @unchecked Sendable {
             "sync_state.json",
             "pending_uploads.json",
             "quarantined_uploads.json",
-            "local_only_sessions.json"
+            "local_only_sessions.json",
+            "record_versions.json"
         ]
     }
 
