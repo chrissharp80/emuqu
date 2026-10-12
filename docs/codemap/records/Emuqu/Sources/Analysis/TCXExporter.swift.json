@@ -166,7 +166,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "fc82274b901cfff2",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)": "d334cbaab5d86412",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "c42b9db80583d5f8"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "58cb250c8f6900d3"
    }
   },
   {
@@ -203,7 +203,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "fc82274b901cfff2",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)": "118c90e86bb330db",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "c42b9db80583d5f8",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "58cb250c8f6900d3",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
    }
   },
@@ -324,13 +324,16 @@
   },
   {
    "key": "init HRTrack(session:)",
-   "hash": "6484275b42f110ab",
-   "does": "Builds the HR series sorted by offset: per-beat HR from the RR series via WorkoutAnalyzer.hrSamplesWithWallClock (gap-corrected wall-clock offsets, so it lines up with trackpoint times after a pause) when the session has beats; else positive-HR WorkoutSamples (offsetSec, HR), whose offsets stop while paused.",
+   "hash": "3ba5f530a95b69a3",
+   "does": "Builds the HR series sorted by wall-clock offset: per-beat HR from the RR series via WorkoutAnalyzer.hrSamplesWithWallClock (gap-corrected wall-clock offsets) when the session has beats; else positive-HR WorkoutSamples, each moved from its pause-excluded offsetSec onto the wall clock with WorkoutMetadata.wallClockSeconds(forActiveOffset:), so they line up with trackpoint times after a pause.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:WorkoutMetadata.pauseSpans"
+   ],
    "writes": [],
    "branches": [
     {
@@ -339,31 +342,20 @@
      "effect": "[] points → no beats"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "workoutMetadata or samples nil",
      "effect": "treated as []; samples with nil or non-positive HR are dropped"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "beats empty",
-     "effect": "use the 1 Hz samples; else the RR beats"
+     "effect": "use the wall-clock samples; else the RR beats"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Without an RR series the 1 Hz WorkoutSample offsets (offsetSec stops during pauses) are still matched against wall-clock trackpoint times, so after a pause a wrist-HR-only export takes each HeartRateBpm from the wrong time (shifted by the cumulative pause length). The pause timeline that would map them (WorkoutLifecycle.pauseTimeline) is not stored with the workout. Sessions with an RR series now use its wall-clock beats and are aligned.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TCXExporter.swift:220",
-      "Emuqu/Sources/Collection/WorkoutLifecycle.swift:73",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:155"
-     ],
-     "found": "second read; narrowed in fix pass b03"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54"
    }
   },
   {

@@ -174,6 +174,42 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         XCTAssertTrue(PendingEncryptionLedger.pending.isEmpty)
     }
 
+    // MARK: - Launch protection walk
+
+    /// The walk that lowers archive files to "until first unlock" skips the
+    /// session files still written in plaintext.
+    func testOnlyAPendingSessionFileCountsAsPendingPlaintext() {
+        let pending = UUID()
+        let encrypted = UUID()
+        let ids: Set<UUID> = [pending]
+        XCTAssertTrue(isPendingPlaintextSessionFile("\(pending.uuidString).json", pending: ids))
+        XCTAssertTrue(isPendingPlaintextSessionFile("sub/\(pending.uuidString).json", pending: ids))
+        XCTAssertFalse(isPendingPlaintextSessionFile("\(encrypted.uuidString).json", pending: ids))
+        XCTAssertFalse(isPendingPlaintextSessionFile("index.json", pending: ids))
+        XCTAssertFalse(isPendingPlaintextSessionFile(pending.uuidString, pending: ids))
+    }
+
+    // MARK: - Raw backup rewrite
+
+    /// A rewrite that fails leaves the old plaintext on disk, so its repair
+    /// entry must survive; a first write that fails queues nothing.
+    func testAFailedBackupWriteLeavesTheQueueAsItWas() {
+        let queued = UUID()
+        let fresh = UUID()
+        PendingEncryptionLedger.record(queued, in: .rawBackup)
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PendingEncryptionLedgerTests-missing-\(UUID().uuidString)", isDirectory: true)
+
+        for id in [queued, fresh] {
+            let entry = RawRRBackup.BackupEntry(id: id, captureDate: Date(), deviceId: nil, points: [], hash: "")
+            XCTAssertThrowsError(try RawRRBackup.writeEntry(entry, to: missingDirectory.appendingPathComponent("\(id).json"), sessionId: id))
+        }
+
+        let pending = PendingEncryptionLedger.pending(in: .rawBackup)
+        XCTAssertTrue(pending.contains(queued), "a failed rewrite dropped the backup's re-encryption entry")
+        XCTAssertFalse(pending.contains(fresh), "a write that never landed was queued")
+    }
+
     // MARK: - No silent path back
 
     /// A guard against the specific regression: someone restoring the old

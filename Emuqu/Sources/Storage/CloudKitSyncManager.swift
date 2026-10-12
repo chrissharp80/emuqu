@@ -436,8 +436,9 @@ final class CloudKitSyncManager {
     /// this device tried to write; any other error is rethrown to the caller.
     private func saveUploadRecord(_ record: CKRecord, sessionId: UUID) async throws {
         do {
-            try await privateDB.save(record)
+            let saved = try await privateDB.save(record)
             state.markUploaded(sessionId)
+            state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
             await state.saveSyncStateAsync()
         } catch let error as CKError where error.code == .serverRecordChanged {

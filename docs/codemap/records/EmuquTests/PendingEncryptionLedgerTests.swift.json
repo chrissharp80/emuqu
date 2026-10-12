@@ -426,6 +426,47 @@
    }
   },
   {
+   "key": "func PendingEncryptionLedgerTests.testOnlyAPendingSessionFileCountsAsPendingPlaintext()",
+   "hash": "c41a174a8e3e6377",
+   "does": "Asserts isPendingPlaintextSessionFile is true for <pending id>.json (also under a subdirectory) and false for another id's file, index.json and a bare id with no extension.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "31b3b37f10035ee5"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedgerTests.testAFailedBackupWriteLeavesTheQueueAsItWas()",
+   "hash": "436f7fcafbd38cae",
+   "does": "Queues one id in the raw-backup ledger, then drives RawRRBackup.writeEntry into a directory that does not exist for it and for a fresh id; asserts both throw, the queued id stays queued and the fresh one is not queued (whether the test host encrypts or not).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.rawBackupIDs (restored in tearDown)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "f7380e6d6a868ec5",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
    "key": "func PendingEncryptionLedgerTests.testDiskFormatDistinguishesTheTwoOutcomes()",
    "hash": "50a6d2b29dda3608",
    "does": "Asserts the two DiskFormat cases produce distinct write-option raw values.",

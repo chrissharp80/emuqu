@@ -216,7 +216,7 @@ struct ArchiveDiagnosticsView: View {
     /// `SessionArchive.reservedFileNames` keeps out of orphan adoption).
     nonisolated private static let nonSessionFileNames: Set<String> = [
         "index.json", "deleted.json", "sync_state.json", "pending_uploads.json",
-        "quarantined_uploads.json", "local_only_sessions.json"
+        "quarantined_uploads.json", "local_only_sessions.json", "record_versions.json"
     ]
 
     nonisolated private static func fileCensus(_ files: [URL], indexedFileNames: Set<String>) -> String {
