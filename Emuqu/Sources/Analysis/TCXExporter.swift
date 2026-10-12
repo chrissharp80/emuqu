@@ -202,9 +202,10 @@ enum TCXExporter {
 /// Heart rate by wall-clock offset for the trackpoints. Prefers per-beat HR
 /// from the RR series, whose times are on the wall clock (gap-corrected), so
 /// it lines up with trackpoint times after a pause. Falls back to the
-/// recorder's 1 Hz samples, whose `offsetSec` stops while paused — after a
-/// pause those readings sit early by the pause length, since the pause
-/// timeline is not stored with the workout. Either way each trackpoint gets
+/// recorder's 1 Hz samples, whose `offsetSec` stops while paused; each is
+/// moved onto the wall clock by the pauses recorded before it
+/// (`WorkoutMetadata.wallClockSeconds(forActiveOffset:)`), or after a pause
+/// it would sit early by the pause's length. Either way each trackpoint gets
 /// the median of the readings within ±`halfWindow` seconds, so one missed or
 /// extra beat can't export as a 30 or 250 bpm spike. Readings are sorted by
 /// offset, and queries normally arrive in time order, so a moving start
@@ -221,9 +222,10 @@ private struct HRTrack {
         let beats: [Reading] = WorkoutAnalyzer.hrSamplesWithWallClock(
             rrPoints: session.rrSeries?.points ?? [], startDate: session.startDate
         ).map { ($0.timestamp.timeIntervalSince(session.startDate), $0.hr) }
-        let samples: [Reading] = (session.workoutMetadata?.samples ?? []).compactMap { sample -> Reading? in
-            guard let heartRate = sample.heartRate, heartRate > 0 else { return nil }
-            return (TimeInterval(sample.offsetSec), Double(heartRate))
+        let metadata = session.workoutMetadata
+        let samples: [Reading] = (metadata?.samples ?? []).compactMap { sample -> Reading? in
+            guard let heartRate = sample.heartRate, heartRate > 0, let metadata else { return nil }
+            return (metadata.wallClockSeconds(forActiveOffset: sample.offsetSec), Double(heartRate))
         }
         let readings = (beats.isEmpty ? samples : beats).sorted { $0.offset < $1.offset }
         offsets = readings.map { $0.offset }

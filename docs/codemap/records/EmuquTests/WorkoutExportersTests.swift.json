@@ -446,6 +446,44 @@
    }
   },
   {
+   "key": "func WorkoutExportersTests.testTCXPlacesSampleHeartRatesOnTheWallClockAfterAPause()",
+   "hash": "bce5f62dfc7ffdf2",
+   "does": "Builds a workout with no RR series, 1 Hz samples at active seconds 10 (101 bpm) and 20 (177 bpm) and a 600 s pause at active second 15, exports TCX over fixes at wall-clock 10 s and 620 s, and asserts the trackpoint heart rates are [101, 177].",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testWallClockSecondsAddThePausesBeforeTheActiveSecond()",
+   "hash": "d83c9558ba9a15db",
+   "does": "Asserts wallClockSeconds(forActiveOffset:) is the identity without pauses, adds only pauses that began before the active second (15 → 15, 20 → 620, 40 → 700 with pauses at 15/600 s and 30/60 s), and round-trips through activeOffset(forWallClockSeconds:).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "bcdd2b66dec0008d",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
    "key": "func WorkoutExportersTests.makeTrack(count:)",
    "hash": "c1c12387deee7b54",
    "does": "Fixture: `count` CLLocations stepping 0.0001° in lat/lon and 1 m altitude, one per second from 1_700_000_000.",

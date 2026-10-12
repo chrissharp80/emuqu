@@ -143,8 +143,9 @@ extension CloudKitSyncManager {
     ) async -> Bool {
         defer { cleanupTempAsset(for: prepared.record) }
         do {
-            try await privateDB.save(prepared.record)
+            let saved = try await privateDB.save(prepared.record)
             state.markUploaded(sessionId)
+            state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
         } catch let error as CKError where error.code == .serverRecordChanged {
             return await resolveConflict(error, prepared: prepared, sessionId: sessionId)
@@ -261,8 +262,9 @@ extension CloudKitSyncManager {
         guard CloudKitSessionFreshness.overwrite(serverRecord, with: prepared.record, restoring: restoring, yieldingIn: &state) else { return false }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         do {
-            try await privateDB.save(serverRecord)
+            let saved = try await privateDB.save(serverRecord)
             state.markUploaded(sessionId)
+            state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
         } catch {
             noteConflictUnresolved(sessionId, reason: "\(error)", error: error)
@@ -391,8 +393,9 @@ extension CloudKitSyncManager {
         do {
             guard let retryPrepared = try await prepareUploadOffMain(sessionId: sessionId) else { return }
             defer { cleanupTempAsset(for: retryPrepared.record) }
-            try await privateDB.save(retryPrepared.record)
+            let saved = try await privateDB.save(retryPrepared.record)
             state.markUploaded(sessionId)
+            state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
         } catch {
             state.markFailed(sessionId)

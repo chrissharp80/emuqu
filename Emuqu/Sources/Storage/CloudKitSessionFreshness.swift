@@ -20,6 +20,19 @@ import os
 /// newer than what iCloud holds. A copy with no stamp was never edited since
 /// stamping began and counts as older than any stamped one: a routine
 /// re-upload (the sanitising drip, a migration) must not undo a real edit.
+///
+/// Two copies stamped in the same second are told apart by the server
+/// record's version (`CKRecord.recordChangeTag`), which this device remembers
+/// for each session it saved or imported (`CloudKitSyncState.recordVersions`).
+/// When the server holds a version this device's copy does not match, the
+/// server's copy wins the tie in both directions: the upload yields and the
+/// pull imports, so every device ends on the server's copy. Without that, two
+/// devices editing one session within a second each kept their own copy for
+/// good. A session with no remembered version (one synced before versions
+/// were kept) keeps the local copy on a tie, as before, rather than
+/// downloading the whole archive once. A record rewritten without a new stamp
+/// (the health scrub, a routine re-upload) is a new version, so each other
+/// device downloads it once.
 enum CloudKitSessionFreshness {
     /// The plain CKRecord field carrying `HRVSession.modifiedAt`.
     static let modifiedAtField = "modifiedAt"
@@ -34,10 +47,22 @@ enum CloudKitSessionFreshness {
     /// Compared in whole seconds — the precision every copy of the stamp keeps
     /// (the payload's ISO-8601 dates drop the fraction) — so a device never
     /// sees its own upload as newer than itself.
-    static func decide(localModifiedAt: Date?, remoteModifiedAt: Date?) -> Decision {
+    ///
+    /// `onTie` decides two stamps in the same second (`onTie(serverVersion:heldVersion:)`).
+    static func decide(localModifiedAt: Date?, remoteModifiedAt: Date?, onTie: Decision = .keepLocal) -> Decision {
         guard let remote = remoteModifiedAt.map(wholeSeconds) else { return .keepLocal }
         guard let local = localModifiedAt.map(wholeSeconds) else { return .importRemote }
+        if remote == local { return onTie }
         return remote > local ? .importRemote : .keepLocal
+    }
+
+    /// The same-second rule: the server's copy wins when it is a version other
+    /// than the one this device's copy matches. Equal versions are the same
+    /// copy; with no version remembered (or none on the record) the local copy
+    /// is kept, as it was before versions were kept.
+    static func onTie(serverVersion: String?, heldVersion: String?) -> Decision {
+        guard let serverVersion, let heldVersion, serverVersion != heldVersion else { return .keepLocal }
+        return .importRemote
     }
 
     /// The stamp for an edit made now, already at the precision it is compared in.
@@ -108,7 +133,8 @@ enum CloudKitSessionFreshness {
     }
 
     /// Copy this device's record onto the server's, keeping the server's change
-    /// tag — unless the server's copy was edited more recently. Returns false
+    /// tag — unless the server's copy was edited more recently, or in the same
+    /// second as a version this device does not hold (`onTie`). Returns false
     /// then: the record is left alone, the session counts as uploaded (there
     /// is nothing newer to send), and the pull imports the server's copy.
     ///
@@ -124,10 +150,12 @@ enum CloudKitSessionFreshness {
         _ server: CKRecord, with local: CKRecord, restoring: Bool = false, yieldingIn state: inout CloudKitSyncState
     ) -> Bool {
         let serverDeleted = server["isDeleted"] as? Int64
-        let decision = decide(localModifiedAt: modifiedAt(of: local), remoteModifiedAt: modifiedAt(of: server))
+        let sessionId = UUID(uuidString: server.recordID.recordName)
+        let tie = onTie(serverVersion: server.recordChangeTag, heldVersion: sessionId.flatMap { state.recordVersions[$0] })
+        let decision = decide(localModifiedAt: modifiedAt(of: local), remoteModifiedAt: modifiedAt(of: server), onTie: tie)
         guard decision == .keepLocal || (restoring && serverDeleted == 1) else {
-            if let sessionId = UUID(uuidString: server.recordID.recordName) { state.markUploaded(sessionId) }
-            debugLog("[CloudKit] \(server.recordID.recordName.prefix(8)) was edited more recently on another device — not overwritten; the pull imports it")
+            if let sessionId { state.markUploaded(sessionId) }
+            debugLog("[CloudKit] \(server.recordID.recordName.prefix(8)) was edited more recently (or in the same second) on another device — not overwritten; the pull imports it")
             return false
         }
         for key in server.allKeys() where local[key] == nil {
@@ -174,18 +202,19 @@ enum CloudKitSessionFreshness {
         return merged
     }
 
-    /// Replaces the archived copy with `remote` only if `remote` is still the
-    /// newer one when the write happens. The check and the write run inside
-    /// one `SessionArchive.update`, under the archive's lock, so an edit saved
-    /// while the iCloud copy was downloading is seen and kept. Nil when the
-    /// local copy is now as new or newer; the archive is then rewritten
-    /// unchanged.
+    /// Replaces the archived copy with `remote` only if `remote` still wins
+    /// when the write happens (`onTie` as the pull decided it). The check and
+    /// the write run inside one `SessionArchive.update`, under the archive's
+    /// lock, so an edit saved while the iCloud copy was downloading is seen
+    /// and kept. Nil when the local copy now wins; the archive is then
+    /// rewritten unchanged.
     static func replaceIfStillNewer(
-        _ sessionId: UUID, with remote: HRVSession, in archive: SessionArchive
+        _ sessionId: UUID, with remote: HRVSession, onTie: Decision = .keepLocal, in archive: SessionArchive
     ) throws -> HRVSession? {
         var replacement: HRVSession?
         try archive.update(sessionId, requestingReupload: false) { session in
-            guard decide(localModifiedAt: session.modifiedAt, remoteModifiedAt: remote.modifiedAt) == .importRemote else { return }
+            let decision = decide(localModifiedAt: session.modifiedAt, remoteModifiedAt: remote.modifiedAt, onTie: onTie)
+            guard decision == .importRemote else { return }
             session = replacing(session, with: remote)
             replacement = session
         }
@@ -210,16 +239,28 @@ enum CloudKitSessionFreshness {
 
 extension CloudPullCoordinator {
     /// A session this device already holds: replaced by the iCloud copy only
-    /// when that copy was edited more recently. The decision reads the
-    /// record's date field and the index, so an unchanged session costs no
-    /// download.
+    /// when that copy was edited more recently, or in the same second as a
+    /// version this device does not hold (`CloudKitSessionFreshness.onTie`).
+    /// The decision reads the record's date field and change tag and the
+    /// index, so an unchanged session costs no download.
     func refreshIfRemoteIsNewer(_ record: CKRecord, sessionId: UUID) async -> RecordOutcome {
         let remoteModifiedAt = CloudKitSessionFreshness.modifiedAt(of: record)
         let localModifiedAt = manager.archive.entryById(sessionId)?.modifiedAt
-        let decision = CloudKitSessionFreshness.decide(localModifiedAt: localModifiedAt, remoteModifiedAt: remoteModifiedAt)
+        let tie = CloudKitSessionFreshness.onTie(
+            serverVersion: record.recordChangeTag, heldVersion: manager.state.recordVersions[sessionId]
+        )
+        let decision = CloudKitSessionFreshness.decide(localModifiedAt: localModifiedAt, remoteModifiedAt: remoteModifiedAt, onTie: tie)
         guard decision == .importRemote, manager.archive.exists(sessionId),
               let assetURL = await assetURL(for: record) else { return RecordOutcome() }
-        return await replaceLocalCopy(from: assetURL, sessionId: sessionId, remoteModifiedAt: remoteModifiedAt)
+        let remote = RemoteCopy(modifiedAt: remoteModifiedAt, version: record.recordChangeTag, onTie: tie)
+        return await replaceLocalCopy(from: assetURL, sessionId: sessionId, remote: remote)
+    }
+
+    /// What `replaceLocalCopy` needs from the pulled record besides its file.
+    struct RemoteCopy {
+        let modifiedAt: Date?
+        let version: String?
+        let onTie: CloudKitSessionFreshness.Decision
     }
 
     /// Written without a re-upload request and marked uploaded: the copy came
@@ -231,18 +272,19 @@ extension CloudPullCoordinator {
     /// made again where the replacement is written
     /// (`CloudKitSessionFreshness.replaceIfStillNewer`); the edit, and its
     /// pending upload, are then kept.
-    private func replaceLocalCopy(from assetURL: URL, sessionId: UUID, remoteModifiedAt: Date?) async -> RecordOutcome {
+    private func replaceLocalCopy(from assetURL: URL, sessionId: UUID, remote copy: RemoteCopy) async -> RecordOutcome {
         do {
             var remote = try await Task.detached(priority: .utility) {
                 try Self.decodeSessionAsset(at: assetURL)
             }.value
             // The record's date is the one the next pull compares against.
-            remote.modifiedAt = remoteModifiedAt
-            guard let replacement = try CloudKitSessionFreshness.replaceIfStillNewer(sessionId, with: remote, in: manager.archive) else {
+            remote.modifiedAt = copy.modifiedAt
+            guard let replacement = try CloudKitSessionFreshness.replaceIfStillNewer(sessionId, with: remote, onTie: copy.onTie, in: manager.archive) else {
                 debugLog("[CloudKit] Pull: kept \(sessionId.uuidString.prefix(8)) — it was edited here while the iCloud copy downloaded")
                 return RecordOutcome()
             }
             manager.state.markUploaded(sessionId)
+            manager.state.noteRecordVersion(copy.version, of: sessionId)
             debugLog("[CloudKit] Pull: replaced \(sessionId.uuidString.prefix(8)) with the newer copy from iCloud")
             return RecordOutcome(backfillId: replacement.sleepSnapshot == nil ? sessionId : nil, refreshed: 1)
         } catch SessionArchive.ArchiveError.fileNotFound {

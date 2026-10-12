@@ -39,6 +39,29 @@
    }
   },
   {
+   "key": "func isPendingPlaintextSessionFile(_:pending:)",
+   "hash": "225450b92b5baef7",
+   "does": "True when the last path component of filename is <UUID>.json and that UUID is in pending: a session file written in plaintext whose .completeFileProtection the launch protection walk must not lower.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not .json, or the stem is not a UUID",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "UUID in pending",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func writeArchiveBytes(_:to:format:sessionID:)",
    "hash": "1dae9cf765be8d67",
    "does": "Writes archive bytes with the protection class their format demands (archiveWriteOptions, which records/clears the ledger first); if the write throws, puts the id's PendingEncryptionLedger entry back as it was before (record when it was queued, clear when not) and rethrows.",
