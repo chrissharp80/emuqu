@@ -1,12 +1,12 @@
 {
  "file": "scripts/check_localization_bundle.sh",
- "hash": "eea7c54efe024868",
+ "hash": "54048a61f24f0180",
  "role": "CI gate: every String(localized:) / NSLocalizedString( call in Emuqu/Sources must contain a `bundle:` argument within its parentheses.",
  "types": [],
  "state": [
   "dir:Emuqu/Sources"
  ],
- "toplevel": "set -euo pipefail; cd to repo root. SOURCE_ROOT=$1 or Emuqu/Sources (missing -> 2). Python masks string literals, finds String(localized:/NSLocalizedString( calls, skips lines starting //, paren-matches the call and requires `bundle:` inside and no `bundle: .main` / `bundle: Bundle.main`. Offenders -> exit 1. Else counts lookups with grep and prints clean. Watch target deliberately excluded. Wired: gates.yml, ci.yml, Makefile.",
+ "toplevel": "set -euo pipefail; cd to repo root. SOURCE_ROOT=$1 or Emuqu/Sources (missing -> 2). Calls find_offenders \"$SOURCE_ROOT\" inside \"$(…)\" (the Python is in that function, not a here-document inside the substitution, so macOS bash 3.2 parses it); the Python masks string literals, finds String(localized:/NSLocalizedString( calls, skips lines starting //, paren-matches the call and requires `bundle:` inside and no `bundle: .main` / `bundle: Bundle.main`. Offenders -> exit 1. Else counts lookups with grep and prints clean. Watch target deliberately excluded. Wired: gates.yml, ci.yml, Makefile.",
  "flags": [
   {
    "kind": "spec-mismatch",
@@ -19,6 +19,23 @@
    "found": "first read, upheld on second"
   }
  ],
- "units": [],
- "deps": {}
+ "units": [
+  {
+   "key": "fn find_offenders",
+   "hash": "e402274e397ef825",
+   "does": "Runs the embedded Python over the Swift files under the given source root and prints one line per String(localized:)/NSLocalizedString( call that has no bundle: argument or names Bundle.main. Its exit status is the Python's.",
+   "entry": "Called once from the script's top level inside offenders=\"$(…)\".",
+   "calls": [],
+   "reads": [
+    "file:Emuqu/Sources/**/*.swift"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_localization_bundle.sh::fn find_offenders": "f151ec1709515aef"
+ }
 }
