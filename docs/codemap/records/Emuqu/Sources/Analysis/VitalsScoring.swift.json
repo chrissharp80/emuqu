@@ -7,34 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "API_REFERENCE describes this file as 'Penalty-only vitals overrides (respiratory rate, wrist temperature, SpO2)' declared as 'extension RecoveryScoreCalculator' taking HealthKitManager.RecoveryVitals and 'also contains calculate() overloads, label(for:), message(for:), toTenScale'; the file is enum VitalsScoring taking top-level RecoveryVitals, scores RR/temp/RHR as the 15% factor, and its header says the calculate entry points and display helpers stayed in RecoveryScoreCalculator.",
-   "evidence": [
-    "docs/API_REFERENCE.md:1076",
-    "docs/API_REFERENCE.md:1080",
-    "docs/API_REFERENCE.md:1086",
-    "docs/API_REFERENCE.md:1092",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift:7",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift:10"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "calculateVitalsScore/describeVitals score RecoveryVitals.wristTemperature as a personal deviation, but the model documents that field as an offset from a fixed 36.5 C; correctness depends on every caller first applying RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline (computeBreakdown and refreshedVitalsFactor do, and the precondition is now stated at the scoring site). They cannot normalise internally while VitalsScoringTests/ScoreFactorFactsTests pass raw deviations with a nil baseline, which normalising would drop (handed off).",
-   "evidence": [
-    "Emuqu/Sources/Analysis/VitalsScoring.swift:56",
-    "Emuqu/Sources/Models/RecoveryVitals.swift:9",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:429",
-    "EmuquTests/VitalsScoringTests.swift:115"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
@@ -75,11 +47,10 @@
      "effect": "return nil; else return arithmetic mean of the sub-scores"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "826de92048a8ff8a",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "ddd2a621b8074af5",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "125b234f3cb02e11"
    }
   },
   {
@@ -97,7 +68,6 @@
      "effect": "compute max(0, 100 - max(0,(rhr-baseline)/sd)*10); otherwise return nil (sub-score dropped)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -123,10 +93,9 @@
      "effect": "return nil; else return respiratoryPopulationScore(rate)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "6f5a48790a29fd6d",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "6c7d5be6d9400201"
    }
   },
   {
@@ -147,10 +116,9 @@
      "effect": "impact .positive when >=80, .neutral when 60..<80, .negative below 60"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)": "e91d99644125da59"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)": "61928452828f474a"
    }
   },
   {
@@ -164,21 +132,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production caller: its only callers are the RecoveryScoreCalculator.buildVitalsDetail forwarder (itself called only from ScoringCharacterizationTests:569) and ScoreFactorFactsTests:72. Production builds the line through vitalsFactor/describeVitals.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift:17",
-      "EmuquTests/ScoringCharacterizationTests.swift:569",
-      "EmuquTests/ScoreFactorFactsTests.swift:72"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)": "e91d99644125da59"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.describeVitals(vitals:baselineStats:score:)": "61928452828f474a"
    }
   },
   {
@@ -201,12 +156,11 @@
      "effect": "return DescribedDetail.note(.noVitals); else build facts + line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(vitals:)": "8348d7a83d099799",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)": "8da5b8bab542b5d0",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)": "5f0b8f7a0cbca219"
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "01f488e1eda4cecb",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(vitals:)": "7e8ae387f631978a",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)": "8f12fbe4e511f240",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)": "b6da4b9728c0a8a7"
    }
   },
   {
@@ -229,12 +183,11 @@
      "effect": "set sleepHRDelta = HR - baseline and sleepHRScore = restingHRSubScore (nil without a baseline SD); else both stay nil, so the line reads '(no baseline yet)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "826de92048a8ff8a",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "ddd2a621b8074af5",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "125b234f3cb02e11",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "6c7d5be6d9400201"
    }
   },
   {
@@ -252,14 +205,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryClause(_:)": "a667824a43ed91da",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.sleepHRClause(_:)": "fe62497289ed8102",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureClause(_:unit:)": "6c64bc67585dd028",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "7ea5065b3ceba069",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryClause(_:)": "e5244d334a2ab546",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.sleepHRClause(_:)": "697687d444295cd7",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureClause(_:unit:)": "bfc8e33f13e1b8d3",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "4f13d7a441167394",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -298,13 +250,12 @@
      "effect": "return 'Sleep HR N at baseline → score'; else return with signed delta in bpm"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.unscoredSleepHRClause(_:delta:)": "7242e1a1d4bfe953",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "1e0861f7132a2103",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.unscoredSleepHRClause(_:delta:)": "81864bc9a6ef75bb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "4f13d7a441167394",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "a15b86cd98df1261",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "a6982641d09bc7e5",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -324,9 +275,8 @@
      "effect": "return 'Sleep HR N bpm (at baseline)'; else signed whole-bpm delta vs baseline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -360,14 +310,13 @@
      "effect": "return rrNoData (unreachable in practice when a score exists, since a score needs a rate); else return '(vs pop)' form"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData": "7d9f2c97bb17da0a",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "1e0861f7132a2103",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData": "dfd20420d22ad484",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "6c7d5be6d9400201",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "4f13d7a441167394",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "a15b86cd98df1261",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "a6982641d09bc7e5",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -397,14 +346,13 @@
      "effect": "fallback recomputes temperatureSubScore(deviation); used for facts stored without a score"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7",
-    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "cf804bfa462304ab",
-    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol": "5d22b75e79a08e75",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "1e0861f7132a2103",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "125b234f3cb02e11",
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "824ab0100c810122",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol": "65d16b94d3540542",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "4f13d7a441167394",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.signedNumber(_:decimals:)": "a6982641d09bc7e5",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -432,7 +380,6 @@
      "effect": "return temperatureScoreModerate; else return temperatureScoreSevere"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -464,23 +411,10 @@
      "effect": "return original breakdown; else return a new ScoreBreakdown with refreshed factors"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The refreshed Vitals factor score changes while compositeScore stays frozen, so the breakdown's weighted factor contributions no longer sum to the headline score the user sees on the same screen.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/VitalsScoring.swift:265",
-      "Emuqu/Sources/Analysis/VitalsScoring.swift:269",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:175"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)": "2b933be187b2d371",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)": "0edaa9aefad001b9"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)": "4a3a7a2d5b9c3d8c",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)": "a7bd77bcfbf2dc54"
    }
   },
   {
@@ -494,9 +428,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -516,9 +449,8 @@
      "effect": "return respiratoryScore == nil; else fall back to text matching (a line stored in a third language that is neither English nor the current language is not detected)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData": "7d9f2c97bb17da0a"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::var VitalsScoring.rrNoData": "dfd20420d22ad484"
    }
   },
   {
@@ -540,11 +472,10 @@
      "effect": "use factor.score; unreachable from breakdownRefreshingVitalsFactor because it requires a respiratory rate, which always yields an RR sub-score"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "dcfe2903310294ab",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "9fb3a52f3db3c5c1",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "3d1a132ab2d018b6"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "cb55bfe450fdd72f",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "2703c1e06a8d8b5c"
    }
   },
   {
@@ -567,7 +498,6 @@
      "effect": "return max(0, 100 - (rate-popMax)*15); else (below popMin) return respiratoryRateBelowPopulationScore (90)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -592,7 +522,6 @@
      "effect": "subtract spo2Penalty; else no change; result floored at 0"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5"
    }
@@ -615,7 +544,6 @@
      "effect": "return the one penalty string; else []"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty": "1a35092f9956bc5c",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5"

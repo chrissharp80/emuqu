@@ -10,19 +10,6 @@
   "mem:LanguageManager.shared language (pinned to English in setUp)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "ActiveRouteSession tests engage and disengage the production singleton ActiveRouteSession.shared inside the app host; any route the host had engaged is cleared, and a concurrent host user of the singleton would observe the synthetic route.",
-   "evidence": [
-    "EmuquTests/RouteNavigationEnginesTests.swift:343",
-    "EmuquTests/RouteNavigationEnginesTests.swift:392",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift:32"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func RouteNavigationEnginesTests.setUp()",
@@ -40,10 +27,9 @@
     "notif:LanguageManager.languageDidChangeNotification (only when host is not English)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
@@ -63,15 +49,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "dad74a8b7de5e660",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "0dca5885f9b9b0b4",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "342afee2df2de171",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "c5006ff92b6dd419",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "588c8c086d3b0195",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "c516249da70c7c31",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a34fa1ac28e229cb"
    }
   },
   {
@@ -102,15 +87,14 @@
      "effect": "appends a northward fix from the corner"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "dad74a8b7de5e660",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "0dca5885f9b9b0b4",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "342afee2df2de171",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "c5006ff92b6dd419",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "588c8c086d3b0195",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "c516249da70c7c31",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a34fa1ac28e229cb"
    }
   },
   {
@@ -136,25 +120,14 @@
      "effect": "appends an eastward fix ~5.5 m apart"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTAssertLessThanOrEqual(turns.count, 1) also passes when both turns are dropped (0), so it cannot distinguish collapsing to one turn from losing the turn entirely.",
-     "evidence": [
-      "EmuquTests/RouteNavigationEnginesTests.swift:87"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "ffbfd035ded07827",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.angleDelta(from:to:)": "dad74a8b7de5e660",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.bearing(from:to:)": "0dca5885f9b9b0b4",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.collapseNearby(_:in:)": "342afee2df2de171",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.detectTurns(in:)": "c5006ff92b6dd419",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "aa631d037718079a",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "d4e9f0a1bfd20efa",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a60fc0504329890e"
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.distance(_:_:)": "588c8c086d3b0195",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.dropShortSegments(_:in:)": "c516249da70c7c31",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.pathLength(_:)": "a34fa1ac28e229cb"
    }
   },
   {
@@ -172,26 +145,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Test comments describe bounded windows ('only fires inside the FAR window (135-165 m)', 'NEAR: 60m inside [52.5, 67.5]') but production fires at any distance <= the upper edge with no lower bound (crossedThreshold checks dist <= far+window/2 only); the assertions still pass but the documented behaviour is wrong.",
-     "evidence": [
-      "EmuquTests/RouteNavigationEnginesTests.swift:92",
-      "EmuquTests/RouteNavigationEnginesTests.swift:126",
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:84",
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "71ecad594f74fc76",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929"
    }
   },
   {
@@ -210,14 +169,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "71ecad594f74fc76",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.withDistance(_:_:)": "43267a5d45b530b1"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.withDistance(_:_:)": "f7c67bcbefc54513"
    }
   },
   {
@@ -235,13 +193,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "71ecad594f74fc76",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929"
    }
   },
   {
@@ -259,13 +216,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "71ecad594f74fc76",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929"
    }
   },
   {
@@ -283,11 +239,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "b8b0b8dbde34dd48",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "93d6b704e00166ac"
    }
   },
   {
@@ -305,11 +260,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "b8b0b8dbde34dd48",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "93d6b704e00166ac"
    }
   },
   {
@@ -327,11 +281,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "b8b0b8dbde34dd48",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "93d6b704e00166ac"
    }
   },
   {
@@ -349,13 +302,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "67903a6e659ecb9e",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "2d3bc17bb3c72900",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "133eff4e879ff760",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "0a851fbf83888d2e",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929"
    }
   },
   {
@@ -373,13 +325,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "67903a6e659ecb9e",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "2d3bc17bb3c72900",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "133eff4e879ff760",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "0a851fbf83888d2e",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929"
    }
   },
   {
@@ -397,13 +348,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "67903a6e659ecb9e",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "aa722d5e62d55821"
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "2d3bc17bb3c72900",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "133eff4e879ff760",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeContext(distance:elapsed:hr:elev:)": "0a851fbf83888d2e",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makeStepResult(currentStepIndex:currentInstruction:upcomingInstruction:distance:remaining:destination:arrived:)": "c1b1ca5f063a0929"
    }
   },
   {
@@ -447,33 +397,18 @@
      "effect": "?? 0 makes the >=2 assertion fail"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The r2 fix (35.00040,-89.64950) is 5.6 m from the vertex shared by step B's end and step C's start, so steps 1 and 2 tie exactly in advanceStepIndex; step 1 wins only because the loop keeps the first minimum with strict '<'. The comment says the point was pushed 'so step B wins decisively', which is false; reordering the scan or using '<=' would flip the asserted index.",
-     "evidence": [
-      "EmuquTests/RouteNavigationEnginesTests.swift:361",
-      "EmuquTests/RouteNavigationEnginesTests.swift:366",
-      "EmuquTests/RouteNavigationEnginesTests.swift:319",
-      "EmuquTests/RouteNavigationEnginesTests.swift:322",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:229"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "de370ac254078587",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "b380341ce3776347",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "cc31108ef4706d1c",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "bea77fcf99ca4cc5",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "81a763ff06dd8038",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "d5c6bb73f4d5d6d4",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "3343f89777a0135f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4ff6d823f02a58db",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "f05fa74d87104763",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "db4b98612d9f1318",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "423b1cb3be26f42e",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "0d408a76713550e0",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "08b7fd6f17002eee",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4345d392c1bb1d93",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "02b0b05e6043dcad",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)": "12bc1406715c83ef"
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)": "f8a57834f0e8efd4"
    }
   },
   {
@@ -495,14 +430,13 @@
     "mem:ActiveRouteSession.shared"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "cc31108ef4706d1c",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "bea77fcf99ca4cc5",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "81a763ff06dd8038",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "c0ce08ecb6d252c2",
-    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)": "12bc1406715c83ef"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "db4b98612d9f1318",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "423b1cb3be26f42e",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
+    "EmuquTests/RouteNavigationEnginesTests.swift::func RouteNavigationEnginesTests.makePolyline(_:)": "f8a57834f0e8efd4"
    }
   },
   {
@@ -516,9 +450,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "1df22bd32140c82a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "3751513ec25bdbc5"
    }
   },
   {
@@ -532,9 +465,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "1df22bd32140c82a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.isSameRoute(_:_:)": "3751513ec25bdbc5"
    }
   },
   {
@@ -554,7 +486,6 @@
      "effect": "returns an empty MKPolyline(); otherwise MKPolyline(coordinates:count:)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -566,7 +497,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -578,7 +508,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -596,7 +525,6 @@
      "effect": "?? 0 sets peakHR to 0; otherwise peakHR = hr"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

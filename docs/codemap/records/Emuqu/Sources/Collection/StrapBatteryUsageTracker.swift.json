@@ -12,7 +12,6 @@
   "ud:polar.batteryUsage.hours.<deviceId> (Double recording hours since change, standard suite)"
  ],
  "toplevel": "No code outside units; one stored let `manager: PolarManager`.",
- "flags": [],
  "units": [
   {
    "key": "func StrapBatteryUsageTracker.usageKey(_:deviceId:)",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,10 +47,9 @@
     "mem:PolarManager.isBatteryReadingStale"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "2bbe0ada88e62d35",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "cd8e2eeeb387c6ca"
    }
   },
   {
@@ -85,9 +82,8 @@
      "effect": "true: writes changedAt key; false: key left untouched"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "cd8e2eeeb387c6ca"
    }
   },
   {
@@ -123,12 +119,11 @@
      "effect": "false: logs that the hours were not charged (no strap known) and returns; true: increments, persists under that id, recomputes staleness"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId": "75415a0e1618e364",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId": "1011e2c07cc732c3",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "734b808f33c32f3f",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "2bbe0ada88e62d35",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -154,11 +149,10 @@
      "effect": "false: stale flag cleared to false and return; true: flag = hours > 0.7 × spec"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "813c1b348abb10af",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "d1e3b3d94aa50cfc",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
    }
   },
   {
@@ -202,36 +196,12 @@
      "effect": "true: resets hours counter to 0 and stamps changedAt=now; false: counters kept (repeat value on connect)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The hours counter resets only when the reported % differs from the last one. An H10 that sat at 100% until its counter crossed 280 h (0.7 x 400) and then gets a fresh CR2025 cell reports 100% again, so the counter is never reset and isBatteryReadingStale stays true (stale-battery banner and advice) on a new battery. Nothing else writes hoursRecordedSinceBatteryChanged and there is no manual reset.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:121",
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:103",
-      "Emuqu/Sources/Collection/PolarManager.swift:196",
-      "Emuqu/Sources/Views/RecordView+Panels.swift:327"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test exercises applyLevelUpdate, recordRecordingHours or recomputeStaleness (grep of EmuquTests for applyBatteryLevelUpdate/recordRecordingHours/isBatteryReadingStale finds nothing).",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:110",
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:81"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)": "b98cbde735b0fd4f",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)": "adbf9f7d75365ac4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "734b808f33c32f3f",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "2bbe0ada88e62d35",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

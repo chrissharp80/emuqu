@@ -9,19 +9,6 @@
   "ud:didRunTrimpRepairMigration_v1 (standard suite; static trimpRepairMigrationKey)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "docs/FLOWCHART.md says the Troubleshooting button is the \"Only manual trigger for repairTrainingSnapshots\" and lists it as user-action-required, but this migration calls it automatically at launch.",
-   "evidence": [
-    "docs/FLOWCHART.md:939",
-    "docs/FLOWCHART.md:787",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift:34"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
@@ -54,11 +41,10 @@
      "effect": "set flag, log, return (never repaired even if later enabled)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cac4e6c121467606",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "664c375933d4a520",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cca8b6c42d8d9321",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

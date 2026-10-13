@@ -13,29 +13,6 @@
   "WorkoutStatsCards.track: [CLLocation] (instance let)"
  ],
  "toplevel": "Imports CoreLocation/SwiftUI. WorkoutStatsCards is @MainActor; constructed per access by FitnessPostSummaryView.stats (FitnessPostSummaryView+StatsForwarding.swift:12-14) and by ViewSnapshotTests.makeStats. No globals.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "LocalizedUnit.formatter re-implements UnitsPreference.measurement (same MeasurementFormatter setup: appLocale, .medium, .providedUnit, fixed fraction digits); two copies of unit formatting to keep in sync.",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift:56",
-    "Emuqu/Sources/Models/UnitsPreference.swift:75"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Type comment says the share sheet reaches elevationSeries and hrrProvenanceLabel through a forwarder; those forwarders have no callers.",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift:13",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:48",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:52"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var WorkoutStatsCards.units",
@@ -53,9 +30,8 @@
     "ud:fitness.unitsPreference (App Group suite: the getter copies a legacy .standard value into the suite on read, UnitsPreference.swift:136-139)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -73,7 +49,6 @@
      "effect": "true: returns last offset as TimeInterval; false: returns wallClock (nil when the session has no endDate)."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -88,9 +63,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)": "41ccc691f64442e1"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)": "3b8cafbecf953e76"
    }
   },
   {
@@ -105,9 +79,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)": "41ccc691f64442e1"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.formatter(fractionDigits:)": "3b8cafbecf953e76"
    }
   },
   {
@@ -124,9 +97,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

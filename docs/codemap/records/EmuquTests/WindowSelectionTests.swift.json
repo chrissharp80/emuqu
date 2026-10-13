@@ -10,20 +10,6 @@
   "mem:WindowSelectionTests.windowSelector — WindowSelector() instance per test case"
  ],
  "toplevel": "windowSelector is a stored property initialised with WindowSelector() (default Config) for each test instance.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Nine tests drive WindowSelector.selectRecoveryWindow, a 'Legacy API (for compatibility)' wrapper that no production code calls; the app paths go through findBestWindowWithCapacity / selectWindowByMethod, so these tests cover the shared findBestWindow core through a call path users never take.",
-   "evidence": [
-    "EmuquTests/WindowSelectionTests.swift:86",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:143",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:145",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:443"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WindowSelectionTests.testScienceContract_WindowOrganizationThresholdsMatchArchitecture()",
@@ -34,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
@@ -49,7 +34,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -66,13 +50,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "adbb7aa7fbdaa267",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "879f43de5f898d0e",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1"
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "37d320fd7c03bd2b"
    }
   },
   {
@@ -95,13 +78,12 @@
      "effect": "999 makes the less-than-300 assertion fail"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "adbb7aa7fbdaa267",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "879f43de5f898d0e",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1"
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "37d320fd7c03bd2b"
    }
   },
   {
@@ -132,16 +114,15 @@
      "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "afc5ad5319c9390f"
    }
   },
   {
@@ -170,17 +151,16 @@
      "effect": "XCTFail and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)": "39a183f513663890",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)": "0bb1e558d4bfc42c",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "a463d54597301fb6",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "afc5ad5319c9390f"
    }
   },
   {
@@ -206,16 +186,15 @@
      "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "2cf7b6aef935e6fd",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "dda47d3b587f6267",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "3fbae8e0c12c91ce",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "76bb1c7f5f1b2540",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "16c3936d139cf456",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "669eedb6ca395ad9",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "afc5ad5319c9390f"
    }
   },
   {
@@ -256,16 +235,15 @@
      "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "16f56b5efece7a16",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "afc5ad5319c9390f"
    }
   },
   {
@@ -292,17 +270,16 @@
      "effect": "XCTFail and return; otherwise assert nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "3d1168b9d92d5f0f"
    }
   },
   {
@@ -339,17 +316,16 @@
      "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "3d1168b9d92d5f0f",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "37d320fd7c03bd2b"
    }
   },
   {
@@ -392,18 +368,17 @@
      "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.standardDeviation(_:)": "3c37a26c2043d2a7"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "3d1168b9d92d5f0f",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "37d320fd7c03bd2b",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.standardDeviation(_:)": "1562789cd7475c5f"
    }
   },
   {
@@ -439,16 +414,15 @@
      "effect": "XCTFail; nil passes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "16f56b5efece7a16",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "afc5ad5319c9390f"
    }
   },
   {
@@ -475,17 +449,16 @@
      "effect": "XCTFail and return; otherwise assert nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "aa0265fa98f4f174",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "3d1168b9d92d5f0f"
    }
   },
   {
@@ -500,11 +473,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "9bc49a4d235e4785",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -519,10 +491,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "9bc49a4d235e4785",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2"
    }
   },
   {
@@ -537,10 +508,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "9bc49a4d235e4785",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2"
    }
   },
   {
@@ -581,37 +551,10 @@
      "effect": "−i/3 ramp ±10"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "rmssdRange is accepted and discarded (`rmssdRange _:`), so call sites passing 80...120 or 100...150 suggest a target RMSSD the fixture never produces.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:400",
-      "EmuquTests/WindowSelectionTests.swift:77"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "VariationPattern.increasing and .decreasing are never passed by any caller (every createSessionWithPattern call uses .stable or .chaotic), so the ramp branches at lines 413 and 415 never run.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:413",
-      "EmuquTests/WindowSelectionTests.swift:415",
-      "EmuquTests/WindowSelectionTests.swift:78",
-      "EmuquTests/WindowSelectionTests.swift:105",
-      "EmuquTests/WindowSelectionTests.swift:130",
-      "EmuquTests/WindowSelectionTests.swift:155",
-      "EmuquTests/WindowSelectionTests.swift:312"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "3d1168b9d92d5f0f",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "37d320fd7c03bd2b"
    }
   },
   {
@@ -625,9 +568,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -645,7 +587,6 @@
      "effect": "return 0; otherwise compute"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -663,7 +604,6 @@
      "effect": "return 0; otherwise compute"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

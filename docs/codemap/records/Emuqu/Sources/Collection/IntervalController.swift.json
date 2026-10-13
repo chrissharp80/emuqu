@@ -10,18 +10,6 @@
   "closure:IntervalController.onStepChange / onFinish (set by WorkoutRecorder+Start.swift:678/682)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references IntervalController (comment says it is separate 'so the interval logic is easy to test in isolation').",
-   "evidence": [
-    "Emuqu/Sources/Collection/IntervalController.swift:11",
-    "Emuqu/Sources/Collection/IntervalController.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func IntervalController.load(plan:startAt:)",
@@ -52,18 +40,6 @@
      "effect": "fire onStepChange(first,1,count); else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The startAt parameter is ignored since steps are timed in recorder ticks; its only caller (WorkoutRecorder+Start.swift startIntervalPlan) still passes it.",
-     "evidence": [
-      "Emuqu/Sources/Collection/IntervalController.swift:54",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:748"
-     ],
-     "found": "b10 fix of the wall-clock step timer"
-    }
-   ],
    "deps": {}
   },
   {
@@ -77,7 +53,6 @@
     "mem:IntervalController.currentStepIndex"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -112,11 +87,10 @@
      "effect": "advance()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()": "2842b934740a5017",
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.isComplete(_:elapsedSec:stepDistanceMeters:)": "11c5ce07c3cc5f10",
-    "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.currentStep": "6c0bd09b26406a10"
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()": "7fad87e3eb199a90",
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.isComplete(_:elapsedSec:stepDistanceMeters:)": "c7735e28d3d20898",
+    "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.currentStep": "f4c08a2a19cfe712"
    }
   },
   {
@@ -139,7 +113,6 @@
      "effect": "return stepDistance >= distance"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -153,9 +126,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()": "2842b934740a5017"
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()": "7fad87e3eb199a90"
    }
   },
   {
@@ -173,7 +145,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -191,7 +162,6 @@
      "effect": "nil index shows 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -203,7 +173,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -226,7 +195,6 @@
      "effect": "nil; else that step"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -246,9 +214,8 @@
      "effect": "0 (distance steps always show 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.currentStep": "6c0bd09b26406a10"
+    "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.currentStep": "f4c08a2a19cfe712"
    }
   },
   {
@@ -278,7 +245,6 @@
      "effect": "finish: isFinished, index nil, onFinish(); return"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -545,11 +545,16 @@ check "codemap/stale_record" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Extensions.swift');s=p.read_text();t=s.replace('static func hoursMinutes(minutes: Int) -> String {','static func hoursMinutes(minutes: Int) -> String {'+chr(10)+'        let planted = 0; _ = planted',1);assert t!=s;p.write_text(t)"
 
 # A change that records a new high-severity finding, instead of fixing it, must
-# break the open-findings ratchet.
+# break the open-findings ratchet. Findings and their budgets live in the local,
+# untracked overlay (do_not_ship/codemap), so the plant builds a temporary
+# overlay: a copy of the local one when it exists, else empty budgets of 0. The
+# gate is pointed at it through CODEMAP_OVERLAY; with none there, the ratchet does
+# not run and the gate is green before the plant.
+PLANT_OVERLAY="$BACKUP_DIR/codemap-overlay"
 check "codemap/new_high_finding" \
-    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "CODEMAP_OVERLAY=$PLANT_OVERLAY CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
     "docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json" \
-    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json');r=json.loads(p.read_text());r['flags'].append({'kind':'broken','sev':'high','text':'planted','evidence':[]});p.write_text(json.dumps(r,indent=1)+chr(10))"
+    "import json,pathlib,shutil;src=pathlib.Path('do_not_ship/codemap');d=pathlib.Path('$PLANT_OVERLAY');shutil.copytree(src,d) if src.is_dir() else [d.mkdir(parents=True),(d/'codemap_open_high.txt').write_text('0'+chr(10)),(d/'codemap_open_med.txt').write_text('0'+chr(10))];p=d/'flags/Emuqu/Sources/Utilities/Errors.swift.json';p.parent.mkdir(parents=True,exist_ok=True);r=json.loads(p.read_text()) if p.is_file() else {'file':[],'units':{}};r['file'].append({'kind':'broken','sev':'high','text':'planted','evidence':[]});p.write_text(json.dumps(r,indent=1)+chr(10))"
 
 # TODO(codemap-recheck): restore the "codemap/callee_behaviour_changed" case (a
 # planted change to a callee's record must turn the check red) once re-check

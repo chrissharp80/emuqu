@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Markdown only; no executable content.",
- "flags": [],
  "units": [
   {
    "key": "§ Localization workflow",
@@ -24,15 +23,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "2ef6e3eeba6671f2",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "0198cbcf5e941f03",
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)": "f1b7966a7e6adb7d",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.testEveryHelpStringIsTranslatedInEveryLanguage()": "dfa95403b7ba9451",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)": "3ad8bf55894a0f8e",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.testEveryHelpStringIsTranslatedInEveryLanguage()": "1de46129421e8cee",
     "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.testTheContentLooksUpAKnownNumberOfStrings()": "8f73d87166226b65",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.testTheHelpTableHoldsNothingTheHelpCenterNoLongerShows()": "c049142fa00d2da4",
-    "Makefile::target localization-guard": "6f037f306cd54e75"
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.testTheHelpTableHoldsNothingTheHelpCenterNoLongerShows()": "0105124c2236b558",
+    "Makefile::target localization-guard": "e2c1ec610e831e83"
    }
   },
   {
@@ -53,53 +51,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Table's 'new key' strings are partly gone: the Verification.swift 'Many irregular beats detected…' key no longer exists in the catalog or code, and the onboarding calibration explainer now reads differently (score from the first night, Dashboard after 14 nights), so the table no longer describes current keys.",
-     "evidence": [
-      "docs/LOCALIZATION.md:52",
-      "docs/LOCALIZATION.md:61",
-      "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:158"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "More of the table's 'new keys' are gone than the first-pass flag lists: the sample-entropy ('commonly seen with heavy accumulated…') and HRV peak-capacity ('accumulated load or illness…') keys have no source string or catalog entry, and the ATL string now lives in DeepDiveReportRenderer+Body.swift, not +Pages.swift. The claim 'translated in all sixteen languages' therefore refers partly to keys that no longer exist.",
-     "evidence": [
-      "docs/LOCALIZATION.md:55",
-      "docs/LOCALIZATION.md:58",
-      "docs/LOCALIZATION.md:59",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:150",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:532"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Two more 'new keys' in the table no longer exist, beyond those already flagged. The MorningResultsPopovers SampEn string now reads 'Higher values reflect more complex heart-rate dynamics. Values below 0.5 are unusual in resting recordings…', not the '(resilient)… unusually low and uncommon in healthy…' key in the table. The DeepDive vitals-intro key '…altitude effects, and elevated breathing rate.' has no source site: the intro now lives in DeepDiveReportRenderer+Body.swift with different text. Consequence: the table is stale as a re-translation checklist. The keys that do still exist are translated in all 16 non-English locales.",
-     "evidence": [
-      "docs/LOCALIZATION.md:53",
-      "docs/LOCALIZATION.md:57",
-      "Emuqu/Sources/Views/MorningResultsPopovers.swift:221",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:290"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)": "435914377e0bc0cd",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.atlRow(training:bundle:)": "cd5e1dd35a6e59b2",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func pnn50Row(td:session:bundle:)": "f4693b4d94656ca9",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)": "ae4eaa2abbd9b80c",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.atlRow(training:bundle:)": "b47f83d37610d8ad",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func pnn50Row(td:session:bundle:)": "6aabe8ab33486bb6",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func respirationRateRow(ans:bundle:)": "fc88d4ff2bd7e38f",
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo": "531c2571c5422f7d",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageCopy": "dcb5982cb14d9d2f",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.skipShowMeAroundButton": "74c48b22d87dd6a3",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.takeReadingButton": "437c3df8bf48a3a8"
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::var MetricExplanationPopover.metricInfo": "ebf2dae586fc4fa7",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageCopy": "04774d97536a3eee",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.skipShowMeAroundButton": "4d74c2f018bcf4c7",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.takeReadingButton": "e18129dd30e5e5e3"
    }
   },
   {
@@ -120,12 +80,11 @@
     "ud:AppleLanguages"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d"
    }
   },
   {
@@ -139,9 +98,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -153,7 +111,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,12 +127,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "2ef6e3eeba6671f2",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "3a83e6bf2674bdc3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Makefile::target localization-guard": "6f037f306cd54e75"
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "0198cbcf5e941f03",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "a34cc9a161a26762",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Makefile::target localization-guard": "e2c1ec610e831e83"
    }
   },
   {
@@ -192,23 +148,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The doc's local coverage snippet counts any localization entry (not state == translated), includes shouldTranslate:false keys in the denominator and lists 'en', so it prints ~99 % (4949/4965) per locale while the CI gate reports 100 %; the two measurements disagree.",
-     "evidence": [
-      "docs/LOCALIZATION.md:147",
-      "scripts/check_localization_coverage.sh:58"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability": "fdaf8d36bc3162db",
-    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "2ef6e3eeba6671f2",
-    ".github/workflows/ci.yml::step lint-and-budgets/Orphaned catalogue keys": "a204e3c42818f96f",
-    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6"
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability": "e96f9bd8af74a934",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "0198cbcf5e941f03",
+    ".github/workflows/ci.yml::step lint-and-budgets/Orphaned catalogue keys": "bcb7b112c18271d1",
+    "Makefile::target localization-orphan-guard": "6d166330dec47d08"
    }
   },
   {
@@ -227,14 +171,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability": "fdaf8d36bc3162db",
-    ".github/workflows/ci.yml::step lint-and-budgets/Localized literals resolve to a catalogue key": "a3537a027fd72894",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "3a83e6bf2674bdc3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
-    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f"
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability": "e96f9bd8af74a934",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localized literals resolve to a catalogue key": "5d5eb218e8a6ee52",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "a34cc9a161a26762",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
+    "Makefile::target localization-resolution-guard": "2767f94176460d10"
    }
   },
   {
@@ -246,7 +189,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -258,7 +200,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

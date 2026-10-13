@@ -14,7 +14,6 @@
   "file:<tmp>/ReanalysisBaseline-<UUID>.json (hermetic BaselineTracker)"
  ],
  "toplevel": "Stored fixtures: temp archive directory, temp baseline-tracker file, lazy hermetic SessionArchive, and a far-future nightStart.",
- "flags": [],
  "units": [
   {
    "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_withNilTrainingContext()",
@@ -30,23 +29,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Only range/finiteness checks; with nil context the function reduces to toTenScale(recovery 75) = 7.5, which is never pinned.",
-     "evidence": [
-      "EmuquTests/ReanalysisServiceTests.swift:18",
-      "EmuquTests/ReanalysisServiceTests.swift:21"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   },
   {
@@ -63,22 +50,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Determinism of a pure static function with constant inputs is a near-tautology; it cannot catch a wrong value.",
-     "evidence": [
-      "EmuquTests/ReanalysisServiceTests.swift:34"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   },
   {
@@ -95,12 +71,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   },
   {
@@ -117,12 +92,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   },
   {
@@ -139,12 +113,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   },
   {
@@ -170,7 +143,6 @@
      "effect": "swallowed (file absent when the tracker never saved)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -192,16 +164,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "be93861445c19b1e",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "458e2091ed3d7cb2",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38",
-    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)": "4ba829a0f1d38fd3",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "9d3d63da31c6a847",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "54452f1dbb11842d",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)": "54b229e09e5956c3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3"
    }
   },
   {
@@ -215,9 +186,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -231,9 +201,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -267,26 +236,25 @@
     "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "6fee4a44f5de8d8c",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)": "6ca51dcde996b5fd",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "2ed99c680a1aa771",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)": "3d0ade753473bbd7",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "4e01839d861ee93d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "5ace6c3f90cf9d94",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "5bc35491ee393569",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "dc5efe3b2cb73316",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "814ac02a5cea0163",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)": "bd9117ce7ab28333",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()": "1c8ff9f45c2ea3ad",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "72233335dccaa534",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "8924f4d9c07474a1"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)": "0779541ba4174ad9",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "52f58f127571dcae",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)": "da1dc5e5fe2a5288",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "a577d6ee9b86fc2f",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "4c2f9b2cb388414f",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "ab07b9a45af3ba5f",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "dc56868e86da84cf",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)": "a510ef6280d087ad",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()": "65a5e42b12285b05",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
   },
   {
@@ -314,20 +282,19 @@
     "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "43dd522102956b1d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "4e01839d861ee93d",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "a577d6ee9b86fc2f",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "3a944834a448d890",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()": "e8831c9ba745b8e8",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "72233335dccaa534",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "8924f4d9c07474a1"
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
   },
   {
@@ -344,13 +311,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "584b891459e5121f",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "72233335dccaa534"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "90a121a4b5513310",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
    }
   }
  ],

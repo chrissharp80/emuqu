@@ -5,21 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "configurations: one 'Default' with codeCoverage targets [Emuqu]. defaultOptions.testExecutionOrdering = random (applies to both targets). testTargets: EmuquTests parallelizable true; EmuquUITests parallelizable false. Two _comment strings record why: UI tests flaked under parallel simulator clones (SettingsNavigationUITests, 2026-08-19), and random ordering became safe for UI tests once AppLaunchRecovery.removeStoredSessionData() wiped archive/raw-RR directories under -UITests-FreshInstall (verified: Emuqu/Sources/Services/AppLaunchRecovery.swift:185-193,217; all 18 UI test files reference -UITests-FreshInstall). Random ordering makes order-dependent unit tests fail non-deterministically rather than consistently. The top-level _comment also says these parallel settings apply to `make test` and Xcode runs, while scripts/run_tests_with_coverage.sh (`make test-coverage`, ci.yml tests job) passes -parallel-testing-enabled NO by default (PARALLEL_TESTING), running both targets serially and overriding both settings.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The plan marks EmuquTests parallelizable and EmuquUITests not, but scripts/run_tests_with_coverage.sh (the CI test path, ci.yml:493) passes -parallel-testing-enabled NO by default, overriding both, and its comment at line 64 says 'Both test targets are marked parallelizable', contradicting the plan. The plan's parallel settings take effect only for `make test`/Xcode runs.",
-   "evidence": [
-    "Emuqu.xctestplan:29",
-    "Emuqu.xctestplan:37",
-    "scripts/run_tests_with_coverage.sh:64",
-    "scripts/run_tests_with_coverage.sh:113",
-    "scripts/run_tests_with_coverage.sh:238"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [],
  "deps": {}
 }

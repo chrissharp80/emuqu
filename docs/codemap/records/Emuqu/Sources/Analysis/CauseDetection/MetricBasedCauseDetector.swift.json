@@ -10,7 +10,6 @@
   "mem:MetricBasedCauseDetector.highStressIndex=250, lowHRVStressIndex=220, dehydrationStressIndex=180, trainingLoadDFAAlpha1=1.1, maxNightGap=36 h (private static)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func MetricBasedCauseDetector.detectCauses(in:)",
@@ -33,14 +32,13 @@
      "effect": "returns [] (unreachable through CauseDetector, which already diverts good readings)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectDehydration(in:)": "f30e4a6b3c5f2599",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleIllness(in:)": "9530485de38653f4",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleSleepDebt(in:)": "6e090fea2a971972",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "eb534e8570d2bb5c",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectDehydration(in:)": "712cc89d7e38d64f",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleIllness(in:)": "13ea4e2c75ff9b34",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleSleepDebt(in:)": "196e4d01ff55d510",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)": "b2b61a3feddabf71",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectUntaggedStress(in:)": "1a945727e143b16a"
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectUntaggedStress(in:)": "f59a20604cf023ea"
    }
   },
   {
@@ -79,13 +77,12 @@
      "effect": "returns it; else []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectIllnessPattern(in:)": "e23e94ab12f81db9",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.moderateIllnessCause(context:signals:)": "fd3551e343fc7908",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.strongIllnessCause(context:signals:)": "3181910061c6a903",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.weakIllnessCause(context:signals:)": "2c5448e0bd7f9535",
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344"
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectIllnessPattern(in:)": "ae281745366e3eff",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.moderateIllnessCause(context:signals:)": "63128c7cb6ba961c",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.strongIllnessCause(context:signals:)": "d2252d6312d1efcb",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.weakIllnessCause(context:signals:)": "909a3ee3b44c4050",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "308d95a7fd0039b0"
    }
   },
   {
@@ -107,12 +104,11 @@
      "effect": "returns cause; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "c92efb2c814c8b07",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "828d4557f55b5643",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "a15b86cd98df1261",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -144,11 +140,10 @@
      "effect": "title 'Sustained HRV and Resting-HR Shift'; else 'Multi-Day HRV Decline'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "c92efb2c814c8b07",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "828d4557f55b5643",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "a15b86cd98df1261",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -181,12 +176,11 @@
      "effect": "low-HRV cause; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.elevatedRestingHRCause(signals:)": "7f83779283c82c4c",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.immuneResponseCause()": "6cf0b158ff735020",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.elevatedRestingHRCause(signals:)": "166cfbfd3cf37c00",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.immuneResponseCause()": "b525542aae576ac4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -201,9 +195,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -219,10 +212,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "a15b86cd98df1261",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -250,12 +242,11 @@
      "effect": "hrElevated false (moderate falls back to the HRV-only variant; weak RHR cause does not fire)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "c92efb2c814c8b07",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.hrElevation(context:)": "912431a7f2b47a46",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)": "89b9ef71a9897e4c",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "828d4557f55b5643",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.hrElevation(context:)": "474555e4b6ed2ce8",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)": "08927d121ddcadd2",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
    }
   },
@@ -274,7 +265,6 @@
      "effect": "break"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -294,9 +284,8 @@
      "effect": "(false, 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "4c3a7898e9bb7b17"
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "6bb520435338c058"
    }
   },
   {
@@ -323,11 +312,10 @@
      "effect": "adds cause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "308d95a7fd0039b0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -355,11 +343,10 @@
      "effect": "adds cause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.isGoodSleep": "151e5f65fe74347e",
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.isGoodSleep": "4e0a801e7f1d992e",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "308d95a7fd0039b0",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -386,10 +373,9 @@
      "effect": "adds cause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "308d95a7fd0039b0",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -410,10 +396,9 @@
      "effect": "adds cause; else []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   }
  ],

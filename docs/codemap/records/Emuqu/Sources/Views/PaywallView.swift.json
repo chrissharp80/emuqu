@@ -13,21 +13,6 @@
   "mem:PaywallView.isGate (init param, default true)"
  ],
  "toplevel": "Two #Preview blocks (lines 719-731) build PaywallView and PurchaseStatusView with AppDependencies.current.services.storeKitManager injected; preview-only. The `skipDebugButton` body is wrapped in #if DEBUG (lines 355-363), so release builds render nothing there.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "Only one default-state snapshot (ChartScreenSnapshotTests.swift:157) and three UI tests (privacy button, features, restore button) touch PaywallView; no test drives its per-offer mapping (trialAndUnlock/unlockOnly/unlocked buttons, trialHasEnded caption, retry button). docs/MAINTAINERS.md:903 credits EntitlementAnchorTests with the paywall's logic, while the offer logic is in PaywallGatePolicyTests.",
-   "evidence": [
-    "EmuquTests/ChartScreenSnapshotTests.swift:157",
-    "EmuquUITests/EmuquUITests.swift:1264",
-    "Emuqu/Sources/Views/PaywallView.swift:475",
-    "docs/MAINTAINERS.md:903",
-    "EmuquTests/PaywallGatePolicyTests.swift:55"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var PaywallView.offer",
@@ -50,12 +35,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "53db48015154fb2e",
-    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "dd296d738a126262",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted": "fd2d5588ff40eff0"
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "766f1a31d1d38f58",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "0ba9e2513df9ceb6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "71d275bb55330c5c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted": "ed92294b871c72b7"
    }
   },
   {
@@ -70,10 +54,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "c9deabc36b511494",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack": "089af9a3698a9979"
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "8bedca3937bdb3e0",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack": "7a8e575cf35b6549"
    }
   },
   {
@@ -94,10 +77,9 @@
      "effect": "true: ScrollView{wholePage} so everything scrolls together; false: pinnedLayout with bottomSection fixed under the scrolling content"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pinnedLayout": "2ea9ce628eb09f97",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.wholePage": "f4360c1e465f5e27"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pinnedLayout": "7901f5810a0e3174",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.wholePage": "127c9e7a5c394ce2"
    }
   },
   {
@@ -112,10 +94,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomSection": "338cf3e258b0ee3e",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent": "1adad2ffac73e7cd"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomSection": "4dffbb1b6ee69df8",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent": "279397b6aef2e862"
    }
   },
   {
@@ -130,10 +111,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent": "35576d4fdcac44e6",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent": "1adad2ffac73e7cd"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent": "aefcc02ad3489973",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent": "279397b6aef2e862"
    }
   },
   {
@@ -151,13 +131,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.featuresSection": "1756c63031fe9ff6",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.headerSection": "cdfa275bc7b1e9c8",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.moreFeatures": "cd85e4b9d0c61e43",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pricingSection": "61e432303b484dc8",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.recoveryFeatures": "df5b9419a1e24486"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.featuresSection": "0bf67912bb226255",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.headerSection": "57a9bc0962fe51da",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.moreFeatures": "a8e56b42d2dfac41",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pricingSection": "45b4e55db8d61f54",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.recoveryFeatures": "ce507c16d0e502cc"
    }
   },
   {
@@ -190,15 +169,14 @@
      "effect": "clears storeKit.errorMessage; true does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "2cab41a221fa02fb",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions": "c7168d7015e1e77e",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage": "d71bc591e785c853",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "0d1aa80c31e9afdf",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions": "8112aeb276a846cc",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage": "1d40f8ed58ec2313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -219,10 +197,9 @@
     "net:App Store (Product.products)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "ca287cbeb2dba343",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -242,7 +219,6 @@
      "effect": "shows the message text; nil: empty view"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -258,9 +234,8 @@
     "mem:StoreKitManager.errorMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -275,12 +250,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallLogo": "35fb74b416b4c5a4",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallLogo": "4ef035fa1867e365",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -294,12 +268,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -314,11 +287,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "3f7b7e1ee15a184a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "29b8b09bc67de0e8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -333,10 +305,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "3f7b7e1ee15a184a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "29b8b09bc67de0e8"
    }
   },
   {
@@ -351,13 +322,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "3f7b7e1ee15a184a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "29b8b09bc67de0e8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -371,11 +341,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureIcon(_:color:)": "a3561618288c1b40",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureIcon(_:color:)": "98e1c4f8b76e9221",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -387,7 +356,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -408,10 +376,9 @@
      "effect": "true: unlock pricing block; false (buyer): nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "065c6321a18c935c",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockPricing": "b865a27235db8fbf"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "88468d8a9c89e402",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockPricing": "1a02eb79b509d657"
    }
   },
   {
@@ -426,12 +393,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.priceLine": "3aa7fa4495a1239e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.priceLine": "3813990e2c84b373",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -460,11 +426,10 @@
      "effect": "shows retryProductsButton; otherwise (still loading) a ProgressView"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton": "5850c9a62c390f52",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton": "f08fe51b83cc8426",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -487,10 +452,9 @@
     "net:App Store (Product.products)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "ca287cbeb2dba343"
    }
   },
   {
@@ -521,13 +485,12 @@
      "effect": "trial-ended caption; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.bottomCaption(_:)": "fb1757a57cf04d78",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.trialTermsText(price:)": "498416c8a7dc73d8",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "c856ebfb83af27fb",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialHasEnded": "cd2f8008c45bca8f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.bottomCaption(_:)": "ab41e082ae7d0e53",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.trialTermsText(price:)": "fccb9fb9a10f3614",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "18f2d4a9de749468",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialHasEnded": "4a307001a3397101"
    }
   },
   {
@@ -539,9 +502,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -555,9 +517,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent": "35576d4fdcac44e6"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent": "aefcc02ad3489973"
    }
   },
   {
@@ -576,26 +537,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/ARCHITECTURE.md says the paywall's first button is 'Start 30-Day Free Trial' above the required terms, but bottomContent renders trialTerms (line 342) before trialButton (line 343), so the terms sit above the button (which matches the code comment at lines 298-308, not the doc).",
-     "evidence": [
-      "docs/ARCHITECTURE.md:767",
-      "Emuqu/Sources/Views/PaywallView.swift:342",
-      "Emuqu/Sources/Views/PaywallView.swift:343"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.legalLinks": "99714d8d4af10a9c",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtons": "a8179d2a24d3fd5a",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.skipDebugButton": "a11dcdf4fa2e5535",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButton": "600448ed2d189c2f",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialTerms": "4d3bb73511e5d9f0",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockedNote": "d6c61af6d1ec8345"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.legalLinks": "e2f21be0e29c4ac7",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtons": "9bde8bde9efe8e8a",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.skipDebugButton": "e242b5f4d88500d2",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButton": "e73604b5d7c7da2f",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialTerms": "057665c698ad8b7c",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockedNote": "54ca9cf50517ece3"
    }
   },
   {
@@ -613,11 +561,10 @@
     "ud:debug_isPurchased"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func debugGrantAccess()": "fcca6572c01240f8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func debugGrantAccess()": "aabad64e5b16dfd3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -636,14 +583,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "289a9fef543a54b7",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet": "4f1e09a505c350bd",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet": "c5023553918b6c23",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink": "ff1a79017beeb4c3",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet": "c34848cb1775ab51"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "ee9355b3eae04848",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet": "65296e6387b49d24",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet": "7016f9e7ddb980fb",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink": "df65a35b15492aa6",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet": "53f37c238a1f97be"
    }
   },
   {
@@ -664,10 +610,9 @@
      "effect": "true: shows the Your Data link; false (opened from Settings/More where those pages are reachable): nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "289a9fef543a54b7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "ee9355b3eae04848"
    }
   },
   {
@@ -679,9 +624,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -697,11 +641,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataDoneItem": "a5bd28316311c379",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataList": "f9f26f1c10b1a7af"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataDoneItem": "4d1d30b45e6c469c",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataList": "43f8d02fc2bab782"
    }
   },
   {
@@ -717,10 +660,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "2d6308bb50fa86bd",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "fdf08baf61874e5f",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8"
    }
   },
@@ -735,9 +677,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -752,10 +693,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissTermsToolbarItem": "ce8ca7e9a8300917",
-    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body": "d4ae309fd1691a30"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissTermsToolbarItem": "42b9df66ddb0e094",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body": "4c2b390051995b8b"
    }
   },
   {
@@ -769,9 +709,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -786,10 +725,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissPrivacyToolbarItem": "bbc304be891fd531",
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "5f196c1466c5c7b8"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissPrivacyToolbarItem": "c08952791bf18544",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "29788e8ebfaf0c70"
    }
   },
   {
@@ -803,9 +741,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -826,11 +763,10 @@
      "effect": "true: shows the note (id paywall.accessNote); false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "71d275bb55330c5c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313"
    }
   },
   {
@@ -860,11 +796,10 @@
      "effect": "true: retryProductsButton in the trial slot; false: startTrialButton (disabled if either product is missing, the unlock retry then sits in priceLine)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "c856ebfb83af27fb",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton": "5850c9a62c390f52",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.startTrialButton": "9a068c5d84e019ef"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "18f2d4a9de749468",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton": "f08fe51b83cc8426",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.startTrialButton": "36ccc611434811fe"
    }
   },
   {
@@ -884,12 +819,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.startTrial()": "7242c8d447b1cc56",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonLabel": "1ee5d11b95468a18",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.startTrial()": "9349fff6c3335b4d",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonLabel": "9030ea5f3e29d12e",
     "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -903,9 +837,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonTitle": "8d09096214b95af1"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonTitle": "15e5e8ca56b7c7b1"
    }
   },
   {
@@ -938,7 +871,6 @@
      "effect": "true: dismiss(); false (cancelled, pending, failed): stays, errors/notices are shown by the alerts"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "8b7618dd90500267"
    }
@@ -974,10 +906,9 @@
      "effect": "true: dismiss(); false: stays (failure/pending/ended-trial notice already set by StoreKitManager)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func startFreeTrial()": "afe1230dd9809cdc",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7"
    }
   },
   {
@@ -1000,12 +931,11 @@
      "effect": "true: purchaseButton shown; false (buyer): omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueWithAccessButton": "71deb1d41ab558e4",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "065c6321a18c935c",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton": "48eb22ec601307e9",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "4d32fb2f74d64cde"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueWithAccessButton": "053a65bc43b7654b",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "88468d8a9c89e402",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton": "0760d4e5c4bd2e30",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "ed90ecbce1ad286a"
    }
   },
   {
@@ -1039,15 +969,14 @@
      "effect": "clears storeKit.purchaseNotice; set true does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()": "b14d98870061715d",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "c856ebfb83af27fb",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtonLabel": "8240f2e56aa62510",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()": "59630815637fc653",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "18f2d4a9de749468",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtonLabel": "f717b787ec249d7a",
     "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035"
    }
   },
   {
@@ -1075,10 +1004,9 @@
      "effect": "'Unlock for <displayPrice>'; else 'Purchase'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1110,11 +1038,10 @@
      "effect": "sets restoreNotice = nil; a nil return from restore() (user cancelled / paywall disabled) shows no alert"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/StoreKitManager.swift::func restore()": "c5c666c132945459",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1141,11 +1068,10 @@
      "effect": "true: shows the button; false: nothing (only purchase/restore/legal remain)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueTitle": "4b479a29bf82722d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueTitle": "d5f1d5108d20e1b4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1166,10 +1092,9 @@
      "effect": "'Done'; else 'Continue'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "7e951f49e656327a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "9bf4a800a9648b64"
    }
   },
   {
@@ -1183,9 +1108,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "7e951f49e656327a"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "9bf4a800a9648b64"
    }
   },
   {
@@ -1199,9 +1123,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "7e951f49e656327a"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "9bf4a800a9648b64"
    }
   },
   {
@@ -1220,10 +1143,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted": "fd2d5588ff40eff0"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted": "ed92294b871c72b7"
    }
   },
   {
@@ -1237,9 +1159,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1253,9 +1174,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1276,10 +1196,9 @@
      "effect": "true: section shown; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseStatusRow": "a27a41a48d613d9c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseStatusRow": "06ce1f7abe0ff2d4"
    }
   },
   {
@@ -1302,10 +1221,9 @@
      "effect": "true: ownedRow; false: purchaseLink"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.ownedRow": "a8ceb99a6506a5ae",
-    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLink": "d3f009eb90ce50d0"
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.ownedRow": "496386daac15053e",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLink": "2ddf27fd45861734"
    }
   },
   {
@@ -1319,10 +1237,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1337,10 +1254,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body": "2fb7c7ea6f946bfd",
-    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLinkLabel": "73620efb21a7cfdd"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body": "e8d3735a0feb2a50",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLinkLabel": "0be3908d88126bbe"
    }
   },
   {
@@ -1355,10 +1271,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.trialRemainingNote": "5bb7b9dc74b13683"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.trialRemainingNote": "79d670f31743c495"
    }
   },
   {
@@ -1386,14 +1301,13 @@
      "effect": "shows the days-remaining caption (StoreKitManager.trialDaysRemaining); else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)": "9d98b479d65683fa",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)": "98de5c90ab9770ce",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "71d275bb55330c5c",
     "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "225bcd4fa8d3d525",
     "Emuqu/Sources/Services/StoreKitManager.swift::var trialDaysRemaining": "05d8a0b6c96fd72d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   }
  ],

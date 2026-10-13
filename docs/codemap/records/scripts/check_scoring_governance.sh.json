@@ -11,18 +11,6 @@
   "file:Emuqu/Sources/Analysis/ScoringVersion.swift (read)"
  ],
  "toplevel": "cd to repo root. Python: every Emuqu/Sources/**/*.swift outside CauseDetection/ is scanned line by line; any line containing `rankingWeight` (comments included) is a problem. Then for the two SCORING_SOURCES (exit 2 if missing): strip `//` comments, regex `static let NAME [: Type] = <numeric literal>` and feed sorted `file:NAME=VALUE` lines into sha256; then from Constants.swift (exit 2 if missing) only the `enum ScoringBounds` and `enum ScoringWeights` blocks (exit 2 if either is not found), comments stripped, the same regex, fed as `file:Enum.NAME=VALUE`; truncated to 16 hex. Reads ScoringVersion.current (exit 2 if absent); exit 2 if baseline missing; baseline split into (version, hash) — a malformed baseline raises ValueError (traceback, exit 1). Problem when hash differs AND version equals recorded version. A changed hash WITH a version bump passes without the baseline being updated (baseline is never rewritten here). Exits 1 on problems, else prints 'clean'. Only numeric-literal `static let` in the two files and the two Constants.swift enums are hashed: constants defined as expressions, arrays, instance lets, or literals in other scoring files (e.g. inline weights in calculators) are outside the hash.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Version-on-change is enforced only for numeric-literal `static let` declarations in Constants+RecoveryScore.swift, HRVThresholds.swift and the ScoringBounds/ScoringWeights enums of Constants.swift; a scoring weight changed anywhere else (or as an expression/array) changes scores without tripping the gate, so the header's 'whenever inputs, thresholds, or weights change' is broader than what is checked.",
-   "evidence": [
-    "scripts/check_scoring_governance.sh:58",
-    "scripts/check_scoring_governance.sh:62"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

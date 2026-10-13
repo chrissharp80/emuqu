@@ -12,21 +12,6 @@
   "static let daysUntilConvergedFromDescription"
  ],
  "toplevel": "Four static description strings are AI-facing tool documentation; no other top-level code.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references any fact key declared in this file except training.project_from / days_until_* / projected_tsb (one file each); training.load.weekly.*, training.recovery_hours_needed, training.days_until_fresh, training.race_predictions, training.pace_zones and training.sport_baseline resolvers have no test coverage.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:47",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:103",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:141",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:184",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:215"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var TrainingLoadNamespace.projectionEntries",
@@ -40,10 +25,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingProjectEntries": "1814ad6b25ec8a7e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.weeklyAndFitnessEntries": "c1a47bae4a8020d4"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingProjectEntries": "582ca6ed8e10f049",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.weeklyAndFitnessEntries": "9f8faec512f01163"
    }
   },
   {
@@ -64,16 +48,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilAtlConvergesParamsEntry": "5b2922845021d57b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilFreshEntry": "cd63b4beb31bfaad",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyCurrentEntry": "a0860b4974afa31c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyLast4WeeksEntry": "86605545cf626ff7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingPaceZonesEntry": "e8bd2bebe48f3d85",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRacePredictionsSportEntry": "7df748099249e833",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRecoveryHoursNeededEntry": "ad9c2459c564773e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingSportBaselineSportEntry": "87edf93cce32532a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilAtlConvergesParamsEntry": "cb983f98e879e2eb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilFreshEntry": "d6a2841ea17ddbf4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyCurrentEntry": "d1a3092b4b76490d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyLast4WeeksEntry": "c3893246add9d5c6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingPaceZonesEntry": "681ddf682f467ea9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRacePredictionsSportEntry": "132ef4799549bb3a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRecoveryHoursNeededEntry": "5b0b42b879abf71d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingSportBaselineSportEntry": "cd6899cfb8511486"
    }
   },
   {
@@ -89,11 +72,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.daysUntilConvergedFromEntry": "120bc9721316900f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingProjectFromParamsEntry": "12ae840f290bb9f4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingProjectedTsbDailyTrimpEntry": "adf88033c215514e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.daysUntilConvergedFromEntry": "c1388a4ba3f44c22",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingProjectFromParamsEntry": "0b76384cfeaf3d71",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingProjectedTsbDailyTrimpEntry": "fa877c9441145f33"
    }
   },
   {
@@ -122,12 +104,11 @@
      "effect": "false: missing(.notRecorded, 'cache cold — no daily samples'); true: returns .double(sum of trimp)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "3cfd9d71634b09e4",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "3e615d6a7bdf0b53",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "d89693df54d2afd0",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "01ca92a96a21d8b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -143,11 +124,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "3cfd9d71634b09e4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingLoadWeeklyLast4Weeks()": "bb95607ce0c0ceee",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "d89693df54d2afd0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingLoadWeeklyLast4Weeks()": "1da8a2aaf689d3c6",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "01ca92a96a21d8b8"
    }
   },
   {
@@ -175,11 +155,10 @@
      "effect": "returns missing(notRecorded, 'cache cold — no daily samples')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.weekRecord(weeksBack:from:samples:)": "b44ce1b8f631e238",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "3e615d6a7bdf0b53",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.weekRecord(weeksBack:from:samples:)": "962bd92a3e241c4c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -197,7 +176,6 @@
      "effect": "returns nil (week dropped by compactMap)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -231,12 +209,11 @@
      "effect": "nil (>30 days to fresh): missing(.notRecorded,'recovery would take more than 30 days'); else .double(hours)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "b8856c5a7837a0f6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "84685e1e6ae035e6",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -265,12 +242,11 @@
      "effect": "nil (>30 days): missing(.notRecorded,...); else .integer(days)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "8870bda47c69ce73",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "84685e1e6ae035e6",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -285,10 +261,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingRacePredictionsSport(_:)": "fc8edbd75b5c193b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingRacePredictionsSport(_:)": "4fb7f87ce81f00a9",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86"
    }
   },
   {
@@ -327,10 +302,9 @@
      "effect": "false: skip label; true: sets predicted_<label>_sec and basis_<label>"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.raceBasisRecord(_:)": "e7fa6a72ebeb28c1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "3984045e10555b87"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.raceBasisRecord(_:)": "d1729fccbb492a8b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "0d66e6d854b8c4aa"
    }
   },
   {
@@ -354,11 +328,10 @@
      "effect": "returns it; otherwise loads older workouts and predicts from recent + older"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.loadSessions(_:)": "299ed88c127e8da9"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "4ddb3ee1b7a68f56",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.loadSessions(_:)": "81923abcdf529225"
    }
   },
   {
@@ -374,10 +347,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.entries": "2d60c9f9825b42bf",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.entries": "16bdc9d8a35d24c3",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -389,7 +361,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -404,10 +375,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingPaceZones()": "6c0ecff1662c11e5",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingPaceZones()": "2c4501189f7b612c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -431,10 +401,9 @@
      "effect": "missing(.notRecorded,'no 5K running basis in history'); otherwise record of five sec/km values"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)": "84594852e98bcb56",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "3984045e10555b87"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)": "c662e48e1214adda",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "0d66e6d854b8c4aa"
    }
   },
   {
@@ -449,10 +418,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingSportBaselineSport(_:)": "ba54c894c329c5b6",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingSportBaselineSport(_:)": "06cd8c21eb6179b0",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86"
    }
   },
   {
@@ -482,11 +450,10 @@
      "effect": "false: missing(.notRecorded,'no <sport> workouts in history'); true: record"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.recentWorkouts(of:limit:)": "d8b2525a051609c1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.sportBaselineRecord(_:baselines:)": "dece14a3a0a357f9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.recentWorkouts(of:limit:)": "8826cc842d70d7bc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.sportBaselineRecord(_:baselines:)": "bac203e3ca990862",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5"
    }
   },
@@ -520,10 +487,9 @@
      "effect": "false: continue; true: append"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -551,7 +517,6 @@
      "effect": "adds avg_alpha1 else omitted"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5"
    }
@@ -568,10 +533,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingDaysUntilAtlConvergesParams(_:)": "85893ab9014b99bf",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingDaysUntilAtlConvergesParams(_:)": "82958014803d8ef0",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86"
    }
   },
   {
@@ -603,15 +567,14 @@
      "effect": "false: missing(.notRecorded,'no training-load data yet'); true: convergence record"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "ca15e55cd20ce779",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.convergenceRecord(atl:ctl:daily:gap:unmet:)": "980d31e1dea81438",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.wholeTrimp(_:)": "a151830bcd7aec11",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "0e60dbd56f42d589",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "b94823b42d275069",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "84685e1e6ae035e6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.convergenceRecord(atl:ctl:daily:gap:unmet:)": "20502946f66177fc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.wholeTrimp(_:)": "11fae693d05ec470",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -623,7 +586,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -638,10 +600,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingProjectFromParams(_:)": "62d5199da93a85e7",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingProjectFromParams(_:)": "3a90280636b7a04a",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86"
    }
   },
   {
@@ -665,13 +626,12 @@
      "effect": "returns missing(.invalidParameter, detail)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "ca15e55cd20ce779",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "0e60dbd56f42d589",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projection(atl:ctl:daily:days:)": "94b176e475bcd457"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "b94823b42d275069",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projection(atl:ctl:daily:days:)": "9fd5d1dcea660709"
    }
   },
   {
@@ -698,11 +658,10 @@
      "effect": "true: adds 'milestones' record; false: omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projectionMilestones(_:days:)": "2451243744bf97dc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projectionRecord(atl:ctl:daily:days:final:)": "eb0bd0564cff4673"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "cb80abd36b9745a7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projectionMilestones(_:days:)": "a7027076b0733a43",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projectionRecord(atl:ctl:daily:days:final:)": "4cdcd0d2a1ba8ed4"
    }
   },
   {
@@ -714,9 +673,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -734,9 +692,8 @@
      "effect": "only markers within the horizon are emitted; index safe because project returns max(1,days) entries"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -751,10 +708,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingDaysUntilConvergedFromParams(_:)": "5408eaad26ce0b83",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingDaysUntilConvergedFromParams(_:)": "020b12d61f1a1b30",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86"
    }
   },
   {
@@ -778,13 +734,12 @@
      "effect": "returns missing(.invalidParameter, detail)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "ca15e55cd20ce779",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.convergenceRecord(atl:ctl:daily:gap:unmet:)": "980d31e1dea81438",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.wholeTrimp(_:)": "a151830bcd7aec11"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "0e60dbd56f42d589",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "b94823b42d275069",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.convergenceRecord(atl:ctl:daily:gap:unmet:)": "20502946f66177fc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.wholeTrimp(_:)": "11fae693d05ec470"
    }
   },
   {
@@ -804,9 +759,8 @@
      "effect": "nil (gap never reached in 60 days): missing(.notRecorded, caller's unmet detail); else record (0 when already within gap)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "b5d0ac734c0cff19"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "267f872b8bf0040a"
    }
   },
   {
@@ -821,10 +775,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingProjectedTsbDailyTrimp(_:)": "f3bfeb3f5f1efbae",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingProjectedTsbDailyTrimp(_:)": "9f9b6d43ee57bb06",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86"
    }
   },
   {
@@ -860,15 +813,14 @@
      "effect": "project always returns >=1 element; the missing(.internalError) branch is unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projection(atl:ctl:daily:days:)": "94b176e475bcd457",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.tomorrowRecord(live:trimp:day:)": "959d15629a664549",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "cb80abd36b9745a7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "b94823b42d275069",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "84685e1e6ae035e6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projection(atl:ctl:daily:days:)": "9fd5d1dcea660709",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.tomorrowRecord(live:trimp:day:)": "3d371b26c7ab0a05",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -880,9 +832,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   }
  ],

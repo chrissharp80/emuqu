@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func MedicalQueryGuardTests.setUp()",
@@ -22,9 +21,8 @@
     "ud:AppleLanguages (via pinEnglishLanguage when host not English)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
@@ -57,12 +55,11 @@
      "effect": "XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "87185a3436a6c315",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -89,22 +86,10 @@
      "effect": "XCTFail; any refusal passes"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Fails only on .proceed; any refusal passes, so an upper-case AFib question routed to the symptom or self-harm reply instead of arrhythmiaReply would not be caught (the lower-case test at line 52 does check the reply).",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:62",
-      "EmuquTests/MedicalQueryGuardTests.swift:52"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -137,24 +122,11 @@
      "effect": "XCTFail"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comment says 'severe dizziness' does not match because the pattern is `severe\\s+(pain|fatigue|dizz)\\b`, but the lexicon now uses `dizz\\w*` (MedicalTermLexicon.swift:587), so the comment is stale and the common phrase 'severe dizziness' is left untested.",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:84",
-      "EmuquTests/MedicalQueryGuardTests.swift:89",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:587"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -182,12 +154,11 @@
      "effect": "asserts crisis reply; otherwise XCTFail and continue"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "4b690dde06ad386a",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -208,10 +179,9 @@
      "effect": "asserts .selfHarm"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -232,10 +202,9 @@
      "effect": "asserts not self-harm"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -256,21 +225,9 @@
      "effect": "asserts not self-harm"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same check as testWidenedSelfHarmStemsStillExcludeTheDrill (line 170) with near-identical phrases.",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:170",
-      "EmuquTests/MedicalQueryGuardTests.swift:177"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -284,9 +241,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "4b690dde06ad386a"
    }
   },
   {
@@ -313,11 +269,10 @@
      "effect": "XCTFail false positive"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -344,11 +299,10 @@
      "effect": "XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -363,21 +317,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named 'MatchesSystemPromptCopy' but never reads the system prompt; it only checks substrings of the guard's own replies (the verbatim prompt check is testRuleBQuotesTheSymptomReplyVerbatim).",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:226",
-      "EmuquTests/MedicalQueryGuardTests.swift:230"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "87185a3436a6c315",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f"
    }
   },
   {
@@ -400,12 +342,11 @@
      "effect": "checks prefix; otherwise XCTFail and return"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -420,10 +361,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
-    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.collapsingWhitespace(_:)": "3ad61192334b2b5c"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.collapsingWhitespace(_:)": "69e8e5d18d924ef7"
    }
   },
   {
@@ -435,7 +375,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -456,10 +395,9 @@
      "effect": "asserts .rhythm"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -480,10 +418,9 @@
      "effect": "asserts .symptom"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -504,10 +441,9 @@
      "effect": "asserts .symptom"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -528,10 +464,9 @@
      "effect": "asserts nil"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -546,10 +481,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -564,21 +498,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named 'ResolvesToTheCatalogue' but runs pinned to English and only checks English substrings; it never verifies a non-English translation exists.",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:386",
-      "EmuquTests/MedicalQueryGuardTests.swift:389"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "87185a3436a6c315",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f"
    }
   },
   {
@@ -593,10 +515,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -632,21 +553,9 @@
      "effect": "probes it"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Alternatives containing any regex metacharacter are skipped, so a concept whose refused forms are mostly patterns is only partly probed; the guard only requires one probe per concept.",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:426",
-      "EmuquTests/MedicalQueryGuardTests.swift:442"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -667,10 +576,9 @@
      "effect": "asserts nil"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -685,10 +593,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -703,10 +610,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -727,10 +633,9 @@
      "effect": "asserts .symptom"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -745,10 +650,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -769,21 +673,9 @@
      "effect": "asserts nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says the other sixteen locales lacked the exclusion, but the table covers only 13 non-English locales (no is, nb, sv), so those three are untested.",
-     "evidence": [
-      "EmuquTests/MedicalQueryGuardTests.swift:524",
-      "EmuquTests/MedicalQueryGuardTests.swift:527"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -803,9 +695,8 @@
      "effect": "returns match result; otherwise XCTFail and returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -826,10 +717,9 @@
      "effect": "asserts no match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
-    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)": "694b5c82373160c0"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)": "65f441e2bb63e4d3"
    }
   },
   {
@@ -850,10 +740,9 @@
      "effect": "asserts match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
-    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)": "694b5c82373160c0"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.lexicon(_:matches:)": "65f441e2bb63e4d3"
    }
   }
  ],

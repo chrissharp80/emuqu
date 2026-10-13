@@ -18,7 +18,6 @@
   "static movementCommitMeters=25, timeCommitSeconds=30, resumeWindowSeconds=12h"
  ],
  "toplevel": "Persistence is delegated to BreadcrumbStore (Breadcrumbs/active.json, archive.json).",
- "flags": [],
  "units": [
   {
    "key": "init BreadcrumbRecorder()",
@@ -46,14 +45,13 @@
      "effect": "resume() (starts background location without a user action if authorized); otherwise keep the trail loaded but idle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.lastActivity(of:)": "f3931a2ffce01aa7",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "9b5d689c5969d74d",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "ec7d3168e9a8ca29",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.lastActivity(of:)": "0edfe216fbf1e26d",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "8e604da1f85b4113",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "f80525a8222cb7ff",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
   },
   {
@@ -71,9 +69,8 @@
      "effect": "its timestamp; ?? startedAt when no fixes"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -107,13 +104,12 @@
      "effect": "start fresh trail; otherwise return silently (denied: nothing recorded, no feedback here)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "dfe92fa6ef2dee3f",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "bee1a9275c5ad5f9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "98e3082c384e6bfc",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "59904fb1c4effdec",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
   },
   {
@@ -134,7 +130,6 @@
      "effect": "start heading; otherwise skip"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -163,10 +158,9 @@
      "effect": "start; otherwise return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "dfe92fa6ef2dee3f",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "98e3082c384e6bfc",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -196,12 +190,11 @@
      "effect": "clear activeTrail and lastCommittedFix; otherwise keep them loaded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "48c8c6fc3970494c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "0ffd5bc880f4cf8f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
   },
   {
@@ -223,13 +216,12 @@
     "mem:BreadcrumbRecorder.activeTrail"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "7ed0ae8ae2208fc4",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "b6e5350c19bcfee1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
   },
   {
@@ -247,9 +239,8 @@
     "mem:BreadcrumbRecorder.latestHeading"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c"
    }
   },
   {
@@ -270,13 +261,12 @@
     "mem:BreadcrumbRecorder.activeTrail"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "46f8393a76f04151",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "20349278ec335013",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
   },
   {
@@ -316,9 +306,8 @@
      "effect": "accept; otherwise reject"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b"
    }
   },
   {
@@ -350,14 +339,13 @@
      "effect": "use this fix as origin"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "bee1a9275c5ad5f9",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "59904fb1c4effdec",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "e502a6d117cc0430",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -371,9 +359,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.applyAuthorization(_:manager:)": "ac9009d527e76770"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.applyAuthorization(_:manager:)": "9fb3587d1665adc6"
    }
   },
   {
@@ -417,10 +404,9 @@
      "effect": "start heading"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "717b471ca2a0d6dc",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "bef212664a1481d4"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "126f1d33f58e0219"
    }
   },
   {
@@ -453,14 +439,13 @@
      "effect": "commit"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "b4d57ad4cd3b8570",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.commit(_:)": "e5d37428effe2fda",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)": "dc4f744a78db9533",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "ce0c435dad46ab7e",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.commit(_:)": "468e939d7a1104a5",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)": "5d2ea44eabbaeb7b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
   {
@@ -474,7 +459,6 @@
     "mem:BreadcrumbRecorder.latestHeading"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -486,7 +470,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

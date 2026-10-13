@@ -11,7 +11,6 @@
   "file:production Swift sources (mutated and restored)"
  ],
  "toplevel": "set -uo pipefail; cd to repo root; sources preflight. PASS/FAIL/SKIP/INVALID counters. DEST from select_simulator_destination.sh (exit 70 if empty). gate_mktemp_dir (fails on GNU mktemp), then acquire lock and set trap restore_all/rm/release. Runs `mutate` for each of 125 cases (anchors match the current sources; six were re-pointed after the code they named was rewritten: dfa_ectopic_threshold_widened / dfa_cleans_normal_variation replace `let ectopicRatio = HRVThresholds.ectopicThresholdPercent` with 0.50 / 0.05 (LiveDFAAnalyzerTests' 30 % and 8 % cases), normalized_power_not_fourth_power squares in the `windowMeans.reduce` and normalized_power_window_shrunk divides the 30-sample window sum by 10 (NormalizedPowerTests' exact NP values), stored_hr_fabricates_a_sentinel returns statistics(of: [60]) from storedHRStatistics' guard (TimeDomainTests.testAllStoredHRArtifactsFallsBackToTheBeatsNotASentinel), ppi_timeline_does_not_advance stops `beatMs` advancing (StrapPPIFilterTests' [0, 800, 1620] timeline); two named suites (AutoPauseDetectorTests, TrackBackupWatermarkTests) are classes inside WorkoutTickStateTests.swift). import_cadence_divides_by_zero_window removes the `seconds > 0` window check (keeping `sample.value >= 0`), which compiles and is caught by the backwards-window assertion in HealthWorkoutImporterTests.testZeroLengthWindowIsDroppedRatherThanDividedByZero; the zero-length window itself stays covered by the later isFinite guard. Prints totals (caught / survived / did not compile / skipped); exits 1 if any FAIL, INVALID or SKIP (skips and non-compiling mutations explicitly treated as unverified).",
- "flags": [],
  "units": [
   {
    "key": "fn backup",
@@ -24,7 +23,6 @@
     "file:backup dir"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -44,7 +42,6 @@
      "effect": "skip; otherwise cp (a missing backup makes cp fail silently, file left as is)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,7 +69,6 @@
      "effect": "return 2; else return 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -105,9 +101,8 @@
      "effect": "print SKIP 'BUILD failed'; else print SKIP 'already red'; then SKIP++ and return 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+    "scripts/verify_tests_fail.sh::fn run_suite": "4e58c5ad77935ddb"
    }
   },
   {
@@ -123,7 +118,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -154,10 +148,9 @@
      "effect": "code = 3"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/verify_tests_fail.sh::fn mutation_broke_build": "332e62be28b2e6ad",
-    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+    "scripts/verify_tests_fail.sh::fn mutation_broke_build": "1b67b4ca0cef218c",
+    "scripts/verify_tests_fail.sh::fn run_suite": "4e58c5ad77935ddb"
    }
   },
   {
@@ -195,7 +188,6 @@
      "effect": "SKIP++ (build failure, not a test result; fails the run)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -233,20 +225,19 @@
      "effect": "print SKIP, restore, SKIP++, return"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn baseline_green": "092d0e252171c552",
-    "scripts/verify_tests_fail.sh::fn mutated_result": "589f43a86e668c24",
-    "scripts/verify_tests_fail.sh::fn report_mutation": "266b913ffd6ad19f",
-    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
+    "scripts/verify_tests_fail.sh::fn backup": "91d1b05ae730eead",
+    "scripts/verify_tests_fail.sh::fn baseline_green": "5a93f1fb6c7fa075",
+    "scripts/verify_tests_fail.sh::fn mutated_result": "e74b96ee2d3ee8dc",
+    "scripts/verify_tests_fail.sh::fn report_mutation": "9ff7f015bcf27178",
+    "scripts/verify_tests_fail.sh::fn restore_all": "2791d57c196ad0be"
    }
   }
  ],
  "deps": {
-  "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5",
-  "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-  "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
-  "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
+  "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc",
+  "scripts/verify_tests_fail.sh::fn backup": "91d1b05ae730eead",
+  "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2",
+  "scripts/verify_tests_fail.sh::fn restore_all": "2791d57c196ad0be"
  }
 }

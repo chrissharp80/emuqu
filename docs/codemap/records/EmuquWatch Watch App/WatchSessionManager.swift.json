@@ -32,19 +32,6 @@
   "mem:WatchSessionManager.currentStateRequestInFlight (private)"
  ],
  "toplevel": "Stored-property initializers: statusLine starts \"Starting…\", sportLabel \"Workout\", band \"—\", unitsPreference \"metric\", voiceChatStateLabel \"idle\"; displayOnlyMode initializer reads UserDefaults (default true). WCSessionDelegate conformance in the extension at 907.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "WatchSessionManager.swift is not a member of any test target (only WatchMessageDecoding.swift is, project.pbxproj:4517), so apply/isCurrent ordering, queueControlMessage's stop protection, timeouts and reply handling have no tests.",
-   "evidence": [
-    "Emuqu.xcodeproj/project.pbxproj:4517",
-    "EmuquWatch Watch App/WatchSessionManager.swift:603",
-    "EmuquWatch Watch App/WatchSessionManager.swift:491"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var WatchSessionManager.displayOnlyMode",
@@ -66,7 +53,6 @@
      "effect": "present: that value; absent or wrong type: ?? true (display-only, iPhone owns the strap)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -93,7 +79,6 @@
      "effect": "true: .iPhoneRelay; false: .none"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -121,9 +106,8 @@
      "effect": "return heartRate (nil for .none)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHRSource": "2c7174ce7d27e35c"
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHRSource": "a342d65a01e6a0d8"
    }
   },
   {
@@ -145,9 +129,8 @@
      "effect": "true: hrPercentOfMax; false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHRSource": "2c7174ce7d27e35c"
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHRSource": "a342d65a01e6a0d8"
    }
   },
   {
@@ -172,9 +155,8 @@
      "effect": "return without re-render"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -200,9 +182,8 @@
      "effect": "false: statusLine = phoneUnreachableStatus, return without delegate/activation; true: set delegate then activate"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "5a5cb148e0051b70"
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
    }
   },
   {
@@ -231,9 +212,8 @@
      "effect": "true: workoutManager.start(sportRaw:); false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "62683aaa1d9ec970"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "8f27288f5191f848"
    }
   },
   {
@@ -272,12 +252,11 @@
      "effect": "false: log and return (duplicate tap dropped silently); true: proceed to send"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.armVoiceChatTimeoutClear()": "4b3e9d20b4907b56",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendLiveVoiceChatRequest(_:on:)": "8c6d2bad381b6d9f",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "5a5cb148e0051b70"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.armVoiceChatTimeoutClear()": "6a71f75f8ca0a58b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendLiveVoiceChatRequest(_:on:)": "a9f1fef81a478301",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
    }
   },
   {
@@ -289,7 +268,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -304,7 +282,6 @@
     "mem:WatchSessionManager.statusHeldUntil"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -331,11 +308,10 @@
      "effect": "present: that label; absent: ?? \"starting\""
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyVoiceChatReply(stateLabel:needsDisclaimer:refusal:)": "e403b72d4fed9850",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.failVoiceChatRequest(message:)": "a4d1511f5f4ebe88",
-    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatRefusalStatus(_:)": "cfd5b23e5d04edae"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyVoiceChatReply(stateLabel:needsDisclaimer:refusal:)": "06c5738e86d858bb",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.failVoiceChatRequest(message:)": "f30eae291777057a",
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatRefusalStatus(_:)": "2eb01ec458f715bb"
    }
   },
   {
@@ -367,12 +343,11 @@
      "effect": "true: clearVoiceChatPending, showControlStatus(refusal), return; false: accept path"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "1262f2914158df5c",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatNeedsDisclaimer()": "8dac9b2836e2a57c",
-    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatStateWord(_:)": "2cbf896ee505ce79"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "8e55f51ad384585a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatNeedsDisclaimer()": "8e6ce0478d2180bd",
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatStateWord(_:)": "3b5934c10a8a7a3b"
    }
   },
   {
@@ -390,23 +365,9 @@
     "mem:WatchSessionManager.statusLine"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Tells the user to \"Open Flo on your iPhone\"; the app is named Emuqu (Flo is the assistant), and every other Watch prompt says \"Open Emuqu\".",
-     "evidence": [
-      "EmuquWatch Watch App/WatchSessionManager.swift:321",
-      "EmuquWatch Watch App/Info.plist:23",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:219",
-      "EmuquWatch Watch App/WatchLiveView.swift:689"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "1262f2914158df5c",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "8e55f51ad384585a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
    }
   },
   {
@@ -424,10 +385,9 @@
     "mem:WatchSessionManager.statusLine"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "1262f2914158df5c",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "8e55f51ad384585a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
    }
   },
   {
@@ -441,7 +401,6 @@
     "mem:WatchSessionManager.voiceChatRequestInFlight"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -472,10 +431,9 @@
      "effect": "true: clear flag and show the retry message; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
    }
   },
   {
@@ -511,12 +469,11 @@
      "effect": "true: payload[targetZone] = zone; false: key omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.beginStartWorkoutRequest()": "2403bc72e0a12144",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "241dfe3a5c07d69b",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "5a5cb148e0051b70"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.beginStartWorkoutRequest()": "f784af71986617ca",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "c2044869e7170fb3",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
    }
   },
   {
@@ -540,9 +497,8 @@
      "effect": "false: log, return false; true: set flag, arm timeout, return true"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.armStartWorkoutTimeoutClear()": "4d3845a001fd9758"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.armStartWorkoutTimeoutClear()": "23cbced4d6ef0e01"
    }
   },
   {
@@ -574,10 +530,9 @@
      "effect": "true: clear flag and show retry text; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
    }
   },
   {
@@ -593,9 +548,8 @@
     "wc:stopWorkoutFromWatch"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "241dfe3a5c07d69b"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "c2044869e7170fb3"
    }
   },
   {
@@ -611,9 +565,8 @@
     "wc:pauseWorkoutFromWatch"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "241dfe3a5c07d69b"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "c2044869e7170fb3"
    }
   },
   {
@@ -629,9 +582,8 @@
     "wc:resumeWorkoutFromWatch"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "241dfe3a5c07d69b"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "c2044869e7170fb3"
    }
   },
   {
@@ -648,9 +600,8 @@
     "wc:acknowledgeFinishedFromWatch"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "241dfe3a5c07d69b"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "c2044869e7170fb3"
    }
   },
   {
@@ -681,12 +632,11 @@
      "effect": "false: queueControlMessage (applicationContext) and return; true: sendLiveControlMessage"
     }
    ],
-   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueControlMessage(_:on:pendingStatus:)": "ee6aeddf9a6d1807",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendLiveControlMessage(_:on:successStatus:)": "c6be97ab16c6eecb",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "5a5cb148e0051b70"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendLiveControlMessage(_:on:successStatus:)": "96b72179dca2445a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
    }
   },
   {
@@ -720,11 +670,10 @@
      "effect": "error shown in status line; intent not queued"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)": "3df4395e4b3df107",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
-    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.withQueueExpiry(_:)": "c25f0d39a0a972d9"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)": "855877be04fea476",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.withQueueExpiry(_:)": "115fe68087597ea9"
    }
   },
   {
@@ -744,10 +693,9 @@
     "wc:<control type>"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)": "99a198e059ae993f"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "976ea31b2b6582c7",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)": "2b602dbc24423b68"
    }
   },
   {
@@ -771,10 +719,9 @@
      "effect": "true: clearStartWorkoutRequest(); false: skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearStartWorkoutRequest()": "3c943207916cf824",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearStartWorkoutRequest()": "c46ed5137f755145",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
    }
   },
   {
@@ -804,9 +751,8 @@
      "effect": "false: return (retried on reachability change)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendCurrentStateRequest(on:)": "7172916598171a21"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendCurrentStateRequest(on:)": "0e528f92f2538619"
    }
   },
   {
@@ -827,10 +773,9 @@
     "mem:WatchSessionManager.currentStateRequestInFlight"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishCurrentStateRequest(_:)": "73fa6a9165847c56",
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "3a43a66d15fc51e4"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishCurrentStateRequest(_:)": "deb886af3d91c757",
+    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "45eeac69f90a1463"
    }
   },
   {
@@ -846,9 +791,8 @@
     "mem:WatchSessionManager.currentStateRequestInFlight"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "088872f0b4dc2365"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "de45895777568fe9"
    }
   },
   {
@@ -875,7 +819,6 @@
      "effect": "false: return"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -890,10 +833,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59"
    }
   },
   {
@@ -945,17 +887,16 @@
      "effect": "nil: return; else applyCommand"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyCommand(_:)": "7d6028e4b4d00f70",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyDisplayFields(_:)": "ffa6d15ded9c8b7b",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyRecording(_:)": "9087960dabebea75",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyVoiceChatState(_:)": "47c43b30ce9a476a",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.isCurrent(_:)": "e4174be3a806ce6a",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.logReceipt(_:)": "a6d247247915b5ab",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.resetWorkoutMetrics()": "0ea2f2ab6fd51708"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyCommand(_:)": "aa340a6b687ae1f3",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyDisplayFields(_:)": "bfbf20e908015e0d",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyRecording(_:)": "a6a607886f8c9679",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyVoiceChatState(_:)": "ea78da9db64fe0df",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.isCurrent(_:)": "3208f6e10a117cb0",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.logReceipt(_:)": "6c31c91b4dcffdd3",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.resetWorkoutMetrics()": "49482db05b4cd64f"
    }
   },
   {
@@ -975,7 +916,6 @@
      "effect": "true: log; false: skip"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -990,10 +930,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyModeAndPauseState(_:)": "cc66847c3d4d09d1",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyWorkoutMetrics(_:)": "09ece66b959c8532"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyModeAndPauseState(_:)": "eb8754a4a374b20a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyWorkoutMetrics(_:)": "58369f8f6e5da370"
    }
   },
   {
@@ -1039,12 +978,11 @@
      "effect": "set; absent: unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyOptionalMetrics(_:)": "fe20984b4e0f6bb8"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyOptionalMetrics(_:)": "b55ae035b64fb042"
    }
   },
   {
@@ -1099,10 +1037,9 @@
      "effect": "set; else unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e"
    }
   },
   {
@@ -1126,7 +1063,6 @@
     "mem:WatchSessionManager.targetZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1179,10 +1115,9 @@
      "effect": "set; else unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d"
    }
   },
   {
@@ -1215,12 +1150,11 @@
      "effect": "true: clearStartWorkoutRequest()"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsStartWorkoutRequest(update:)": "40389845e0cea61a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearStartWorkoutRequest()": "3c943207916cf824",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.driveKeepAliveSession(wasRecording:update:)": "e04526d63e379473"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsStartWorkoutRequest(update:)": "fad7ab2d7f60b256",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "333c83de78a8b055",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearStartWorkoutRequest()": "c46ed5137f755145",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.driveKeepAliveSession(wasRecording:update:)": "d6226433a3e846ac"
    }
   },
   {
@@ -1249,21 +1183,8 @@
      "effect": "false: return false; true: store sentAt, return true"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "The staleness gate (the fix for a late stop/tick restarting the keep-alive session) and the rest of WatchSessionManager have no tests: only WatchMessageDecoding is compiled into EmuquTests and no test references WatchSessionManager.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchSessionManager.swift:730",
-      "Emuqu.xcodeproj/project.pbxproj:4517",
-      "EmuquTests/WatchMessageDecodingTests.swift:13"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.isCurrent(sentAt:newestApplied:now:)": "f8acd306b56d253a"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.isCurrent(sentAt:newestApplied:now:)": "3c1003e78e0d5330"
    }
   },
   {
@@ -1299,11 +1220,10 @@
      "effect": "nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "62683aaa1d9ec970",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "ea441f9c66156de2"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "8f27288f5191f848",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "0f502a307a6d40fc"
    }
   },
   {
@@ -1325,7 +1245,6 @@
      "effect": "false: return; true: clear and cancel timeout"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1355,9 +1274,8 @@
      "effect": "false: return; true: clear flag and cancel timeout"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsVoiceChatRequest(update:)": "fd01a4e514ba4fab"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsVoiceChatRequest(update:)": "c5d65cceca74ecd6"
    }
   },
   {
@@ -1400,12 +1318,11 @@
      "effect": "noteUnrecognisedCommand(raw)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyStrapState(_:name:)": "93a03a10154695c1",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.noteUnrecognisedCommand(_:)": "1bba8d5006720a83",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.startWorkoutIfAllowed(_:)": "1602ca23b01f3d63",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "ea441f9c66156de2"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyStrapState(_:name:)": "f46a1ba486a0accc",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.noteUnrecognisedCommand(_:)": "d6a7381cfea4f3c5",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.startWorkoutIfAllowed(_:)": "627d3a29c18068dd",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "0f502a307a6d40fc"
    }
   },
   {
@@ -1430,11 +1347,10 @@
      "effect": "false (display-only): return; true: workoutManager?.start"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "a49cc389b0c23cfc",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "62683aaa1d9ec970"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "702537be9e120fc4",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "8f27288f5191f848"
    }
   },
   {
@@ -1455,7 +1371,6 @@
      "effect": "set; absent: unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1467,7 +1382,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1487,9 +1401,8 @@
      "effect": "true: hourMinuteSecond; false: minuteSecond"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -1509,7 +1422,6 @@
      "effect": "nil: \"—\"; else formatted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1537,9 +1449,8 @@
      "effect": "true: metres/1609.344 mi; false: km"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.measurement(_:_:fractionDigits:)": "c60557f140a85b1e"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.measurement(_:_:fractionDigits:)": "ec04dc038d808d1b"
    }
   },
   {
@@ -1567,9 +1478,8 @@
      "effect": "true: ft; false: m"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.measurement(_:_:fractionDigits:)": "c60557f140a85b1e"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.measurement(_:_:fractionDigits:)": "ec04dc038d808d1b"
    }
   },
   {
@@ -1589,7 +1499,6 @@
      "effect": "false: nil (row shows target zone instead); true: rounded spm"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1601,7 +1510,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1624,9 +1532,8 @@
      "effect": "no error: logs \"none\""
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyActivation(activated:reachable:)": "b482def49af79c95"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyActivation(activated:reachable:)": "8decdc8f8ffe8593"
    }
   },
   {
@@ -1656,10 +1563,9 @@
      "effect": "false: status \"Waiting for iPhone…\", return; true: requestCurrentStateFromPhone"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "19232ab440a9dfb0",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStrapStateFromPhone()": "d13eb840d7a4e031"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "f310532499ce3701",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStrapStateFromPhone()": "2930b6f67bde9f63"
    }
   },
   {
@@ -1673,9 +1579,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyReachability(_:)": "9ef1297a0bf92892"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyReachability(_:)": "beaaa849e32b0d97"
    }
   },
   {
@@ -1703,11 +1608,10 @@
      "effect": "false: unreachable status if not held, return; true: re-pull state and strap state"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "19232ab440a9dfb0",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStrapStateFromPhone()": "d13eb840d7a4e031",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "5a5cb148e0051b70"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "f310532499ce3701",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStrapStateFromPhone()": "2930b6f67bde9f63",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
    }
   },
   {
@@ -1724,10 +1628,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "088872f0b4dc2365",
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "3a43a66d15fc51e4"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "de45895777568fe9",
+    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "45eeac69f90a1463"
    }
   },
   {
@@ -1744,10 +1647,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "088872f0b4dc2365",
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "3a43a66d15fc51e4"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "de45895777568fe9",
+    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "45eeac69f90a1463"
    }
   },
   {
@@ -1764,10 +1666,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "088872f0b4dc2365",
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "3a43a66d15fc51e4"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "de45895777568fe9",
+    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager.InboundMessage(_:)": "45eeac69f90a1463"
    }
   }
  ],

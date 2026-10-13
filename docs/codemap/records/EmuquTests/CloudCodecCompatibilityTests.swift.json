@@ -9,29 +9,6 @@
   "CloudCodecCompatibilityTests.payload: fixed plaintext Data"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Header says fixtures 'come from the actual writers, not from a hand-rolled imitation', but plainFixture is a hand-written UTF-8 string that is not zlib-compressed data; it only proves non-FR/non-EMQC bytes pass through unchanged.",
-   "evidence": [
-    "EmuquTests/CloudCodecCompatibilityTests.swift:12",
-    "EmuquTests/CloudCodecCompatibilityTests.swift:36"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "FR fixtures are written with EncryptionManager.shared but decode opens them with AppDependencies.current.storage.encryptionManager, which is EncryptionManager.shared only when no test has installed an override; both encode paths also create real Keychain items (archive key, synchronizable cloud key) in the test host's keychain.",
-   "evidence": [
-    "EmuquTests/CloudCodecCompatibilityTests.swift:42",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift:172",
-    "Emuqu/Sources/Utilities/AppDependencies.swift:757"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var CloudCodecCompatibilityTests.plainFixture",
@@ -42,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -60,9 +36,8 @@
     "kc:session-encryption-key"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
    }
   },
   {
@@ -81,9 +56,8 @@
     "kc:com.chrissharp.flowrecovery.cloud"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
    }
   },
@@ -104,13 +78,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "f57c51f0ab7ae1f5"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "71587b1bb3e33a11",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "e8e6fa571212ac83",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "502c7955b483adae",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "bccb7f9ae3aa79f7"
    }
   },
   {
@@ -129,11 +102,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "8d65fa36e36d4343"
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "ac197c2b4df38e68"
    }
   },
   {
@@ -148,10 +120,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture": "08c1e3cdf7c8fe15"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture": "1378aef760abf381"
    }
   },
   {
@@ -167,11 +138,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "f57c51f0ab7ae1f5",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "8d65fa36e36d4343",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture": "08c1e3cdf7c8fe15"
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "bccb7f9ae3aa79f7",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "ac197c2b4df38e68",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::var CloudCodecCompatibilityTests.plainFixture": "1378aef760abf381"
    }
   },
   {
@@ -188,12 +158,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "f57c51f0ab7ae1f5"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "71587b1bb3e33a11",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "e8e6fa571212ac83",
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.emqcFixture()": "bccb7f9ae3aa79f7"
    }
   },
   {
@@ -209,11 +178,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
-    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "8d65fa36e36d4343"
+    "EmuquTests/CloudCodecCompatibilityTests.swift::func CloudCodecCompatibilityTests.frFixture()": "ac197c2b4df38e68"
    }
   }
  ],

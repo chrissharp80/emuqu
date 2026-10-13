@@ -11,7 +11,6 @@
   "closure:MailComposerView.onFailure (optional; called after onDismiss with the failure message when the attachment is unreadable or Mail reports .failed; no caller wires it yet)"
  ],
  "toplevel": "Callers: EmuquApp.swift:380, FitnessPostSummaryView+Share.swift:119, MorningResultsView.swift:462, MainTabView.swift:228, AssistantChatView.swift:330.",
- "flags": [],
  "units": [
   {
    "key": "func MailComposerView.makeCoordinator()",
@@ -24,9 +23,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::init MailComposerView.Coordinator(dismiss:onDismiss:onFailure:)": "6b0eba98faff509f"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::init MailComposerView.Coordinator(dismiss:onDismiss:onFailure:)": "094f20feabe28dc4"
    }
   },
   {
@@ -56,14 +54,13 @@
      "effect": "debugLog .error; return closeOnNextRunLoop(failure: error.localizedDescription) — sheet closes, onDismiss then onFailure run"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.attach(to:)": "bd97381f67bc3459",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)": "d96edfb937ab7624",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.shareSheetFallback()": "e73b24ab871a1be6"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "b4bb0aa451fb6168",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.attach(to:)": "cc99c8ab7a3b3e4b",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)": "2f9be8088046159a",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.shareSheetFallback()": "5224118457cf1172"
    }
   },
   {
@@ -93,9 +90,8 @@
      "effect": "set plain-text body; else empty body"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(fromMarkdown:)": "afb14f60a1230941"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(fromMarkdown:)": "a2b245a0d2e6efb9"
    }
   },
   {
@@ -124,9 +120,8 @@
      "effect": "error propagates to makeUIViewController"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.mimeType(of:)": "e327a26f416e10a5"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.mimeType(of:)": "4d09da05a45e8cb4"
    }
   },
   {
@@ -146,7 +141,6 @@
      "effect": "application/octet-stream"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -168,9 +162,8 @@
      "effect": "onFailure?(failure)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
    }
   },
   {
@@ -203,23 +196,9 @@
      "effect": "present activity sheet; empty → async dismiss + onDismiss, blank VC"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Third share-sheet construction path alongside ShareSheet (ShareSheet.swift:9) and presentShareSheet (RecapSharing.swift:50); MainTabView also implements its own canSendMail fallback before calling this view.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/MailComposerView.swift:82",
-      "Emuqu/Sources/Views/Utilities/ShareSheet.swift:9",
-      "Emuqu/Sources/Views/Utilities/RecapSharing.swift:50",
-      "Emuqu/Sources/Views/MainTabView.swift:223"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)": "d96edfb937ab7624",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(fromMarkdown:)": "afb14f60a1230941"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)": "2f9be8088046159a",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(fromMarkdown:)": "a2b245a0d2e6efb9"
    }
   },
   {
@@ -231,7 +210,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -252,10 +230,9 @@
      "effect": "debugLog the error and return markdown unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(of:in:)": "db3df17abe45a91d"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(of:in:)": "b787a60fb5837418"
    }
   },
   {
@@ -273,10 +250,9 @@
      "effect": "append ' (url)'; else words only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1"
    }
   },
   {
@@ -288,7 +264,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -315,10 +290,9 @@
      "effect": "message falls back to 'Email failed'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

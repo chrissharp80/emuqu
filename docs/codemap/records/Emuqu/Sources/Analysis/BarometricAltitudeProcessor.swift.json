@@ -9,7 +9,6 @@
  ],
  "state": [],
  "toplevel": "Header comment documents algorithm and references; no top-level code.",
- "flags": [],
  "units": [
   {
    "key": "func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
@@ -41,12 +40,11 @@
      "effect": "adds each to the hysteresis accumulator"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)": "02e24277c3ec8217",
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "51a9e22199e6bbd3",
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:windowSeconds:)": "2c48c7da0d6da5c4",
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)": "d2d26ff5933b09da"
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)": "6ddf524ddd35a28a",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "1fa5ebd68b931377",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:windowSeconds:)": "dc9dd1e722f4be9b",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)": "11cda0491c52d244"
    }
   },
   {
@@ -58,9 +56,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)": "678cfda3cef40fca"
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)": "848ea1b650b83c19"
    }
   },
   {
@@ -101,10 +98,9 @@
      "effect": "no state change beyond low/high update (sub-threshold wobble)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)": "678cfda3cef40fca",
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.turn(to:at:)": "e00b486bbce174c7"
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)": "848ea1b650b83c19",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.turn(to:at:)": "2358f4a0d0011b76"
    }
   },
   {
@@ -127,7 +123,6 @@
      "effect": "loss += anchor - low; else no loss change"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -139,7 +134,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -159,9 +153,8 @@
      "effect": "anchor = high (descent starts at the peak); else anchor = low (climb starts at the trough)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "51a9e22199e6bbd3"
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "1fa5ebd68b931377"
    }
   },
   {
@@ -194,7 +187,6 @@
      "effect": "remove the leaving sample"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

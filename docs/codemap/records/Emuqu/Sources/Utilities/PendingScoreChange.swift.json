@@ -13,7 +13,6 @@
   "static maxAge = 12 h"
  ],
  "toplevel": "Entry gets synthesized Codable used by write/read. maxAge constant. Notification.Name extension declares pendingScoreChangeWritten.",
- "flags": [],
  "units": [
   {
    "key": "func PendingScoreChange.write(_:)",
@@ -38,9 +37,8 @@
      "effect": "attempt() logs a warning; nothing is stored and no notification is posted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -58,20 +56,8 @@
     "ud:PendingScoreChange.v1"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller left: DashboardV2View.onDashboardAppear now calls read(currentSessionId:now:) with the overnight the hero shows.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:47",
-      "Emuqu/Sources/Views/DashboardV2View.swift:279"
-     ],
-     "found": "handoff pass h_src1"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)": "8d1ad3eab3381f49"
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)": "e2e50ee5c7833c6a"
    }
   },
   {
@@ -104,11 +90,10 @@
      "effect": "clears the key and returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "8fbaff62da395806",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.isCurrent(_:currentSessionId:now:)": "0f2cf125260519c5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "cfd622cc48144dac",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.isCurrent(_:currentSessionId:now:)": "8d4530d298ca2f84"
    }
   },
   {
@@ -124,7 +109,6 @@
     "ud:PendingScoreChange.v1"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -147,7 +131,6 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

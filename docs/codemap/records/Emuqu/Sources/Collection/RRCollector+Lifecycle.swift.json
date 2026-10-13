@@ -10,7 +10,6 @@
   "notif:UIApplication.willResignActiveNotification/didEnterBackgroundNotification/willTerminateNotification (observed, tokens kept in RRCollector.notificationObservers)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
@@ -34,11 +33,10 @@
      "effect": "logs error, returns"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "956b3fbf479fafc1",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -55,10 +53,9 @@
     "ud:RRCollector.dismissedInterruptedSessionIds"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "40d48ad743b2b737",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "33e94c72eef0b465",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -80,9 +77,8 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "57396f55b0be8803"
    }
   },
@@ -108,11 +104,10 @@
      "effect": "falls back to the paused night's choice"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "57396f55b0be8803",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistedPausedCaptureMode()": "25f87488544b085a",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistedPausedCaptureMode()": "ffd86fdc7366cee5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
   {
@@ -128,21 +123,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only read by tests (RRCollectorTests.swift:102/108/126, RRCollectorStateMachineTests.swift:208/232); no production caller.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:43",
-      "EmuquTests/RRCollectorTests.swift:102",
-      "EmuquTests/RRCollectorStateMachineTests.swift:208"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34"
    }
   },
   {
@@ -158,20 +140,8 @@
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical to clearPersistedRecordingState, which is not private; kept only because the app-layer launch-recovery callers (AppLaunchRecovery and others outside this file) use this name.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:50",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:23"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45"
    }
   },
   {
@@ -202,10 +172,9 @@
      "effect": "savedRecordingCheck returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)": "3a49c680749f517f",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "6165547a24f48e70"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)": "8af25d7ab2049c9b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "edf88e27053bda46"
    }
   },
   {
@@ -235,11 +204,10 @@
      "effect": "logs error, sets lastError, returns false; otherwise returns true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "4e78d5bd620c47fb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -278,14 +246,13 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "210a4862ba3075d2",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "d47ea010230d507a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "be1f9701a209f1a1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "0190ca0fc6deab5f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -303,9 +270,8 @@
     "notif:willResignActive/didEnterBackground/willTerminate (observe)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.emergencyBackupFlush(force:)": "6e0cebea98abfcb4"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.emergencyBackupFlush(force:)": "b68472b914977b3d"
    }
   },
   {
@@ -325,11 +291,10 @@
     "archive:migrated sessions"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysisService": "3b6ebd7162c9a28b",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "d4e00c05b325d191",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "1f4363262c7dd5ed"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysisService": "adc5220e480570ba",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "a2598d8081e32d26"
    }
   }
  ],

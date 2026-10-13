@@ -11,18 +11,6 @@
   "mem:LogCorrelation.storage (OSAllocatedUnfairLock<[Entry]>)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The tag is process-global: any line from any thread during an open scope (e.g. CloudKit sync) is tagged with that flow even when unrelated, as the header admits.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/LogCorrelation.swift:12",
-    "Emuqu/Sources/Utilities/LogCorrelation.swift:76"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var LogCorrelation.current",
@@ -35,7 +23,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,7 +36,6 @@
     "mem:LogCorrelation.storage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -63,7 +49,6 @@
     "mem:LogCorrelation.storage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

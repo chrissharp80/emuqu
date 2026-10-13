@@ -12,7 +12,6 @@
   "static watchWindowSlackSec = 15 s, maxBeatAgeSec = 5 s, lateReadToleranceSec = 15 s"
  ],
  "toplevel": "No top-level code beyond the type.",
- "flags": [],
  "units": [
   {
    "key": "init HRRCaptureService(polarManager:healthKit:captureWindowSec:)",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -51,12 +49,11 @@
      "effect": "false: logs and returns []; true: captures"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appendAppleHRRIfMissing(_:stopDate:stopHR:)": "096ebcaa4d3e90a4",
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapAndWatchSamples(stopDate:stopHR:)": "65441d6cb367fd45",
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.finalise(_:)": "1e46fc95c1898b29",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appendAppleHRRIfMissing(_:stopDate:stopHR:)": "c20e6e2841eaf726",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapAndWatchSamples(stopDate:stopHR:)": "58fd4b751335fb65",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.finalise(_:)": "de6e26580653f6c6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -73,12 +70,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapSamples(stopDate:stopHR:)": "565d9e1920f00aee",
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureWatchSamples(stopDate:stopHR:)": "60bf6c1f4be50a50",
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.waitForWatchWindowEnd(stopDate:)": "c59a31d4c02b6055",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapSamples(stopDate:stopHR:)": "ded1155892911b0d",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureWatchSamples(stopDate:stopHR:)": "14fe3d7129d4ca87",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.waitForWatchWindowEnd(stopDate:)": "db7a424043b24258",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -104,10 +100,9 @@
      "effect": "logs; returns so the query runs now"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -135,11 +130,10 @@
      "effect": "false: logs 'no Apple-computed HRR' and returns; true: appends and logs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureAppleHealthKitHRR(stopDate:stopHR:)": "f55cf575184a87be",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureAppleHealthKitHRR(stopDate:stopHR:)": "970d1a4b7499eae3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -160,10 +154,9 @@
      "effect": "logs 'all 3 tiers empty'; else no log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "dfae8e31de2660fa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -198,10 +191,9 @@
      "effect": "raises running max; else max unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.logContaminatedSample(_:priorMax:regressionTolerance:)": "a45186823d6c9f42",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.logContaminatedSample(_:priorMax:regressionTolerance:)": "a46767d4dc5d0485",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -215,10 +207,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -258,10 +249,9 @@
      "effect": "false: break (no +120 s attempt after a missing +60 s); true: appends strap sample"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.reachTarget(_:stopDate:)": "0358a802e778507f",
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.strapHR(at:)": "4f9effec5d3eed93"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.reachTarget(_:stopDate:)": "ca12a3a742793c5b",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.strapHR(at:)": "317d0d0c36e17356"
    }
   },
   {
@@ -287,10 +277,9 @@
      "effect": "logs; .cancelled"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -326,12 +315,11 @@
      "effect": "false: logs at .warning and returns nil; true: returns hr"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.currentHRFromBuffer()": "f856ab161056b749",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.currentHRFromBuffer()": "eca0cc17c0b327cc",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -368,9 +356,8 @@
      "effect": "false: nil; true: Int(bpm) (truncated, not rounded)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.freshTailBeats()": "e4919ab25e6f75e8"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.freshTailBeats()": "abda21e4f543a964"
    }
   },
   {
@@ -399,11 +386,10 @@
      "effect": "logs stalled stream; nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -432,11 +418,10 @@
      "effect": "false: returns []; true: maps to HRR samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHRRSamples(from:stopDate:stopHR:)": "9038e00ddcd70c2b",
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHeartRateSamples(stopDate:)": "499f6129b44d174f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHRRSamples(from:stopDate:stopHR:)": "4e5036293b359dff",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHeartRateSamples(stopDate:)": "17c7a63cb5b1fd9f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -459,10 +444,9 @@
      "effect": "logs a likely-cause message; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.runHeartRateQuery(type:start:end:)": "f6edb4c1e23c9d19",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.runHeartRateQuery(type:start:end:)": "f70878d308ee9382",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -488,12 +472,11 @@
      "effect": "?? [] — no samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.quantitySamples(_:_:)": "5d60fe805720c413",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.hrReadExcludingOwnWrites(dateRange:)": "c7750dc31021ea8d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.hrvQueryTimeoutSec": "d1e335e960bba6e9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.quantitySamples(_:_:)": "e7b2d59efc6c6073",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.hrReadExcludingOwnWrites(dateRange:)": "fe769b14a6d7aa83",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.hrvQueryTimeoutSec": "da17a2df3e80401d"
    }
   },
   {
@@ -518,9 +501,8 @@
      "effect": "?? []: failure yields no samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -551,10 +533,9 @@
      "effect": "logs diagnostic"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.nearestHR(in:at:)": "2ec53ef5ad4cae03",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.nearestHR(in:at:)": "7bbd78239b0ae259",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -574,9 +555,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061"
    }
   },
   {
@@ -603,21 +583,9 @@
      "effect": "false: nil; true: builds sample"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Apple's HRR value comes from Apple's own workout and its own peak, but is stored with peakHR = this app's stopHR and hr derived from it, mixing two different reference points.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRRCaptureService.swift:342",
-      "Emuqu/Sources/Analysis/HRRCaptureService.swift:344"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appleCardioRecoverySample(stopDate:)": "86bee6177c90aa54",
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9"
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appleCardioRecoverySample(stopDate:)": "5ac1b8a5fb397dd7",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061"
    }
   },
   {
@@ -645,10 +613,9 @@
      "effect": "?? [] — query error swallowed silently (error parameter ignored)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.hrvQueryTimeoutSec": "d1e335e960bba6e9"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.hrvQueryTimeoutSec": "da17a2df3e80401d"
    }
   }
  ],

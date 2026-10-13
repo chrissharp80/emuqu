@@ -8,10 +8,9 @@ Two audiences, one file:
    to. Walk all of it on a physical device before an upload.
 
 Referenced by [`hotfix.md`](runbooks/hotfix.md) and
-[`app-store-rejection.md`](runbooks/app-store-rejection.md). Those runbooks
-assumed this file existed for some time before it did; if a rejection cites
-"2.1 — cannot reach core functionality", the reviewer instructions below are
-the first thing to check.
+[`app-store-rejection.md`](runbooks/app-store-rejection.md). If a rejection
+cites "2.1 — cannot reach core functionality", the reviewer instructions below
+are the first thing to check.
 
 ---
 

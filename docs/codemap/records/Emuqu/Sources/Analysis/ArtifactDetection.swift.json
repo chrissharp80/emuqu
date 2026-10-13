@@ -11,7 +11,6 @@
   "mem:ArtifactDetector.Config.default (static let)"
  ],
  "toplevel": "Config default values: ectopicThreshold 0.20, missedThreshold 0.50, extraThreshold 0.50, windowSize/minRR/maxRR from HRVConstants. The rolling median is taken over the in-range beats only (referenceMedians), so technical artifacts do not shift the median used to judge neighbouring beats.",
- "flags": [],
  "units": [
   {
    "key": "init ArtifactDetector(config:)",
@@ -22,7 +21,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,10 +41,9 @@
      "effect": "classify(rrMs:median:) per point"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "5d342905cd1d7cf8",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.referenceMedians(_:)": "2ae8be580354cc9e"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "2aa2579258b7c635",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.referenceMedians(_:)": "e62c5f721e9553b4"
    }
   },
   {
@@ -58,7 +55,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -84,10 +80,9 @@
      "effect": "writes each one's median at its original index"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "3a373e3ed7457326",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.isInRange(_:)": "144091b9d6f5b73f"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "0bdf5993ffbac364",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.isInRange(_:)": "bc691fd6801edc93"
    }
   },
   {
@@ -122,21 +117,9 @@
      "effect": "ectopic (0.5–0.8× or 1.2–1.5× median); else .clean"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/ARCHITECTURE.md's artifact table still describes a 0.30 'outer short gate' (extraThreshold 0.30) with the short ectopic decision below 0.7×median, and a 'ratio / threshold' confidence; the code flags short ectopics from 0.8×median down to 0.5×median (symmetric with the long side), extraThreshold is 0.50, and every flag's confidence is 1.0. docs/API_REFERENCE.md lists extraThreshold 0.30.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:173",
-      "docs/API_REFERENCE.md:728",
-      "Emuqu/Sources/Analysis/ArtifactDetection.swift:17"
-     ]
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.isInRange(_:)": "144091b9d6f5b73f",
-    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.isInRange(_:)": "bc691fd6801edc93",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "16f56b5efece7a16"
    }
   },
   {
@@ -152,19 +135,6 @@
      "at": "+3",
      "cond": "clamped window empty",
      "effect": "return 0; else artifactCount/count*100"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "ImportDataView.assembleResult recomputes the window artifact percentage inline instead of calling artifactPercentage, without the index clamping or the empty-window guard (divides by windowEnd - windowStart).",
-     "evidence": [
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:253",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:254",
-      "Emuqu/Sources/Analysis/ArtifactDetection.swift:117"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -198,25 +168,10 @@
      "effect": "slide window and append median; if count == 1 the range 1..<1 is empty and only the bootstrap median is returned"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/ARCHITECTURE.md says a 'centered 50-beat sliding window'; with windowSize 50, halfWindow = 25 on each side plus the beat itself gives a 51-beat window (and the median includes the beat being judged).",
-     "evidence": [
-      "docs/ARCHITECTURE.md:167",
-      "Emuqu/Sources/Analysis/ArtifactDetection.swift:132",
-      "Emuqu/Sources/Analysis/ArtifactDetection.swift:152",
-      "Emuqu/Sources/Analysis/ArtifactDetection.swift:156",
-      "Emuqu/Sources/Utilities/Constants.swift:205"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.medianOf(_:)": "91917bfd67312a6a",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.slideWindow(_:values:to:halfWindow:)": "72c46bcb6fef2191"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "faf4e971ef0f3fb6",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.medianOf(_:)": "7264b1439271c320",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.slideWindow(_:values:to:halfWindow:)": "a5b3610b50ee8250"
    }
   },
   {
@@ -242,10 +197,9 @@
      "effect": "remove it; else nothing removed (left edge, or not found — which cannot happen since every leaving value was inserted earlier)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedFirstIndex(of:)": "9fbe2b4ef9db0b69",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedFirstIndex(of:)": "d0791be682dfbc60",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "faf4e971ef0f3fb6"
    }
   },
   {
@@ -263,7 +217,6 @@
      "effect": "average of sorted[mid-1] and sorted[mid] (for empty input this would index -1 and crash, but callers never pass empty); else sorted[mid]"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -286,7 +239,6 @@
      "effect": "lo = mid+1; else hi = mid"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -306,9 +258,8 @@
      "effect": "return nil; else lo"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "faf4e971ef0f3fb6"
    }
   }
  ],

@@ -19,7 +19,6 @@
   "UserSettings.currentSchemaVersion = 1 (static)"
  ],
  "toplevel": "Stored-property initializers set the in-memory defaults (sessionMergeMode .defaultGap, customMergeGapHours 4.5, sleepSplitGapMinutes 20, enablePeriodicCoachUpdates true, cadence 300, enableSleepIntegration true, peakingDetectionEnabled true, battery/sync/coach alerts true, preserveClipboard true, temperatureUnit .regionDefault, routingMode .manual, watchDisplayOnlyMode true, hasFixedTempAsymmetry true, keepScreenOn/AI/voice/watch true, defaultCaptureMode 'both', dailyReportFixedMinuteOfDay 7*60, others false/nil). Bedtime and the fixed report time are stored as wall-clock minutes after midnight (expectedBedtimeMinuteOfDay, dailyReportFixedMinuteOfDay), so a time-zone change keeps their clock time; expectedBedtime / dailyReportFixedTime are computed Date views of them. CodingKeys carries both the minute keys and the legacy Date keys.",
- "flags": [],
  "units": [
   {
    "key": "var UserSettings.birthday",
@@ -36,7 +35,6 @@
      "effect": "remove .birthday from profileFieldsFromHealth; else nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -54,7 +52,6 @@
      "effect": "remove marker; else nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -69,10 +66,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)": "989165a00adbbb31"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "bef27b4810095f55",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)": "4a9913548ac54855"
    }
   },
   {
@@ -90,7 +86,6 @@
      "effect": "remove marker; else nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -108,9 +103,8 @@
      "effect": "return it; else 75.0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0"
    }
   },
   {
@@ -131,9 +125,8 @@
      "effect": "return it; else derive from max HR with a 120 floor"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db"
    }
   },
   {
@@ -145,7 +138,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -163,7 +155,6 @@
      "effect": "uses '' → returns []"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -185,21 +176,8 @@
      "effect": "return it; else auto-estimate"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "API_REFERENCE documents effectiveRunningFTP as \"nil when not set\", but when runningFTPWatts is unset the code returns the auto-estimated FTP cached by FTPAutoEstimator.",
-     "evidence": [
-      "docs/API_REFERENCE.md:3206",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:260",
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:60"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "025373b97cca81f8"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "1158aa9760c5cc8a"
    }
   },
   {
@@ -217,7 +195,6 @@
      "effect": "return it; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -240,7 +217,6 @@
      "effect": "return rounded baseline; else 60"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -254,10 +230,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51"
    }
   },
   {
@@ -280,7 +255,6 @@
      "effect": "false; else daysSince in [0,21)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
@@ -297,10 +271,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)": "989165a00adbbb31"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "bef27b4810095f55",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)": "4a9913548ac54855"
    }
   },
   {
@@ -318,7 +291,6 @@
      "effect": "true (map yields nil); else Date() < end"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -340,7 +312,6 @@
      "effect": "true; else stored bool"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -354,7 +325,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -382,7 +352,6 @@
      "effect": "today <= end day; else true (open-ended)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
@@ -396,7 +365,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -424,7 +392,6 @@
      "effect": "customMergeGapHours × 3600"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -444,10 +411,9 @@
      "effect": "nil; else years component"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "91e98d9a0de627a2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51"
    }
   },
   {
@@ -467,9 +433,8 @@
      "effect": "0 for that part"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab"
    }
   },
   {
@@ -489,9 +454,8 @@
      "effect": "Date() (current instant)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "bef27b4810095f55"
    }
   },
   {
@@ -503,7 +467,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -533,9 +496,8 @@
      "effect": "'Other or prefer not to say'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -547,7 +509,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -561,9 +522,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "e7c3fa915b887d54"
    }
   },
   {
@@ -624,10 +584,9 @@
      "effect": "multiplier 1.0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "1087428d4318dc8f",
-    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.rmssdBaselineMultiplier": "34a0336981dca76c"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "caf342fdad38031b",
+    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.rmssdBaselineMultiplier": "012a5cc7232820fc"
    }
   },
   {
@@ -655,11 +614,10 @@
      "effect": "nil it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0"
    }
   },
   {
@@ -687,11 +645,10 @@
      "effect": "take local weight"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0"
    }
   }
  ],

@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutRecoveryService.carryForward(from:into:)",
@@ -36,14 +35,13 @@
      "effect": "true: carries HRR/markers/laps/strokes and power figures where the rebuild has none; false (trimmed): those are left to whatever the rebuild computed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "d9b451086b6d67a4",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "16602d0f2c42c44d",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)": "3f4e682ecd753ab1",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "431c7eb50bddcf4e",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)": "48e952379f2f6bd8",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)": "cb06d9a94f589e29"
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "81495c364e94c1af",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "31123cbf85bb2e40",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)": "cb0be121a2f65af8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "c09dbabc1882fb5f",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)": "2d4559e9ac67d1e2",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)": "7e133a628f873010"
    }
   },
   {
@@ -55,22 +53,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "healthKitExportedAt is copied from the archived copy so the trimmed workout is not exported again, but nothing deletes or updates the workout already in Apple Health (no code clears healthKitExportedAt or deletes the exported HKWorkout), so Apple Health keeps the untrimmed duration/energy/HR after a trim.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:38",
-      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:10",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:453"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "ae7b7e75db3bda85"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c"
    }
   },
   {
@@ -93,7 +78,6 @@
      "effect": "returns whether both endDates are equal (true only when both nil); otherwise compares ends within 1 s"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -131,7 +115,6 @@
      "effect": "uses old value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -164,7 +147,6 @@
      "effect": "old value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -209,10 +191,9 @@
      "effect": "uses archived value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.averageSplitSecPer500m(movingSeconds:distanceMeters:)": "d7ecea158843f757",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "a76b51d9108acf5f"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.averageSplitSecPer500m(movingSeconds:distanceMeters:)": "c3997e221f9067ee",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "ad0d06d1ee92acde"
    }
   },
   {
@@ -260,7 +241,6 @@
      "effect": "old value"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -9,7 +9,6 @@
   "deviceId = \"H10-NIGHT\""
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func StrapNightTests.linkedManager(_:type:settled:)",
@@ -35,26 +34,11 @@
      "effect": "true: calls settleWithoutSummary; false: readiness left unsettled"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Unlike StrapArmingTests.linkedManager, this does not replace downloadLedger, so StrapDownloadLedger() reads and writes UserDefaults.standard of the app host (since key at init, markDownloaded on successful fetches); tests share persisted ledger state with the host and with each other.",
-     "evidence": [
-      "EmuquTests/StrapNightTests.swift:29",
-      "Emuqu/Sources/Collection/PolarManager.swift:162",
-      "Emuqu/Sources/Collection/StrapRecording.swift:57",
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:149",
-      "EmuquTests/StrapArmingTests.swift:36"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c"
    }
   },
   {
@@ -68,7 +52,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
    }
@@ -97,12 +80,11 @@
      "effect": "yields its id; other calls nil"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -125,14 +107,13 @@
      "effect": "counted"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "fffd182a52041bd3",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -172,14 +153,13 @@
      "effect": "dropped (nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "e2b633ac41152473",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "ef9f5e54151c0c87",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "d33ba29182a3a396",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "4134cf27f531cb7d",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -198,15 +178,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "ef9f5e54151c0c87",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "b768a31f1c827607",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "7793d8b3a63760b5",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "4134cf27f531cb7d",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -224,13 +203,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "8bcbcc1e1d1c72b7",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "ef9f5e54151c0c87",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "c8ec1747d77d8a0a",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "4134cf27f531cb7d",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -248,13 +226,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "8bcbcc1e1d1c72b7",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "ef9f5e54151c0c87",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "c8ec1747d77d8a0a",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "4134cf27f531cb7d",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -273,15 +250,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "8bcbcc1e1d1c72b7",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "ef9f5e54151c0c87",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "c8ec1747d77d8a0a",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "fffd182a52041bd3",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "4134cf27f531cb7d",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -303,19 +279,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "ef9f5e54151c0c87",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "b768a31f1c827607",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "7793d8b3a63760b5",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.exerciseId(_:)": "4134cf27f531cb7d",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -343,13 +318,12 @@
      "effect": "counted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)": "f1faeda571c39b62",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "b768a31f1c827607",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "7793d8b3a63760b5",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)": "fe3575bcc10056bb",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -367,15 +341,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "8e73f9473236c7de",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "ffd15a39296cbea9",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkRecordingStatus(deviceId:)": "fd39083d3d003ea5",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.startRecording()": "85a7173d8e1ed6d8",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "d20ca8e5a813f277",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "5f66555472030a1c",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkRecordingStatus(deviceId:)": "964cd3c9e117b6f1",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.startRecording()": "c37366766e973879",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b"
    }
   },
   {
@@ -393,14 +366,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "67a87b9dfb222b41",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "2d55ec4c54631141",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.queueHeartRate(bpm:rrsMs:)": "f9efa8fc22ca8c9f",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.waitUntil(timeout:_:)": "0b523f05418f871c"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "d153b9f71804fe63",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "f8dec8c6901491d8",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.queueHeartRate(bpm:rrsMs:)": "df16efde86d782d8",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.waitUntil(timeout:_:)": "96536fca9aacf515"
    }
   },
   {
@@ -416,13 +388,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.hrPeripheralIds": "3db0d8d5284df068",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.waitUntil(timeout:_:)": "0b523f05418f871c"
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.hrPeripheralIds": "9b2805d6cf52c1a8",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.waitUntil(timeout:_:)": "96536fca9aacf515"
    }
   },
   {
@@ -441,15 +412,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "67a87b9dfb222b41",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "2d55ec4c54631141",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.queueHeartRate(bpm:rrsMs:)": "f9efa8fc22ca8c9f",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "2b41bf54425c2b4a",
-    "EmuquTests/StrapNightTests.swift::func StrapNightTests.waitUntil(timeout:_:)": "0b523f05418f871c"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "d153b9f71804fe63",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "f8dec8c6901491d8",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.queueHeartRate(bpm:rrsMs:)": "df16efde86d782d8",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "fffd182a52041bd3",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.linkedManager(_:type:settled:)": "1a9aea776837fb6b",
+    "EmuquTests/StrapNightTests.swift::func StrapNightTests.waitUntil(timeout:_:)": "96536fca9aacf515"
    }
   },
   {
@@ -472,20 +442,8 @@
      "effect": "XCTFail and return"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same polling helper as StrapArmingTests.waitUntil (only the default timeout differs, 10 s vs 20 s).",
-     "evidence": [
-      "EmuquTests/StrapNightTests.swift:276",
-      "EmuquTests/StrapArmingTests.swift:204"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   }
  ],

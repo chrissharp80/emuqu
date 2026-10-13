@@ -7,18 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "StrapStartSequence.steps(for:) ignores its deviceType argument and returns the same constant [.rescueExisting, .clearExisting, .beginRecording] for every strap (StrapStartSequence.swift:54-56), so per-device loops and the unknown-device comparison cannot detect a routing difference; they only pin the single constant.",
-   "evidence": [
-    "Emuqu/Sources/Collection/StrapStartSequence.swift:54",
-    "EmuquTests/StrapStartSequenceTests.swift:161"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func StrapStartSequenceTests.testARescueAlwaysPrecedesTheClearItProtects()",
@@ -47,11 +35,10 @@
      "effect": "nil destructive index compares as Int.max so the LessThan passes, but the preceding XCTAssertNotNil fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive": "4c3b5245dd7a67fe",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue": "df25396474b2b8c4"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive": "f1b52507f268c29f",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue": "8065e2f48d905439"
    }
   },
   {
@@ -71,9 +58,8 @@
      "effect": "asserts steps.last == .beginRecording"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -98,9 +84,8 @@
      "effect": "missing clear → Int.max, missing begin → Int.min, either makes XCTAssertLessThan fail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -120,9 +105,8 @@
      "effect": "asserts Set(steps).count == steps.count"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -137,10 +121,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "03a4f81680c5a7f4",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -155,10 +138,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "03a4f81680c5a7f4",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -172,9 +154,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -189,22 +170,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "rescuesBeforeClearing has no production caller: grep of Emuqu/ finds only its declaration (StrapStartSequence.swift:62); production iterates steps(for:) directly (PolarManager+Recording.swift:90,143). These assertions (also :64,:76) pin a test-only helper, not the start path.",
-     "evidence": [
-      "EmuquTests/StrapStartSequenceTests.swift:89",
-      "Emuqu/Sources/Collection/StrapStartSequence.swift:62",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:90"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "03a4f81680c5a7f4",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   }
  ],

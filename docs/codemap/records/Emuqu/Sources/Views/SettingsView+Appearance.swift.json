@@ -13,7 +13,6 @@
   "mem:SettingsManager.settings.appearanceTheme / colorTheme (written here, persisted to user_settings.json)"
  ],
  "toplevel": "AppLanguage raw values: system, en, da, de, es, fi, fr, is, it, ja, ko, nb, nl, pt-BR, ru, sv, zh-Hans, ar. The long doc comment on AppearancePage.body records that there is deliberately no new-design flag and that 'Hide Fitness tab' lives in Settings › Training.",
- "flags": [],
  "units": [
   {
    "key": "var AppearancePage.body",
@@ -31,14 +30,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.backgroundThemeSection": "148450a6eae5c3d7",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeSection": "c6b8cdc9e2f76b10",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.livePreviewSection": "f2325994d3d9afd4",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.paletteSwatchSection": "b4be0143302ca333",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.backgroundThemeSection": "454c8fb4e3a19a21",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeSection": "2967906711f70571",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.livePreviewSection": "3b611a7d87037441",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.paletteSwatchSection": "2084da6165ecc7d9",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
    }
   },
   {
@@ -55,12 +53,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/NarrativeCard.swift::var NarrativeCard.body": "37d71171f7f5be1f",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/NarrativeCard.swift::var NarrativeCard.body": "b91f69d34064671f",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "58eeaa5a8b3ecdce",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -74,10 +71,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeRow(_:)": "0820b1f8b40b1844"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeRow(_:)": "78910bb3a9866434"
    }
   },
   {
@@ -106,13 +102,12 @@
      "effect": "true: adds .isSelected trait; false: no extra trait"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description": "0bd25c451f13d8f5",
-    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "98b2b0ce43bd809d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeLabel(_:)": "105ea3f5669386b7"
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description": "185fc0a64f4695e3",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "7568d02c47bb2c28",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeLabel(_:)": "ec275e79b9f3ab58"
    }
   },
   {
@@ -130,27 +125,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says the Background Theme picker shows 'a color preview for each option', but each row is only the theme name, description and a checkmark; the only preview is the shared live-preview section for the current theme.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1513",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:78",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:80",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:82",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:87"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description": "0bd25c451f13d8f5",
-    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "98b2b0ce43bd809d",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.selectedCheckmark(for:)": "1f9ded0966230735",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description": "185fc0a64f4695e3",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "7568d02c47bb2c28",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.selectedCheckmark(for:)": "3516a14bfb16b59e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -172,9 +152,8 @@
      "effect": "true: shows checkmark; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -188,10 +167,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeGrid": "7f9b1feb171a77b6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeGrid": "e7dec77a9cdb9f9e"
    }
   },
   {
@@ -205,9 +183,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatch(_:)": "3900b54ebef2dbb4"
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatch(_:)": "439d1f0241eb9ea8"
    }
   },
   {
@@ -235,12 +212,11 @@
      "effect": "true: .isSelected trait; false: none"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "de62d06acaccd742",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatchLabel(_:)": "ace72ae5adfd1dcf"
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "21bd9409e6d1bc2b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatchLabel(_:)": "c620d3ff4cd5a3a3"
    }
   },
   {
@@ -257,13 +233,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "de62d06acaccd742",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatch(for:)": "495f5394eefda625",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatchCheckmark(_:)": "eacf3faa7090af20",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "21bd9409e6d1bc2b",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatch(for:)": "199c321c605aa856",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatchCheckmark(_:)": "30d9b072a519e92b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -283,7 +258,6 @@
      "effect": "true: checkmark; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -299,12 +273,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.accentSwatches": "49ab6283deca3411",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.surfaceSwatches": "4c256c09ec762cf4",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.textSwatches": "865367761fe23a65"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.accentSwatches": "31b351628a648e83",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.surfaceSwatches": "c471503521128dd8",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.textSwatches": "8cc0b6ad07594d8a"
    }
   },
   {
@@ -320,13 +293,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -342,12 +314,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "ec0aeab80e909cde",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -363,12 +334,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -411,19 +381,6 @@
      "effect": "returns Color(red,green,blue) (0.82,0.44,0.10)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The six swatch RGB values are copies of the light-mode branch of AppTheme.primary; a palette change in Theme.swift leaves the picker swatches showing the old colours.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:218",
-      "Emuqu/Sources/Views/Theme.swift:17",
-      "Emuqu/Sources/Views/Theme.swift:22"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -435,7 +392,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -540,9 +496,8 @@
      "effect": "returns العربية"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -574,18 +529,6 @@
      "effect": "falls back to .system (e.g. a region-qualified code such as 'de-DE' is reported as System Default); otherwise returns the matching case"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Exact rawValue match only: an AppleLanguages override written in any other form (region-qualified code, or a code not in the enum) reads as .system, so the Language page checks 'System Default' while LanguageManager.systemLanguage still resolves the app to the override language via UserDefaults.stringArray(AppleLanguages).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:295",
-      "Emuqu/Sources/Services/LanguageManager.swift:116"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -607,7 +550,6 @@
      "effect": "true: removeObject(forKey: AppleLanguages) so the device language list applies; false: set([rawValue])"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -623,11 +565,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var LanguagePage.languageSection": "8b8d650b2581257f",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var LanguagePage.languageSection": "e3e6879be310f54d",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
    }
   },
   {
@@ -649,11 +590,10 @@
      "effect": "true: .isSelected trait; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRowLabel(_:)": "cd8a49fa73cfff76",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectLanguage(_:)": "167ed231a3511369",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "7323b3822357366e"
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRowLabel(_:)": "fe6fda0c9946b22d",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectLanguage(_:)": "2176db73fce633d6",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "06c1e022595a0a12"
    }
   },
   {
@@ -679,7 +619,6 @@
      "effect": "true: returns with no change; false: applies the new language"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05"
    }
@@ -697,11 +636,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectedLanguageCheckmark(_:)": "f47aa69c055a0fde",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "7323b3822357366e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectedLanguageCheckmark(_:)": "5fe3de16d956c293",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "06c1e022595a0a12",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -721,9 +659,8 @@
      "effect": "true: checkmark; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -737,10 +674,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRow(_:)": "489229256b60ac31"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRow(_:)": "20a0eafba975767c"
    }
   }
  ],

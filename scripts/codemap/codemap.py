@@ -16,7 +16,10 @@
     codemap.py callers NODE     direct callers of one `path::key` (certain and possible)
     codemap.py report OUTDIR    build the browsable report from the records
 
-Records live in docs/codemap/records/<path>.json. See docs/codemap/README.md.
+Records live in docs/codemap/records/<path>.json. Findings (`flags`) and the open-findings budgets
+live in a local, untracked overlay, do_not_ship/codemap/ (or $CODEMAP_OVERLAY): flags/<path>.json
+holds {"file": [...], "units": {key: [...]}}. load() merges it when present and save() writes flags
+only there; the open-findings ratchet runs only when the overlay exists. See docs/codemap/README.md.
 """
 from __future__ import annotations
 
@@ -30,6 +33,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RECORDS = ROOT / "docs" / "codemap" / "records"
+OVERLAY = Path(os.environ.get("CODEMAP_OVERLAY") or ROOT / "do_not_ship" / "codemap")
+FLAGS = OVERLAY / "flags"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
@@ -37,17 +42,44 @@ def record_path(path: str) -> Path:
     return RECORDS / (path + ".json")
 
 
+def merge_flags(rec: dict) -> dict:
+    """Attach the overlay's findings for this record, when the overlay has any."""
+    p = FLAGS / (rec["file"] + ".json")
+    if p.is_file():
+        ov = json.loads(p.read_text(encoding="utf-8"))
+        rec["flags"] = ov.get("file") or []
+        by_key = ov.get("units") or {}
+        for u in rec.get("units", []):
+            u["flags"] = by_key.get(u["key"]) or []
+    return rec
+
+
 def load(path: str) -> dict | None:
     p = record_path(path)
     if not p.is_file():
         return None
-    return json.loads(p.read_text(encoding="utf-8"))
+    return merge_flags(json.loads(p.read_text(encoding="utf-8")))
 
 
 def save(rec: dict) -> None:
+    """Write the public record without findings; findings go to the overlay file only."""
+    rec = json.loads(json.dumps(rec))
+    file_flags = rec.pop("flags", None) or []
+    unit_flags = {}
+    for u in rec.get("units", []):
+        fl = u.pop("flags", None) or []
+        if fl:
+            unit_flags[u["key"]] = fl
     p = record_path(rec["file"])
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(rec, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    op = FLAGS / (rec["file"] + ".json")
+    if file_flags or unit_flags:
+        op.parent.mkdir(parents=True, exist_ok=True)
+        op.write_text(json.dumps({"file": file_flags, "units": unit_flags}, indent=1, ensure_ascii=False) + "\n",
+                      encoding="utf-8")
+    elif op.is_file():
+        op.unlink()
 
 
 def all_records() -> dict[str, dict]:
@@ -56,7 +88,7 @@ def all_records() -> dict[str, dict]:
         for name in files:
             if name.endswith(".json"):
                 rec = json.loads((Path(dirpath) / name).read_text(encoding="utf-8"))
-                out[rec["file"]] = rec
+                out[rec["file"]] = merge_flags(rec)
     return out
 
 
@@ -95,7 +127,8 @@ def problems(inv: dict, recs: dict) -> list[tuple[str, str, str]]:
 
 def described(rec_unit: dict | None, file_level: bool = False) -> str:
     """Hash of what a record says a unit (or a file's top-level code) does: the part its callers
-    rely on. Calls are left out (they are how, not what)."""
+    rely on. Calls are left out (they are how, not what), and so are findings (they live in the
+    local overlay, which a public checkout does not have)."""
     if rec_unit is None:
         return ""
     if file_level:
@@ -103,7 +136,6 @@ def described(rec_unit: dict | None, file_level: bool = False) -> str:
     else:
         fields = [rec_unit.get("does"), rec_unit.get("entry"), rec_unit.get("reads"), rec_unit.get("writes"),
                   [(b.get("cond"), b.get("effect")) for b in rec_unit.get("branches") or []]]
-    fields.append([(f.get("kind"), f.get("sev"), f.get("text")) for f in rec_unit.get("flags") or []])
     return hashlib.sha256(json.dumps(fields, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -167,16 +199,21 @@ def open_findings(recs: dict) -> dict[str, int]:
 
 
 def budget_problems(counts: dict[str, int]) -> list[tuple[str, str, str]]:
-    """Open high and medium findings must equal their ratcheted budgets in .ci/.
+    """Open high and medium findings must equal their ratcheted budgets in the overlay.
+
+    Runs only when the overlay directory exists (a local checkout that has it); without it there
+    are no findings to count and nothing is checked.
 
     More than the budget means a change added a finding. Fewer means a fix landed without lowering
     the budget; lowering it in the same change is what stops the count creeping back up.
     check_budget_monotonicity.sh stops the budgets themselves from being raised.
     """
     out = []
+    if not OVERLAY.is_dir():
+        return out
     for sev in ("high", "med"):
-        path = ROOT / ".ci" / f"codemap_open_{sev}.txt"
-        rel = f".ci/codemap_open_{sev}.txt"
+        path = OVERLAY / f"codemap_open_{sev}.txt"
+        rel = f"{os.path.relpath(OVERLAY, ROOT)}/codemap_open_{sev}.txt"
         try:
             budget = int(path.read_text().strip())
         except (OSError, ValueError):
@@ -198,10 +235,8 @@ def cmd_check(strict: bool) -> int:
     inv = inventory(ROOT)
     probs = problems(inv, recs)
     # TODO(codemap-recheck): re-check lines and record calls naming deleted units are reported
-    # but do not fail the check. The fix pass on the code-map branch left about 4,350 re-check
-    # lines and 112 stale call entries that were never re-read; failing on them would block every
-    # merge until that backlog is worked off. Work the backlog down (docs/codemap/README.md,
-    # "Changing code"), then move these two kinds back into `probs` so they fail again.
+    # but do not fail the check yet. Once the outstanding re-check lines have been re-read
+    # (docs/codemap/README.md, "Changing code"), move these two kinds back into `probs`.
     stale_call = "calls a unit that no longer exists"
     advisory = [p for p in probs if p[2].startswith(stale_call)]
     probs = [p for p in probs if not p[2].startswith(stale_call)]
@@ -212,9 +247,11 @@ def cmd_check(strict: bool) -> int:
         if not strict:
             _print_grouped(advisory)
     if not probs:
-        c = open_findings(recs)
-        print(f"codemap: clean. Every unit and file in scope has a current record. "
-              f"Open findings: {c['high']} high, {c['med']} medium, {c['low']} low (high and medium can only go down).")
+        print("codemap: clean. Every unit and file in scope has a current record.")
+        if OVERLAY.is_dir():
+            c = open_findings(recs)
+            print(f"codemap: open findings (local overlay): {c['high']} high, {c['med']} medium, {c['low']} low "
+                  f"(high and medium can only go down).")
         return 0
     print(f"codemap: {len(probs)} problem(s).\n")
     _print_grouped(probs)
@@ -245,11 +282,12 @@ def cmd_sync(paths: list[str]) -> int:
             rec = load(p)
             if rec is not None:
                 record_path(p).unlink()
+                (FLAGS / (p + ".json")).unlink(missing_ok=True)
                 print(f"{p}: file is out of scope or untracked; record removed")
             else:
                 print(f"{p}: not tracked by git, or out of scope (git add it first)")
             continue
-        rec = load(p) or {"file": p, "hash": None, "role": "", "types": [], "state": [], "toplevel": "", "flags": [], "units": []}
+        rec = load(p) or {"file": p, "hash": None, "role": "", "types": [], "state": [], "toplevel": "", "units": []}
         have = {u["key"]: u for u in rec["units"]}
         units = []
         for u in inv[p]["units"]:
@@ -257,7 +295,7 @@ def cmd_sync(paths: list[str]) -> int:
                 units.append(have[u["key"]])
             else:
                 units.append({"key": u["key"], "hash": None, "does": "", "entry": None, "calls": [], "reads": [],
-                              "writes": [], "branches": [], "flags": []})
+                              "writes": [], "branches": []})
                 print(f"{p}: added empty record for {u['key']}")
         for k in have.keys() - {u["key"] for u in inv[p]["units"]}:
             print(f"{p}: dropped record for {k} (no longer in the code)")

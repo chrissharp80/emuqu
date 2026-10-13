@@ -8,7 +8,6 @@
   "concurrency group security-<workflow>-<ref>, cancel-in-progress"
  ],
  "toplevel": "Trigger: workflow_dispatch only, inputs base-ref/head-ref. Two independent jobs. No schedule, so neither scan runs unless dispatched.",
- "flags": [],
  "units": [
   {
    "key": "job codeql",
@@ -25,13 +24,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/security.yml::step codeql/Analyze": "f8dcb2e83a103f01",
-    ".github/workflows/security.yml::step codeql/Build for analysis": "740f4d5186d6b34a",
-    ".github/workflows/security.yml::step codeql/Checkout": "b6cba8170626a479",
-    ".github/workflows/security.yml::step codeql/Initialize CodeQL": "63bf84558417cd7c",
-    ".github/workflows/security.yml::step codeql/Select Xcode": "18461322b7591486"
+    ".github/workflows/security.yml::step codeql/Analyze": "3717f8b36c86a083",
+    ".github/workflows/security.yml::step codeql/Build for analysis": "955e2a81be2561b7",
+    ".github/workflows/security.yml::step codeql/Checkout": "588fe9c59457aa7b",
+    ".github/workflows/security.yml::step codeql/Initialize CodeQL": "320047fbb3adc6ee",
+    ".github/workflows/security.yml::step codeql/Select Xcode": "a430a5b72a7bea1f"
    }
   },
   {
@@ -45,7 +43,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,7 +56,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -73,7 +69,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -87,7 +82,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -103,7 +97,6 @@
     "net:github code scanning (SARIF)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -119,11 +112,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/security.yml::step dependency-review/Checkout": "9da0953536fabfa0",
-    ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison": "aa30258b3369e71a",
-    ".github/workflows/security.yml::step dependency-review/Review dependencies": "07daac0754c5d09e"
+    ".github/workflows/security.yml::step dependency-review/Checkout": "57ae64dd67f0fa19",
+    ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison": "01899b05cb6168ed",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies": "0879a4916a66beb0"
    }
   },
   {
@@ -137,7 +129,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -184,7 +175,6 @@
      "effect": "explains the empty comparison, exit 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -211,7 +201,6 @@
      "effect": "head = dispatched commit sha"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

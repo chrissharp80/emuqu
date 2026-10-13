@@ -10,17 +10,6 @@
   "TestTimeZone.newYork: TimeZone(identifier: \"America/New_York\") ?? .gmt"
  ],
  "toplevel": "Two static lets: utc falls back to .gmt (same zero offset) and newYork falls back to .gmt if the tz database lacks the identifier. No functions.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "newYork silently falls back to GMT, which has no DST; the suites that use it to test wall-clock behaviour across a DST boundary would then run without the boundary and pass or fail misleadingly with no message.",
-   "evidence": [
-    "EmuquTests/TestTimeZone.swift:22"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

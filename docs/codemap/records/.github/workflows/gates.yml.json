@@ -7,12 +7,11 @@
   "permissions contents: read"
  ],
  "toplevel": "Triggers: push to main, pull_request (all), workflow_dispatch. One job script-gates. Explicitly excluded (by header comment): lint, lint-budget, verify-gates (SwiftLint), test-coverage and thread-sanitizer (Xcode). Also absent without being listed: release-build. The gate list is a hand-copied subset of Makefile `ci`; the header says check_gates_wired.sh audits it (every gate must run here unless NOT_ON_PUSH says why). Budget ratchet baseline: PR target, else the tip before the push (github.event.before), else HEAD~1, always with BUDGET_REQUIRE_BASELINE=1.",
- "flags": [],
  "units": [
   {
    "key": "job script-gates",
    "hash": "bf1de162dca83e3c",
-   "does": "ubuntu-latest job \"Script gates (no Xcode)\" (timeout 15): runs the Makefile gates that need only bash/python/git, the code-map check (records current, re-checks, findings ratchet), on pull requests the code-map impact report to the job summary, then the budget ratchet. Required to pass before anything merges to main.",
+   "does": "ubuntu-latest job \"Script gates (no Xcode)\" (timeout 15): runs the Makefile gates that need only bash/python/git, the code-map check (records current, re-checks; the open-findings ratchet does not run here, its overlay being local only), on pull requests the code-map impact report to the job summary, then the budget ratchet. Required to pass before anything merges to main.",
    "entry": "GitHub Actions job; triggered on push to main, pull_request (any branch), workflow_dispatch.",
    "calls": [
     ".github/workflows/gates.yml::step script-gates/Checkout",
@@ -31,67 +30,66 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/gates.yml::step script-gates/Checkout": "72d9a6f0a231d718",
-    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "276d95220fced24a",
-    ".github/workflows/gates.yml::step script-gates/Code map is current": "e6a86cff4afd94ad",
-    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
-    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home": "bff13ed6353e7615",
-    ".github/workflows/gates.yml::step script-gates/Info.plist, privacy manifest and CloudKit guards": "f9a4455e9a526f90",
-    ".github/workflows/gates.yml::step script-gates/Localization (coverage, bundle, resolution, orphans, argumen": "4bc02855efcd4524",
-    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "b11d9c64a2c0456b",
-    ".github/workflows/gates.yml::step script-gates/Tech-debt budgets and refactor-spec conformance": "4f88c83b9a783493",
-    ".github/workflows/gates.yml::step script-gates/The gates themselves are wired and fail closed": "fadf08095cf7abe6",
-    ".github/workflows/gates.yml::step script-gates/Toolchain": "21fa67f1c0ec935c",
-    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
-    "Makefile::target codemap-setup": "d2527a25cec71c5c",
-    "Makefile::target comment-citations": "5d99132a7ed35a3d",
-    "Makefile::target copy-perimeter": "42858b4dd6c79830",
-    "Makefile::target coremotion-isolation-guard": "40fcf69e652a20c7",
-    "Makefile::target date-ms-guard": "5d1483cc14f91acf",
-    "Makefile::target dated-comment-budget": "4d060a7644646ab1",
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
-    "Makefile::target doc-links": "a8f084188e2d717b",
-    "Makefile::target eager-prompt-guard": "50d14b391de121e4",
-    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
-    "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
-    "Makefile::target gate-preflight": "6920a992e5fe9a61",
-    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
-    "Makefile::target hr-feed-link-guard": "870a10aaace9cd4e",
-    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
-    "Makefile::target license-header-guard": "5a874a7a5519c7ff",
-    "Makefile::target locale-format-guard": "3bc960e72737676f",
-    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
-    "Makefile::target localization-format-guard": "0d43f8954fa435e8",
-    "Makefile::target localization-guard": "6f037f306cd54e75",
-    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6",
-    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f",
-    "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
-    "Makefile::target logger-self-reference-guard": "298678b9de1426cd",
-    "Makefile::target no-phone-home": "28f9f3dd4f70e0ce",
-    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
-    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
-    "Makefile::target perimeter-sync": "acc9ff850493b808",
-    "Makefile::target sbom-check": "e1a31616864cff02",
-    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
-    "Makefile::target science-register": "7d38d351a8e872c3",
-    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
-    "Makefile::target sendable-guard": "16583da771b94003",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
-    "Makefile::target skip-budget": "5163df861fd66554",
-    "Makefile::target snapshot-refs-guard": "63830b2fa0ad1c7e",
-    "Makefile::target spec-conformance": "060f9ad7c55731da",
-    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
-    "Makefile::target uitest-reset-guard": "4f60211274aafec3",
-    "scripts/check_budget_monotonicity.sh::": "f78d5c3c8b01662a",
-    "scripts/check_codemap.sh::": "7556633b3058e90d",
-    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
-    "scripts/check_no_health_data_in_cloudkit.sh::": "a7192ff8ba6579ab",
-    "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862",
-    "scripts/codemap/codemap.py::": "5d018c610440e0c2"
+    ".github/workflows/gates.yml::step script-gates/Checkout": "359c54d8450ad699",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "db4ba9cd8b1a58cd",
+    ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "c6bf52871d62c452",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
+    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home": "7e18df019d929f4b",
+    ".github/workflows/gates.yml::step script-gates/Info.plist, privacy manifest and CloudKit guards": "c10da5efab8129c5",
+    ".github/workflows/gates.yml::step script-gates/Localization (coverage, bundle, resolution, orphans, argumen": "cc5180b62acdb90e",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "a81cca29350b6c3f",
+    ".github/workflows/gates.yml::step script-gates/Tech-debt budgets and refactor-spec conformance": "86de7a4dfc010457",
+    ".github/workflows/gates.yml::step script-gates/The gates themselves are wired and fail closed": "e01b5f6314e6aa39",
+    ".github/workflows/gates.yml::step script-gates/Toolchain": "1d422fa12f4f14c2",
+    "Makefile::target aggregate-type-size": "185103618755699f",
+    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "Makefile::target comment-citations": "d3fb280d89bc1785",
+    "Makefile::target copy-perimeter": "fbee448e717c17f3",
+    "Makefile::target coremotion-isolation-guard": "c2665e6fbeb378c4",
+    "Makefile::target date-ms-guard": "bf6f514735c220fa",
+    "Makefile::target dated-comment-budget": "ff56215a6ab7d46d",
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
+    "Makefile::target doc-links": "4731861b7121254e",
+    "Makefile::target eager-prompt-guard": "1546b659949fcc08",
+    "Makefile::target empty-range-guard": "d2cc5a46df38f2e0",
+    "Makefile::target fixed-font-budget": "85a3e2b2bff351e6",
+    "Makefile::target gate-preflight": "4af96d525dd02798",
+    "Makefile::target gates-wired-guard": "29ee806453e41bae",
+    "Makefile::target hr-feed-link-guard": "48b2243d46f8a51f",
+    "Makefile::target leaked-mutations-guard": "a37e4e3ced2c0b0e",
+    "Makefile::target license-header-guard": "6883c5cfe671bd33",
+    "Makefile::target locale-format-guard": "6019b4b8c1092236",
+    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
+    "Makefile::target localization-format-guard": "3e270df8cbd4b018",
+    "Makefile::target localization-guard": "e2c1ec610e831e83",
+    "Makefile::target localization-orphan-guard": "6d166330dec47d08",
+    "Makefile::target localization-resolution-guard": "2767f94176460d10",
+    "Makefile::target log-redaction-guard": "96f425e39f4d0b2f",
+    "Makefile::target logger-self-reference-guard": "4ba2ef354e7ab3e5",
+    "Makefile::target no-phone-home": "66a41310eef1b44c",
+    "Makefile::target no-unowned-guard": "25ed7c1d3b02dd7c",
+    "Makefile::target orphan-swift-guard": "274019c065545658",
+    "Makefile::target perimeter-sync": "7b1a002692b1fe41",
+    "Makefile::target sbom-check": "46aecc781adb961a",
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca",
+    "Makefile::target science-register": "9e24175bb2b0670b",
+    "Makefile::target scoring-governance": "2093dbcb1f6e9e8e",
+    "Makefile::target sendable-guard": "c009f552884c46bc",
+    "Makefile::target shared-root-guard": "a9263da85d483554",
+    "Makefile::target skip-budget": "7ba8b35e95605b09",
+    "Makefile::target snapshot-refs-guard": "ab8804d23dd53ca7",
+    "Makefile::target spec-conformance": "76fac68887ff9527",
+    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
+    "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
+    "scripts/check_budget_monotonicity.sh::": "200e7799c911c1e5",
+    "scripts/check_codemap.sh::": "d855ae4972e708aa",
+    "scripts/check_infoplist_key_drift.sh::": "28c4fd1293c2d3b3",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "3f21dbc8feb1aedf",
+    "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759",
+    "scripts/codemap/codemap.py::": "124fefe07124e0ad"
    }
   },
   {
@@ -105,7 +103,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -117,7 +114,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -134,12 +130,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target copy-perimeter": "42858b4dd6c79830",
-    "Makefile::target perimeter-sync": "acc9ff850493b808",
-    "Makefile::target science-register": "7d38d351a8e872c3",
-    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+    "Makefile::target copy-perimeter": "fbee448e717c17f3",
+    "Makefile::target perimeter-sync": "7b1a002692b1fe41",
+    "Makefile::target science-register": "9e24175bb2b0670b",
+    "Makefile::target scoring-governance": "2093dbcb1f6e9e8e"
    }
   },
   {
@@ -158,14 +153,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target locale-format-guard": "3bc960e72737676f",
-    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
-    "Makefile::target localization-format-guard": "0d43f8954fa435e8",
-    "Makefile::target localization-guard": "6f037f306cd54e75",
-    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6",
-    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f"
+    "Makefile::target locale-format-guard": "6019b4b8c1092236",
+    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
+    "Makefile::target localization-format-guard": "3e270df8cbd4b018",
+    "Makefile::target localization-guard": "e2c1ec610e831e83",
+    "Makefile::target localization-orphan-guard": "6d166330dec47d08",
+    "Makefile::target localization-resolution-guard": "2767f94176460d10"
    }
   },
   {
@@ -199,29 +193,28 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
-    "Makefile::target comment-citations": "5d99132a7ed35a3d",
-    "Makefile::target coremotion-isolation-guard": "40fcf69e652a20c7",
-    "Makefile::target date-ms-guard": "5d1483cc14f91acf",
-    "Makefile::target dated-comment-budget": "4d060a7644646ab1",
-    "Makefile::target eager-prompt-guard": "50d14b391de121e4",
-    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
-    "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
-    "Makefile::target hr-feed-link-guard": "870a10aaace9cd4e",
-    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
-    "Makefile::target license-header-guard": "5a874a7a5519c7ff",
-    "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
-    "Makefile::target logger-self-reference-guard": "298678b9de1426cd",
-    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
-    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
-    "Makefile::target sendable-guard": "16583da771b94003",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
-    "Makefile::target skip-budget": "5163df861fd66554",
-    "Makefile::target snapshot-refs-guard": "63830b2fa0ad1c7e",
-    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
-    "Makefile::target uitest-reset-guard": "4f60211274aafec3"
+    "Makefile::target aggregate-type-size": "185103618755699f",
+    "Makefile::target comment-citations": "d3fb280d89bc1785",
+    "Makefile::target coremotion-isolation-guard": "c2665e6fbeb378c4",
+    "Makefile::target date-ms-guard": "bf6f514735c220fa",
+    "Makefile::target dated-comment-budget": "ff56215a6ab7d46d",
+    "Makefile::target eager-prompt-guard": "1546b659949fcc08",
+    "Makefile::target empty-range-guard": "d2cc5a46df38f2e0",
+    "Makefile::target fixed-font-budget": "85a3e2b2bff351e6",
+    "Makefile::target hr-feed-link-guard": "48b2243d46f8a51f",
+    "Makefile::target leaked-mutations-guard": "a37e4e3ced2c0b0e",
+    "Makefile::target license-header-guard": "6883c5cfe671bd33",
+    "Makefile::target log-redaction-guard": "96f425e39f4d0b2f",
+    "Makefile::target logger-self-reference-guard": "4ba2ef354e7ab3e5",
+    "Makefile::target no-unowned-guard": "25ed7c1d3b02dd7c",
+    "Makefile::target orphan-swift-guard": "274019c065545658",
+    "Makefile::target sendable-guard": "c009f552884c46bc",
+    "Makefile::target shared-root-guard": "a9263da85d483554",
+    "Makefile::target skip-budget": "7ba8b35e95605b09",
+    "Makefile::target snapshot-refs-guard": "ab8804d23dd53ca7",
+    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
+    "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2"
    }
   },
   {
@@ -243,11 +236,10 @@
      "effect": "&& stops the chain; the step fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
-    "scripts/check_no_health_data_in_cloudkit.sh::": "a7192ff8ba6579ab",
-    "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862"
+    "scripts/check_infoplist_key_drift.sh::": "28c4fd1293c2d3b3",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "3f21dbc8feb1aedf",
+    "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759"
    }
   },
   {
@@ -265,19 +257,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
-    "Makefile::target doc-links": "a8f084188e2d717b",
-    "Makefile::target no-phone-home": "28f9f3dd4f70e0ce",
-    "Makefile::target sbom-check": "e1a31616864cff02",
-    "Makefile::target sbom-guard": "66e379cb76f4a7ec"
+    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
+    "Makefile::target doc-links": "4731861b7121254e",
+    "Makefile::target no-phone-home": "66a41310eef1b44c",
+    "Makefile::target sbom-check": "46aecc781adb961a",
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca"
    }
   },
   {
    "key": "step script-gates/Code map is current",
    "hash": "d273ed7098ec9b99",
-   "does": "Runs `make codemap-setup` and then scripts/check_codemap.sh with the venv interpreter on the Linux runner, so every push to main and every pull request fails while any code-map record is missing, stale or due a re-check, or the open high/medium findings differ from their budgets.",
+   "does": "Runs `make codemap-setup` and then scripts/check_codemap.sh with the venv interpreter on the Linux runner, so every push to main and every pull request fails while any code-map record is missing, empty or stale; re-check lines are counted without failing. The open-findings ratchet does not run here: its overlay (do_not_ship/codemap) is local only.",
    "entry": "gates.yml workflow (push to main, pull_request, manual dispatch), script-gates job",
    "calls": [
     "Makefile::target codemap-setup"
@@ -285,16 +276,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "d2527a25cec71c5c",
-    "scripts/check_codemap.sh::": "7556633b3058e90d"
+    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "scripts/check_codemap.sh::": "d855ae4972e708aa"
    }
   },
   {
    "key": "step script-gates/Code map impact of this pull request",
    "hash": "d470b5cb036193b7",
-   "does": "On pull requests only, and even when an earlier step failed (unless the run was cancelled): runs make codemap-setup (a no-op when the venv already works) and then `codemap.py impact --base origin/$GITHUB_BASE_REF` with the venv interpreter, which writes the impact list for the PR's changes (callers up to triggers, tests, docs, shared state, open findings) to the job summary. Not a gate: it exits 0 whenever the base ref resolves. Setting up its own interpreter keeps it working when an earlier step failed and the code map check never created the venv.",
+   "does": "On pull requests only, and even when an earlier step failed (unless the run was cancelled): runs make codemap-setup (a no-op when the venv already works) and then `codemap.py impact --base origin/$GITHUB_BASE_REF` with the venv interpreter, which writes the impact list for the PR's changes (callers up to triggers, tests, docs, shared state; no findings, since the overlay is local only) to the job summary. Not a gate: it exits 0 whenever the base ref resolves. Setting up its own interpreter keeps it working when an earlier step failed and the code map check never created the venv.",
    "entry": "gates.yml workflow on pull_request, script-gates job",
    "calls": [
     "Makefile::target codemap-setup",
@@ -313,11 +303,10 @@
      "effect": "runs; otherwise skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "d2527a25cec71c5c",
-    "scripts/codemap/codemap.py::": "5d018c610440e0c2",
-    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
+    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "scripts/codemap/codemap.py::": "124fefe07124e0ad",
+    "scripts/codemap/codemap.py::def main": "5406a0247905c1b9"
    }
   },
   {
@@ -332,10 +321,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target gate-preflight": "6920a992e5fe9a61",
-    "Makefile::target gates-wired-guard": "92331e51f325e1f5"
+    "Makefile::target gate-preflight": "4af96d525dd02798",
+    "Makefile::target gates-wired-guard": "29ee806453e41bae"
    }
   },
   {
@@ -350,10 +338,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target spec-conformance": "060f9ad7c55731da"
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target spec-conformance": "76fac68887ff9527"
    }
   },
   {
@@ -398,16 +385,15 @@
      "effect": "echo and pass without comparing"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/check_budget_monotonicity.sh::": "f78d5c3c8b01662a",
-    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
-    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
-    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
-    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
-    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
-    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d"
+    "scripts/check_budget_monotonicity.sh::": "200e7799c911c1e5",
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "79b550d9544b839d",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "e077302680bcc6ab",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "6e4cf57505a00a2b",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "80dfd43a50d50f4a",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "1556eb46bf71f4cf"
    }
   }
  ],

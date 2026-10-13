@@ -11,17 +11,6 @@
   "mem:LocationFinder.maxUsableAccuracyMeters = 200, maxUsableAgeSeconds = 60 (static)"
  ],
  "toplevel": "No top-level code beyond declarations; `@preconcurrency import CoreLocation`.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references LocationFinder.",
-   "evidence": [
-    "Emuqu/Sources/Services/LocationFinder.swift:63"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func LocationFinder.detachedFirstUsableLocation(timeoutSec:)",
@@ -35,10 +24,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "aa2ac6921c224086",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)": "d8a19285ddd16ed0"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "246ab6320fa5b1bf",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)": "6e821de899dfd52f"
    }
   },
   {
@@ -80,10 +68,9 @@
      "effect": "throw locationServicesDisabled"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "fae74b5835684832",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()": "6b530420e5c6caaa"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "15c7b47ef315d9bb",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()": "2fc3788f1c8c374f"
    }
   },
   {
@@ -120,11 +107,10 @@
      "effect": "throw permissionDenied"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "fae74b5835684832",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()": "6fee928161010a89",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "15c7b47ef315d9bb",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()": "55b6825addfebe73",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -146,7 +132,6 @@
      "effect": "create one"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -160,9 +145,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "c1b2bcc142dd9850"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "614df7f692544c46"
    }
   },
   {
@@ -181,9 +165,8 @@
     "mem:LocationFinder.authorizationManager"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "c1b2bcc142dd9850"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "614df7f692544c46"
    }
   },
   {
@@ -204,10 +187,9 @@
      "effect": "log elapsed + error at warning, rethrow"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.raceFirstFix(timeoutSec:)": "f927c172f584b119",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.raceFirstFix(timeoutSec:)": "5473662892145b2c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -228,11 +210,10 @@
      "effect": "false (nil): throw noFix; true: return it; a thrown child error (timeout/noFix) propagates"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLiveFix()": "7211f3f5c2fa0a0b",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLiveFix()": "d880fcac24172556",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "3d86e748ee6bd177",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -259,9 +240,8 @@
      "effect": "false: continue; true: return location"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.isUsable(_:)": "edaa91ae9db3ede8"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.isUsable(_:)": "e490a6af91c726c8"
    }
   },
   {
@@ -273,7 +253,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

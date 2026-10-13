@@ -15,7 +15,6 @@
   "kc:com.chrissharp.flowrecovery.assistant.apikey account gemini (read via APIKeyStore)"
  ],
  "toplevel": "Static model catalog with prices/context windows pinned by ProviderModelCatalogTests; id = .gemini; RequestBody nested Encodable structs use synthesized encoding except FunctionDeclaration (custom encode in an extension at the file end). The URL session, cache-marker split, <live_state> envelope, error-body draining and status mapping are ProviderHTTP's.",
- "flags": [],
  "units": [
   {
    "key": "var GeminiProvider.availableModels",
@@ -28,7 +27,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -40,7 +38,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -56,11 +53,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "5d589653df6e990b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -75,10 +71,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)": "ade202aa4f87a902",
-    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)": "5a7a48a19e1ada45",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e"
    }
   },
   {
@@ -90,9 +85,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "749fd0882c91408c"
    }
   },
   {
@@ -104,9 +98,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "749fd0882c91408c"
    }
   },
   {
@@ -118,9 +111,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "749fd0882c91408c"
    }
   },
   {
@@ -156,10 +148,9 @@
      "effect": "appends toolRoundContents(round) (model call turn + user response turn); empty rounds contribute nothing."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolRoundContents(_:)": "35faf72c4ad67d19",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "5b360682065815b2"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolRoundContents(_:)": "675d8a72f3b57785",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "4a5c1ff08179dc8a"
    }
   },
   {
@@ -188,15 +179,14 @@
      "effect": "uses parsed value; ?? the raw resultJSON string otherwise"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)": "9ca17d9e1a71af27",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "0e1707e59e7b617f",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)": "c059c355307e51bd",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionResponse:)": "8255ab3785a8dda8",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "3fc31f8cb07fe622",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)": "2ba6046744ab8baa",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "749fd0882c91408c",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "6a2982cb5270b4ac",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)": "e09bbe46e0e8ac38",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionResponse:)": "01859a14a6062a59",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb"
    }
   },
   {
@@ -214,9 +204,8 @@
      "effect": "returns base id only; otherwise base + \"#sig:\" + signature."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "0865102392f93c43"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.thoughtSignature(fromToolUseID:)": "749fd0882c91408c"
    }
   },
   {
@@ -234,7 +223,6 @@
      "effect": "returns the text after it; otherwise nil (no signature echoed)."
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
    }
@@ -256,7 +244,6 @@
      "effect": "returns it; otherwise throws AIProviderError.invalidResponse(\"bad endpoint\")."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -298,21 +285,20 @@
      "effect": "throwForStatus throws (never returns); otherwise streams the body."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "bf6f84c3e63dd1fd",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "dc64e42a1118fc64",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "29eb0d71383239cf",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "18f297d3a59aae36",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)": "d9c70a11dc2059ba",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "bb51f5c63044a7f1",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "f46bd1180a0842b9",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4fe788384695667f",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "b1943435eb4afee4",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolDeclarations(for:)": "67b1ae1d43bd4d34",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "5b360682065815b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "1d2a4ac58caeb322",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)": "4d0621d7f359ae3c",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "c484c39a3bf962e3",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)": "f55ee02505c471d4",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "fd471a8af25a9e35",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "a85a659d63cd1b4e",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4f76cde6f5eaecff",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "4ded941c2ef86845",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolDeclarations(for:)": "296c82f7094c0347",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "4a5c1ff08179dc8a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -335,7 +321,6 @@
      "effect": "parameters nil (omitted in JSON); otherwise the schema."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -349,7 +334,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -400,13 +384,12 @@
      "effect": "lastUsage replaced; ?? keeps previous lastUsage when absent."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:)": "d6335216cd3aa563",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "cb9c15da83aa7bf7",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)": "0c371f56fe7e5dab",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)": "09e47fa51b16fd7d",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "ac3c99f3b0baedd4"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:)": "0759d12a0fdb3f97",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "5906398717690c49",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)": "ff235124f086d0c7",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)": "dd5b3c96e00740cd",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "e1e51f6f8a363a72"
    }
   },
   {
@@ -424,7 +407,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -442,7 +424,6 @@
      "effect": "returns parts; otherwise []."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -478,9 +459,8 @@
      "effect": "uses it; ?? fallback \"{}\"."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "0e1707e59e7b617f"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "6a2982cb5270b4ac"
    }
   },
   {
@@ -518,7 +498,6 @@
      "effect": "returns without emitting; otherwise yields .usage."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -557,14 +536,13 @@
      "effect": "uses it; ?? fallback first 300 chars of redacted body."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "84c7ba7bcbd4dbfb",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "9bac1ed0f47f5240",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)": "7fcde1cc804f07bd",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "132b59eb8e966828",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "a687cba664e39621",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)": "8b93e6a53d290b7b",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -576,7 +554,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

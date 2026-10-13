@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func StrapReadinessTests.linked()",
@@ -20,9 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5"
    }
   },
   {
@@ -43,10 +41,9 @@
      "effect": "asserts state .pending and waitOutcome nil for each of the 4 features"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "77b3962f98b62aa7",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb"
    }
   },
   {
@@ -70,25 +67,12 @@
      "effect": "asserts state(of:) == .pending"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The per-feature .pending assertions cannot fail: state(of:) returns .pending whenever !isLinked (StrapReadiness.swift:65) regardless of the states dictionary, so removing the isLinked guards in markReady/confirm would not be detected; only the isSettled assertion has teeth.",
-     "evidence": [
-      "EmuquTests/StrapReadinessTests.swift:42",
-      "Emuqu/Sources/Collection/StrapReadiness.swift:65",
-      "Emuqu/Sources/Collection/StrapReadiness.swift:96"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "7675e635229c9a03",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "eb4a1a9fb33621a5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "248bafddaa9dc573",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "77b3962f98b62aa7"
    }
   },
   {
@@ -104,11 +88,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -133,14 +116,13 @@
      "effect": "asserts state(of:) == .pending (nothing carried over)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "eb4a1a9fb33621a5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "77b3962f98b62aa7",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -161,10 +143,9 @@
      "effect": "asserts waitOutcome nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -181,12 +162,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ff00b93ca6977335",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -203,12 +183,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "eb4a1a9fb33621a5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "77b3962f98b62aa7",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -225,12 +204,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "eb4a1a9fb33621a5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -247,12 +225,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   },
   {
@@ -269,12 +246,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "7675e635229c9a03",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
-    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "eb4a1a9fb33621a5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "248bafddaa9dc573",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "f6642a31d5d8f3c6"
    }
   }
  ],

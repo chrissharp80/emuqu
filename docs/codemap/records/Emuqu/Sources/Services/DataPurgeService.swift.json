@@ -18,21 +18,6 @@
   "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted, referenced)"
  ],
  "toplevel": "Static let tables above. Only entry is purgeAllUserData, called by DeleteAllDataPage.swift and DataPurgeServiceTests. The legacy widget.* keys an earlier build wrote to the App Group suite are removed by sweepAllDefaults (none is kept).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "residualFilesRemoved is documented as 'zero is the healthy steady state; non-zero means a store no named step owns', but the sweep runs BEFORE the named steps and counts every top-level entry (HRVArchive, RRBackup, debug_log.txt, Breadcrumbs, …), so it is non-zero for every user with data and the page's 'Everything else on disk: N item(s)' line overstates what was missed.",
-   "evidence": [
-    "Emuqu/Sources/Services/DataPurgeService.swift:35",
-    "Emuqu/Sources/Services/DataPurgeService.swift:192",
-    "Emuqu/Sources/Services/DataPurgeService.swift:196",
-    "Emuqu/Sources/Services/DataPurgeService.swift:451",
-    "Emuqu/Sources/Services/DataPurgeService.swift:64"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var DataPurgeService.PurgeScope.device",
@@ -47,10 +32,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.deviceDefaultsDomains(errors:)": "1a6a7328e784bf9d",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.deviceDefaultsDomains(errors:)": "9760299d11b4b27d",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -66,23 +50,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Report.summary is read only by DataPurgeServiceTests.swift:97-141; DeleteAllDataPage uses outcomeText/problemText.",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:45",
-      "EmuquTests/DataPurgeServiceTests.swift:97",
-      "Emuqu/Sources/Views/DeleteAllDataPage.swift:172"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.errorLines": "9fd5f1a0f4b6fcc6",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "18a14d28b856d909",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeLines": "05015075c642cc90"
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.errorLines": "490a7248fd19f810",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "65fad30ef3262e67",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeLines": "80641bd59b30dc38"
    }
   },
   {
@@ -97,10 +68,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "18a14d28b856d909",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeLines": "05015075c642cc90"
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "65fad30ef3262e67",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeLines": "80641bd59b30dc38"
    }
   },
   {
@@ -118,7 +88,6 @@
      "effect": "nil; else bullet list"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -134,11 +103,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.stepLines(_:)": "88e7a457a65d5776",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.remoteLine": "be5ef9ddf84e2e8a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.stepLines(_:)": "7f72ef129da1292c",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.remoteLine": "15d3197c746bfd63",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -159,10 +127,9 @@
      "effect": "deleted text; else NOT deleted text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.line(_:_:)": "772cf5293ea0be0a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.line(_:_:)": "cdbbbaf672d5e91f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -176,9 +143,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.step(_:_:_:)": "a2e69fa8b5d788e4"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.step(_:_:_:)": "34b0bb1b9fe3a341"
    }
   },
   {
@@ -208,9 +174,8 @@
      "effect": "'reset'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -232,11 +197,10 @@
      "effect": "outcome word; else 'ERROR'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.line(_:_:)": "772cf5293ea0be0a",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.Outcome.text": "39eccd46c0df5e65",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.Report.line(_:_:)": "cdbbbaf672d5e91f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.Outcome.text": "c1997f073395aa5a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -250,9 +214,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -272,9 +235,8 @@
      "effect": "[]; else header + bullets"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -288,9 +250,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -327,9 +288,8 @@
      "effect": "appends '<label>: <error>' and returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -348,15 +308,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)": "706ad09ec3bb4d5f",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "241dc56a5d3c26e3",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "d951b20451ad7ecc",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)": "e30110433925c2a2",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "28c930f18251946f",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)": "f6cb542882007bd3",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "5e68c2e6d80093c7"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)": "8e1b48acc1d568a5",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "5f0a397a0f59f964",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "6fe62cc8633e3cad",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)": "fdf0d5a4604d00bc",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)": "f212818f051a7bbb",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a"
    }
   },
   {
@@ -383,16 +342,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "48c8c6fc3970494c",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasArchiveFile()": "f587617721f49215",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "81ef19bfa09eb971",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "0ffd5bc880f4cf8f",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasArchiveFile()": "51104b8916f09a9a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -412,11 +370,10 @@
     "mem:RawRRBackup index"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:errors:)": "762f16ab34da9ec2",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:errors:)": "632e9dfa7160fb80",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "ba690bfda53be674"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "cf0156402284fb27"
    }
   },
   {
@@ -451,9 +408,8 @@
      "effect": "false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isSystemKey(_:prefix:)": "be77c70d8d47f770"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isSystemKey(_:prefix:)": "abbc087bd25b359d"
    }
   },
   {
@@ -481,7 +437,6 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -506,9 +461,8 @@
      "effect": "adds group suite; else error 'app group suite unavailable'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -539,10 +493,9 @@
      "effect": "removeObject + count"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "8af1332a5c1d43cd",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)": "e874968fe0f57515"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "0ed2c508397ebbf7",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)": "95250d1a3caf578c"
    }
   },
   {
@@ -564,9 +517,8 @@
      "effect": "returns its keys; else filtered dictionaryRepresentation (App Group case)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.inheritedDefaultsKeys()": "2f76447df07a62f2"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.inheritedDefaultsKeys()": "539dad75bc176908"
    }
   },
   {
@@ -588,7 +540,6 @@
      "effect": "no global keys excluded"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -611,7 +562,6 @@
      "effect": "appended with keepList"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -632,10 +582,9 @@
      "effect": "sweep each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots(_:)": "4706910983ec6a6a",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:keeping:errors:)": "e68619a7818ab3c4"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots(_:)": "c29874bcaebd3399",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:keeping:errors:)": "64e0d2198b940dee"
    }
   },
   {
@@ -671,9 +620,8 @@
      "effect": "appends 'Could not remove <name>: <error>'; continues"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -691,13 +639,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.cancelMorningNotifications()": "01cdfb69eff962eb",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()": "ce90e6d1827a3bfc",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "06e232958dd48433",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:in:label:reportMissingContainer:errors:)": "fd8d87b4a107f4b8",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.cancelMorningNotifications()": "d4f820615d7bf753",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()": "8f846051d1b42b8b",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "66d257304d1aacb8",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:in:label:reportMissingContainer:errors:)": "d44ed2172d10cdf0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -713,11 +660,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)": "93c429b1e47f665a",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "91e4e321261cc4ad",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)": "42e045ba20dd7aa3",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "ad7e16b60f4bec32",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "cd13dca19f13552e"
    }
   },
   {
@@ -748,10 +694,9 @@
      "effect": "appends iCloud error; local wipe proceeds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()": "2cb164c03427dc36"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()": "0c3f26786ca478b4"
    }
   },
   {
@@ -787,23 +732,22 @@
     "file:UserFactsStore file"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "9e63918d42003eae",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeAllKeys()": "604e807322e8d86a",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "710d4ecd5b2ff279",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resetToDefaults()": "1c7a2b91a9ab54dc",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "46f8393a76f04151",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.eraseArchive()": "826a55d04ff24024",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores()": "6bebe55abe806747",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "3a22c7835b958669",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "2ccf3980470b20bd",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeAllKeys()": "71525a349484c31c",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "56444bccdceaf3c4",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resetToDefaults()": "a1e257c48d92555e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "20349278ec335013",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.eraseArchive()": "5dadc7492eb23757",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores()": "4f75d423b7b0b5b4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "bbe42fe440420a22",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "43a12ced1a24da16",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -818,11 +762,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "3d86e748ee6bd177",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
   {
@@ -842,18 +785,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.forgetAfterPurge()": "de1b5cc890aed8d3",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.forgetAfterPurge()": "4667f9e3ed78a09f",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.forgetAfterPurge()": "363317b10eb0eb23",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "8f080754e7f5cfd5",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.forgetAfterPurge()": "2e6daf4ff47b3e7f",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.forgetAfterPurge()": "fa63d12b5e055ca8",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetAssistantAgreements()": "b981f6dca2fda2b7",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.forgetAfterPurge()": "c7b46cd8b11593dc",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "4dcb1fe75435621b",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.forgetAfterPurge()": "66386d8360c8a51a",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.forgetAfterPurge()": "620d2b6810ef6933",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetAssistantAgreements()": "2f0a28b71b477a42",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -879,13 +821,12 @@
      "effect": "revoke each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "eebe95b9e68a93b7",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -915,13 +856,12 @@
      "effect": "appends 'Debug log: <error>', returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "a59aa682de43648a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "9831bde1cf366008"
    }
   },
   {
@@ -944,12 +884,11 @@
      "effect": "error appended, false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearAll()": "6cd2a6d86e5ed09f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearAll()": "c9358c666eb90c51"
    }
   },
   {
@@ -977,18 +916,17 @@
     "mem:LLMRequestAudit"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()": "cb4b51d04e4115a8",
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()": "f332977010dbd513",
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()": "553c36b6a688cc41",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()": "9eb136c617078983",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()": "f49f85de829c8255",
     "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.clearAll()": "227afdf70e58e894",
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.clear()": "ce10579764da8a08",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.clear()": "cad3510df4851684",
-    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.clear()": "8dcfce49acd006a2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.clear()": "bb0f8596bd8414d3",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.clear()": "ab1a448079777787",
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.clear()": "cccce7040c2e0f3b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   }
  ],

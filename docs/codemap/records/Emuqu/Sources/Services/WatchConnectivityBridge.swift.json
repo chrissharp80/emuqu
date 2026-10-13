@@ -36,7 +36,6 @@
   "mem:WatchConnectivityBridge.heldUntilActivation (static lock [[String: any Sendable]], dual-channel commands issued before activation, last 8)"
  ],
  "toplevel": "Declares five Notification.Name statics (lines 12-29) and the two message enums; stored-property initialisers create the serial wcQueue (282-285), the didActivate lock (364), and static locks timeoutCounter (591), lastContextErrorMessage (730), liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access. WatchControlRefusal is a String-raw enum whose raw values travel as `errorCode`.",
- "flags": [],
  "units": [
   {
    "key": "var WatchConnectivityBridge.isWatchPaired",
@@ -56,7 +55,6 @@
      "effect": "returns false; otherwise returns WCSession.default.isPaired"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,7 +74,6 @@
      "effect": "true: latestWatchHRAt = nil; false: latestWatchHRAt = now"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -92,7 +89,6 @@
     "mem:WatchConnectivityBridge.pendingWatchStrapRR"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -113,7 +109,6 @@
      "effect": "returns nil; otherwise WCSession.default"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -142,10 +137,9 @@
      "effect": "logs and returns without setting the delegate; otherwise session.delegate = self"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "ed30443c1dbd5d83",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "693422c683025f02"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "65a80fa7834f4f53",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "84797080ddce9a12"
    }
   },
   {
@@ -187,12 +181,11 @@
      "effect": "returns without activating; otherwise sets didActivate, the delegate, refreshes mirror, arms observation, activates"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "ed30443c1dbd5d83",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.armWatchDisplayModeObservation()": "501683c7baef01cc",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.refreshCachedWatchDisplayOnlyMode()": "53a6691b3611149e",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "693422c683025f02"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "65a80fa7834f4f53",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.armWatchDisplayModeObservation()": "05071f3077b3ee60",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.refreshCachedWatchDisplayOnlyMode()": "9cdb9e8d3bb21040",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "84797080ddce9a12"
    }
   },
   {
@@ -213,12 +206,11 @@
     "mem:WatchConnectivityBridge.cachedWatchDisplayOnlyMode"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.refreshCachedWatchDisplayOnlyMode()": "53a6691b3611149e",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "656f9a1305b60791",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.refreshCachedWatchDisplayOnlyMode()": "9cdb9e8d3bb21040",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "79e373bb861d86bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -238,9 +230,8 @@
      "effect": "?? fallback .unknown; otherwise Band.display(alpha1:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "f4cb0f82e172153d"
    }
   },
   {
@@ -266,10 +257,9 @@
      "effect": "sets liveWorkoutStartedAt = now - elapsedSec; otherwise leaves it unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStatePayload(_:)": "bc8b642a48e64f57",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "bde2b789827c6a66"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStatePayload(_:)": "8131e4d7ab8a48f8",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "2fc788d7975459bf"
    }
   },
   {
@@ -314,16 +304,15 @@
      "effect": "adds targetZone; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.addHeartRate(_:userMaxHR:to:)": "7e0622044c7f6fab",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStateBase(sport:peakHR:userMaxHR:totals:band:unitsPreference:)": "5132ad3de10e754b",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode": "9d8412b3cbe19c3c",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.addHeartRate(_:userMaxHR:to:)": "6f7ac62c39ea35bf",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStateBase(sport:peakHR:userMaxHR:totals:band:unitsPreference:)": "171e2de853f8124f",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode": "61eddc92c977ecf7",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e"
    }
   },
   {
@@ -339,10 +328,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "656f9a1305b60791"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "79e373bb861d86bc"
    }
   },
   {
@@ -365,7 +353,6 @@
      "effect": "returns after adding heartRate only; otherwise also adds truncated hrPercentOfMax"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -397,12 +384,11 @@
      "effect": "closure returns without pushing; otherwise pushes strap state of polar"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(_:)": "70fc7f32609f68ca",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(of:)": "5d109bf0a8eb9fc3",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::init WatchConnectivityBridge.StrapSnapshot(polar:)": "a4f027a2cec61ded",
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(_:)": "1000077a8510aa96",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(of:)": "2b138ae89cd2156c",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::init WatchConnectivityBridge.StrapSnapshot(polar:)": "ef420a0862039f2d",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "45b1e058ecfcb78e"
    }
   },
   {
@@ -431,12 +417,11 @@
      "effect": "batteryPercent = polar.batteryLevel; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "b3637bf31f4792be",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245"
    }
   },
   {
@@ -455,10 +440,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(_:)": "70fc7f32609f68ca",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::init WatchConnectivityBridge.StrapSnapshot(polar:)": "a4f027a2cec61ded"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(_:)": "1000077a8510aa96",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::init WatchConnectivityBridge.StrapSnapshot(polar:)": "ef420a0862039f2d"
    }
   },
   {
@@ -472,10 +456,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connected(_:)": "508449aa55b956fb",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(connected:deviceName:batteryPercent:)": "48786384439b04a5"
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connected(_:)": "41c5c009c84e0ad4",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(connected:deviceName:batteryPercent:)": "9f2199f9d57eead3"
    }
   },
   {
@@ -505,10 +488,9 @@
      "effect": "adds strapBatteryPct; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)": "8a73dc6576ad8327",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "656f9a1305b60791"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)": "cab06e92c5169c4d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "79e373bb861d86bc"
    }
   },
   {
@@ -522,7 +504,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -538,7 +519,6 @@
     "mem:WatchConnectivityBridge.timeoutCounter"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -552,7 +532,6 @@
     "mem:WatchConnectivityBridge.timeoutCounter"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -599,14 +578,13 @@
      "effect": "returns; otherwise sendMessage with no reply handler, error handler → fallBackToContext"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cacheLiveState(_:)": "92e96a3107571ea2",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.canTransport(_:)": "8d9be17f52746a5a",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.fallBackToContext(_:after:)": "ebf611238d15743a",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextIfLatest(_:)": "8135d9abd1d94a44",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.currentConsecutiveSendTimeouts": "79130d181c1b1735",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "693422c683025f02"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cacheLiveState(_:)": "8727694d762651ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.canTransport(_:)": "da9268fce14d1953",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.fallBackToContext(_:after:)": "a6b19dbef2c58d4c",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextIfLatest(_:)": "839a476fdf82a9f9",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.currentConsecutiveSendTimeouts": "633699b067b1d11a",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "84797080ddce9a12"
    }
   },
   {
@@ -625,10 +603,9 @@
     "wc:liveState (applicationContext)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: Error)": "5cd2086dc7b6f0ba",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextIfLatest(_:)": "8135d9abd1d94a44"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: Error)": "db89d1bbed777502",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextIfLatest(_:)": "839a476fdf82a9f9"
    }
   },
   {
@@ -653,10 +630,9 @@
      "effect": "return, nothing written; otherwise (or either ts missing) write"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "ac0c6b7ae1d4cb2f",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextLocked(_:)": "a5b62d260799b728"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "883b53af3296043d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextLocked(_:)": "262a2cbf5637e40b"
    }
   },
   {
@@ -684,10 +660,9 @@
      "effect": "logs a warning only when the message differs from the last noted one, returns false; else returns isPaired && isWatchAppInstalled"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.noteContextError(_:)": "9b5ff3ba1c0385b3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.noteContextError(_:)": "7ff1422df67876d0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -712,11 +687,10 @@
      "effect": "DEBUG-only log and return without bumping the counter; code 7012 bumps the circuit-breaker counter"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.bumpTimeoutCount()": "35ea0bca9ef1d8ff",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.bumpTimeoutCount()": "285aea06aad677d8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -759,11 +733,10 @@
      "effect": "logs warning; else no log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.noteContextError(_:)": "9b5ff3ba1c0385b3",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "693422c683025f02",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.noteContextError(_:)": "7ff1422df67876d0",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "84797080ddce9a12",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -779,7 +752,6 @@
     "mem:WatchConnectivityBridge.lastContextErrorMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -801,7 +773,6 @@
      "effect": "returns without replacing (older snapshot dropped); otherwise cache = payload (also when either ts missing)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -815,7 +786,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -829,7 +799,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -847,11 +816,10 @@
     "mem:WatchConnectivityBridge.cachedWatchDisplayOnlyMode"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "656f9a1305b60791",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "79e373bb861d86bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -867,9 +835,8 @@
     "wc:startWorkout"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)": "8a73dc6576ad8327"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)": "cab06e92c5169c4d"
    }
   },
   {
@@ -891,11 +858,10 @@
     "wc:applicationContext"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cacheLiveState(_:)": "92e96a3107571ea2",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)": "8a73dc6576ad8327",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextLocked(_:)": "a5b62d260799b728"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cacheLiveState(_:)": "8727694d762651ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)": "cab06e92c5169c4d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.updateLiveStateContextLocked(_:)": "262a2cbf5637e40b"
    }
   },
   {
@@ -927,11 +893,10 @@
      "effect": "payload held until activation; else sent now"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.holdUntilActivated(_:label:)": "402d8699fb2d3d20",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannelNow(_:on:label:)": "f4b07a42188c0229",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "693422c683025f02"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.holdUntilActivated(_:label:)": "be4bcdeaad64d5a5",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannelNow(_:on:label:)": "daed45561158f442",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "84797080ddce9a12"
    }
   },
   {
@@ -961,9 +926,8 @@
      "effect": "sendMessage then transferUserInfo; when unreachable only transferUserInfo"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: String)": "027e0bc3385bb960"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: String)": "44864806d1219420"
    }
   },
   {
@@ -987,18 +951,8 @@
      "effect": "oldest dropped"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "With Watch connectivity off the session never activates, so held commands stay in memory (at most 8) for the process; they are never sent, which matches the user's setting, but nothing clears them either.",
-     "evidence": [
-      "Emuqu/Sources/Services/WatchConnectivityBridge.swift"
-     ]
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1026,10 +980,9 @@
      "effect": "return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannelNow(_:on:label:)": "f4b07a42188c0229",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "693422c683025f02"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannelNow(_:on:label:)": "daed45561158f442",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session": "84797080ddce9a12"
    }
   },
   {
@@ -1043,9 +996,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1085,9 +1037,8 @@
      "effect": "'The strap is currently used by another session. Stop it first.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

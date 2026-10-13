@@ -9,7 +9,6 @@
   "env:CODEMAP_BASE_PYTHON (optional interpreter override)"
  ],
  "toplevel": "set -euo pipefail; cd to the repo root. Defines STANDALONE_RELEASE=20241016, STANDALONE_VERSION=3.12.7, STANDALONE_DIR=.codemap-python. Takes python_for_codemap's interpreter, else standalone_python's. With neither: prints where it looked, that the standalone build could not be fetched, which python3 was found and how to supply one, exit 1. Otherwise: python -m venv --clear .venv-codemap, pip install --quiet --disable-pip-version-check --require-hashes -r scripts/codemap/requirements.txt, prints the interpreter version used.",
- "flags": [],
  "units": [
   {
    "key": "fn installed_pythons",
@@ -22,7 +21,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -57,9 +55,8 @@
      "effect": "return 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/setup_venv.sh::fn installed_pythons": "9e56e6c9df5f0738"
+    "scripts/codemap/setup_venv.sh::fn installed_pythons": "c807892cafca381b"
    }
   },
   {
@@ -82,7 +79,6 @@
      "effect": "return 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -127,7 +123,6 @@
      "effect": "return 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -154,7 +149,6 @@
      "effect": "sha256sum"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -212,16 +206,15 @@
      "effect": "temp removed; prints the interpreter"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/setup_venv.sh::fn file_sha256": "3b28951901aa5feb",
-    "scripts/codemap/setup_venv.sh::fn standalone_platform": "2073543c78b9b6b7",
-    "scripts/codemap/setup_venv.sh::fn standalone_sha256": "44cd2d55354b7a43"
+    "scripts/codemap/setup_venv.sh::fn file_sha256": "9c257e3033e88b42",
+    "scripts/codemap/setup_venv.sh::fn standalone_platform": "26179d8acb295340",
+    "scripts/codemap/setup_venv.sh::fn standalone_sha256": "94d3bfe02e7f1ca1"
    }
   }
  ],
  "deps": {
-  "scripts/codemap/setup_venv.sh::fn python_for_codemap": "59db2ae39dc46ba5",
-  "scripts/codemap/setup_venv.sh::fn standalone_python": "33ee470ab539483a"
+  "scripts/codemap/setup_venv.sh::fn python_for_codemap": "e49b8c468ee29b31",
+  "scripts/codemap/setup_venv.sh::fn standalone_python": "608fc580aa35cb88"
  }
 }

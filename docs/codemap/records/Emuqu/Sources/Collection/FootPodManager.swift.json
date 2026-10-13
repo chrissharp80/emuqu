@@ -26,19 +26,6 @@
   "static UUIDs 1814/2A53/1818/2A63/1826/2AD2"
  ],
  "toplevel": "Stored defaults only; the central is not built at init. File header comment claims the manager persists a log line per reconnect; no such persistence exists in the file (only lastStatusLine in memory).",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "FTMS instantaneous cadence (bike crank rpm) is stored in cadenceStepsPerMin, which the recorder uses as step cadence (WorkoutRecorder+Ticker.swift:512) and ThresholdCards integrates into a step count (ThresholdCards+Cards.swift:689).",
-   "evidence": [
-    "Emuqu/Sources/Collection/FootPodManager.swift:630",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:512",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift:689"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "requirement BLEPeripheralConnecting.attach(peripheral:)",
@@ -49,10 +36,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "4d7ef27a2dfb15cd",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "b67228b9048bd099",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202"
    }
   },
   {
@@ -64,10 +50,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "2ef8dd940bf1c376",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "50da0f923afe0218",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "5dd3aa1b11ece94c"
    }
   },
   {
@@ -79,10 +64,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "cd2a8668172269eb",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "01dbf138be0a2e74",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "32ea45fa6507f3d1"
    }
   },
   {
@@ -114,12 +98,11 @@
      "effect": "attaches and returns; otherwise parks the id and starts a scan that picks it up"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.attach(peripheral:)": "eabe918e33eb3ba6",
-    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.startScanning()": "d09979727c46a84e",
-    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.stopScanning()": "99a5da5976851e9d",
-    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7"
+    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.attach(peripheral:)": "fbb798cfcb8fa2bc",
+    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.startScanning()": "4623a4488e411a47",
+    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.stopScanning()": "2e4ad68e6e11676c",
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "a147c992ebeb8ab3"
    }
   },
   {
@@ -139,7 +122,6 @@
      "effect": "returns it; else builds and stores"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -153,9 +135,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.loadKnownDevices()": "dc286789e57579f0"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.loadKnownDevices()": "f967d9903bca400c"
    }
   },
   {
@@ -181,11 +162,10 @@
      "effect": "sets scanWaitingForBluetooth and waiting text, returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.armScanTimeout()": "ffd5ef5afb11fcc2",
-    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.armScanTimeout()": "7b0a7cbf6efb9e1b",
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "a147c992ebeb8ab3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -200,9 +180,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.endTimedOutScan()": "7f04960fd6a6d24a"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.endTimedOutScan()": "b0f59301ece5303d"
    }
   },
   {
@@ -219,9 +198,8 @@
     "mem:FootPodManager.connectionState"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "32ea45fa6507f3d1"
    }
   },
   {
@@ -248,7 +226,6 @@
      "effect": "sets .disconnected; other states untouched"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -268,9 +245,8 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "09c01914949ae0c1"
    }
   },
   {
@@ -297,9 +273,8 @@
      "effect": "disconnect(); pendingReconnectId cleared either way"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "b9ba282009a86785"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "1ae2b7a2c7525f4e"
    }
   },
   {
@@ -322,9 +297,8 @@
      "effect": "cancelPeripheralConnection"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b"
    }
   },
   {
@@ -340,9 +314,8 @@
     "mem:FootPodManager.knownDevices"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()": "cfcd88076dcaec57"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()": "a48aca8b9dc3238a"
    }
   },
   {
@@ -366,10 +339,9 @@
      "effect": "uses 'foot pod'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "a147c992ebeb8ab3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -393,7 +365,6 @@
      "effect": "podReportedDistanceMeters = nil; mid-workout it is kept so the workout baseline still applies"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -420,10 +391,9 @@
      "effect": "truncates to 4"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()": "cfcd88076dcaec57",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()": "a48aca8b9dc3238a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -445,9 +415,8 @@
      "effect": "returns without writing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -469,7 +438,6 @@
      "effect": "returns leaving []"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -483,10 +451,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyBluetoothState(_:)": "31995d90f1e43eae",
-    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyBluetoothState(_:)": "70d34a8a86d476b4",
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "a147c992ebeb8ab3"
    }
   },
   {
@@ -536,13 +503,12 @@
      "effect": "no action"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.drainPendingReconnect()": "1bfcaa78862c4ce7",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parkReconnectIfMidWorkout()": "8a3aea505bda9893",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.drainPendingReconnect()": "99c2587a6870e420",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parkReconnectIfMidWorkout()": "f84a56ec79e16d59",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "5dd3aa1b11ece94c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -562,7 +528,6 @@
      "effect": "returns without parking"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -584,9 +549,8 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "09c01914949ae0c1"
    }
   },
   {
@@ -618,11 +582,10 @@
      "effect": "replaces entry (fresh RSSI); else appends"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attachIfPendingReconnect(_:)": "fbc84f3c5236e077",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "23293795c6e81a26",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attachIfPendingReconnect(_:)": "e96228a7cd37e251",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -645,10 +608,9 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "32ea45fa6507f3d1"
    }
   },
   {
@@ -671,9 +633,8 @@
      "effect": "uses 'foot pod'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -702,11 +663,10 @@
      "effect": "retryConnect(peripheral)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.retryConnect(_:)": "fafbde67bdc794c5",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.retryConnect(_:)": "a3dd2c88b2868351",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -730,11 +690,10 @@
      "effect": "return without reconnecting"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -759,12 +718,11 @@
      "effect": "return, stays disconnected; else log and attach(peripheral)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -778,9 +736,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.discoverMeasurementCharacteristics(on:)": "73ab1640ee5ffdde"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.discoverMeasurementCharacteristics(on:)": "2b16b87fb63a3702"
    }
   },
   {
@@ -806,10 +763,9 @@
      "effect": "skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.measurementCharacteristic(for:)": "367a33f5ceccd9ec",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.measurementCharacteristic(for:)": "9d1acc3a083ffee3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
   {
@@ -842,7 +798,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -868,10 +823,9 @@
      "effect": "returns without remembering"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.bindMeasurementCharacteristics(_:on:)": "901dd94468ef7294",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.rememberDevice(peripheral:supportsPower:)": "9250150efe459ae7"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.bindMeasurementCharacteristics(_:on:)": "d252748a268ea3bf",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.rememberDevice(peripheral:supportsPower:)": "71d546677d31b586"
    }
   },
   {
@@ -915,7 +869,6 @@
      "effect": "skipped, no notify"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -956,11 +909,10 @@
      "effect": "parseIndoorBikeData; others ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseIndoorBikeData(data:)": "7922c3941cb9653a",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)": "b778c188549ff45e",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseRSC(data:)": "7eca230020278dcf"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseIndoorBikeData(data:)": "3626ac638498c4a2",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)": "cc4f231fd627a450",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseRSC(data:)": "1bb8813d80ac0ba6"
    }
   },
   {
@@ -1013,10 +965,9 @@
      "effect": "updates odometer; otherwise previous value kept"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u32(_:at:)": "69b670231f47b1aa"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "556861bcc35c7652",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u32(_:at:)": "8ed691f3713a0220"
    }
   },
   {
@@ -1034,7 +985,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1061,7 +1011,6 @@
      "effect": "publishes; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1117,11 +1066,10 @@
      "effect": "skip 2/3/2 bytes each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousPower(_:at:flags:)": "ded91c96e84fd227",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousSpeed(_:at:)": "c7afc1c392d47544",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousPower(_:at:flags:)": "e1a03d0875e75449",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousSpeed(_:at:)": "7a525694d1bffd4f",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "556861bcc35c7652"
    }
   },
   {
@@ -1148,9 +1096,8 @@
      "effect": "sets m/s; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "556861bcc35c7652"
    }
   },
   {
@@ -1177,9 +1124,8 @@
      "effect": "publishes; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "556861bcc35c7652"
    }
   },
   {
@@ -1197,7 +1143,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -13,7 +13,6 @@
   "mem:CloudHealthScrubCoordinator.batchSize=10"
  ],
  "toplevel": "Static key constants and batchSize; struct holds `let manager: CloudKitSyncManager`, rebuilt per access by CloudKitSyncManager.healthScrub.",
- "flags": [],
  "units": [
   {
    "key": "var CloudHealthScrubCoordinator.defaults",
@@ -24,7 +23,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -52,10 +50,9 @@
      "effect": "empty list when the key is missing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()": "458f22e712f92aa6",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()": "f40486116191bcb2",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd"
    }
   },
   {
@@ -71,9 +68,8 @@
     "ud:legacy v2/v3 scrub keys"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd"
    }
   },
   {
@@ -94,10 +90,9 @@
     "ud:legacy v2/v3 scrub keys"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -144,13 +139,12 @@
      "effect": "saves sync state + logs; else no save"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "776b745694c4c0f0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "fd3e07cdb070d982",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -189,13 +183,12 @@
      "effect": "saves sync state and logs; else silent"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrub(_:)": "38531cbd048c35cc",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "776b745694c4c0f0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "fd3e07cdb070d982",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrub(_:)": "9398d7c75ecac942",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -232,13 +225,12 @@
      "effect": "logs warning, returns .retryLater"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "9292d3dda1d4faf7",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "fa2b4391b45d481c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "60cc3c51cbf9f06e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -285,16 +277,15 @@
      "effect": "deletes the record and marks local-only; else saveStripped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)": "61bd68e1e3042d60",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)": "97e10c00e151593d",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)": "8e74bdf40fb35777",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "059454eaf3747ade",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "79852356d3ddbfe8",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "776b745694c4c0f0",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)": "5b53b0886a66561e",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)": "856180afd6888931",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)": "a80113fc13ada27e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "64014e3dc11e8241",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "5a55427ad8b77917",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -321,11 +312,10 @@
      "effect": "cleared"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "3e719c97348423df",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "d2e0793294cf2785"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "044e343b3259ee39",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "58d2a43cf55426c0",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "67ad5852adb1be04"
    }
   },
   {
@@ -349,7 +339,6 @@
      "effect": ".finished without a write"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -376,10 +365,9 @@
      "effect": "logs warning, returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "8706cc7b863388cb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "dc8ab6c016fb95fa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -391,9 +379,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693"
    }
   }
  ],

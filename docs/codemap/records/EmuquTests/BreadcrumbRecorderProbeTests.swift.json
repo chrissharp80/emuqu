@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func BreadcrumbRecorderProbeTests.testSharedRecorderIsConstructible()",
@@ -24,19 +23,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTAssertNotNil on a non-optional singleton reference is a tautology; the only thing actually tested is that init does not crash.",
-     "evidence": [
-      "EmuquTests/BreadcrumbRecorderProbeTests.swift:16"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "ff1740b151303993",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "9667f49c1aef962b",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722"
    }
   },
@@ -53,19 +41,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The five listed cases are every CLAuthorizationStatus case, so the assertion cannot fail for any value CoreLocation returns.",
-     "evidence": [
-      "EmuquTests/BreadcrumbRecorderProbeTests.swift:21"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "ff1740b151303993"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "9667f49c1aef962b"
    }
   },
   {
@@ -83,20 +60,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "BreadcrumbRecorder.init restores activeTrail from the on-disk breadcrumb store (Breadcrumbs/active.json) of the host app, so the test fails on any simulator/device where the app host previously recorded a trail; it shares persisted state with the app host rather than testing 'before any recording'.",
-     "evidence": [
-      "EmuquTests/BreadcrumbRecorderProbeTests.swift:26",
-      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:102"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "ff1740b151303993",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "9667f49c1aef962b",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722"
    }
   }

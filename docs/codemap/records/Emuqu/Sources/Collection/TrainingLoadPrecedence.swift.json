@@ -10,7 +10,6 @@
   "mem:TrainingLoadPrecedence.FTPAnchors.none (const)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func TrainingLoadPrecedence.FTPAnchors.current(_:)",
@@ -41,9 +40,8 @@
      "effect": "use it; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "025373b97cca81f8"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "1158aa9760c5cc8a"
    }
   },
   {
@@ -71,7 +69,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -129,30 +126,16 @@
      "effect": "(e, .routeHistory); else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "WorkoutMetadata.preferredTrainingLoad re-implements the same six-tier ladder (power > route-dropout estimate > hrTSS > METs > Banister > route estimate) separately for the row display; the two must be kept in lockstep or a workout's displayed load differs from its ATL/CTL contribution.",
-     "evidence": [
-      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:87",
-      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:92",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:708",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:715"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "8fe8124d422c3999",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "eda5fb18d226da89",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "9a6b5c17237bcbeb",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "03a72852e5d15141",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "76ca57d4e4884777",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -177,9 +160,8 @@
      "effect": "tss; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598"
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "9a6b5c17237bcbeb"
    }
   }
  ],

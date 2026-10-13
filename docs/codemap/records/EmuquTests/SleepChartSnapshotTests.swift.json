@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func SleepChartSnapshotTests.hosted(_:)",
@@ -22,34 +21,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Hosts the view with RRCollector() (convenience init over the app's shared defaults/archive) and the live SettingsManager.shared without useDefaultSettings(), unlike SnapshotFixtures.collector(); SleepTimelineChart reads neither today, so the injection is inert but would make the snapshot host-state dependent if the chart starts reading them.",
-     "evidence": [
-      "EmuquTests/SleepChartSnapshotTests.swift:14",
-      "EmuquTests/SleepChartSnapshotTests.swift:15",
-      "EmuquTests/SnapshotFixtures.swift:171"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same private hosted(_:) helper (.environment(RRCollector()).environment(SettingsManager.shared)) is copied into about ten snapshot suites (Card, RemainingScreen, ChartScreen, BigScreen, SleepChart, State, Page, Overnight, DashboardChip, DetailScreen), although SnapshotFixtures says it is centralised so suites do not each grow their own copy.",
-     "evidence": [
-      "EmuquTests/SleepChartSnapshotTests.swift:12",
-      "EmuquTests/StateSnapshotTests.swift:18",
-      "EmuquTests/CardSnapshotTests.swift:15",
-      "EmuquTests/SnapshotFixtures.swift:13"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -63,9 +37,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -84,12 +57,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "2372fdc449425606",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "d6c0dcad145a223c",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "8d90f8826f2f6e1c",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "af5d27f124fda3e5",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -107,11 +79,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "2372fdc449425606",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "d6c0dcad145a223c",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "8d90f8826f2f6e1c",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "af5d27f124fda3e5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -130,12 +101,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "2372fdc449425606",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "d6c0dcad145a223c",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "8d90f8826f2f6e1c",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "af5d27f124fda3e5",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   }
  ],

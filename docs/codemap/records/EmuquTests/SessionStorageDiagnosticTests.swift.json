@@ -8,20 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Only the pure status() table and statusCounts are tested. The path that decides what a user with a corrupt archive file sees is untested: inspectSession returns .unreadable with backupBeats forced to 0 without consulting the backup index, so a session whose archive JSON fails to decode but whose RawRRBackup holds every beat is reported as unreadable rather than repairable (repairableCount counts only .backupOnly).",
-   "evidence": [
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:144",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:145",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:83",
-    "EmuquTests/SessionStorageDiagnosticTests.swift:16"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "func SessionStorageDiagnosticTests.testBothSourcesPresent()",
@@ -34,9 +20,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "0fdc43eeb1737d7c"
    }
   },
   {
@@ -50,9 +35,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "0fdc43eeb1737d7c"
    }
   },
   {
@@ -66,9 +50,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "0fdc43eeb1737d7c"
    }
   },
   {
@@ -82,9 +65,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "0fdc43eeb1737d7c"
    }
   },
   {
@@ -98,9 +80,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "0fdc43eeb1737d7c"
    }
   },
   {
@@ -123,7 +104,6 @@
      "effect": "backupBeatCount 100; else 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -138,10 +118,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793",
-    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)": "7ba384fd900a0483"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "a3488a96ee84f605",
+    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)": "1d049733b4cbffc4"
    }
   },
   {
@@ -155,9 +134,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "a3488a96ee84f605"
    }
   },
   {
@@ -178,10 +156,9 @@
      "effect": "report .bothPresent; else .backupOnly"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793",
-    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)": "7ba384fd900a0483"
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "a3488a96ee84f605",
+    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)": "1d049733b4cbffc4"
    }
   }
  ],

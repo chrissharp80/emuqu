@@ -14,7 +14,6 @@
   "net:huggingface.co (WhisperKit model download on first load)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "init WhisperKitSTTBridge()",
@@ -25,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -55,9 +53,8 @@
      "effect": "log warning; modelReady stays false so Apple recognizer is used; next session retries"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -79,9 +76,8 @@
      "effect": "drop buffer"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.capPendingBuffers()": "ac564bb2955e1eab"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.capPendingBuffers()": "74f2988e45d6e911"
    }
   },
   {
@@ -103,7 +99,6 @@
      "effect": "remove oldest; loop"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -117,7 +112,6 @@
     "mem:WhisperKitSTTBridge.pendingBuffers"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -153,10 +147,9 @@
      "effect": "no result → empty string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeMonoWav(at16k:)": "5fc2d48154211fa6",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeMonoWav(at16k:)": "7866f8ca1b363454",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -191,22 +184,10 @@
      "effect": "remove the partial file, rethrow"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The emptyAudio throw at line 191 cannot fire: the only caller returns early on empty buffers (line 162).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:191",
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeConverted(_:to:format:)": "e72f4b6fd9585b55",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeConverted(_:to:format:)": "8f38bdf157f13a95",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -250,9 +231,8 @@
      "effect": "write; else skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)": "1339b50ebda5b975"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)": "81330397a7a596c9"
    }
   },
   {
@@ -279,10 +259,9 @@
      "effect": "throw error ?? conversionFailed; else return output"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func UnsafeAVConverterFeeder.next(_:)": "f5619ac9134b97a1",
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::init UnsafeAVConverterFeeder(buffer:)": "f45548a68cbec879"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func UnsafeAVConverterFeeder.next(_:)": "42e48471a7977253",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::init UnsafeAVConverterFeeder(buffer:)": "c2079a58df6275b9"
    }
   },
   {
@@ -294,7 +273,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -312,7 +290,6 @@
      "effect": "set .noDataNow, return nil; else feed buffer once"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -347,9 +324,8 @@
      "effect": "conversion failed message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

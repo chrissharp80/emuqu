@@ -10,39 +10,6 @@
   "mem:AccessibilityAuditUITests.issueBudget {tab.dashboard:1, tab.record:5, tab.fitness:8, tab.coach:0, tab.more:0}"
  ],
  "toplevel": "issueBudget static table; class doc says .textClipped and .dynamicType audit types are excluded.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/AccessibilityUITests.swift:29",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc claims the suite checks accessibilityHint on the I Agree and onboarding 'Take a reading' CTAs; no test reads a hint or touches the onboarding done page",
-   "evidence": [
-    "EmuquUITests/AccessibilityUITests.swift:11",
-    "EmuquUITests/AccessibilityUITests.swift:44"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc says Dynamic Type AX5 layout is not tested; DynamicTypeAX5UITests in the same target tests it and says so",
-   "evidence": [
-    "EmuquUITests/AccessibilityUITests.swift:17",
-    "EmuquUITests/DynamicTypeAX5UITests.swift:5"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "func AccessibilityUITests.setUp()",
@@ -56,10 +23,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b"
    }
   },
   {
@@ -71,7 +37,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -101,22 +66,10 @@
      "effect": "assert height >= 44; zero frame → hit-target check skipped silently"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Hit-target assertion is skipped when the frame is .zero, and only height is checked (not width) despite the doc's 44x44 claim",
-     "evidence": [
-      "EmuquUITests/AccessibilityUITests.swift:62",
-      "EmuquUITests/AccessibilityUITests.swift:43"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -137,11 +90,10 @@
      "effect": "assert non-empty label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -158,13 +110,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "1f05f416ecad4647",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "2da048db91bd45a6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "3afc95d3936f4933",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -180,11 +131,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8"
    }
   },
   {
@@ -196,7 +146,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -208,7 +157,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -247,14 +195,13 @@
      "effect": "?: '(none)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/AccessibilityUITests.swift::var AccessibilityAuditUITests.auditTypes": "032ca2e3b5f09aea",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/AccessibilityUITests.swift::var AccessibilityAuditUITests.auditTypes": "d35752b53af878e2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "20fdac3cec598901",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -268,9 +215,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "fbc293a509f20c48"
    }
   },
   {
@@ -284,9 +230,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "fbc293a509f20c48"
    }
   },
   {
@@ -300,9 +245,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "fbc293a509f20c48"
    }
   },
   {
@@ -316,20 +260,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Does not accept the Flo first-run AI disclosure sheet before auditing, so on a fresh install (setUp passes -UITests-FreshInstall) the audit covers whatever the disclosure sheet presents rather than the chat surface",
-     "evidence": [
-      "EmuquUITests/AccessibilityUITests.swift:268",
-      "EmuquUITests/EmuquUITests.swift:913"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "fbc293a509f20c48"
    }
   },
   {
@@ -343,9 +275,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "fbc293a509f20c48"
    }
   }
  ],

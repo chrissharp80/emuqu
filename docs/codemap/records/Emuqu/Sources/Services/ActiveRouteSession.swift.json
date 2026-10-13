@@ -14,7 +14,6 @@
   "static departureMeters = 50"
  ],
  "toplevel": "No persistence: the session is lost on app relaunch.",
- "flags": [],
  "units": [
   {
    "key": "init ActiveRouteSession()",
@@ -25,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -41,10 +39,9 @@
     "mem:ActiveRouteSession._steps"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "bea77fcf99ca4cc5",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "db4b98612d9f1318",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7"
    }
   },
   {
@@ -60,9 +57,8 @@
     "mem:ActiveRouteSession._steps"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "bea77fcf99ca4cc5"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageInternal(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "db4b98612d9f1318"
    }
   },
   {
@@ -77,7 +73,6 @@
     "mem:ActiveRouteSession._currentStepIndex"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -92,7 +87,6 @@
     "mem:ActiveRouteSession._currentStepIndex"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -117,7 +111,6 @@
      "effect": "use it; ?? Date() fallback (unreachable: engageInternal always sets it)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -145,12 +138,11 @@
      "effect": "compute; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "de370ac254078587",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distancesAhead(of:)": "98bfcdfe4e7c83e4",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "d5c6bb73f4d5d6d4",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "3343f89777a0135f"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "b380341ce3776347",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distancesAhead(of:)": "c75c5670f5b9a8b3",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "0d408a76713550e0",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "08b7fd6f17002eee"
    }
   },
   {
@@ -187,13 +179,12 @@
      "effect": "return (toEnd, _hasLeftEnd ? toEnd : step length)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4ff6d823f02a58db",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "28a9cdf6b4d151b4",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)": "4c8caa66b0facd31",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "f05fa74d87104763",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4345d392c1bb1d93",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "de153ecebf02bfca",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)": "17d61db6e4015cfa",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7"
    }
   },
   {
@@ -214,10 +205,9 @@
      "effect": "compare distance <= 25 m; otherwise false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "28a9cdf6b4d151b4"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "f05fa74d87104763",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "de153ecebf02bfca"
    }
   },
   {
@@ -240,10 +230,9 @@
      "effect": "evaluate distance; otherwise return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "28a9cdf6b4d151b4"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "f05fa74d87104763",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "de153ecebf02bfca"
    }
   },
   {
@@ -263,9 +252,8 @@
      "effect": "destination coordinate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)": "4c8caa66b0facd31"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)": "17d61db6e4015cfa"
    }
   },
   {
@@ -285,10 +273,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4931968170b1069b",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4cac35f6f67d5b73",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7"
    }
   },
   {
@@ -330,10 +317,9 @@
      "effect": "advance; otherwise stay (never moves back)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4ff6d823f02a58db",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4345d392c1bb1d93",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7"
    }
   },
   {
@@ -345,7 +331,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -378,9 +363,8 @@
      "effect": "update best"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4931968170b1069b"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4cac35f6f67d5b73"
    }
   }
  ],

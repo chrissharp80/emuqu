@@ -9,19 +9,6 @@
   "ud:engineRoom.recoveryDetail (one key for every session, passed to EngineRoomDisclosure, which stores the last-expanded timestamp in UserDefaults.standard)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "The segmented picker always starts on Best Recovery (RecoveryScoreDetailView.swift:62) whatever method produced the shown result, so for a peak/manual/last-5-min result the control highlights Best Recovery while the Window method row names the stored method; tapping the already-selected Best Recovery does not fire onChange, so re-running it needs a detour through Pick Window.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:62",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:40",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:198"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var RecoveryScoreDetailView.AnalysisWindowSegment.id",
@@ -32,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -60,9 +46,8 @@
      "effect": "'Last 5 min'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -78,12 +63,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.reAnalyzingSection": "5bc3d8a61f7e9bf7",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowSegmentPicker": "4d40a889c6e82cb2"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "38143656ec76f4fb",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.reAnalyzingSection": "7cc38fd4ac78f4b9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowSegmentPicker": "e8e51f87dd027b03"
    }
   },
   {
@@ -119,13 +103,12 @@
      "effect": "restoreSegment(old): no analysis, the control returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.handleWindowSegmentChange(_:)": "dbf6e1759c4a6382",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.restoreSegment(_:)": "a3a6ad7e6efdeb4d",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName": "3fdbae6f8a2d4d48",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs": "4e9cd9bf3710b8a7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.handleWindowSegmentChange(_:)": "96d6551967fb0e17",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.restoreSegment(_:)": "5435bae7b02d8f3c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName": "7f7d28a3f4398737",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs": "b01ede7e9a9eaa24"
    }
   },
   {
@@ -140,7 +123,6 @@
     "mem:RecoveryScoreDetailView.selectedWindowSegment"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -160,11 +142,10 @@
      "effect": "true: indicator; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -199,11 +180,10 @@
      "effect": "previewWindowMs=nil, windowChangedHere=true, reanalyzeLastFiveMinutes()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()": "54187b5fb4c2eea2",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeLastFiveMinutes()": "8b4df0b87d1031a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs": "4e9cd9bf3710b8a7"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()": "a82dd47cceb3f402",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeLastFiveMinutes()": "984ce73caced1444",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingMidpointMs": "b01ede7e9a9eaa24"
    }
   },
   {
@@ -225,7 +205,6 @@
      "effect": "returns, nothing happens; otherwise Task runs"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -247,9 +226,8 @@
      "effect": "returns silently; otherwise Task runs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "36537747d03af114"
    }
   },
   {
@@ -263,9 +241,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "8f81b97fc77e806a"
    }
   },
   {
@@ -279,9 +256,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "8f81b97fc77e806a"
    }
   },
   {
@@ -302,10 +278,9 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs": "77dfbabbc87e6644"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "36537747d03af114",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs": "30e4f7dfc5b8c924"
    }
   },
   {
@@ -323,7 +298,6 @@
      "effect": "nil; otherwise (start,end)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -344,10 +318,9 @@
      "effect": "nil (Window time row hidden)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowDateRange": "b3491324cc43dfb3"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "cfa5f10145ca4bf2",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowDateRange": "2bf2e66619a3985f"
    }
   },
   {
@@ -364,11 +337,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::init EngineRoomDisclosure(title:memoryKey:content:)": "d70435f8b743b847",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomDetails": "cdcdb9e1552e123f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::init EngineRoomDisclosure(title:memoryKey:content:)": "98af84d0fbd8a817",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomDetails": "32e85cbd9b5eca95"
    }
   },
   {
@@ -387,16 +359,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.captureRows": "88328e7fd9532d70",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataSourceRows": "9a24baa08a7ca76a",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.hrRangeRow": "bfad075f4797e0e0",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtRow": "a122138df41eb3ec",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirRows": "bc783b06b7eb1639",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowRows": "1647b5a5f384b655",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataSourceRows": "fda0e6f652e31d36",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.hrRangeRow": "ef0db738044068aa",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtRow": "029b7e73af97db67",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirRows": "9c93ea07d48f507c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowRows": "7101bf24b42acf2e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -425,16 +396,15 @@
      "effect": "Beats recorded row shown; otherwise omitted (lightweight session before the reload)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "362fe52b148f6f4b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.formattedDate(_:)": "6832509485cc8489",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataLossRow": "6b95e7917572c246",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "8058c6446f78e8e7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.formattedDate(_:)": "695100fa57446fe0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataLossRow": "8c77b19999f33a19",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "8f81b97fc77e806a"
    }
   },
   {
@@ -456,13 +426,12 @@
      "effect": "row shown; otherwise hidden"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.estimatedDataLossPercent": "2838c7c9dfe5791e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.estimatedDataLossPercent": "0c3b56edd28b22ee",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "8f81b97fc77e806a"
    }
   },
   {
@@ -489,11 +458,10 @@
      "effect": "true: segment name; false: stored.shortName"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName": "3fdbae6f8a2d4d48",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.storedWindowMethod(_:)": "38b4aafe992a3d04"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "0f8621057464208b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.AnalysisWindowSegment.shortName": "7f7d28a3f4398737",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.storedWindowMethod(_:)": "d7a9af3ae677884f"
    }
   },
   {
@@ -515,12 +483,11 @@
      "effect": "Window time row shown; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowRangeText": "a5c048900d55cbc6",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowMethodText": "017accbeb5463c34"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowRangeText": "b87ad3fd8a80ddd6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.windowMethodText": "a80e02dcde5f23d5"
    }
   },
   {
@@ -541,11 +508,10 @@
      "effect": "row shown; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtText": "2dea6c9cc12bf5c2"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtText": "a2a86071786561b3"
    }
   },
   {
@@ -565,10 +531,9 @@
      "effect": "row shown; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad"
    }
   },
   {
@@ -588,10 +553,9 @@
      "effect": "row shown; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad"
    }
   },
   {
@@ -617,12 +581,11 @@
      "effect": "Device beats row shown; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.dataSourceLabel(_:)": "b11d9869c055f3ca"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "0d8624f6b18691ad",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.dataSourceLabel(_:)": "f65a14194a7efe3b"
    }
   },
   {
@@ -634,7 +597,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -654,9 +616,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d"
    }
   },
   {
@@ -670,9 +631,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d"
    }
   },
   {
@@ -684,7 +644,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -698,10 +657,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBannerBody": "827210e159036bc2",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBannerBody": "a0205e211c6e5b0a",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -716,12 +674,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButton": "cd5abb889a9b08d2",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButton": "1bcc067d9e0c61a3",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -741,9 +698,8 @@
      "effect": "button shown; else hidden"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButtonBody": "2a19af01c99cb616"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.retryAnalysisButtonBody": "eb1edbc2c2c06298"
    }
   },
   {
@@ -766,12 +722,11 @@
      "effect": "label Re-analyzing…, disabled"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()": "54187b5fb4c2eea2",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.reanalyzeBestRecovery()": "a82dd47cceb3f402",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -785,9 +740,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "aa4f435a9c7efe49"
    }
   },
   {
@@ -801,12 +755,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -821,10 +774,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()": "ae482180fa05dd0a",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()": "9c8f237f854bfb53",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   },
   {
@@ -839,11 +791,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.shareRecapCard()": "ccf5b234fda5ee26",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.shareRecapCard()": "0b8e78fd2be33515",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   },
   {
@@ -878,17 +829,16 @@
      "effect": "returns silently; otherwise share sheet presented"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
-    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.renderImage()": "0d7efbc90488a034",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "f014e5701c2cc0e6",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "4a8f255fd29dc101",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "28d9ca8b9705db3a",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapActivityItem(image:score:date:)": "7b22442c036abcde",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "6ff0e54075a6ddbf"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.renderImage()": "24c1c12c6d3b41a4",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "3461823e476c9f4b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "05198be37ec08008",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "bffb661edce3a2be",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "70d8afccf42086db",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapActivityItem(image:score:date:)": "6da23b0f525374f6",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "a3d510a9337700d2"
    }
   }
  ],

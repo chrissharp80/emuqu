@@ -14,21 +14,6 @@
   "seededIds: ids archived by the test, deleted in tearDown"
  ],
  "toplevel": "Lazy collector/migrations (first use in a test): RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: SessionArchive(directory: tmp/CollectorMigrationParityTests-<uuid>)) and SessionDataMigrations built from that collector's archive, HealthKit manager, settings, baseline tracker and reanalysis service.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says each test seeds a pre-state, runs the migration, asserts the post-state and re-runs it as a no-op; only the workout-sleep test does that. The insufficient-data and TRIMP tests either pre-set the flag or run on an empty archive, so neither migration's actual effect (re-flagging/rescoring, TRIMP repair) is ever asserted.",
-   "evidence": [
-    "EmuquTests/CollectorMigrationParityTests.swift:25",
-    "EmuquTests/CollectorMigrationParityTests.swift:148",
-    "EmuquTests/CollectorMigrationParityTests.swift:163",
-    "EmuquTests/CollectorMigrationParityTests.swift:185",
-    "EmuquTests/CollectorMigrationParityTests.swift:212"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CollectorMigrationParityTests.setUp()",
@@ -49,9 +34,8 @@
     "ud:didRunTrimpRepairMigration_v1"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "e771f865b52922cb"
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "3fc8ed60bc3c130e"
    }
   },
   {
@@ -77,10 +61,9 @@
      "effect": "attempts archive.delete; failures swallowed by try?"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.restoreMigrationFlags()": "2ecfccd5c58f0784"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.restoreMigrationFlags()": "cc2e90878fcab144"
    }
   },
   {
@@ -111,21 +94,20 @@
     "notif:FlowRecoveryArchiveChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
-    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f",
-    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)": "c5ea75adc3d76ecc",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "1f4363262c7dd5ed",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "75377b33a56513c7",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "21e351483eeaaa15",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "7053fab5ec54dc3d",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)": "5b4adea4e9ca0f3b",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "a2598d8081e32d26",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "5718a77437b67bb4",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBenignSleepSnapshot()": "1d0d3250cacee367",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "0925fdb6851dac98"
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "f47a2222df7bf59d",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBenignSleepSnapshot()": "1279f075955528aa",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "c3f3bedb42072c1b"
    }
   },
   {
@@ -142,22 +124,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The collector's fresh BaselineTracker has no recovery baseline, so runInsufficientDataMigrationIfNeeded returns at its 'no baseline' guard before reading the archive; the assertion that an empty archive stays empty cannot fail and the comment's 'must mark itself complete' is not checked.",
-     "evidence": [
-      "EmuquTests/CollectorMigrationParityTests.swift:147",
-      "EmuquTests/CollectorMigrationParityTests.swift:156",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:22"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
   {
@@ -178,24 +147,11 @@
     "ud:didRunInsufficientDataMigration_v1"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The seeded session has no analysisResult and would not be a candidate even without the flag (and the migration also exits for lack of a baseline), so the test passes whether or not the flag check works.",
-     "evidence": [
-      "EmuquTests/CollectorMigrationParityTests.swift:168",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:49",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:26"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "5718a77437b67bb4",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "0925fdb6851dac98"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "f47a2222df7bf59d",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "c3f3bedb42072c1b"
    }
   },
   {
@@ -216,13 +172,12 @@
     "ud:didRunTrimpRepairMigration_v1"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "8e425828c6b23d78",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "5718a77437b67bb4",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "0925fdb6851dac98"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "f47a2222df7bf59d",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "c3f3bedb42072c1b"
    }
   },
   {
@@ -244,23 +199,11 @@
     "ud:didRunTrimpRepairMigration_v1"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named '...MarksFlag' but never asserts the flag; only that an empty archive stays empty, which the migration cannot violate (it never archives new sessions).",
-     "evidence": [
-      "EmuquTests/CollectorMigrationParityTests.swift:212",
-      "EmuquTests/CollectorMigrationParityTests.swift:223"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "543478719aaceb28",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cac4e6c121467606",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "664c375933d4a520",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cca8b6c42d8d9321",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
   {
@@ -291,7 +234,6 @@
      "effect": "recorded in savedMigrationFlags"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -318,7 +260,6 @@
      "effect": "sets it; otherwise removes the key"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -335,9 +276,8 @@
     "notif:FlowRecoveryArchiveChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f"
    }
   },
   {
@@ -357,9 +297,8 @@
      "effect": "falls back to now (zero-length span); never nil for adding hours"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
    }
   },
   {
@@ -371,7 +310,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

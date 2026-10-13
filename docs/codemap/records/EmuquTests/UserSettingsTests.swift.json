@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func UserSettingsTests.testDefaultSettings()",
@@ -21,11 +20,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
-    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "272159fdd69b8c7f",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "c71d14a8186b6d8f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -61,43 +59,31 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Round trip of fitnessLevel/temperatureUnit/hasCompletedOnboarding is a strict subset of UserSettingsDecodeContractTests.testPopulatedSettingsSurviveARoundTrip, which sets the same three fields (plus seven more) and asserts every Mirror field.",
-     "evidence": [
-      "EmuquTests/UserSettingsTests.swift:17",
-      "EmuquTests/UserSettingsDecodeContractTests.swift:32"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "b623285b51ef4f7a",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "feb80f72ae1285e9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "4690a326221ecdc9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "2ffbfdc43a0ca67b",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "78ab528deaa0261e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "04aff72ec0c0c502",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "eb7f4e94a4f0733e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "bd94abf695f537ca",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "f9c80d634f7bc9a8",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "b2c0c38b52bd25bd",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "ed0b137ca5428edc",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "c4ffae6382fbde1b",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "8bb780525b23bd44",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "02c6586f46d92cec",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "83c64cdc5617eb9b",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "0bf128a4064ae7e9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "3a60be114fde7c27",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "dbfbaf35b6b02d5a",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "e0cc8947b041fa32",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -125,35 +111,23 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Decoding '{}' and checking three defaults is subsumed by UserSettingsDecodeContractTests.testEmptyPayloadDecodesToTheDesignatedDefaults, which compares every field of the '{}' decode against UserSettings().",
-     "evidence": [
-      "EmuquTests/UserSettingsTests.swift:36",
-      "EmuquTests/UserSettingsDecodeContractTests.swift:18"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "b623285b51ef4f7a",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "feb80f72ae1285e9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "4690a326221ecdc9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "2ffbfdc43a0ca67b",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "78ab528deaa0261e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "04aff72ec0c0c502",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "e0cc8947b041fa32",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
-    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "272159fdd69b8c7f",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "c71d14a8186b6d8f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -189,30 +163,29 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "b623285b51ef4f7a",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "feb80f72ae1285e9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "4690a326221ecdc9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "2ffbfdc43a0ca67b",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "78ab528deaa0261e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "04aff72ec0c0c502",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "eb7f4e94a4f0733e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "bd94abf695f537ca",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "f9c80d634f7bc9a8",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "b2c0c38b52bd25bd",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "ed0b137ca5428edc",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "c4ffae6382fbde1b",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "8bb780525b23bd44",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "02c6586f46d92cec",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "83c64cdc5617eb9b",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "0bf128a4064ae7e9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "3a60be114fde7c27",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "dbfbaf35b6b02d5a",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "e0cc8947b041fa32",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
    }
   },
@@ -227,9 +200,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "cf804bfa462304ab"
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "824ab0100c810122"
    }
   },
   {
@@ -243,9 +215,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.absoluteFromDeviation(_:)": "8582e137e144a95d"
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.absoluteFromDeviation(_:)": "8c1ee0e716d46328"
    }
   },
   {
@@ -259,9 +230,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol": "5d22b75e79a08e75"
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol": "65d16b94d3540542"
    }
   },
   {
@@ -273,7 +243,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -288,10 +257,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "90acb551af3d2c4b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "d6adcfd0bd9cc72d"
    }
   },
   {
@@ -310,14 +278,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isInOvernightWindow(_:)": "406094ec833a9c2a",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "fe530823f8107974",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isInOvernightWindow(_:)": "6fdbff5105841926",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "90acb551af3d2c4b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "d6adcfd0bd9cc72d"
    }
   },
   {
@@ -337,9 +304,8 @@
      "effect": "assert its localizedName is non-empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.localizedName": "ff99af675d5cf7aa"
+    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.localizedName": "f95ca5da15e0fb05"
    }
   },
   {
@@ -355,11 +321,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "8f523714536d1d3f",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "d1a3c8030e11392e"
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "f1bf6701c2d8433d"
    }
   },
   {
@@ -375,11 +340,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "8f523714536d1d3f",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "d1a3c8030e11392e"
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "f1bf6701c2d8433d"
    }
   },
   {
@@ -393,9 +357,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
    }
   }
  ],

@@ -10,19 +10,6 @@
   "mem:RRDataImporter.minimumBeatsPerSession (private static 60)"
  ],
  "toplevel": "Counterpart of the exporter at ExportAndArchiveViews.swift (streamRRCSV), which writes session_date with a POSIX/gregorian 'yyyy-MM-dd_HHmm' formatter in the device time zone; the importer also accepts an ISO 8601 session_date with seconds and offset.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Sessions are keyed by session_date at minute precision in the device's current time zone (both exporter and importer formatters set no timeZone): two recordings that start in the same minute are merged into one series, imported start times lose their seconds, and importing on a device in a different time zone shifts every session.",
-   "evidence": [
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:180",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:123",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift:259"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
@@ -47,10 +34,9 @@
      "effect": "return result; otherwise throw noRRData"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a"
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "628e273cb99e9cf1",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "7f4e8c3373ce8e4d"
    }
   },
   {
@@ -69,14 +55,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "5eef875a2052b92a",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "68b905ebbe0c4fa7",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba"
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "79a0645de15cf7b3",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "e59d31d0222db1e3",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "428c0ddb7cc33c38",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "c1602e2d61ceaa52",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "63d2bbac66f2184f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "e2de7686cbd1eea3"
    }
   },
   {
@@ -96,9 +81,8 @@
      "effect": "log one line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -116,9 +100,8 @@
      "effect": "return columns; otherwise throw invalidFormat"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -146,9 +129,8 @@
      "effect": "record type; otherwise skip row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -168,9 +150,8 @@
      "effect": "true; otherwise log 'Skipping ... workout session' and false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -201,11 +182,10 @@
      "effect": "continue; otherwise row skipped (not a beat at all, or not whole ms — the exporter writes whole ms)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "a8da2c0c85eb9d03",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "e5b158148550f69e",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "1e322e6dec8f4335"
    }
   },
   {
@@ -231,10 +211,9 @@
      "effect": "return it; otherwise throw invalidTimestamps(session prefix 40)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.synthesisedTimestamp(after:)": "5502b37523292e31"
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "2fbc2ae2f27f1179",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.synthesisedTimestamp(after:)": "659c25d01ed65785"
    }
   },
   {
@@ -257,7 +236,6 @@
      "effect": "return it; otherwise throw invalidTimestamps"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -275,7 +253,6 @@
      "effect": "sum; otherwise 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -287,7 +264,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -305,7 +281,6 @@
      "effect": "that date; otherwise the ISO 8601 parse (may be nil)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -331,10 +306,9 @@
      "effect": "continue; otherwise log and nil (not dated now)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionStart(_:formatter:)": "636b21c5e350b50c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionStart(_:formatter:)": "bd273bbc231ace5e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -361,14 +335,13 @@
      "effect": "?? 0 — endDate = start"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "82eed2cd6e6be7d6"
    }
   }
  ],

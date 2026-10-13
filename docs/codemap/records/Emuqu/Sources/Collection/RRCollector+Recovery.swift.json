@@ -9,7 +9,6 @@
   "mem:RRCollector._recoveryService (cache written here, declared in RRCollector.swift:136)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "var SessionRecoveryCoordinator.recoveryService",
@@ -32,9 +31,8 @@
      "effect": "returns the cached instance; otherwise constructs, caches and returns a new one"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)": "aed0fbfec9a6b40a"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)": "cf74d2dace4470e3"
    }
   },
   {
@@ -49,10 +47,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "4f7ffc19d99f72c5",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "169727b4005fb922",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1"
    }
   },
   {
@@ -79,25 +76,13 @@
      "effect": "returns false; otherwise returns recorder.phase is .recording or .finalizing"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Reaches the workout recorder through the global AppDependencies.current.app.recorderBox instead of an injected dependency, so the recovery gate depends on whether FitnessTabView has bound the recorder yet.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:39",
-      "Emuqu/Sources/Views/FitnessTabView.swift:171"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -115,11 +100,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "0f8299a4d2e9da82",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "392cb6c9eebc8652",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610"
    }
   },
   {
@@ -151,17 +135,16 @@
      "effect": "throws the error set during this recovery, or CollectorError.insufficientData when none was set"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "11ced4f212a2ca65",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleDownloadedSession(_:placement:)": "d6b1135c2a1d7342",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.checkRecoverable()": "83d043f3768d0536",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.downloadForRecovery()": "aec0f16b03ab5bf2",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoveryPlacement(for:)": "ffd2628f8916364c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "9f284ba000ca8236",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "8f47b0bb11661dc9",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleDownloadedSession(_:placement:)": "ee6e1cea850c7598",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.checkRecoverable()": "7741b725970cc0f6",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.downloadForRecovery()": "c11b6380b631c444",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoveryPlacement(for:)": "bef2490c5624692e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -200,14 +183,13 @@
      "effect": "throws .strapRecordingAlreadySaved; else returns normally"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoveryRefused(_:)": "24ca8d3433493363",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "0f8299a4d2e9da82",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "861c00516a06461f",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16"
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoveryRefused(_:)": "f2088de676c06f4b",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "392cb6c9eebc8652",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "4fc7b99ece2053c6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610"
    }
   },
   {
@@ -221,10 +203,9 @@
     "mem:SessionState.lastError"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -253,11 +234,10 @@
      "effect": "error logged, stored in lastError and rethrown"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "b768a31f1c827607",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -291,25 +271,13 @@
      "effect": "clock start = existing.startDate; else min(existing.startDate, start)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "A recording no session owns (e.g. started on the strap during the day, or a crashed nap/workout backup without persisted state) is always filed as a new .overnight session, so daytime data can land as a night.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:117",
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:46"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "7158312b3d3fc195",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.recordingStart(_:)": "3cd2c3af57a457d9",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.archivedNightToMergeInto(_:start:)": "d26fd7cfed501618",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.persistedSessionOwning(_:)": "0fc653b37cb3faba"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "8ad396ecbfecacf4",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.recordingStart(_:)": "70a9261feb5fc790",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.archivedNightToMergeInto(_:start:)": "ae1eafd9f7313d2f",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.persistedSessionOwning(_:)": "91fd6681a9a51f7f"
    }
   },
   {
@@ -347,16 +315,15 @@
      "effect": "uses the archived session's provenance, else the connected strap's"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "7158312b3d3fc195",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "560f6c23efe28ae7",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "8ad396ecbfecacf4",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "b46f35d8396e05f2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -400,17 +367,16 @@
      "effect": "log text fallbacks only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.relation(of:to:mergeGap:)": "dd9ce2e90beb21a0",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "5a5f691630e9fec2",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "d1c97d2e8b4a93e2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "651b546e1fa68836",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "ec9bf42598061022",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.relation(of:to:mergeGap:)": "34f7374228758f4e",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "43e95b40f5202b4d",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "3728bcbc8451feee",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

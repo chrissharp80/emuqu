@@ -10,31 +10,6 @@
   "file:$TMPDIR/xcodebuild-tests.XXXXXX"
  ],
  "toplevel": "set -euo pipefail; sources preflight (no cd). TEST_SCOPE: unit -> -only-testing:EmuquTests and exports SKIP_OVERALL_COVERAGE=1/SKIP_LOGIC_COVERAGE=1 (coverage reported, not gated); full -> all targets; other -> exit 64. DESTINATION from select_simulator_destination.sh if unset (the else branch assigns DESTINATION to itself, a no-op). rm -rf result bundle. TYPE_CHECK_FLAGS add -warn-long-expression-type-checking=4000 / -warn-long-function-bodies=6000 via OTHER_SWIFT_FLAGS. Loop (max 2 attempts): run_tests; status 0 -> break; else counts \"' failed\" lines and infrastructure markers ('Application failed preflight checks', 'Failed to get matching snapshots', 'process main thread busy', 'Unknown application display identifier'); if attempt<2 and any marker -> `xcrun simctl shutdown all`, sleep 10, rm bundle, retry the WHOLE run regardless of how many tests failed; else exit with the status. After success runs check_coverage.sh <bundle> [MIN_COVERAGE]. Comments at 79-93 say MAX_SIM_CLONES 'stops cloning', while 95-102 say that flag has nothing to do with clones and PARALLEL_TESTING=NO is the real lever; both flags are still passed.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "A marker anywhere in the log retries the entire suite even when real tests failed; a non-deterministic (flaky) product failure that coincides with a marker can pass on the second attempt and be reported green — the comment's 'cannot mask a real regression' holds only for deterministic failures.",
-   "evidence": [
-    "scripts/run_tests_with_coverage.sh:278",
-    "scripts/run_tests_with_coverage.sh:290",
-    "scripts/run_tests_with_coverage.sh:298"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says TEST_SCOPE=unit 'gates on the LOGIC floor alone', but the unit branch exports SKIP_LOGIC_COVERAGE=1 as well as SKIP_OVERALL_COVERAGE=1, so a unit run gates no coverage floor at all (ci.yml:434-436 states the latter).",
-   "evidence": [
-    "scripts/run_tests_with_coverage.sh:11",
-    "scripts/run_tests_with_coverage.sh:41",
-    "scripts/run_tests_with_coverage.sh:42",
-    ".github/workflows/ci.yml:434"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "fn run_tests",
@@ -50,11 +25,10 @@
     "file:$TEST_LOG"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/run_tests_with_coverage.sh::fn run_tests": "8c6a5ab43a9ab7d3"
+  "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2"
  }
 }

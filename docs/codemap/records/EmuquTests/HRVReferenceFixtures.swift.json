@@ -9,19 +9,6 @@
   "mem:HRVReferenceFixtures.json (static let String, ~19 KB JSON)"
  ],
  "toplevel": "One static let `json` multi-line string literal. The literal's line breaks fall inside JSON strings and numbers (e.g. a SHA split across lines, '68\\n8'), so the text is not valid JSON as stored; it decodes only because the single consumer removes every '\\n' first (HRVReferenceValidationTests.swift:64). Header comment cites ODC-By licence attribution and that the file must not be hand-edited.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Stored text is invalid JSON (wrap points split SHA strings and numbers); any consumer that does not first strip '\\n' exactly as HRVReferenceValidationTests does will fail to decode or, worse, a split number would join wrongly if wrapping ever inserted a space.",
-   "evidence": [
-    "EmuquTests/HRVReferenceFixtures.swift:24",
-    "EmuquTests/HRVReferenceFixtures.swift:25",
-    "EmuquTests/HRVReferenceValidationTests.swift:64"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

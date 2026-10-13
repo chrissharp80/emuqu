@@ -22,7 +22,6 @@
   "mem:WorkoutHistoryBaselines.empty (const, sport .run)"
  ],
  "toplevel": "Only static constants listed in state; Equatable/Sendable conformances synthesized. No global code.",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
@@ -44,7 +43,6 @@
      "effect": "return nil; otherwise compute delta"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,7 +75,6 @@
      "effect": "return nil; else return percent change"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -102,23 +99,8 @@
      "effect": "return nil; else return percent drop"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Live aerobic decoupling is a separate implementation from the post-workout WorkoutAnalyzer.computeDecoupling: live averages per-sample speed (1000/pace) over sample-count halves, the finished value uses moving distance/moving time halves from the GPS track and RR-derived HR. The live coach rule (aerobicDecouplingMaterial) and the post-workout report can state different decoupling for the same run.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:66",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:74",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:576",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:600",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:671"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "467a9c51ab2218b6"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "a6f29ff592656ce9"
    }
   },
   {
@@ -151,7 +133,6 @@
      "effect": "return nil; else ratio"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -174,7 +155,6 @@
      "effect": "return nil; else difference in bpm"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -202,9 +182,8 @@
      "effect": "return nil; else difference"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde"
    }
   },
   {
@@ -232,7 +211,6 @@
      "effect": "return raw pace (cost polynomial is positive across +/-45 %, so not reached); else pace/multiplier"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -247,10 +225,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "8fc70e20a3316582"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "0e13d135c0aba07e"
    }
   },
   {
@@ -290,9 +267,8 @@
      "effect": "continue; else append split (grade over d - altDist) and reset start, altDist to this sample"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "774ebb117d88f0ac"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "8da4adf2edd59f8c"
    }
   },
   {
@@ -313,10 +289,9 @@
      "effect": "return nil; else weighted mean"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "8fc70e20a3316582"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "0e13d135c0aba07e"
    }
   },
   {
@@ -334,7 +309,6 @@
      "effect": "return nil; else (end-start)/run*100"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -372,7 +346,6 @@
      "effect": "return 0; else clamp(remaining/rate,1,180)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -407,10 +380,9 @@
      "effect": "dominantZone = 1-based index of max bin; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "2a310b0b7cc59dcb",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -453,7 +425,6 @@
      "effect": "4 (Z5)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -467,9 +438,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "4ddb3ee1b7a68f56"
    }
   },
   {
@@ -500,10 +470,9 @@
      "effect": "use the entire pool; else only comparable ones"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "6a6354d0b7249a0c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "3f2b99adfbed514d"
    }
   },
   {
@@ -515,7 +484,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -538,7 +506,6 @@
      "effect": "return all-history pool; else recent pool"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -556,7 +523,6 @@
      "effect": "return nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -576,21 +542,8 @@
      "effect": "return nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "TrainingPaceZones.from(racePredictions:) has no production caller; only WorkoutLiveTrendsTests calls it. Production builds pace zones with from5KPace directly (AppFactResolver+TrainingProjections, AppFactResolver+WorkoutLiveDerived).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:436",
-      "EmuquTests/WorkoutLiveTrendsTests.swift:596",
-      "EmuquTests/WorkoutLiveTrendsTests.swift:601"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "cd6066a13d38344e"
    }
   },
   {
@@ -615,9 +568,8 @@
      "effect": "return nil; else days*24"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "8870bda47c69ce73"
    }
   },
   {
@@ -629,7 +581,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -649,10 +600,9 @@
      "effect": "one Day per step"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "0484425576594949",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -672,9 +622,8 @@
      "effect": "return 0 (already fresh); else first projected day with tsb>=0 or nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "cb80abd36b9745a7"
    }
   },
   {
@@ -694,10 +643,9 @@
      "effect": "return 0; else first converging projected day or nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "cb80abd36b9745a7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -718,11 +666,10 @@
      "effect": "return baselines with nil averages and sampleCount 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "cac5a8c99a6940ec",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "18240302ad36fd28"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "9e38aed1b6346fac",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "89b402bdee65ab11"
    }
   },
   {
@@ -750,7 +697,6 @@
      "effect": "return pace; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -770,9 +716,8 @@
      "effect": "session without samples contributes nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)": "73942b93ffb40d6d"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)": "3dbaf4d0f5beda35"
    }
   },
   {
@@ -790,7 +735,6 @@
      "effect": "return nil"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -16,18 +16,6 @@
   "static archiveRetentionLimit = 50 (BreadcrumbStore.swift:159; workout tracks evicted first by capped)"
  ],
  "toplevel": "BreadcrumbFix/BreadcrumbTrail use synthesized Codable/Equatable; files are JSON with iso8601 dates and sortedKeys. `static let shared` is created lazily on first access via the private init. Header comments (lines 127-140) describe active vs archive vs auto-imported workout trails (WorkoutRecorder+Context.swift:475 calls archive).",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests references BreadcrumbStore, BreadcrumbTrail or BreadcrumbFix: persistence, migration, the corrupt-archive refusal and the 50-trail cap are unverified.",
-   "evidence": [
-    "Emuqu/Sources/Services/BreadcrumbStore.swift:194",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift:306"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init BreadcrumbFix(from:)",
@@ -54,9 +42,8 @@
      "effect": "true: speedMS = speed; false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf"
    }
   },
   {
@@ -68,7 +55,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -103,9 +89,8 @@
      "effect": "nil → -1 (invalid speed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "5e3b153088f74923"
    }
   },
   {
@@ -125,9 +110,8 @@
      "effect": "false: return nil; true: last.asCLLocation.distance(from: origin)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b"
    }
   },
   {
@@ -152,9 +136,8 @@
      "effect": "accumulate distance from fixes[i-1] to fixes[i]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b"
    }
   },
   {
@@ -173,11 +156,10 @@
     "file:Breadcrumbs/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.migrateLegacyTrailIfNeeded(in:to:)": "51bfffed73ba7167",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.storageDirectory(_:)": "42db7698d7185797",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.migrateLegacyTrailIfNeeded(in:to:)": "d8a0fcb4a985a018",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.storageDirectory(_:)": "6e3a301b6366be7b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -202,9 +184,8 @@
      "effect": "true: Documents/Breadcrumbs; false: temporaryDirectory/Breadcrumbs (purgeable by the OS, so a trail would not survive)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -231,9 +212,8 @@
      "effect": "true: move legacy to active; false: nothing (legacy file left in place if active.json already exists)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -248,19 +228,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "init(fileURL:) has no caller anywhere in the repo, including EmuquTests (grep \"BreadcrumbStore(fileURL\" finds nothing); the \"tests written against v1\" it was kept for do not exist.",
-     "evidence": [
-      "Emuqu/Sources/Services/BreadcrumbStore.swift:191-200"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -289,10 +258,9 @@
      "effect": "log error, nil (callers read it as no trail)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)": "39eac8019ef363ed",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)": "e032f00b9fc592f5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -322,9 +290,8 @@
      "effect": "log error, nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -349,10 +316,9 @@
      "effect": "false: return without writing (logged); true: ensure dir and write"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "04501f84198fb56c",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "141df6043cbac134",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -386,24 +352,11 @@
      "effect": "log, keep active.json; else remove it"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When the archive write fails the active trail stays on disk, but BreadcrumbRecorder.endAndArchive has already dropped it from memory, so it reappears only at the next launch (and, if its last fix is under 12 h old, the recorder resumes recording it).",
-     "evidence": [
-      "Emuqu/Sources/Services/BreadcrumbStore.swift:266",
-      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:174",
-      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:103"
-     ],
-     "found": "fix batch b15"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "b24d2555c4a96fd2",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "ec7d3168e9a8ca29",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "601896d4f2afbfef",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "f80525a8222cb7ff",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -420,9 +373,8 @@
     "file:Breadcrumbs/active.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -438,7 +390,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -454,7 +405,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -477,9 +427,8 @@
      "effect": "[] (the failure was logged; AI facts report no trails)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "68ecb428b7a09baa"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "b1c01ebb84c085c9"
    }
   },
   {
@@ -514,10 +463,9 @@
      "effect": "logs error and returns nil so caller refuses to overwrite"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)": "39eac8019ef363ed",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)": "e032f00b9fc592f5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -535,20 +483,8 @@
     "file:Breadcrumbs/archive.json"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Every finished outdoor workout auto-archives its track (WorkoutRecorder+Context.swift:475) into the same 50-slot list as manually engaged Get Me Back trails, so an active user loses their manual trails to workout tracks after 50 workouts.",
-     "evidence": [
-      "Emuqu/Sources/Services/BreadcrumbStore.swift:314-315",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:475"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "b24d2555c4a96fd2"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "601896d4f2afbfef"
    }
   },
   {
@@ -587,12 +523,11 @@
      "effect": "false (logged by attempt); else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.capped(_:)": "e1d43dc6e017ba7e",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "68ecb428b7a09baa",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "04501f84198fb56c",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.capped(_:)": "1f8294fd04316957",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "b1c01ebb84c085c9",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "141df6043cbac134",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -610,7 +545,6 @@
      "effect": "remove one (oldest workout track ?? oldest) and repeat"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -633,9 +567,8 @@
      "effect": "true: return; false: createDirectory (error logged)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -652,9 +585,8 @@
     "file:Breadcrumbs/archive.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }
  ],

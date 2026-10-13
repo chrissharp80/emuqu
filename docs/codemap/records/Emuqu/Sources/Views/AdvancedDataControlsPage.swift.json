@@ -8,18 +8,6 @@
  ],
  "state": [],
  "toplevel": "Two #Preview blocks (91, 272). PerformanceSettingsPage reads @Environment(\\.dependencies). Toggles write settings via Bindable(settingsManager).settings.<flag>; persistence and UserDefaults mirroring happen in SettingsManager (SettingsManager.swift:231-233).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "restartNoticeSection says the AI toggle takes effect on next launch, but MainTabView reads settings.enableAIAssistant live (MainTabView.swift:504, 683), so the Flo tab disappears immediately.",
-   "evidence": [
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:265",
-    "Emuqu/Sources/Views/MainTabView.swift:504"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var AdvancedDataControlsPage.body",
@@ -35,12 +23,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataSection": "a5b4c2ad0ad79f45",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.permanentWarningSection": "945fa271ed7127d8",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataSection": "144b79fe8e5ecba7",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.permanentWarningSection": "12719721c4c3d012",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
    }
   },
   {
@@ -54,10 +41,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -73,11 +59,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFields": "c1f452d799e6eedd",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFooter": "25f2bf27e9e1e2e9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFields": "01671e69bfcb8f4a",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFooter": "652c58ae6c794d80"
    }
   },
   {
@@ -91,9 +76,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataButton": "0224a776fd9da45e"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataButton": "9a55d0b97926ebcb"
    }
   },
   {
@@ -108,9 +92,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllMyDataSection": "fd11f5efbc06442c"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllMyDataSection": "082afc3e7022c03c"
    }
   },
   {
@@ -124,21 +107,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Subtitle says it wipes 'local sessions, API keys, AI chats, memory facts' but the purge also deletes the user's iCloud copies (DeleteAllDataPage.swift:75, 83; DataPurgeService remoteDeleted).",
-     "evidence": [
-      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:75",
-      "Emuqu/Sources/Views/DeleteAllDataPage.swift:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -152,9 +123,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -166,9 +136,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b"
    }
   },
   {
@@ -182,9 +151,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -204,16 +172,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantSection": "4be264818812d85c",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.coldStartSection": "802fd9a9486685c1",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncSection": "6643a1586cb3a30c",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.restartNoticeSection": "492802d8a8013828",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnFields": "12aba2ce18a79240",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.watchConnectivityFields": "4580e040e993b6c8",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantSection": "7ec2d5627e960c83",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.coldStartSection": "9288bcfde25d1530",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncSection": "c4d9900cb8605120",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.restartNoticeSection": "846eda88ed1c5fc5",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnFields": "6b50eb4113da5244",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.watchConnectivityFields": "c66ea9ced0136181",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
    }
   },
   {
@@ -227,10 +194,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -247,11 +213,10 @@
     "mem:SettingsManager.settings.keepScreenOnDuringRecording"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnToggleLabel": "e56f12c0590a6221",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnToggleLabel": "777fadd466d29527",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "45694c209a953ca2"
    }
   },
   {
@@ -265,22 +230,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Label does not mention that Low Power Mode overrides the toggle (shouldKeepScreenOnDuringRecording = toggle && !isLowPowerModeEnabled), so ON does not keep the screen on in Low Power Mode.",
-     "evidence": [
-      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:155",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:702"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "12c2f625957bb322",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -296,11 +249,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFields": "c4c0e7731ce58dcc",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFooter": "b4d1f76bcec9f9cb",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFields": "c99b53d68421ef41",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFooter": "cabdb74cb09d519b",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2"
    }
   },
   {
@@ -320,12 +272,11 @@
     "mem:SettingsManager.settings.enableVoiceMode"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "12c2f625957bb322",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "45694c209a953ca2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -339,9 +290,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2"
    }
   },
   {
@@ -356,10 +306,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.appleWatchConnectivitySection": "345bbb8483aebb10",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.appleWatchConnectivitySection": "f879083084783afb",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2"
    }
   },
   {
@@ -376,12 +325,11 @@
     "mem:SettingsManager.settings.enableWatchConnectivity"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "12c2f625957bb322",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "45694c209a953ca2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -396,10 +344,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncFields": "8a0d9860b74e8214"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncFields": "cda7cd6da54070d2"
    }
   },
   {
@@ -418,13 +365,12 @@
     "mem:SettingsManager.settings.hideFitnessTab"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncToggleRow": "c178b466bd444ba6",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "12c2f625957bb322",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncToggleRow": "46bee097e3db2de1",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "45694c209a953ca2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -441,12 +387,11 @@
     "mem:SettingsManager.settings.iCloudSyncEnabled"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "12c2f625957bb322",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "45694c209a953ca2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -460,23 +405,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Notice (and docs/USERS_MANUAL.md:40,1526) say the AI Assistant toggle applies on next launch, but the Flo tab and Ask Flo toolbar item read settings.enableAIAssistant live (MainTabView.swift:683, 504; HistoryView.swift:251), so they disappear immediately.",
-     "evidence": [
-      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:265",
-      "docs/USERS_MANUAL.md:40",
-      "docs/USERS_MANUAL.md:1526",
-      "Emuqu/Sources/Views/MainTabView.swift:683"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "a769e3447d8759f2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   }
  ],

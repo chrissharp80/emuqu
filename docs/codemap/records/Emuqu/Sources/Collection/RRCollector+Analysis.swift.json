@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func MorningSessionPipeline.computeRecoveryScore(for:from:)",
@@ -38,23 +37,10 @@
      "effect": "uses startDate as session end"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Still one of three assemblies of the same ScoreInputs: MorningProcessingService.computeRecoveryScore (MorningProcessingService+Merging.swift) and SessionAcceptanceService.scoreBreakdown build it too, and MorningProcessingService keeps its own ansBalance copy. This one now passes the acceptance path's useBaselineHRV/perceivedReadiness/referenceDate and uses ReanalysisService.ansBalance; the morning service's does not (flagged on its record).",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:22",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:402",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:300"
-     ],
-     "found": "first read, upheld on second; narrowed by b10"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoreBreakdown(session:result:sleep:vitals:training:)": "3279e974bb93378d",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "cbea23db8a63d361",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoreBreakdown(session:result:sleep:vitals:training:)": "d4d7b90bd4fc1a95",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "febc656a83965dca",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "c1b042f4dde87fd7"
    }
   },
@@ -81,14 +67,13 @@
      "effect": "startDate is the session end"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "6ba2b8b8a5adb0f2",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "aa1d03c0318867a7",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "654db6a2c6b1ba9a",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "ef2cf4065b8aca0b"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "ea97838350c20be0",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "d66078425cbb7066",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "40a5b51bfde62536"
    }
   },
   {
@@ -108,9 +93,8 @@
      "effect": "returns it; else fetches as of sessionEnd"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "2cc745ae1ce6d32c"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "dadaaf0287118899"
    }
   },
   {
@@ -132,10 +116,9 @@
      "effect": "uses startDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "71a0b9279559af80",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "2c159d80c38446e8",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
    }
   },
@@ -158,10 +141,9 @@
      "effect": "uses startDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "29594f6662ce07e7",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
    }
   },
@@ -186,13 +168,12 @@
      "effect": "uses startDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.resolvedSleepBoundaries(_:)": "940bca2d0e91c420",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.resolvedSleepBoundaries(_:)": "ad8e7209c4f2209e",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d"
    }
   },
   {
@@ -214,7 +195,6 @@
      "effect": "return (nil, nil)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
    }

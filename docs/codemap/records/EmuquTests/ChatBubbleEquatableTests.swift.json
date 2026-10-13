@@ -10,7 +10,6 @@
   "ChatBubbleEquatableTests.turn: fixed assistant ChatTurn 'Your HRV is up this morning.'"
  ],
  "toplevel": "Stored property `turn` builds one ChatTurn per test instance.",
- "flags": [],
  "units": [
   {
    "key": "func ChatBubbleEquatableTests.testTheSameTurnWithTheSameActionsIsEqual()",
@@ -24,10 +23,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "f0f7e79db4474adc",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "ab5984ff68da3b4e",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "82c6ca81dbc1381d"
    }
   },
   {
@@ -42,10 +40,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "f0f7e79db4474adc",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "ab5984ff68da3b4e",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "82c6ca81dbc1381d"
    }
   },
   {
@@ -61,23 +58,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "`other` is a new ChatTurn with its own random UUID id and createdAt, and ChatTurn's Equatable is synthesized over all stored properties, so the bubbles are unequal because of the id alone; the test would still pass if ChatBubble == stopped comparing text/content.",
-     "evidence": [
-      "EmuquTests/ChatBubbleEquatableTests.swift:24",
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:154",
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:205"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "f0f7e79db4474adc",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "ab5984ff68da3b4e",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "82c6ca81dbc1381d"
    }
   },
   {
@@ -92,10 +76,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "cf105443a633275c"
    }
   },
   {
@@ -110,10 +93,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "cf105443a633275c"
    }
   },
   {
@@ -134,10 +116,9 @@
      "effect": "asserts displayText(line) == line"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "cf105443a633275c"
    }
   },
   {
@@ -152,10 +133,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "cf105443a633275c"
    }
   },
   {
@@ -170,10 +150,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "cf105443a633275c"
    }
   },
   {
@@ -189,10 +168,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "cf105443a633275c"
    }
   }
  ],

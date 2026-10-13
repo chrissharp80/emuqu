@@ -11,7 +11,6 @@
   "notif:flowRecoveryArchiveChanged (posted per updated id and once with nil)"
  ],
  "toplevel": "No top-level code outside the extension; the header comment says what the file holds.",
- "flags": [],
  "units": [
   {
    "key": "func ArchiveStore.archiveBatch(_:)",
@@ -54,12 +53,11 @@
      "effect": "saveIndex (throws; files stay written, in-memory index already holds them); else skip save"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.archiveOne(_:into:)": "f8d590bc33b366ee",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "428ba17a9ce82508",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.savePartialBatch(_:)": "57f7dbd11652e0a9"
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.archiveOne(_:into:)": "56b3a788554d19db",
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "5df6dc15c59d4457",
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.savePartialBatch(_:)": "14d2e091fe819dbd"
    }
   },
   {
@@ -86,10 +84,9 @@
      "effect": "return"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -105,7 +102,6 @@
     "mem:SessionArchive.sessionIdLookup"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -156,15 +152,14 @@
      "effect": "skip; else writeBatchSession (throws propagate) and indexBatchEntry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.indexBatchEntry(_:into:)": "05c2bbd1a7037aca",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)": "0136074978f8eef6",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.writeBatchSession(_:)": "702f05adf594231a",
-    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isCopy(_:of:)": "ecffb8e15c79f71a",
-    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "3fdc38d069d40530",
-    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)": "63b49d2eb8660a66",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.indexBatchEntry(_:into:)": "93fe52fae0960eab",
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)": "deffb517b385dddb",
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.writeBatchSession(_:)": "fd0ce3a20e97e73d",
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isCopy(_:of:)": "a45e64befc2d33ec",
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "2ba6aba0529159ea",
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)": "47f346a2d3754e60",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -204,12 +199,11 @@
      "effect": "log warning and rethrow"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "71b5c97dd70f4908",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "6843baad12c58853",
-    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)": "176aeb8adb4f5aba",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "92f6b2132190f7b5",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "24c88f25992eca37",
+    "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)": "130682e15f59bee7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -228,13 +222,12 @@
     "ud:storage.pendingReencryption.sessionIDs"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "ac70e10d77deab0d",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
-    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427",
-    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "e279cc050a658fb7",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "b0adb3c1e0c04836",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "b2d76b7ce6014d3e",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "0dea00d1e12c27f4",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "1987e98d1e24873d"
    }
   },
   {
@@ -261,7 +254,6 @@
      "effect": "post the batch-level nil notification; else nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

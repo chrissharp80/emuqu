@@ -17,19 +17,6 @@
   "mem:UnitsPreferenceStore.current.resolved (default, :216)"
  ],
  "toplevel": "Only type declarations (Outcome, Dependencies, Overrides, Prepared, RecoveredWorkout) outside the listed units; the enum is @MainActor. Split distance constant 1609.344 m (imperial) / 1000 m (metric) at :59.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The recovery path re-implements WorkoutRecorder.finalizeSession's metadata assembly (header comment admits 'one bug-fix in the analyzer flow has to land in two places'); e.g. the meanHR expression at :154 is copied verbatim from WorkoutRecorder+Lifecycle.swift:380.",
-   "evidence": [
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift:10",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift:154",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:380"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)",
@@ -53,13 +40,12 @@
      "effect": "true → split every 1609.344 m; false → every 1000 m"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)": "2fb6a21e9846a9a5",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)": "5ec13b5f22fc7b93",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778"
    }
   },
   {
@@ -81,10 +67,9 @@
      "effect": "error logged via debugLog and swallowed; returns nil (treated the same as no backup)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "91d7a1453b421595",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -102,9 +87,8 @@
      "effect": "true → rrSeries nil; false → RRSeries(points:sessionId:startDate:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -127,7 +111,6 @@
      "effect": "early return, metadata extrapolation fields left as-is (nil); non-nil → three fields set"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "79a9067b84cc9c9e"
    }
@@ -160,13 +143,12 @@
      "effect": "?? → [] (no splits passed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "2857c29056b11e4c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.plausibleMeanHeartRate(_:)": "427ed09e52ff32c6"
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "6ec491a7dd7482ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.plausibleMeanHeartRate(_:)": "efd1e13c304ba556"
    }
   },
   {
@@ -206,14 +188,13 @@
      "effect": "return nil (nothing recoverable; caller falls back); else returns rebuild's Outcome (itself possibly nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.prepare(sessionId:reason:deps:overrides:)": "d4013f11c8d2008b",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.rebuild(sessionId:reason:prepared:overrides:deps:)": "fbff75d9fb70f7c2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.prepare(sessionId:reason:deps:overrides:)": "5cec353958b4a68f",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.rebuild(sessionId:reason:prepared:overrides:deps:)": "b575290c456e6f06",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -255,14 +236,13 @@
      "effect": "true → existingSession = archive.retrieveOrLog(sessionId); false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.loadRRBackup(_:sessionId:)": "fa732b1181db4c8d",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.loadRRBackup(_:sessionId:)": "b9cf076c259f0958",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -300,16 +280,15 @@
      "effect": "?? → the freshly assembled metadata (never nil in practice since buildRecoveredSession sets it)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)": "6f1e6366b4efcb62",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)": "da840d5d0631e2a0",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.carryArchived(into:recovered:deps:)": "6e2ee3f6ad8864a0",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.hasRecoverableData(_:)": "4841bdb3f473e3fd",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.knownStartDate(_:)": "ab001c5ddbd302e8",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.persist(_:metadata:recovered:overrides:deps:)": "761dad0236d659cc",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRecovered(sessionId:startDate:prepared:overrides:)": "d8598bda0f92613f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)": "6140b9501c945ba1",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)": "b3a4bbb4221b6ab2",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.carryArchived(into:recovered:deps:)": "6d66c9ac2424e635",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.hasRecoverableData(_:)": "467b5ab2da8632d0",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.knownStartDate(_:)": "701d3246821c53d5",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.persist(_:metadata:recovered:overrides:deps:)": "df4bb1ec70ca79f9",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRecovered(sessionId:startDate:prepared:overrides:)": "46f499b233aad575",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -327,7 +306,6 @@
      "effect": "header start → archived session start → RR backup captureDate → nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -358,12 +336,11 @@
      "effect": "return without a snapshot rebuild (never in practice: buildRecoveredSession sets it)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "5d2afb4462bff8e4",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "4617e4293a9f8d89",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "831fac62d7fe8a12",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "d41c6c29f285102d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
    }
   },
   {
@@ -375,7 +352,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -422,11 +398,10 @@
      "effect": "?? → backupHealthKitHROffsets []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "68d51bda9e0b4dd6",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "7940243bae2bbd66",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8491aacf6bcd7abb",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "a5f1be6d6eec0d3f"
    }
   },
   {
@@ -444,7 +419,6 @@
      "effect": "true → nil; false → sorted offsets"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -477,15 +451,14 @@
      "effect": "true → backfillRouteFields copies distance/splits/polyline/elevation where new values are absent; false → skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyGPSElevation(to:track:)": "529a2671841f1c1c",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "4617e4293a9f8d89",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachRouteExtrapolation(to:track:sport:archive:savedRouteStore:)": "165255bff6fe5181",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "ba951023fd59d855",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "a76b51d9108acf5f",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)": "c6f5c29c459f8931"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyGPSElevation(to:track:)": "8c695ad72ec6249b",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "d41c6c29f285102d",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachRouteExtrapolation(to:track:sport:archive:savedRouteStore:)": "9902baa1b822d9c7",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "7c2ccb6914779aa2",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "2f6133c8b5fa177a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "ad0d06d1ee92acde",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)": "9bdec37ebc712f47"
    }
   },
   {
@@ -526,29 +499,15 @@
      "effect": "error logged at warning, swallowed; returns Outcome wasArchived false, RR backup not marked, no upload"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "The launch 'Save as Complete' path (AppLaunchRecovery.recoverInterruptedWorkout) calls recover with discardBackupsOnAccept defaulting to false and offers no review/Save afterwards, so the WorkoutTrackBackup files (raw GPS fixes) of that session are never deleted; WorkoutTrackBackup documents that nothing removes backups by age, leaving precise-location files in the App Group until Delete All My Data.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:197",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:416",
-      "Emuqu/Sources/Services/AppLaunchRecovery.swift:115",
-      "Emuqu/Sources/Storage/WorkoutTrackBackup.swift:590"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.summaryLine(for:durationSec:unitsPreference:)": "0cc356d9c2dc0195",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)": "324b3ca4c0060dce",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.summaryLine(for:durationSec:unitsPreference:)": "f6297377ef556159",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)": "bd07a0cd0d67f397",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "d737d5807e3cf1e8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -568,10 +527,9 @@
      "effect": "early return: elevation gain/loss stay nil here; assembleMetadata then takes them from the GPS track (applyGPSElevation). Else set from barometer"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -589,9 +547,8 @@
      "effect": "return; gain/loss stay as they were (nil from buildMetadata)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -616,10 +573,9 @@
      "effect": "true → samples nil; false → samples = liveSamples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "c7c27ae52869c416"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "5b79a6ce8f521331"
    }
   },
   {
@@ -657,9 +613,8 @@
      "effect": "copy existing loss"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -690,11 +645,10 @@
      "effect": "log the trimmed beat count; no behavioural change"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)": "a33f133e1de3c802",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)": "80da49c9233bc7c4",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "83b3830940a1e122",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -729,11 +683,10 @@
      "effect": "true → strap; false (incl. equal) → disk"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "31c50995ae40ae2b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "5c9bb3b18af92a73",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "1651f859bcfeb9bc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -756,7 +709,6 @@
      "effect": "return rawTrack unclipped; else filter timestamp <= endTime"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -789,7 +741,6 @@
      "effect": "return last.timestamp; else falls to return startDate"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -834,9 +785,8 @@
      "effect": "return points; else truncate to (lastActive+3)*20 beats"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "5b22c30eb4bb3b1b"
    }
   },
   {
@@ -856,9 +806,8 @@
      "effect": "append the window's mean HR and advance; else stop"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "02f19600fa45d04e"
    }
   },
   {
@@ -878,9 +827,8 @@
      "effect": "true → mean; false (no plausible beat) → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "02f19600fa45d04e"
    }
   },
   {
@@ -903,7 +851,6 @@
      "effect": "60000/meanRR; else 0 (unreachable given the 300 ms floor)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -936,11 +883,10 @@
      "effect": "?? → parts joined with ', '"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "b1e24f20e5137617",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::var WorkoutRecoveryService.listFormatter": "6d6f220f268fac17"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::var WorkoutRecoveryService.listFormatter": "54030be1c8bf4566"
    }
   },
   {
@@ -954,9 +900,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

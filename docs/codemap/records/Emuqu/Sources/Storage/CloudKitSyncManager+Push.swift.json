@@ -17,7 +17,6 @@
   "ck:HRVSession record fields written: sessionId, startDate, isDeleted=0, modifiedAt (via CloudKitSessionFreshness.stampRecord), sessionData (CKAsset)"
  ],
  "toplevel": "Declares the two error enums and the static push tuning constants; pushCycleCounter starts at 0 per process and advances on every push cycle that reaches the batch. PreparedUpload is declared Sendable and holds a CKRecord. Comments note the failure counts behind the backoff are in memory only.",
- "flags": [],
  "units": [
   {
    "key": "var CloudSyncError.errorDescription",
@@ -36,9 +35,8 @@
      "effect": "returns the localized 'encryption key is unavailable' string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -107,16 +105,15 @@
      "effect": "log an info line that the zone was recreated this cycle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pendingPushBatch()": "f829306f0ed7e7c7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUpload(_:)": "e2c3d4e113b5ed6f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pushOne(_:sessionId:zoneNotFound:)": "4ad1d5d32dc2d614",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "0d538f934e3bb295",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "733c8572e147ffba",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "705d909e0a0aa689",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "776b745694c4c0f0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pendingPushBatch()": "352f0d8ed12c305e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUpload(_:)": "37f719ad92d354b2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pushOne(_:sessionId:zoneNotFound:)": "2f7a71a3a221b4f8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "4262f41e6c652648",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "f6b7dad7c8d3ce2b",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -155,13 +152,12 @@
      "effect": "await handlePrepFailure, return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handlePrepFailure(_:sessionId:)": "480c0a967ba82f44",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.keepOnDevice(_:)": "084365a5194db3a7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "70eb0ae5c67fb428",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "7a8569689483db44",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handlePrepFailure(_:sessionId:)": "61dbb3ff5949bf9b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.keepOnDevice(_:)": "9911fb2f8ea3ec47",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "32a6205db95e5d65",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -218,21 +214,20 @@
      "effect": "flagSchemaUnavailable, return true (stop cycle); else markFailed + noteSaveFailure, return false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "749903fda9a37fe1",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handleZoneGone(_:sessionId:recreatedThisCycle:)": "698f3db5ba1fba1c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)": "c2fd17f0276ffed0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "0c7a2d7f90ef31a3",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "d2e0793294cf2785",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "30dfbfb7c5fe0baf",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "58d2a43cf55426c0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handleZoneGone(_:sessionId:recreatedThisCycle:)": "2d286ba81d5f6373",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)": "94d8d32276dac35c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "6fe5c2e2d14e16e4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "67ad5852adb1be04",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "cfe6320b1277c544"
    }
   },
   {
@@ -264,11 +259,10 @@
      "effect": "log that only the first 25 are processed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.shouldDeferForBackoff(_:)": "89f802733fc9680c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedSessionIds": "3bbfb43f5d0f85f4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.shouldDeferForBackoff(_:)": "92876fae7752d9ab",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedSessionIds": "912c8598aa7d834a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -296,21 +290,8 @@
      "effect": "return false (never deferred); else compute period/offset test"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "CloudRetryProgressTests re-implements the backoff expression in a private helper (defers(bucket:failCount:cycle:)) instead of calling shouldDeferForBackoff or driving pushPendingSessions, so the production function and the counter-advance condition in pushPendingSessions are not exercised; the all-deferred stall is invisible to the tests.",
-     "evidence": [
-      "EmuquTests/CloudRetryProgressTests.swift:33",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:208",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:95"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "4e02b72514715785"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "91c292ac0d6dfa42"
    }
   },
   {
@@ -370,19 +351,18 @@
      "effect": "noteConflictUnresolved with the error (markFailed), return false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.applyDeletionMetDuringUpload(_:)": "493c9efa99a04154",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.noteConflictUnresolved(_:reason:error:)": "8ac6e284a43e1e59",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "0ef9731b94a58d22",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "d2e0793294cf2785",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "15c730e038134d0a",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.markIfReplacingTombstone(_:sessionId:)": "e2bc068eb36824eb"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.applyDeletionMetDuringUpload(_:)": "3457f22bdf47ecd0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.noteConflictUnresolved(_:reason:error:)": "6827c261c7180bf6",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "67ad5852adb1be04",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "cfe6320b1277c544",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "7e1c3c567d6e2222",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.markIfReplacingTombstone(_:sessionId:)": "ef7a7ebd1260dec4"
    }
   },
   {
@@ -407,11 +387,10 @@
      "effect": "noteSaveFailure(error) (may disable the modifiedAt field for this launch); else skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "749903fda9a37fe1",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "30dfbfb7c5fe0baf",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -459,15 +438,14 @@
      "effect": "markQuarantined, saveQuarantineQueueAsync, log 'will not retry'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.ArchiveError.isPermanentUploadFailure": "4e8ed54357a377a7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.hashRepair(for:sessionId:)": "9b7f3fc70efc5d3d",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.clearFailureCount(_:)": "26ae1a7a84cdbbe4",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markQuarantined(_:)": "926ecf41832b4369",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueueAsync()": "69a5ae7c0f40f414",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.ArchiveError.isPermanentUploadFailure": "d344a6d1a0e0a313",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.hashRepair(for:sessionId:)": "14e83ce61cc75993",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.clearFailureCount(_:)": "0de427dc5d39c29b",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markQuarantined(_:)": "0ca9495d2bf44226",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueueAsync()": "85c8bc1bdc497aac",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -493,9 +471,8 @@
      "effect": ".undecodable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairSessionHashIfDecodable(sessionId:)": "70765a5b104ecdfe"
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairSessionHashIfDecodable(sessionId:)": "a5e649cc5b5af2be"
    }
   },
   {
@@ -538,14 +515,13 @@
      "effect": "markFailed, log, return (retried next cycle)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "059454eaf3747ade",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "79852356d3ddbfe8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "64014e3dc11e8241",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "5a55427ad8b77917",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -578,13 +554,12 @@
      "effect": "markFailed, return true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()": "74172d1b0c2f1bdc",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.retryAfterZoneRecreation(_:)": "910193d595ba49bb",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()": "b05267ceb09249f0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.retryAfterZoneRecreation(_:)": "3f92e863a4d51c91",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -625,17 +600,16 @@
      "effect": "markFailed, log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "70eb0ae5c67fb428",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "d2e0793294cf2785",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "58d2a43cf55426c0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "32a6205db95e5d65",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "67ad5852adb1be04",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "cfe6320b1277c544",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -647,7 +621,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -672,10 +645,9 @@
      "effect": "return nil; else build and wrap the record"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "3e719c97348423df"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "044e343b3259ee39"
    }
   },
   {
@@ -699,11 +671,10 @@
      "effect": "throw CloudUploadExclusion.healthKitSourced; else build record"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)": "9441f89220415055",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)": "77a238b106a51a26",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)": "adca72056d224b68",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)": "28bd73a4199bd2ea",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -720,10 +691,9 @@
     "file:<tmp>/ck_*.gz"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)": "08261537f980ada3",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.writeAssetFile(_:sessionId:)": "aa4f26cbb995d48e"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)": "70cc5adf4eb618c8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.writeAssetFile(_:sessionId:)": "cdcf1ff50857ec77"
    }
   },
   {
@@ -739,11 +709,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)": "1ec8fa5af24b07ab",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)": "cb4b8fa6ff80ab03",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
    }
   },
   {
@@ -766,10 +735,9 @@
      "effect": "throw encryptionUnavailable; else return encoded ciphertext"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "b689df1a23a0f576"
    }
   },
   {
@@ -785,9 +753,8 @@
     "file:<tmp>/ck_*.gz"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -820,12 +787,11 @@
      "effect": "fetch the zone: exists → zoneCreated = true; fetch throws → error propagates (not marked created). Other save errors rethrown"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "81ef19bfa09eb971",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -850,11 +816,10 @@
      "effect": "log and return false; else log and return true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "ebb1292d51647262",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "81ef19bfa09eb971",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "33769eb1794473a5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -876,9 +841,8 @@
      "effect": "return without doing anything"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.removeTempFileIfNeeded(at:context:)": "bc1fdbb44b2820da"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.removeTempFileIfNeeded(at:context:)": "509ed4f93f68950a"
    }
   },
   {
@@ -895,10 +859,9 @@
     "ck:live backup records (via CloudKitLiveBackupManager)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.upload(sessionId:points:deviceId:force:)": "24b012e8d360738a",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "9ab516cbd4eeaa74"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.upload(sessionId:points:deviceId:force:)": "ef21f50f343fd7a4",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "f4fe4c8a6d976633"
    }
   },
   {
@@ -915,10 +878,9 @@
     "ck:live backup records (via CloudKitLiveBackupManager)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)": "5c52c3f18a11852f",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "9ab516cbd4eeaa74"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)": "0c712756c1e1234f",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "f4fe4c8a6d976633"
    }
   },
   {
@@ -935,10 +897,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.fetchAll()": "9c0ab6002155b4fd",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "9ab516cbd4eeaa74"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.fetchAll()": "c8afc7c281ed327c",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "f4fe4c8a6d976633"
    }
   },
   {
@@ -966,10 +927,9 @@
      "effect": "debug-log it; file may remain in tmp"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1017,13 +977,12 @@
      "effect": "ckError.localizedDescription"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)": "fbcb1b00aa9383f1",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet": "0bed695ddfb9513e",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "db52f2cb12d576d4",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull": "6e4b6f9cc8971c41"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)": "a6ba8c43180ec700",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet": "d2c26fcfe1a82a74",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "66d184af0832c017",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull": "1e3609f237380618"
    }
   },
   {
@@ -1044,11 +1003,10 @@
      "effect": "fallback .failure(SyncTimeoutError.timedOut)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "d7a85e38dc532d26",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "e108c0fc62a423a7",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "72d8f50d153f59b8",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -1075,13 +1033,12 @@
      "effect": "fallback .failure(stalled); unreachable in practice because both resume calls pass a non-nil Result"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "1da9d4e53b559769",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)": "c8167a1ed16654b4",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "e108c0fc62a423a7",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "8c9954be5417adb5",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "d0f5e7a34e2054b9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)": "82feb9639be25e6c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "72d8f50d153f59b8",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -1101,9 +1058,8 @@
      "effect": "return .failure(error); else .success(value)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -1131,10 +1087,9 @@
      "effect": "return (caller fails the sync as stalled); else keep polling"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::var FirstResultGate.isResolved": "0692e8606c01a8b3",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::var FirstResultGate.isResolved": "74897fb999670377",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   }
  ],

@@ -14,7 +14,6 @@
   "mem:LLMRequestAudit.maxPayloadCharacters = 60_000"
  ],
  "toplevel": "Singleton `shared`; constants maxEntries 10 and maxPayloadCharacters 60000. Never persisted; cleared by the audit page's Clear button and DataPurgeService.purgeHealthCaches.",
- "flags": [],
  "units": [
   {
    "key": "init LLMRequestAudit()",
@@ -25,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -47,9 +45,8 @@
      "effect": "drops the oldest tail entries; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.cap(_:)": "b5e8d17b69764905"
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.cap(_:)": "2a775a9a3bd8a030"
    }
   },
   {
@@ -76,7 +73,6 @@
      "effect": "keeps the suffix 60k chars (drops the beginning)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -98,7 +94,6 @@
      "effect": "false: return; true: sets usage"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -120,7 +115,6 @@
      "effect": "false: return; true: sets errorDescription"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -134,7 +128,6 @@
     "mem:LLMRequestAudit.entries"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -152,7 +145,6 @@
      "effect": "false: returns s; true: truncates and appends marker"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

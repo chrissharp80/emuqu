@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "No top-level code; reuses DFAReferenceValidationTests.SeededGenerator (SplitMix64) for deterministic jitter.",
- "flags": [],
  "units": [
   {
    "key": "func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
@@ -33,11 +32,10 @@
      "effect": "true: draws uniform Int in -jitterMs...jitterMs from the seeded generator; false: jitter 0 (constant intervals)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -49,9 +47,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -67,12 +64,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "931c7aa2f6de7899",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "77c51abb90e5e944",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -94,11 +90,10 @@
      "effect": "true: asserts score<60 and band notablyVariable; false: XCTFail and return"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "931c7aa2f6de7899",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "77c51abb90e5e944"
    }
   },
   {
@@ -121,23 +116,12 @@
      "effect": "rebuilds each RRPoint with t_ms+5000 keeping rr_ms and wallClockMs, creating a 5 s timestamp gap"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The gap assertion is only `withGap < clean` (strictly fewer windows); it does not pin which window is rejected or that rejection is due to the span/count rule, so any change that drops a window for another reason passes.",
-     "evidence": [
-      "EmuquTests/BeatConsistencyTests.swift:128"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "931c7aa2f6de7899",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "77c51abb90e5e944"
    }
   },
   {
@@ -153,11 +137,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "931c7aa2f6de7899",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "77c51abb90e5e944"
    }
   },
   {
@@ -179,11 +162,10 @@
      "effect": "true: asserts count 19 and nil score; false: XCTFail with the actual state"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "931c7aa2f6de7899",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "77c51abb90e5e944"
    }
   },
   {
@@ -197,21 +179,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Test claims to prove winsorization absorbs an outlier, but an unwinsorized MAD of 55x5.0 + 1x500 is already 0 (median of absolute deviations is 0), so the assertion passes even if winsorization were removed; it cannot detect a winsorization regression.",
-     "evidence": [
-      "EmuquTests/BeatConsistencyTests.swift:217",
-      "EmuquTests/BeatConsistencyTests.swift:223",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:552"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)": "781b59bbe24ee82b"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)": "de38965ce9e88d59"
    }
   },
   {
@@ -227,13 +196,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.buildBaseline(priorNights:config:)": "5b59be44acea5094",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532",
-    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "4caaf479994c1c63",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "77c51abb90e5e944",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -247,10 +215,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "66cba4f967d27e17",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -264,9 +231,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "b01286d215c47060"
    }
   },
   {
@@ -280,10 +246,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "66cba4f967d27e17",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -297,9 +262,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "66cba4f967d27e17"
    }
   }
  ],

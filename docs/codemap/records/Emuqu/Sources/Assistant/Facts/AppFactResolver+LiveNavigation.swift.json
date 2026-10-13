@@ -13,7 +13,6 @@
   "static let directionsRouteToDescription / directionsRouteToDestinationDescription — model-facing descriptions for directions.routeTo and its destination parameter"
  ],
  "toplevel": "Private static lets medicalPOIQuery, journeyDescription, directionsRouteToDescription and directionsRouteToDestinationDescription (model-facing text for directions.routeTo and its destination parameter), private enums DestinationResolution and AddressLookup. directions.* and location.journey are not behind the workout-only location gate: the cloud consent sheet discloses the position used when the user asks for directions and the Get Me Back trail while it runs (comment above directionsRouteToEntry).",
- "flags": [],
  "units": [
   {
    "key": "var WorkoutLiveCoachingNamespace.navigationEntries",
@@ -39,22 +38,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsClearEntry": "431c752e8d129cf7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsNextStepEntry": "23b7bf33c4c6f71f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsRouteToEntry": "e2247b5b64363802",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.journeyEntry": "3842e04224f0519c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationCurrentDetailedEntry": "f987bc0ae9f43e59",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationRoadsAheadEntry": "e90b2e2b57f57d6e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationSetAddressEntry": "109e6f26077e46ee",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveHrrCaptureStatusEntry": "d77d0b81e756de8e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalActiveEntry": "15480cb4c2848f8a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalCurrentStepEntry": "437b8b4ddb2f728f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalNextStepEntry": "dd6314b46b8ed20f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveThresholdsActiveEntry": "3301fef94c91f3c7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveThresholdsAnyBreachingEntry": "4dcbaf5c9fb8f8f6",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveThresholdsBreachStateEntry": "5091a233f0174190"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsClearEntry": "4fa37608364d9d9f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsNextStepEntry": "2c3c293ca2da2422",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsRouteToEntry": "7f3275f44d0b4470",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.journeyEntry": "3b99da07f47ca52c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationCurrentDetailedEntry": "8bfb7fc87d59c0fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationRoadsAheadEntry": "a07d6c349be6a278",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationSetAddressEntry": "fdcca8004493d557",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveHrrCaptureStatusEntry": "481a1ca9a67bf4c0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalActiveEntry": "cdfe304ddf804714",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalCurrentStepEntry": "1ae111b3552b864d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalNextStepEntry": "39ab12dfca17b5ae",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveThresholdsActiveEntry": "5da73f96ea82718c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveThresholdsAnyBreachingEntry": "bf23dbbfef6a6614",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveThresholdsBreachStateEntry": "5a51f04a4866f7b3"
    }
   },
   {
@@ -69,10 +67,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationRoadsAhead()": "1e905e3a52d475de",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationRoadsAhead()": "4f2723e75c358b3c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "946dd1182951eac7"
    }
   },
   {
@@ -121,32 +118,18 @@
      "effect": "true: returns .record(roadsAheadRecord); false: returns lowConfidenceMissing"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/USERS_MANUAL.md says that when confidence is below 0.4 or the phrase is null the AI must say 'I don't have road data for this stretch', but line 71 also returns a record for a neighbourhood-only result at confidence 0 (phrase 'walking through <subdivision>'), so the manual's contract is out of date.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:605",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:71",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:98",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:187"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.locationGatedOffMessage()": "b6f0dfefcb68a0be",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.workoutActive()": "0b00260e9d7099dc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isNeighborhoodOnly(_:)": "fba585095ec55c8d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadAwareness(at:neighborhoodFallback:)": "c8317beca4bf9eb8",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadsAheadIsSafeToQuote(_:)": "bddcd6adbd192fc8",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadsAheadRecord(_:)": "6a9b26a113a17c99",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.lowConfidenceMissing": "9f7e634d9cf00ff2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.noRoadGraphMissing": "6f624a4929d25952",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "d6302d5b555002eb",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.locationGatedOffMessage()": "9e433acd3a0094b8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.workoutActive()": "36dd0d0d14cc905c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isNeighborhoodOnly(_:)": "be30f55ea8b4fa2e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadAwareness(at:neighborhoodFallback:)": "266c12d5218b73cb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadsAheadIsSafeToQuote(_:)": "ff2bb20bdff588e7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadsAheadRecord(_:)": "04a4c6dad66a70da",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.lowConfidenceMissing": "3ecf65713e68ef65",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.noRoadGraphMissing": "38b21b253ee76dcf",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "5678c689470f1b00",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -158,7 +141,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,7 +152,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -182,9 +163,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "f2b4e78896f45915"
+    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "e334e91206d3c11d"
    }
   },
   {
@@ -196,7 +176,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -213,10 +192,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:neighborhoodFallback:)": "fa1e74e9341e79b9"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:neighborhoodFallback:)": "8e6c8324c880d557"
    }
   },
   {
@@ -247,11 +225,10 @@
      "effect": "adds phrase; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isNeighborhoodOnly(_:)": "fba585095ec55c8d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadEventRecord(_:)": "d8518f9fb8072f23",
-    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "f2b4e78896f45915"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isNeighborhoodOnly(_:)": "be30f55ea8b4fa2e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadEventRecord(_:)": "42fb3d38466e876a",
+    "EmuquTests/BackgroundOperationsTests.swift::var RecordingCueSession.events": "e334e91206d3c11d"
    }
   },
   {
@@ -274,7 +251,6 @@
      "effect": "sets kind 'road_ends' and continuations list"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -289,10 +265,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationCurrentDetailed()": "5f6a55030ab96085",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationCurrentDetailed()": "2085ad03e47ee03b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41"
    }
   },
   {
@@ -325,14 +300,13 @@
      "effect": "returns .missing notRecorded 'location cache not warm yet'; else the record (address optional)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.locationGatedOffMessage()": "b6f0dfefcb68a0be",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.workoutActive()": "0b00260e9d7099dc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.detailedLocationRecord(_:road:)": "57adc40cb67d65d7",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "d6302d5b555002eb",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.locationGatedOffMessage()": "9e433acd3a0094b8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.workoutActive()": "36dd0d0d14cc905c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.detailedLocationRecord(_:road:)": "9209377a954f7a79",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "5678c689470f1b00",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -347,10 +321,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addMotionFields(_:from:)": "ac41a0626a76c11f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addressFields(lat:lon:cachedLoc:cachedRoad:)": "97fac18e9b4d9684"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addMotionFields(_:from:)": "1a91ad66fd15f674",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addressFields(lat:lon:cachedLoc:cachedRoad:)": "5cd9c344773fe67c"
    }
   },
   {
@@ -371,11 +344,10 @@
      "effect": "merge geocoded fields; else address fields left out"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedFields(_:)": "3433a1d1693fd675",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.mapLinkFields(lat:lon:cachedLoc:)": "32fa0d46ab7d6619"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedFields(_:)": "52229b1f14164f68",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.mapLinkFields(lat:lon:cachedLoc:)": "5c4914c9adf8ee78"
    }
   },
   {
@@ -389,12 +361,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "dfc0c02aeeb3da4b",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "15809705576bbcfa",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.nearestIntersection": "a46cf43c59a92ca5",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0"
    }
   },
   {
@@ -406,7 +377,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -436,10 +406,9 @@
      "effect": "adds speed_mps/mph/kmh; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.compassDirection(degrees:)": "713338b4b3cbe9a2",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.compassDirection(degrees:)": "bbe0978e9b80c723",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf"
    }
   },
   {
@@ -454,11 +423,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)": "eb9bc6bdbd37f123",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)": "23e10d2d2d88cc7c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "946dd1182951eac7",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
@@ -500,12 +468,11 @@
      "effect": "missing notRecorded 'didn't answer in time'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)": "547c3be7d57c88d0",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadContextRecord(_:)": "99d208722b7b5e3c",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.overrideContext(_:)": "7cf9dcc7fd87dc34",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)": "294a21437de23f48",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadContextRecord(_:)": "7a70be4781e35009",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.overrideContext(_:)": "cea2a61f9c932011",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -528,9 +495,8 @@
      "effect": ".matched; else .unmatched"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocodeAddress(_:)": "4b398f0156c0960a"
    }
   },
@@ -545,11 +511,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "dfc0c02aeeb3da4b",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "15809705576bbcfa",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0"
    }
   },
   {
@@ -564,11 +529,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsRouteTo(_:)": "4b48dcaa047cde6f",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsRouteTo(_:)": "2ed77409caa3f0d0",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "946dd1182951eac7",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
@@ -621,28 +585,14 @@
      "effect": "returns notRecorded 'couldn't get a current location fix' with safety notice prepended; otherwise computes and returns route outcome with notice"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "On the 4 s timeout computeRoute now cancels the lookup task, but DirectionsService.resolveRoute engages ActiveRouteSession after MapKit answers without checking cancellation, so a route the model reported as timed out can still engage later and drive directions.next_step and turn alerts. Needs a Task.checkCancellation() before engage in DirectionsService (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:545",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:434",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:630",
-      "Emuqu/Sources/Services/DirectionsService.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.computeRoute(from:to:mode:)": "d65f5ec5a404d509",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.destinationResolution(for:args:)": "bb5904bb4aa78e27",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.medicalSafetyNotice(for:)": "dac14856e2d801be",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeOutcome(_:destination:)": "e751049b7b0c7304",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingUserLocation()": "52c521963860c366",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.withSafetyNotice(_:_:)": "a04907dc2cf25e7e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.computeRoute(from:to:mode:)": "cd0059ddcf674fe3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.destinationResolution(for:args:)": "fe766972414dba6e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.medicalSafetyNotice(for:)": "701d3300a55c1567",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeOutcome(_:destination:)": "a2aa41a4128779f2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "b8dcd07893b5fbfc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingUserLocation()": "a61b58a39bb8ffe3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.withSafetyNotice(_:_:)": "58038e8b67edaaba"
    }
   },
   {
@@ -665,9 +615,8 @@
      "effect": "true: returns the notice string with emergencyNumbersHere(); false: returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.emergencyNumbersHere()": "de010f1357c96ab8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.emergencyNumbersHere()": "3fad66cd6f8b231d"
    }
   },
   {
@@ -687,13 +636,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "de2bd0e7912f8a81",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "b6cb0168ed202706",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "deab42bedf9382f0"
    }
   },
   {
@@ -726,7 +674,6 @@
      "effect": "returns value unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -757,23 +704,9 @@
      "effect": "returns .missing notRecorded 'route lookup timed out' — route may still engage later"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "On the 4 s timeout computeRoute now cancels the lookup task, but DirectionsService.resolveRoute engages ActiveRouteSession after MapKit answers without checking cancellation, so a route the model reported as timed out can still engage later and drive directions.next_step and turn alerts. Needs a Task.checkCancellation() before engage in DirectionsService (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:545",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:434",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:630",
-      "Emuqu/Sources/Services/DirectionsService.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeFailureDetail(_:destination:)": "637eef5ea20cdeb9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeRecord(_:)": "e0ef6b6a2e8d4fa4"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeFailureDetail(_:destination:)": "503591366904261c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeRecord(_:)": "6bb2e298614266ac"
    }
   },
   {
@@ -796,7 +729,6 @@
      "effect": "true: .driving; false (anything else, including typos): .walking"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -840,12 +772,11 @@
      "effect": "returns .failed(.missing invalidParameter 'unknown destination')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addressDestination(_:)": "f3a459ba9cdc7c91",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.homeDestination()": "91b1506bb7ad799b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.poiDestination(for:)": "8343f47aad519941",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addressDestination(_:)": "fc6e9359bf0de68b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.homeDestination()": "edc826647d2126e8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.poiDestination(for:)": "d3dce9df443b0350",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
    }
   },
   {
@@ -888,7 +819,6 @@
      "effect": "nil (caller tries non-POI keys)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -911,9 +841,8 @@
      "effect": "returns .failed invalidParameter 'address is required'; otherwise .resolved(.address)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
    }
   },
   {
@@ -938,11 +867,10 @@
      "effect": "returns .failed notRecorded 'no home address saved'; otherwise .resolved(.address)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -965,11 +893,10 @@
      "effect": "returns it; otherwise awaits cold fix"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.coldGPSFix()": "3cfefc3e7a4a9c21",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.coldGPSFix()": "198acff7681be5bf",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -993,11 +920,10 @@
      "effect": "logged, returns nil → caller reports 'couldn't get a current location fix'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.detachedFirstUsableLocation(timeoutSec:)": "5c0bfc29efeab46b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.detachedFirstUsableLocation(timeoutSec:)": "63462ae69088090e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1028,24 +954,10 @@
      "effect": "cancel the lookup task, return nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "On the 4 s timeout computeRoute now cancels the lookup task, but DirectionsService.resolveRoute engages ActiveRouteSession after MapKit answers without checking cancellation, so a route the model reported as timed out can still engage later and drive directions.next_step and turn alerts. Needs a Task.checkCancellation() before engage in DirectionsService (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:545",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:434",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:630",
-      "Emuqu/Sources/Services/DirectionsService.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
-    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveRoute(from:to:mode:)": "3bd510ade1eee26a",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveRoute(from:to:mode:)": "d087ceda36c15908",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -1065,9 +977,8 @@
      "effect": "returns Get Me Back hint; otherwise routeUnavailableDetail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeUnavailableDetail(for:)": "ed6cf95850c35c5e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routeUnavailableDetail(for:)": "9c95ce8d22472e6f"
    }
   },
   {
@@ -1095,7 +1006,6 @@
      "effect": "'couldn't route to '<text>' …'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1107,9 +1017,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "651b546e1fa68836"
    }
   },
   {
@@ -1124,10 +1033,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()": "93749ca36d656dfd",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()": "8da831b84a2e1bd1",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1165,13 +1073,12 @@
      "effect": "returns .missing notRecorded 'step lookup returned nothing'; otherwise record. currentStep returns nil only when _steps is empty, which the snapshot guard at 612 already excluded, so this fires only if directions.clear / a new engage runs between the two calls (ActiveRouteSession.swift:148,169)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.nextStepRecord(session:step:)": "f41e9f97ba80c6db",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "4fda6362df3bfa07",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "c0ce08ecb6d252c2",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.nextStepRecord(session:step:)": "55a4f0d23ae3eee9",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1183,7 +1090,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1200,11 +1106,10 @@
     "mem:ActiveRouteSession (_steps/_destination*/_currentStepIndex)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "cc31108ef4706d1c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1219,10 +1124,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveActiveThresholds()": "e0a8b4f680c74256",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveActiveThresholds()": "532abe20afd92537",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1245,10 +1149,9 @@
      "effect": "returns .missing notRecorded 'no workout active'; otherwise list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.activeThresholdRecord(_:)": "45382e55db2c8810"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "1d0b7432938cd9fd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.activeThresholdRecord(_:)": "4c1335f76afcb799"
    }
   },
   {
@@ -1262,10 +1165,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -1294,11 +1196,10 @@
      "effect": "?? 0 → not breaching"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isPastDebounce(secs:debounceSec:)": "a5009e89904c527b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "1d0b7432938cd9fd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isPastDebounce(secs:debounceSec:)": "f1e03749cd62ff02",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1313,10 +1214,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveThresholdBreachState()": "5d3f6bf44c08ec64",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveThresholdBreachState()": "43bef0045254c4ec",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1349,10 +1249,9 @@
      "effect": "?? 0 seconds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.breachStateRecord(_:secs:)": "21faec4e3f38c20d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "1d0b7432938cd9fd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.breachStateRecord(_:secs:)": "ecfd706c14d0abb4"
    }
   },
   {
@@ -1366,9 +1265,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isPastDebounce(secs:debounceSec:)": "a5009e89904c527b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.isPastDebounce(secs:debounceSec:)": "f1e03749cd62ff02"
    }
   },
   {
@@ -1380,7 +1278,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1403,10 +1300,9 @@
      "effect": "returns .missing 'no workout active'; otherwise boolean(intervalProgress != nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "1d0b7432938cd9fd",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1435,12 +1331,11 @@
      "effect": "returns .missing 'no interval plan bound'; otherwise record"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
-    "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.totalSteps": "9fe9d3ebb73c32bf"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "1d0b7432938cd9fd",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "7c099bb7fac73a8e",
+    "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.totalSteps": "78dc847e541482e1"
    }
   },
   {
@@ -1469,11 +1364,10 @@
      "effect": "returns .missing 'no interval plan bound'; otherwise .from(nextStepLabel)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "1d0b7432938cd9fd",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0"
    }
   },
   {
@@ -1499,13 +1393,12 @@
      "effect": "true: 'capturing_or_active'; false: 'idle'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.postStopHRRWindowOpen(now:)": "20b6939e0a9f4a26",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "651137401d46dc0d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.postStopHRRWindowOpen(now:)": "b329a9a28e494e59",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1528,12 +1421,11 @@
      "effect": "false if any fails; else returns hrrSamples == nil (a workout with no HR drops written reports the window open for the full 150 s)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -1548,10 +1440,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveJourney()": "02767dc4837fd844",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveJourney()": "9447c6c683e141e1",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1587,13 +1478,12 @@
      "effect": "adds recurrence field; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecord(from:)": "174bc62020e0dc9d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecurrence(for:)": "3bdc832aab29cee1",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "ec7d3168e9a8ca29",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.snapshot(for:)": "f1dd0a60bf02ec53",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecord(from:)": "b441f08e6aa269a1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecurrence(for:)": "dc4efa6f8eb6b079",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "f80525a8222cb7ff",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.snapshot(for:)": "9d4f6648891f616f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1611,10 +1501,9 @@
      "effect": "adds origin_label; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originLabel": "5297a6db7bb28ab5"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originLabel": "824aeeafb4bc10fa"
    }
   },
   {
@@ -1637,11 +1526,10 @@
      "effect": "returns nil; otherwise record"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "47263c6d18f9ac81",
     "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)": "453fe96b86b7da1b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   }
  ],

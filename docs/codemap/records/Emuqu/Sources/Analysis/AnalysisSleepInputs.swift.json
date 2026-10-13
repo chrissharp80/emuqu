@@ -12,7 +12,6 @@
   "mem:AnalysisSleepTrendInput.empty (static let, trend .insufficient, 0 nights)"
  ],
  "toplevel": "Two static `empty` instances built via the memberwise inits (AnalysisSleepInputs.swift:36-40, 76-79).",
- "flags": [],
  "units": [
   {
    "key": "var AnalysisSleepInput.isShortSleep",
@@ -23,19 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same short-sleep (0 < night < 300) and fragmented (awake > 30) gates are re-implemented inline in ContextBuilder for the assistant context instead of reusing AnalysisSleepInput; a threshold change in one copy will not reach the other.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:24",
-      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:32",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:676"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -47,7 +33,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,7 +44,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -71,7 +55,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -92,11 +75,10 @@
      "effect": "true: self = .empty (all zeros/nil) and return; false: copy fields from the SleepData"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb"
    }
   },
   {
@@ -108,7 +90,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -126,7 +107,6 @@
      "effect": "true: self = .empty (0 avg, trend .insufficient, 0 nights); false: copy fields"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -147,10 +127,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "d1aec411499c093d",
-    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "3511be29c1b3e8e0"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "5e71c2cae2b503a7",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "39cbbc4f849d2168"
    }
   }
  ],

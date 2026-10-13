@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func LanguageManagerObservationTests.testTheRootLocaleIsObservedAcrossALanguageChange()",
@@ -38,26 +37,13 @@
      "effect": "switches to .en; otherwise switches to .de"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Changes the host app's real language twice (setLanguage persists AppleLanguages via AppLanguage.apply) and posts languageDidChangeNotification to live observers in the app host; a crash between switch and defer leaves the host in German.",
-     "evidence": [
-      "EmuquTests/LanguageManagerObservationTests.swift:24",
-      "EmuquTests/LanguageManagerObservationTests.swift:17",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:302"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale": "f07c3820aae0d0e3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "40b91b35656ce492",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale": "9765c0f47b6354f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d"
    }
   }
  ],

@@ -18,22 +18,6 @@
   "mem:TrialPolicy.secondsPerDay = 86400"
  ],
  "toplevel": "Record.CodingKeys maps deviceTrialStartDate to the legacy key 'trialStartDate' and does not decode the legacy 'historyCheckedAt' key (so a store build re-runs the history check). Codable synthesis encodes/decodes Record for both tiers. resetForUITesting is compiled only under #if DEBUG.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/MAINTAINERS.md says the synchronizable anchor item holds 'a bool and two dates', but Record encodes one Bool and four dates (deviceTrialStartDate, storeTrialStartDate, highWaterMark, storeHistoryCheckedAt).",
-   "evidence": [
-    "docs/MAINTAINERS.md:941",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:61",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:66",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:70",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:74",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:85"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var EntitlementAnchor.Record.trialStartDate",
@@ -50,7 +34,6 @@
      "effect": "App Store start used when non-nil; otherwise the device-kept start (nil if neither)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -62,9 +45,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "1650d77cfa557cbe"
    }
   },
   {
@@ -91,11 +73,10 @@
      "effect": "returns lhs unchanged; else build merged Record"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "a91ab07c92f681c9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "f1495d7cbd2ff410",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "a281c41c24500ceb"
    }
   },
   {
@@ -120,9 +101,8 @@
      "effect": "isBetaTester set true; otherwise isBetaTester left as is"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "e2967a01fdcec822"
    }
   },
   {
@@ -134,7 +114,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -152,7 +131,6 @@
      "effect": "copy with highWaterMark = wallClock returned; otherwise record returned unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -175,7 +153,6 @@
      "effect": "returns lhs; else min(lhs,rhs)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -198,7 +175,6 @@
      "effect": "returns lhs; else max(lhs,rhs)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -220,10 +196,9 @@
      "effect": ".empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()": "61448e510b2021f1",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "f189915542dbcaed"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()": "75a918476650758c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "055fa89d33f3452e"
    }
   },
   {
@@ -243,26 +218,8 @@
     "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "resolve() reads the keychain and writes UserDefaults plus SecItemUpdate on every call even when nothing changed. It runs synchronously on the main actor at every non-DEBUG launch from the gate (grandfatherExistingUserIfNeeded -> recordHistoryCheck), again in boot(), and once per entitlement refresh that carries an App Store trial start (apply -> adoptStoreTrialStart -> recordStoreTrialStart); handleTrial runs that path twice (directly, then via refreshStatus).",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:205",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:207",
-      "Emuqu/Sources/Services/StoreKitManager.swift:189",
-      "Emuqu/Sources/Services/StoreKitManager.swift:209",
-      "Emuqu/Sources/Services/StoreKitManager.swift:352",
-      "Emuqu/Sources/Services/StoreKitManager.swift:354",
-      "Emuqu/Sources/Services/StoreKitManager.swift:427",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:301"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4"
    }
   },
   {
@@ -289,11 +246,10 @@
      "effect": "log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -321,12 +277,11 @@
      "effect": "log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "01bdea8bd341e170",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e723cf4551a0e631",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -353,10 +308,9 @@
      "effect": "returns immediately with no I/O"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "19be1a6e446da196",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "1080fd0c824bd3f9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4"
    }
   },
   {
@@ -371,10 +325,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "fb01f1ba9ff4ab7e",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "a91ab07c92f681c9"
    }
   },
   {
@@ -395,10 +348,9 @@
     "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "d6f1aacbd2cd2e71",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "a3dc7070cd083169",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4"
    }
   },
   {
@@ -412,9 +364,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "fb01f1ba9ff4ab7e"
    }
   },
   {
@@ -432,7 +383,6 @@
      "effect": "the record; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -473,24 +423,13 @@
      "effect": "saveToKeychain"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The high-water mark advances to wallClock on every update, so the result nearly always differs from what is stored and both writes still happen on every resolve (see the resolve finding); the skip only helps when the clock has not moved.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:332"
-     ],
-     "found": "fix batch b15"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readTiers()": "4e0e7cab0bca22f1",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)": "fa4b1a579d50305c",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "7708c28ab0c2d552",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "f189915542dbcaed"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "fb01f1ba9ff4ab7e",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "ba1bb9b8f0fda1c4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readTiers()": "0c4e01ac0f1da5c5",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)": "8005626e8a7cdcd0",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "6b1fb137822c7ac6",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "055fa89d33f3452e"
    }
   },
   {
@@ -508,10 +447,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromKeychain()": "2f5027fa1d7ca711",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()": "61448e510b2021f1"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromKeychain()": "7c97c27eeadfc34b",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()": "75a918476650758c"
    }
   },
   {
@@ -538,9 +476,8 @@
      "effect": ".unreadable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)": "dcb6189c5049029b"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)": "b873ed0e90b63609"
    }
   },
   {
@@ -562,9 +499,8 @@
      "effect": "returns without writing (error already logged); otherwise sets defaults"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.encode(_:)": "13bf1d7a301afabc"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.encode(_:)": "2d7045c4bbcf832b"
    }
   },
   {
@@ -586,7 +522,6 @@
      "effect": "return it; else create and store one"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -598,7 +533,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -612,9 +546,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery": "322a0f9ba377d9ab"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery": "4416e5fed6567401"
    }
   },
   {
@@ -644,13 +577,12 @@
      "effect": "keep its read as own"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainAccounts()": "9c85000f12af91fe",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readKeychainItem(account:)": "2c426cf6d0ed4fbc",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "f189915542dbcaed",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount": "01a8b28e41b28b35"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainAccounts()": "86cdb76eca786a37",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "ba1bb9b8f0fda1c4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readKeychainItem(account:)": "d66e0ffdaf99d04d",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "055fa89d33f3452e",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount": "7c3d8078a3e2e87d"
    }
   },
   {
@@ -678,9 +610,8 @@
      "effect": "log, nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -715,11 +646,10 @@
      "effect": ".unreadable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)": "dcb6189c5049029b",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)": "a8d4ee1b266890ce",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)": "b873ed0e90b63609",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)": "c1cbd89e4477da1c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -756,25 +686,12 @@
      "effect": "logs warning and returns; errSecItemNotFound falls through to addToKeychain"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A keychain update/add failure is only logged; the anchor then lives only in UserDefaults, which is destroyed on app deletion, so the durable tier the type exists for is silently missing.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:378",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:379",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:392"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:query:)": "6f88db550bf422e5",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.encode(_:)": "13bf1d7a301afabc",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)": "a8d4ee1b266890ce",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount": "01a8b28e41b28b35",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:query:)": "f989c08089713840",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.encode(_:)": "2d7045c4bbcf832b",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)": "c1cbd89e4477da1c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount": "7c3d8078a3e2e87d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -797,9 +714,8 @@
      "effect": "log warning"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -818,9 +734,8 @@
     "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery": "322a0f9ba377d9ab"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery": "4416e5fed6567401"
    }
   },
   {
@@ -840,9 +755,8 @@
      "effect": "error logged at .error, returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -862,9 +776,8 @@
      "effect": "error logged at .error, returns nil — caller treats tier as absent"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -876,7 +789,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -901,9 +813,8 @@
      "effect": "returns 0; else ceil(remaining/86400)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "0ae4d728e388c677"
    }
   },
   {
@@ -923,9 +834,8 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "0ae4d728e388c677"
    }
   },
   {
@@ -945,20 +855,8 @@
      "effect": "returns false; otherwise !isActive"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "TrialPolicy.hasExpired has no production caller; only EmuquTests/EntitlementAnchorTests.swift exercises it.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:488",
-      "EmuquTests/EntitlementAnchorTests.swift:307"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "c9abf0c56a26f2fa"
    }
   }
  ],

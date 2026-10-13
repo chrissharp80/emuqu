@@ -10,21 +10,6 @@
   "mem:SessionRecoveryPatchActionTests.start (fixed Date 1_700_000_000)"
  ],
  "toplevel": "Private stored sessionId and start for fixture series.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Every test in this file exercises SessionRecoveryService.patchAction, which has no production caller: grep across the repo finds patchAction/PatchAction only in its declaration (SessionRecoveryService.swift:15,74), docs/API_REFERENCE.md:1549-1574 and this test file; no recovery import path consults it. The suite therefore guards dead code, and the documented decision (replace vs reanalyze vs dataAlreadyExists) is not what the live recovery flow does. It also never tests the destructive case its own header warns about: a shorter incoming series (e.g. 250 existing, 100 incoming) also returns .replaceWithNewData.",
-   "evidence": [
-    "EmuquTests/SessionRecoveryPatchActionTests.swift:8",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift:74",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift:86",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift:87",
-    "docs/API_REFERENCE.md:1569"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
@@ -37,9 +22,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c"
    }
   },
   {
@@ -51,7 +35,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,10 +55,9 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0"
    }
   },
   {
@@ -97,11 +79,10 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -124,12 +105,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -152,12 +132,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -180,12 +159,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -208,12 +186,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -236,12 +213,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -258,12 +234,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -286,12 +261,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   },
   {
@@ -314,12 +288,11 @@
      "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
-    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "8d200cb190458a4d",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "8aa1c6a0b277ffa0",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "8fec7444cec03cac"
    }
   }
  ],

@@ -10,7 +10,6 @@
   "mem:ArchiveRRPreservationTests.archive (lazy SessionArchive on archiveDirectory)"
  ],
  "toplevel": "lazy archive = SessionArchive(directory: archiveDirectory, sleepScheduleProvider: 22:00/8h, sessionMergeModeProvider: .defaultGap) on a private temp directory, so it never shares the App Group index.json with the host app's archive; the merge gap still comes from AppDependencies settings (no mergeGapProvider).",
- "flags": [],
  "units": [
   {
    "key": "func ArchiveRRPreservationTests.tearDown()",
@@ -29,7 +28,6 @@
      "effect": "removes it"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,9 +47,8 @@
      "effect": "appends one point and advances elapsed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
    }
   },
   {
@@ -66,10 +63,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   },
   {
@@ -108,11 +104,10 @@
      "effect": "XCTFail: file reads fine"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "c7576c47f94a2e18",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "fda43e08c136c3cc"
    }
   },
   {
@@ -147,12 +142,11 @@
      "effect": "XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "b3a90cab539af4b8"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "c7576c47f94a2e18",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "fda43e08c136c3cc",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "65b04d9ce7a3de49"
    }
   },
   {
@@ -180,9 +174,8 @@
      "effect": "XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "c7576c47f94a2e18"
    }
   },
   {
@@ -205,11 +198,10 @@
     "notif:flowRecoveryArchiveChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "fda43e08c136c3cc"
    }
   },
   {
@@ -233,12 +225,11 @@
     "notif:flowRecoveryArchiveChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "b3a90cab539af4b8"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "fda43e08c136c3cc",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "65b04d9ce7a3de49"
    }
   }
  ],

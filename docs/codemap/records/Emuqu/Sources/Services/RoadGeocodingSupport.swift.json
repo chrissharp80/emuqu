@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func runWithTimeout(seconds:operation:)",
@@ -28,10 +27,9 @@
      "effect": "onCancel: cancel the work task"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func firstOf(_:orNilAfter:)": "c98fec200a33a01f",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)": "f3401e4487e3b53d"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func firstOf(_:orNilAfter:)": "dbd656431876162a",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)": "1587ef0808b0586b"
    }
   },
   {
@@ -47,11 +45,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func timeoutTimer(after:gate:work:)": "b6d6d2817113a7f8",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "1da9d4e53b559769"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "8c9954be5417adb5",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func timeoutTimer(after:gate:work:)": "9025bef150392267",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "d0f5e7a34e2054b9"
    }
   },
   {
@@ -72,10 +69,9 @@
      "effect": "return without resolving"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func sleptUninterrupted(_:)": "f2640ea451a52c6c"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "8c9954be5417adb5",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func sleptUninterrupted(_:)": "107882ac656af4c5"
    }
   },
   {
@@ -95,9 +91,8 @@
      "effect": "return false"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -117,9 +112,8 @@
      "effect": "error logged to debug log, swallowed, nil returned"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -131,7 +125,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -143,7 +136,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -155,7 +147,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -167,18 +158,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same great-circle initial-bearing formula is still written out in GetMeBackView.bearing and WorkoutGeometry.bearing (Route.Point); RoadAwarenessEngine.bearingDegrees and SavedRouteStepBuilder.bearing now delegate here (the remaining two are outside this batch, handed off).",
-     "evidence": [
-      "Emuqu/Sources/Views/GetMeBackView.swift:688",
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   }
  ],

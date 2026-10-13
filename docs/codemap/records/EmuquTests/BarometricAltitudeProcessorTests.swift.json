@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)",
@@ -18,9 +17,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -35,10 +33,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "e892291b1c2ca399"
    }
   },
   {
@@ -59,10 +56,9 @@
      "effect": "appends the next ramp altitude"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "e892291b1c2ca399"
    }
   },
   {
@@ -83,10 +79,9 @@
      "effect": "appends the next descending altitude"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "e892291b1c2ca399"
    }
   },
   {
@@ -107,23 +102,9 @@
      "effect": "sets a 101.5 m spike then 100 m"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Each 1.5 m spike lasts one sample, so the 15-sample moving average flattens it to about 0.1 m before the hysteresis pass; the test passes for any threshold above ~0.1 m and does not pin the 2 m rejection its comment describes (the comment also still speaks of \"sustained runs\", which the hysteresis algorithm replaced).",
-     "evidence": [
-      "EmuquTests/BarometricAltitudeProcessorTests.swift:67",
-      "EmuquTests/BarometricAltitudeProcessorTests.swift:73",
-      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:119",
-      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:193"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35"
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "e892291b1c2ca399"
    }
   },
   {
@@ -139,11 +120,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.ramp(samples:step:)": "688a86ed7b0ee283"
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "e892291b1c2ca399",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.ramp(samples:step:)": "b2be9d2161cb8f2c"
    }
   },
   {
@@ -161,7 +141,6 @@
      "effect": "advances current and appends it (traps if samples < 1)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -177,11 +156,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "ca5f60b2d3978b35",
-    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.noise()": "daba61d22b160eb0"
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.makeSamples(_:hzInterval:)": "e892291b1c2ca399",
+    "EmuquTests/BarometricAltitudeProcessorTests.swift::func BarometricAltitudeProcessorTests.noise()": "0bc7bb840d232882"
    }
   },
   {
@@ -193,7 +171,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

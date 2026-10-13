@@ -9,19 +9,6 @@
   "env:PUSH_BEFORE_SHA"
  ],
  "toplevel": "Whole script is top-level. Reads GITHUB_EVENT_NAME, PR_BASE_SHA, PUSH_BEFORE_SHA. pull_request/pull_request_target with base SHA -> range base...HEAD; push with non-null before SHA -> before...HEAD; otherwise HEAD~1...HEAD if HEAD~1 exists, else 'HEAD'. Runs `git diff --name-only --diff-filter=ACMR <range> -- '*.swift'`. set -euo pipefail so a git failure exits non-zero. Consumer: lint_changed_swift.sh (outside this chunk).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "Its only caller is scripts/lint_changed_swift.sh, and nothing invokes that script: no workflow, Makefile target or .githooks/pre-commit references lint_changed_swift (grep of the whole repo finds only its own file). PR_BASE_SHA and PUSH_BEFORE_SHA are set nowhere. In the fallback range 'HEAD' (root commit), `git diff HEAD` lists working-tree changes, not the commit's files.",
-   "evidence": [
-    "scripts/changed_swift_files.sh:24",
-    "scripts/changed_swift_files.sh:28",
-    "scripts/lint_changed_swift.sh:10"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [],
  "deps": {}
 }

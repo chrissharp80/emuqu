@@ -7,18 +7,6 @@
  ],
  "state": [],
  "toplevel": "typealias Arbitration = WorkoutRecorder.HRArbitration (= WorkoutTicker.HRArbitration via WorkoutRecorder+TickerForwarding.swift:25).",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Crash-backup tests use WorkoutTrackBackup(), whose init writes into the app's real App Group WorkoutBackup directory, so they share on-disk state with the host app (cleaned only by `defer discard`, which a crash mid-test skips)",
-   "evidence": [
-    "EmuquTests/WristHRMarkerTests.swift:60",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift:156"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WristHRMarkerTests.testWristHRCopiedToTheDisplayMarksTheDisplayAsWrist()",
@@ -32,11 +20,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15"
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.decide(_:)": "b616153713099a15",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "155b58e07c3c0fb0",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "adec28cc6d343567"
    }
   },
   {
@@ -51,11 +38,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15"
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.decide(_:)": "b616153713099a15",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "155b58e07c3c0fb0",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "adec28cc6d343567"
    }
   },
   {
@@ -69,9 +55,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15"
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "adec28cc6d343567"
    }
   },
   {
@@ -85,9 +70,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.offsets(_:keptFrom:)": "653d631d99ea76fe"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.offsets(_:keptFrom:)": "28e963464163cedc"
    }
   },
   {
@@ -102,21 +86,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc says finalize lists live wrist rows with backfilled rows, but the test concatenates the two lists itself ([3] + [1,2]); the real merge happens in the caller (backfillResult.filledOffsets + recorder.wristHROffsets) which is not exercised",
-     "evidence": [
-      "EmuquTests/WristHRMarkerTests.swift:52",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:256"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "02b6b4c231ca2c24",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "0b88a7b51f244418",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -138,13 +110,12 @@
     "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3a9d2551dc931833",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "68edf055839ff3b0",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "7138f95e665a43ec"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "05632b6fe481d3a5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "e3c7de32edd6c2f0"
    }
   },
   {
@@ -166,13 +137,12 @@
     "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3a9d2551dc931833",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "68edf055839ff3b0",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "7138f95e665a43ec"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "05632b6fe481d3a5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "e3c7de32edd6c2f0"
    }
   },
   {
@@ -194,13 +164,12 @@
     "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3a9d2551dc931833",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "68edf055839ff3b0",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "7138f95e665a43ec"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "05632b6fe481d3a5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "e3c7de32edd6c2f0"
    }
   },
   {
@@ -214,9 +183,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.firstIndex(in:after:)": "0f633b2fdcd951b7"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.firstIndex(in:after:)": "f2b7fa6bd121a632"
    }
   },
   {
@@ -231,10 +199,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "a76b51d9108acf5f"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "ad0d06d1ee92acde"
    }
   },
   {
@@ -251,12 +218,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "5d2afb4462bff8e4"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "831fac62d7fe8a12"
    }
   }
  ],

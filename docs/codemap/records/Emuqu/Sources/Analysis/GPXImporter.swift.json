@@ -13,7 +13,6 @@
   "mem:GPXImporter.sportRules (static ordered sport/stem table)"
  ],
  "toplevel": "File header lists the extracted fields; HRV is omitted. The delegate keeps <trkpt>s and <rtept>s separately (points = track, else route), tracks the open-element path, takes the first <type> directly under <trk>/<rte> as trkType, and <metadata><time>. GPXImporter is @MainActor so XML parsing runs on the main actor.",
- "flags": [],
  "units": [
   {
    "key": "var GPXImporter.ImportError.errorDescription",
@@ -42,9 +41,8 @@
      "effect": "'no trackpoints' message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -60,11 +58,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "0bd28a6fe72cdcdd",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)": "73d28df374761893",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "fc92e46d7e9e3a11"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "5e6c93ce9ee29f56",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)": "9218f68b5b640068",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "a5cd8f842c880403"
    }
   },
   {
@@ -86,11 +83,10 @@
      "effect": "throws ImportError.noTimestamps; else builds track"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "0bd28a6fe72cdcdd",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)": "73d28df374761893",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "fc92e46d7e9e3a11"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "5e6c93ce9ee29f56",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)": "9218f68b5b640068",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "a5cd8f842c880403"
    }
   },
   {
@@ -136,10 +132,9 @@
      "effect": "defaultSport"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)": "b92941d18ec40a15"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "07bd97064b03202c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)": "54f3d60d2837db0a"
    }
   },
   {
@@ -162,7 +157,6 @@
      "effect": "updates carry-forward; else reuses last"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -185,7 +179,6 @@
      "effect": "throws noTrackpoints; else returns delegate"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -203,9 +196,8 @@
      "effect": "altitude 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4931968170b1069b"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4cac35f6f67d5b73"
    }
   },
   {
@@ -219,7 +211,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e"
    }
@@ -247,10 +238,9 @@
      "effect": "nil; else the first matching rule's sport"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.startsWithAnyStem(_:_:)": "b5b824cfaf0aa8f0",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.typeWords(_:)": "d3f35b79138cd14e"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.startsWithAnyStem(_:_:)": "84dd832a54a4d934",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.typeWords(_:)": "940d3c5402e241c1"
    }
   },
   {
@@ -262,7 +252,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -295,7 +284,6 @@
      "effect": "appended"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -307,7 +295,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -319,7 +306,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -337,7 +323,6 @@
      "effect": "value; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -349,7 +334,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -367,7 +351,6 @@
      "effect": "value; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -385,7 +368,6 @@
      "effect": "routePoints; else trackPoints"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -408,7 +390,6 @@
      "effect": "continue to next style (error swallowed)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -439,10 +420,9 @@
      "effect": "current = nil (point dropped silently); else new Point"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "efda1706c72d2778",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "be5975399c55a45e"
    }
   },
   {
@@ -454,7 +434,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -484,9 +463,8 @@
      "effect": "append to trackPoints / routePoints; else nothing (invalid point dropped)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.apply(tag:text:parent:)": "0ddf3902b83d60e8"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.apply(tag:text:parent:)": "78ef02642b0264af"
    }
   },
   {
@@ -511,9 +489,8 @@
      "effect": "sets metadataTime; else ignored (e.g. <wpt><time>)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parseTimestamp(_:)": "d7df97d86765938e"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parseTimestamp(_:)": "430473fb2d997053"
    }
   },
   {
@@ -566,12 +543,11 @@
      "effect": "trkType = text; else ignored (link/second-track types)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "7da1afba5649d309",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validCadence(_:)": "157640488b0ac227",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validHeartRate(_:)": "261a0cfaa153cb5c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.applyTime(_:)": "3ca73eaf458de7fd"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "f2e0bab561757ee8",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validCadence(_:)": "e67015a1c082f685",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validHeartRate(_:)": "4b5f05bfda6f0a33",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.applyTime(_:)": "86494d1f3ae63f98"
    }
   }
  ],

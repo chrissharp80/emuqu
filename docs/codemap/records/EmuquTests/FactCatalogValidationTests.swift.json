@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Comment says the registry is built 'against an in-memory archive', but makeRegistry passes SessionArchive .shared (the test host app's real archive) and SettingsManager.shared; toolSchema() drops entries whose currentAvailability has no data (FactResolverRegistry.swift:210-215), so the name/description/duplicate tests only cover entries that happen to have data in the host's archive — on a clean simulator many entries are never checked.",
-   "evidence": [
-    "EmuquTests/FactCatalogValidationTests.swift:25",
-    "EmuquTests/FactCatalogValidationTests.swift:30",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:213"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func FactCatalogValidationTests.makeRegistry()",
@@ -36,10 +23,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "fd82dc79e6160428",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17"
    }
   },
   {
@@ -54,21 +40,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Only entries with currentAvailability.hasData appear in toolSchema(), so two colliding entries with no data in the test host's archive are not detected.",
-     "evidence": [
-      "EmuquTests/FactCatalogValidationTests.swift:38",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:213"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "6ca770cebbe02fbd",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -103,10 +77,9 @@
      "effect": "no assertion"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "2afa28a33ccb856d",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -172,11 +145,10 @@
      "effect": "asserts root ∈ atomics and ∉ composites"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.keyRoot(_:)": "a67f7b72a7cc352d",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "2afa28a33ccb856d",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.keyRoot(_:)": "39db9001f13c0fde",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -194,7 +166,6 @@
      "effect": "true: returns prefix before '('; false: returns key unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -221,23 +192,11 @@
      "effect": "times currentAvailability"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Timing-dependent assertion (wall-clock < 50 ms per entry) on a shared CI runner; also availability reads run against the host app's real SessionArchive.shared so results vary with on-device data.",
-     "evidence": [
-      "EmuquTests/FactCatalogValidationTests.swift:135",
-      "EmuquTests/FactCatalogValidationTests.swift:140"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability": "062bfe524f063982",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability": "66f2dda191e45886",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.display": "753ca23ab5feb856",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "2afa28a33ccb856d",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -252,22 +211,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Both registries are built in the same process from the same archive, and catalogHash encodes with .sortedKeys (FactResolverRegistry.swift:231) over a name-sorted array (:215); per-process hash-seed ordering drift between app launches, which the comment at :150-152 claims to guard, is not exercised by an in-process comparison.",
-     "evidence": [
-      "EmuquTests/FactCatalogValidationTests.swift:153",
-      "EmuquTests/FactCatalogValidationTests.swift:154",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:215"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.catalogHash()": "0826d3542c7e04fb",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.catalogHash()": "1edf45a008a24431",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -288,10 +234,9 @@
      "effect": "asserts regex match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "6ca770cebbe02fbd",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -312,10 +257,9 @@
      "effect": "asserts trimmed description non-empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "6ca770cebbe02fbd",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
    }
   },
   {
@@ -380,24 +324,12 @@
      "effect": "XCTFail; any other result (including other missing reasons) counts as success"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says six namespaces register as 'app'; FactResolverRegistry.resolve's own comment says five.",
-     "evidence": [
-      "EmuquTests/FactCatalogValidationTests.swift:197",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:104"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.placeholderName(in:)": "f68ecaf91d968ce0",
-    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.substitutingPlaceholder(in:with:)": "527e7935c428c259"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "8bf96a1bcfbc7851",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "2afa28a33ccb856d",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.placeholderName(in:)": "b5ff35940359bc86",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.substitutingPlaceholder(in:with:)": "b9a40b6fb6946221"
    }
   },
   {
@@ -415,7 +347,6 @@
      "effect": "true: substitutes; false: returns pattern unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -438,7 +369,6 @@
      "effect": "false: returns nil; true: returns name without '$'"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

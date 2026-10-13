@@ -10,18 +10,6 @@
   "origin: fixed Date(1_700_000_000) for readings"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "SeededNormal re-implements the same SplitMix64 generator as DFAReferenceValidationTests.SeededGenerator (identical constants), adding Box-Muller on top.",
-   "evidence": [
-    "EmuquTests/TrendVerdictTests.swift:31",
-    "EmuquTests/DFAReferenceValidationTests.swift:159"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TrendVerdictTests.setUp()",
@@ -36,9 +24,8 @@
     "mem:LanguageManager (pinned English)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
@@ -52,9 +39,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.uniform()": "4e070595bc44b7b4"
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.uniform()": "9f00c2e7c2a49c41"
    }
   },
   {
@@ -66,7 +52,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -78,9 +63,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -92,7 +76,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -104,7 +87,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -119,10 +101,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "c59f8f5cc7f523b9",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -155,17 +136,16 @@
      "effect": "true: counts a false trend; false: adds 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()": "8e9a8d17e9021fed",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()": "f0b451b2add05232",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044"
    }
   },
   {
@@ -193,17 +173,16 @@
      "effect": "evaluates and asserts .down"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "344ac17f89921b5e",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044"
    }
   },
   {
@@ -231,17 +210,16 @@
      "effect": "evaluates and asserts .down"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "240686bb95271982"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "5788d880db34498b"
    }
   },
   {
@@ -268,16 +246,15 @@
      "effect": "builds the series and asserts .down"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044"
    }
   },
   {
@@ -303,15 +280,14 @@
      "effect": "analyzes and asserts .declining twice"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "e0d981024d5bacb1",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "880bc5237e58e20b",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "1de1b9c091e85cc9",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "f42a4ef002b9cc1c",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "344ac17f89921b5e",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "7639e30a55ea29d0"
    }
   },
   {
@@ -336,9 +312,8 @@
      "effect": "computes the rate and asserts < 0.07"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.noiseRate(count:series:sd:seed:)": "58609ae4f50373f0"
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.noiseRate(count:series:sd:seed:)": "2f455093d07470e9"
    }
   },
   {
@@ -369,27 +344,14 @@
      "effect": "true: adds 0; false: counts a trend"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc comment says 'The same bound through Flo's analyzer' but the assertion allows 12%, not the 7% of testNoiseFalseTrendRateIsBelowSevenPercent, so Flo's path may call almost twice as many noise weeks a trend as the shared rule and still pass.",
-     "evidence": [
-      "EmuquTests/TrendVerdictTests.swift:140",
-      "EmuquTests/TrendVerdictTests.swift:151",
-      "EmuquTests/TrendVerdictTests.swift:135"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "e0d981024d5bacb1",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()": "8e9a8d17e9021fed",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "880bc5237e58e20b",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "1de1b9c091e85cc9",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "f42a4ef002b9cc1c",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.SeededNormal.next()": "f0b451b2add05232",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "7639e30a55ea29d0"
    }
   },
   {
@@ -411,17 +373,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "344ac17f89921b5e",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044"
    }
   },
   {
@@ -436,10 +397,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044"
    }
   },
   {
@@ -483,18 +443,17 @@
      "effect": "expects arrow.right"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "8467fec4366d2470",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "e0d981024d5bacb1",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "51cec13b934c1292",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "10bdf41586e8a87f",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "240686bb95271982"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "880bc5237e58e20b",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "1de1b9c091e85cc9",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "f42a4ef002b9cc1c",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "75e39cb2f9e58a07",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.linear(from:to:count:)": "344ac17f89921b5e",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "7639e30a55ea29d0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "5788d880db34498b"
    }
   },
   {
@@ -518,19 +477,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)": "26eac7e02c76e2ca",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "35049f3dec741e97",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "240686bb95271982"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "8467fec4366d2470",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)": "b346eabaad1eb4a8",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.sessions(rmssd:)": "7639e30a55ea29d0",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.stepAtMidpoint(count:)": "5788d880db34498b"
    }
   },
   {
@@ -544,9 +502,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed"
    }
   }
  ],

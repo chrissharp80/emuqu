@@ -16,18 +16,6 @@
   "mem:WorkoutPlanModel.sensorSheetPresented"
  ],
  "toplevel": "Stored-property defaults only; instance created as @State in FitnessTabView.swift:46.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "resolvedSource and canStart have no unit tests (grep of EmuquTests finds none).",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutPlanModel.swift:76",
-    "Emuqu/Sources/Views/WorkoutPlanModel.swift:84"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
@@ -44,19 +32,6 @@
      "at": "+1",
      "cond": "strapConnected || hasKnownStrap",
      "effect": ".strap, else .watch"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "USERS_MANUAL step 2 tells the user to pick an HR source (Strap / Apple Watch / None), but the preflight has no HR-source control: explicitHRSource is never assigned, so the source is always derived (strap if known/connected, else watch) and None cannot be chosen.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1041",
-      "Emuqu/Sources/Views/WorkoutPlanModel.swift:77",
-      "Emuqu/Sources/Views/WorkoutPreflightView.swift:338"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -81,7 +56,6 @@
      "effect": "idle/finished/failed true; recording/finalizing false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -99,7 +73,6 @@
     "mem:WorkoutPlanModel.selectedThresholds"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

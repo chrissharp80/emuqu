@@ -17,18 +17,6 @@
   "KnownDeviceRow.deleteWidth = 70"
  ],
  "toplevel": "ConnectionPanel.collector is stored but never read in this file (comment 12-13 says it is a dependency carrier). btAuthorization initialised from CBCentralManager.authorization.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "ConnectionPanel stores `collector: RRCollector` but no code in the panel reads it; callers must pass it for nothing.",
-   "evidence": [
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift:14",
-    "Emuqu/Sources/Views/RecordView+Sections.swift:97"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var ConnectionPanel.body",
@@ -42,10 +30,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingSection": "68cbb45f675d1164"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingSection": "985890571d378f2d"
    }
   },
   {
@@ -83,11 +70,10 @@
      "effect": "ConnectionPanelConnected"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingPanel": "1fc0d872dd136919"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingPanel": "35c37704631be4c1"
    }
   },
   {
@@ -102,10 +88,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.cancelConnectionButton": "b4c9d4a51050ff89"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.cancelConnectionButton": "87eaf5a81214b29d"
    }
   },
   {
@@ -122,10 +107,9 @@
     "ble:Polar connection (cancel)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "27226a0338f69dfd",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -149,12 +133,11 @@
      "effect": "?? shows localized 'Polar device'; otherwise its displayName"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelHeader.connectionStatusBadge": "763d890f0b1a76e3"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "b3637bf31f4792be",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelHeader.connectionStatusBadge": "a2d511b21f185ddc"
    }
   },
   {
@@ -173,13 +156,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "c8e7eca32987cb72",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -215,10 +197,9 @@
      "effect": "linked(feed:heartRate:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.linked(feed:heartRate:)": "6be09970eb44e78a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.linked(feed:heartRate:)": "0ca6ca8c78e180c2"
    }
   },
   {
@@ -253,9 +234,8 @@
      "effect": "orange 'Setting up'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -275,7 +255,6 @@
      "effect": "returns devices unsorted; otherwise sorted with H10 first"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -287,7 +266,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -302,9 +280,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.knownDeviceList": "31c05ed23a805cb8"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.knownDeviceList": "b7616573c0816569"
    }
   },
   {
@@ -326,11 +303,10 @@
      "effect": "banner with Open Settings; otherwise known devices + scan"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothAccessDenied": "34488ed17dbd4019",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothDeniedBanner": "e51399df2d2f889a",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.deviceDiscoveryList": "a5f4a0d79bcd17dd"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothAccessDenied": "4b3e908a2bfd2652",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.bluetoothDeniedBanner": "1f6e729955ea3b9f",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.deviceDiscoveryList": "bc71b2f5389d115e"
    }
   },
   {
@@ -353,28 +329,13 @@
     "ud:UserDefaultsKeys.knownDevices (app-group suite, via StrapPairingStore.save)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Known-device list with connect/remove is implemented again in SensorManagementSheet (knownDevicesList/knownDeviceRow calling removeKnownDevice), with different ordering (no H10-first sort) and no Bluetooth-denied banner.",
-     "evidence": [
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:183",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:187",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:148",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:150",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:167"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)": "ecd617dd9604474e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.filteredKnownDevices": "831c7a75c9c07cde",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.scanButton": "b57ce03f65e31a3a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "c8f0a533134ddb74",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)": "c5dcbc186f01ffc5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.filteredKnownDevices": "857b905d2a2fea97",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.scanButton": "b8b65ffdb8ddf057",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -391,10 +352,9 @@
     "ble:Polar scan"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()": "2f18fc79106fa230",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()": "9222c9474d9b3dc6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -409,11 +369,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.openSettingsButton": "34748295aeb8f630",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.openSettingsButton": "4129df98a0dfb339",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -434,9 +393,8 @@
      "effect": "opens Settings; nil → tap does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -454,11 +412,10 @@
     "ble:Polar scan stop"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.stopScanning()": "bf46b0390e7f785f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceList": "48281224f7e7d7f2"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.stopScanning()": "3403afb4d0a46c39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceList": "01b0fff69f2e1f05"
    }
   },
   {
@@ -481,11 +438,10 @@
      "effect": "hint text; else rows"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceRows": "db255f7735373b71",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelScanning.discoveredDeviceRows": "4d5d9adecd427dd9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -501,22 +457,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Discovered-device rows (tap to connect) duplicate SensorManagementSheet.discoveredDevicesList.",
-     "evidence": [
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:273",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:281",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:124",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:126"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceRow(_:)": "bf1b86894779ffb2"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceRow(_:)": "231013a9a77538d7"
    }
   },
   {
@@ -533,10 +475,9 @@
     "ble:Polar connect"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceLabel(_:)": "098d04f6c91c00bc"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "c8f0a533134ddb74",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionPanelScanning.discoveredDeviceLabel(_:)": "45d11285c06895d7"
    }
   },
   {
@@ -550,10 +491,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -568,10 +508,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.disconnectSection": "ca603296e3f2a327",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingSection": "909e43297e919627"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.disconnectSection": "69993c2dd78a107b",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingSection": "9572819a7e0e979f"
    }
   },
   {
@@ -594,10 +533,9 @@
      "effect": "?? shows 'Unknown'; otherwise the raw device id"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingOnDeviceBadge": "3203c91c28d6f38e"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelConnected.recordingOnDeviceBadge": "1e51cf4b7d23baa1"
    }
   },
   {
@@ -619,11 +557,10 @@
      "effect": "shows badge; else empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -642,11 +579,10 @@
     "ble:Polar disconnect"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -662,11 +598,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deleteBackdrop": "80dd34ac3c80bb03",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRow": "340f300b1ff27c9f",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.removeDeviceButton": "89b719da0971184d"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deleteBackdrop": "f8ed6649b61040f1",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRow": "7ab634c6b28a6e65",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.removeDeviceButton": "92a17e10deb3fc90"
    }
   },
   {
@@ -684,10 +619,9 @@
     "ud:UserDefaultsKeys.knownDevices (app-group suite, via onRemove)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.body": "061554c4b246e919"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.body": "9263138fd0362ff4"
    }
   },
   {
@@ -704,14 +638,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "8d5598d32ee06a05",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.handleTap()": "9406e44d7f7a7140",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRowText": "1e8d4488e5ce9157",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete": "180e2130f5297c1f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "39938ab42bc972ff",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.handleTap()": "0d328a2cde1a6d3c",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRowText": "c1c2e3499b8e5356",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete": "556f62c6009ac8b3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820"
    }
   },
   {
@@ -723,9 +656,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -745,7 +677,6 @@
      "effect": "animates offset to 0 and revealed=false; else onConnect()"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -760,10 +691,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragChanged(_:)": "a9f2c94617a56543",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragEnded(_:)": "734fb2c1cdc3575a"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragChanged(_:)": "66fc4e26e125fd28",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.dragEnded(_:)": "5919af491b7888c1"
    }
   },
   {
@@ -786,7 +716,6 @@
      "effect": "offset = max(-70,translation); right drags ignored"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -807,10 +736,9 @@
      "effect": "settleFromOpen(translation); else settleFromClosed()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromClosed()": "a744ab04a02b00d8",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromOpen(_:)": "ef653c20b35cd6db"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromClosed()": "021b7fd093d29344",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.settleFromOpen(_:)": "7a3b1dfb5c7e931f"
    }
   },
   {
@@ -828,7 +756,6 @@
      "effect": "offset 0, revealed=false; else offset -70"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -846,7 +773,6 @@
      "effect": "open; else close"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -864,9 +790,8 @@
     "ud:UserDefaultsKeys.knownDevices (app-group suite, via onRemove)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

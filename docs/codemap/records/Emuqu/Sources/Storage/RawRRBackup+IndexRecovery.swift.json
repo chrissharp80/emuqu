@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func RawRRBackup.recoverIndexFromFiles()",
@@ -40,13 +39,12 @@
      "effect": "?? [] → returns no entries (index becomes empty)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)": "fd5b5faa19ff30f8",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromHeaderNamed:)": "7a08edee21741ea6",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromHeaderNamed:)": "47dd3752796189b8",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)": "34f4424a9b68b1de",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -76,12 +74,11 @@
      "effect": "beatCount 0 and backedUpCount nil (next append rewrites in full; retrieve() then takes the legacy path with fileName nil and returns nil)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)": "bc72b027b9038e69",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "4997678122529341",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -111,14 +108,13 @@
      "effect": "row; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)": "ff36a16448d4bf3e",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "8aa91e1609fa7b46",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "fc8e5d2d1f1cbf7e",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)": "3c873e6908cb3a99",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "ef97a1a3f041353b",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "4997678122529341",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "1987e98d1e24873d"
    }
   },
   {
@@ -138,9 +134,8 @@
      "effect": "writtenMs 0, sorts lowest"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "89546bc812f222f9"
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d"
    }
   },
   {
@@ -160,9 +155,8 @@
      "effect": "stamp += 1 and retry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)": "ff36a16448d4bf3e"
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)": "3c873e6908cb3a99"
    }
   },
   {
@@ -190,7 +184,6 @@
      "effect": "seconds: ×1000; else already ms"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -210,9 +203,8 @@
      "effect": "0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "8aa91e1609fa7b46"
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "ef97a1a3f041353b"
    }
   },
   {
@@ -224,7 +216,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

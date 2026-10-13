@@ -10,7 +10,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)",
@@ -34,9 +33,8 @@
      "effect": "append it; else skip silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "833d6e9a87f668b5"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "bbfb350a6490456b"
    }
   },
   {
@@ -82,15 +80,14 @@
      "effect": "return nil; else build scoredBlock"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "bad10396fbecce5a",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)": "45409c9d4880c5cd",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)": "54a5cea3ef35a4c1",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)": "07d360ed9e5bc6e7",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)": "dfc4b5c763600788",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPointCount:)": "b7859b6733fbe75b",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.windowSlice(series:flags:startIdx:endIdx:)": "4f1652ef9c9023e9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPointCount:)": "577efb2137bc3522",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.windowSlice(series:flags:startIdx:endIdx:)": "e786f0d9120d358c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -110,9 +107,8 @@
      "effect": "build slice with flags clamped to [min(startIdx,flagsUpper), min(endIdx, flags.count)); else log warning and return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -124,7 +120,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -146,11 +141,10 @@
      "effect": "log and return nil; else return CleanBeats"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "4416f76b49e1dabe",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "02e01e27fe494a31",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "9bc49a4d235e4785",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -183,12 +177,11 @@
      "effect": "return nil; unreachable (non-empty slice guaranteed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)": "f21cf3eee793629a",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "1ffe622727230603",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::var WindowSelector.CleanBeats.rrs": "6bfd57789c9814ed"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3e3d78bd99965ddb",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)": "bad80d1606997708",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "866ec0ab3b2a6f0d",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::var WindowSelector.CleanBeats.rrs": "c070926c392c1666"
    }
   },
   {
@@ -218,9 +211,8 @@
      "effect": "append; else drop (not counted as artifact)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "7f0108f249102317"
    }
   },
   {
@@ -240,9 +232,8 @@
      "effect": "log and return false; else return true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -257,10 +248,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)": "9ff3b4bc24d6f20d",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)": "0db7740231c51f5d",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "d50c103ae5862c0c"
    }
   },
   {
@@ -283,7 +273,6 @@
      "effect": "return trimmed mean of the middle 90%; else plain mean"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -306,7 +295,6 @@
      "effect": "return (mid - start)/duration (can be <0 or >1); else 0.5"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

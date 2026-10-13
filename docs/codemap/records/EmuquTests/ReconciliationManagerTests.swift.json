@@ -11,33 +11,6 @@
   "file:Documents/HRVOffline/pending.json (real app queue)"
  ],
  "toplevel": "Uses the process-wide SessionArchive.shared and a ReconciliationManager that persists to the real Documents/HRVOffline/pending.json; there is no setUp/tearDown cleanup.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "queueForSync appends full HRVSessions to the app host's real Documents/HRVOffline/pending.json and nothing removes them; every run grows that file by four sessions, and pending/needsSync assertions then run over residue from earlier runs.",
-   "evidence": [
-    "EmuquTests/ReconciliationManagerTests.swift:8",
-    "EmuquTests/ReconciliationManagerTests.swift:29",
-    "EmuquTests/ReconciliationManagerTests.swift:62",
-    "Emuqu/Sources/Storage/Reconciliation.swift:24",
-    "Emuqu/Sources/Storage/Reconciliation.swift:106"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "The offline queue exercised here (queueForSync / pending) has no production caller; grep finds only this test file, and Reconciliation.swift's header comment says nothing drains it. These tests are the only callers.",
-   "evidence": [
-    "Emuqu/Sources/Storage/Reconciliation.swift:5",
-    "Emuqu/Sources/Storage/Reconciliation.swift:56",
-    "Emuqu/Sources/Storage/Reconciliation.swift:73",
-    "EmuquTests/ReconciliationManagerTests.swift:29"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ReconciliationManagerTests.makeSession(id:)",
@@ -50,9 +23,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -77,16 +49,15 @@
     "file:Documents/HRVOffline/pending.json (real app queue)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
-    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending": "f1c58ab871c8ec54",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "b919cf08f0fdacb9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "0fceaeeeb86e0344",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending": "84bd306adc1057c7",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   },
   {
@@ -107,14 +78,13 @@
     "file:Documents/HRVOffline/pending.json (real app queue)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "b919cf08f0fdacb9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "0fceaeeeb86e0344",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   },
   {
@@ -136,15 +106,14 @@
     "file:Documents/HRVOffline/pending.json (real app queue)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "92ae4c7489717cfc",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "b919cf08f0fdacb9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "0fceaeeeb86e0344",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "17d074d153fdef6e",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   },
   {
@@ -164,12 +133,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "92ae4c7489717cfc",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "17d074d153fdef6e",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e"
    }
   },
   {
@@ -194,27 +162,15 @@
     "file:Documents/HRVOffline/pending.json (real app queue)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "pending filters by needsSync itself, so `allSatisfy(\\.needsSync)` is true by construction and cannot fail.",
-     "evidence": [
-      "EmuquTests/ReconciliationManagerTests.swift:67",
-      "Emuqu/Sources/Storage/Reconciliation.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
-    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending": "f1c58ab871c8ec54",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "b919cf08f0fdacb9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "0fceaeeeb86e0344",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending": "84bd306adc1057c7",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   },
   {
@@ -231,12 +187,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   },
   {
@@ -253,22 +208,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same assertion as RRModelsTests.testOfflineSessionMaxRetries.",
-     "evidence": [
-      "EmuquTests/RRModelsTests.swift:449"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   },
   {
@@ -285,22 +229,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same assertion as RRModelsTests.testOfflineSessionNeedsSync.",
-     "evidence": [
-      "EmuquTests/RRModelsTests.swift:439"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
-    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "82d6d72265183028"
    }
   }
  ],

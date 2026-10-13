@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "Header comment documents max-HR resolution (override → Tanaka 208−0.7×age → 180), which matches UserSettings.effectiveMaxHR, and states the zone fractions are the Edwards TRIMP layout (Lucia is a different three-zone model).",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The same 50/60/70/80/90 % of max-HR binning is re-implemented in at least two other places instead of calling HRZone.classify.",
-   "evidence": [
-    "Emuqu/Sources/Views/HRZone.swift:40",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:294",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift:457"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func HRZone.classify(hr:userMaxHR:)",
@@ -66,18 +53,6 @@
      "effect": "→ nil (no zone, neutral colour)"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "HRZone.classify (the live zone pill and mile-marker zone) has no direct test; EmuquTests only bucket zones through WorkoutAnalysisSnapshotBuilder, which uses its own binning.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRZone.swift:37",
-      "EmuquTests/WorkoutAnalysisSnapshotBuilderTests.swift:235"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -89,7 +64,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -101,9 +75,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -139,20 +112,6 @@
      "at": "+6",
      "cond": "z5",
      "effect": "red (0.90,0.30,0.30)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "WorkoutStatsCards.hrZones hard-codes a second zone palette that disagrees with HRZone.color (its zone 1 uses HRZone's z2 green 0.40/0.80/0.55 and zone 2 another green), so the post-workout HR chart bands and the live zone pill colour the same zone differently.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRZone.swift:66",
-      "Emuqu/Sources/Views/HRZone.swift:67",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:211",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:212"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}

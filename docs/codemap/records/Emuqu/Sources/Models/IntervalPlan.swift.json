@@ -12,7 +12,6 @@
   "mem:IntervalPlan.presets (static let: 'Easy base (30 min Z2)' id 1111…, \"5×3' tempo @ Z4\" id 2222…, '4×30/30 VO₂ (2 sets)' id 3333…)"
  ],
  "toplevel": "IntervalPlan.presets is a static let evaluated lazily on first access (WorkoutPreflightView.swift:785); it builds three plans with fixed UUID literals via presetID and the 30/30 plan via thirtyThirtySteps(sets: 2). All Codable/Equatable conformances are synthesized.",
- "flags": [],
  "units": [
   {
    "key": "var IntervalStep.id",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -85,9 +83,8 @@
      "effect": "returns label as stored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -102,10 +99,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.amountPart": "17dea327fcce5f1a",
-    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.targetPart": "2147c3bb32011fbe"
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.amountPart": "38552d214a36205a",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.targetPart": "f8ae2285379a5fe1"
    }
   },
   {
@@ -143,7 +139,6 @@
      "effect": "true: '%.1f km'; false: 'N m' (truncated Int)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -176,7 +171,6 @@
      "effect": "'@ <rawValue> effort' (e.g. 'allOut effort')"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -213,9 +207,8 @@
      "effect": "returned unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -233,9 +226,8 @@
      "effect": "preconditionFailure (crash at first presets access); all three literals are valid so this never fires"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.id": "653ea27bde644721"
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.id": "8ed6a1de6cef222d"
    }
   },
   {
@@ -253,7 +245,6 @@
      "effect": "falls back to zone 2; unreachable because every spec label ('warm up','hard','easy','rest') is a key"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

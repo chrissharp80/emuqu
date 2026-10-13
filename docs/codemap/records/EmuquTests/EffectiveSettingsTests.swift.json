@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "Ages are built from Date() and Calendar.current, so the age-derived assertions depend on the run date and ambient zone (acknowledged by the ±1 tolerance).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "UserSettings.maxHR's doc comment still says the fallback is '220 − age'; effectiveMaxHR delegates to MaxHeartRate.tanaka (208 − 0.7 × age), which these tests pin.",
-   "evidence": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift:93",
-    "Emuqu/Sources/Analysis/MaxHeartRate.swift:86",
-    "EmuquTests/EffectiveSettingsTests.swift:48"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func EffectiveSettingsTests.settings()",
@@ -30,7 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
    }
@@ -50,7 +36,6 @@
      "effect": "nil (cannot happen) → now, i.e. age 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -65,11 +50,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -86,24 +70,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The secondary assertion effectiveMaxHR > 183 is said to rule out 220−age, but 220−30 = 190 also exceeds 183, so a revert to 220−age passes it; only the delegation equality catches a formula change, and it compares production to itself.",
-     "evidence": [
-      "EmuquTests/EffectiveSettingsTests.swift:62"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
-    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "8a154e8c69c57476",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "82680f14d6cd9366",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "5f510062b8fa2b5d",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -119,13 +92,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "8a154e8c69c57476",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "5f510062b8fa2b5d",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -141,24 +113,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "At age 1 Tanaka gives 207, below the 220 ceiling, so this test passes even if the cap is removed; no input reaches the clamp.",
-     "evidence": [
-      "EmuquTests/EffectiveSettingsTests.swift:85",
-      "Emuqu/Sources/Analysis/MaxHeartRate.swift:58"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "8a154e8c69c57476",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.age(_:)": "5f510062b8fa2b5d",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -173,12 +133,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -192,10 +151,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -211,12 +169,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -232,24 +189,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Pins an effective LTHR of 120 bpm for a user max HR of 80 bpm, i.e. a threshold 40 bpm above the stated maximum, without flagging it; any user-entered max below 137 gets LTHR above 0.88×max and below 137 gets LTHR above max, which feeds the hrTSS denominator.",
-     "evidence": [
-      "EmuquTests/EffectiveSettingsTests.swift:118",
-      "EmuquTests/EffectiveSettingsTests.swift:119",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:121"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -271,12 +215,11 @@
      "effect": "sets it and asserts LTHR below it"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -290,10 +233,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -307,10 +249,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -324,10 +265,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -341,10 +281,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -358,10 +297,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -375,11 +313,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -393,11 +330,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -411,10 +347,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f0af4a98fba62550",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   },
   {
@@ -428,10 +363,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
-    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "cd01fdc396b4ce2b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f0af4a98fba62550",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
   }
  ],

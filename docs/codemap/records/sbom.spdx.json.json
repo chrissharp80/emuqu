@@ -5,28 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Structure: document header (SPDX-2.3, CC0-1.0, name Emuqu-SBOM, deterministic namespace from a SHA-256 of Package.resolved, creator 'Tool: scripts/generate_sbom.py', fixed created 2026-08-27), hasExtractedLicensingInfos for the proprietary Polar SDK licence, 12 packages: the Emuqu root (PolyForm-Strict-1.0.0, copyright Chris Sharp) and one entry per Package.resolved pin with version, git downloadLocation, hard-coded license (Polar proprietary, Apache-2.0 for apple/huggingface packages, MIT for WhisperKit/yyjson/Zip), purl externalRef, a 'SHA1' checksum that is the git commit revision, and a Direct/Transitive comment; 12 relationships: DOCUMENT DESCRIBES Emuqu, Emuqu DEPENDS_ON polar-ble-sdk and whisperkit, and 'Emuqu DEPENDENCY_OF <pkg>' for the 9 transitive pins.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "Transitive pins are recorded as 'SPDXRef-Package-Emuqu DEPENDENCY_OF <package>', which in SPDX means Emuqu is a dependency of that package - the inverse of the truth. The generator emits this deliberately for non-direct packages (generate_sbom.py:147-151) and the drift check re-emits the same, so the committed SBOM states 9 inverted edges.",
-   "evidence": [
-    "sbom.spdx.json:311",
-    "scripts/generate_sbom.py:149"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "Each package 'checksums' entry labels the git commit revision as an SHA1 checksum of the package; it is a commit id, not a hash of the package contents, so SBOM consumers verifying package integrity get a meaningless value.",
-   "evidence": [
-    "sbom.spdx.json:49",
-    "scripts/generate_sbom.py:140"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

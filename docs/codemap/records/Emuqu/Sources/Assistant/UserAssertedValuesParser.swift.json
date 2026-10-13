@@ -10,7 +10,6 @@
   "knownMetrics / metricAliases / connectorRequiredMetrics / metricsLongestFirst / unitLikeMetrics / dashboardContradictionPhrases / correctionReplyOpeners / correctionReplyWords / explicitOverridePhrases (static lets, UserAssertedValuesParser.swift:97-330); unitLikeMetrics = hr/bpm/watts/calories (names that are also units); explicitOverridePhrases names the tool-call forms of \"don't call\"/\"do not call\" (\"the tool\", \"tools\", \"any tool\") rather than the bare verb."
  ],
  "toplevel": "Static phrase and metric tables; file name UserAssertedValuesParser.swift does not match the type it declares (UserCorrectionDetector).",
- "flags": [],
  "units": [
   {
    "key": "var UserCorrectionDetector.Signals.hasAnyCorrection",
@@ -21,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -54,24 +52,11 @@
      "effect": "explicitOverrideRequested = true."
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Flags are OR-ed over the whole window (caller passes user turns within the last 6 turns), so a single \"you're wrong\" keeps the dashboard training-load block suppressed for several following turns even after the user moves on.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:80",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:581",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:335"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "650bcadebe84ab1c",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "80795c7c57b50465"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "0cfccfbc2dce2608",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "f771033c4e8751bc",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "d5855da1683ff61a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "6e91877f5070b070"
    }
   },
   {
@@ -112,10 +97,9 @@
      "effect": "stores it under the canonical key."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "1fcea54b6b252401",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "d86dda64ce70404f",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "83b84c606bde1d17"
    }
   },
   {
@@ -140,7 +124,6 @@
      "effect": "kept; questions dropped."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -167,10 +150,9 @@
      "effect": "returns (value, remainder); otherwise nil."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.parseValue(_:)": "f784315551819c39",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.valuePattern(for:connectorRequired:)": "0fe9d1cfa4071de0"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.parseValue(_:)": "6d6c7134ec87e9e4",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.valuePattern(for:connectorRequired:)": "bca051a0bddbc13c"
    }
   },
   {
@@ -200,7 +182,6 @@
      "effect": "connector group mandatory; otherwise optional."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -223,7 +204,6 @@
      "effect": "returns nil."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -235,7 +215,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -250,10 +229,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)": "4836fc924263a4b8",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)": "a71e358417173882"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)": "979ae6e096ad7be9",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)": "375c076e5628a515"
    }
   },
   {
@@ -273,9 +251,8 @@
      "effect": "found = true, stop; otherwise continue."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isCorrectionReply(_:)": "44af5858bd414286"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isCorrectionReply(_:)": "669e6bc2f47280f0"
    }
   },
   {
@@ -303,7 +280,6 @@
      "effect": "true; ?? false when empty."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -317,9 +293,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)": "4836fc924263a4b8"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)": "979ae6e096ad7be9"
    }
   },
   {
@@ -349,10 +324,9 @@
      "effect": "adds the values header and lines."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "e526916cf68d685d",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "4b66eac48f20d116"
    }
   },
   {
@@ -387,9 +361,8 @@
      "effect": "emit (always true)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "c2cd58e1186c3763"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "940e7ac28535183d"
    }
   },
   {
@@ -427,7 +400,6 @@
      "effect": "\"%g\"."
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

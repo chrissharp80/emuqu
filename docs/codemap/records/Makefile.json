@@ -9,7 +9,6 @@
   "PROJECT ?= Emuqu.xcodeproj"
  ],
  "toplevel": "Sets SHELL=/bin/bash, overridable SCHEME/PROJECT defaults, and a .PHONY list naming every target (including codemap-setup, codemap-guard, codemap-report and codemap-impact) (localization-orphan-guard appears twice, harmless). All targets are thin wrappers around scripts/*.sh, Tools/copy_linter/lint.py, scripts/generate_sbom.py, swiftlint/swiftformat or xcodebuild; their behaviour is in the unit records.",
- "flags": [],
  "units": [
   {
    "key": "target lint",
@@ -22,7 +21,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -38,9 +36,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/enforce_swiftlint_budget.sh::": "4827a351792f7b9c"
+    "scripts/enforce_swiftlint_budget.sh::": "78a35b6942b2f21a"
    }
   },
   {
@@ -54,7 +51,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -69,9 +65,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
    }
   },
   {
@@ -90,9 +85,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/run_tests_with_coverage.sh::": "55a77a5ba714a5ab"
+    "scripts/run_tests_with_coverage.sh::": "a41c19e1ba7dbea5"
    }
   },
   {
@@ -112,7 +106,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/enforce_tech_debt_budgets.sh::": "ced88e4bf81e4dc8"
    }
@@ -130,11 +123,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
+    "scripts/check_infoplist_key_drift.sh::": "28c4fd1293c2d3b3",
     "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e",
-    "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862"
+    "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759"
    }
   },
   {
@@ -148,7 +140,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_no_shared_outside_root.sh::": "4422bbd4342c8091"
    }
@@ -166,9 +157,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_dated_comment_budget.sh::": "e5194e37497f904b"
+    "scripts/check_dated_comment_budget.sh::": "021242d89d92bc8c"
    }
   },
   {
@@ -182,7 +172,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_no_unowned.sh::": "613c23141181c8ba"
    }
@@ -198,10 +187,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target ci": "b679f3a8965b735e",
-    "scripts/check_logger_self_reference.sh::": "b714e96b1ff9ad5d"
+    "Makefile::target ci": "de372d3ddd101741",
+    "scripts/check_logger_self_reference.sh::": "a38e378f33900911"
    }
   },
   {
@@ -215,23 +203,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
-     "evidence": [
-      ".github/workflows/gates.yml:7-20",
-      ".github/workflows/gates.yml:60",
-      "Makefile:48-53",
-      "Makefile:272",
-      ".github/workflows/ci.yml:273-280",
-      "scripts/check_gates_wired.sh:17",
-      "scripts/check_coremotion_handler_isolation.sh:36-37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "scripts/check_coremotion_handler_isolation.sh::": "2c1d5dd8cf5073f2"
    }
@@ -247,23 +218,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
-     "evidence": [
-      ".github/workflows/gates.yml:7-20",
-      ".github/workflows/gates.yml:60",
-      "Makefile:48-53",
-      "Makefile:272",
-      ".github/workflows/ci.yml:273-280",
-      "scripts/check_gates_wired.sh:17",
-      "scripts/check_coremotion_handler_isolation.sh:36-37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "scripts/check_hr_feed_subscribes_on_link.sh::": "966820c0623915e2"
    }
@@ -279,9 +233,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_no_license_headers.sh::": "85097fb14eb2543d"
+    "scripts/check_no_license_headers.sh::": "b361e7f82a9fe754"
    }
   },
   {
@@ -297,9 +250,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_unchecked_sendable.sh::": "c41e2a91a6664081"
+    "scripts/check_unchecked_sendable.sh::": "616a67749fc8ebe0"
    }
   },
   {
@@ -322,7 +274,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_refactor_spec_conformance.sh::": "9cfdce0d76783dc4"
    }
@@ -338,7 +289,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_locale_formatting.sh::": "aca373d604e0631f"
    }
@@ -354,9 +304,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_doc_file_counts.sh::": "8c626a38aff199a4"
+    "scripts/check_doc_file_counts.sh::": "ea5d071473f0cfbc"
    }
   },
   {
@@ -370,7 +319,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_date_ms_conversion.sh::": "1434eda5b99ef460"
    }
@@ -386,7 +334,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_empty_range_loops.sh::": "699901b1c19ac251"
    }
@@ -402,9 +349,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_no_leaked_mutations.sh::": "11ee1b28e94d42a3"
+    "scripts/check_no_leaked_mutations.sh::": "1d0616035c6dbf6a"
    }
   },
   {
@@ -418,7 +364,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_no_eager_permission_prompts.sh::": "496088f8cb679f6c"
    }
@@ -436,7 +381,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_gates_wired.sh::": "b223d96bf75376e4"
    }
@@ -452,9 +396,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_snapshot_references.sh::": "3af8d2a44ee0bf3d"
+    "scripts/check_snapshot_references.sh::": "dcd09bdaa160b649"
    }
   },
   {
@@ -470,9 +413,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_sbom_drift.sh::": "7233f619148a0f19"
+    "scripts/check_sbom_drift.sh::": "efdd5410eaab6533"
    }
   },
   {
@@ -486,7 +428,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_log_redaction.sh::": "adc6b124cccb3a8d"
    }
@@ -504,7 +445,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_localization_coverage.sh::": "9e1991807b12665d"
    }
@@ -520,7 +460,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_localization_bundle.sh::": "dc38eb0e596bc785"
    }
@@ -536,7 +475,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_localization_resolution.sh::": "b3acce7afc250a11"
    }
@@ -552,9 +490,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_uitest_fresh_install.sh::": "a2fe736d46ea7d35"
+    "scripts/check_uitest_fresh_install.sh::": "09e01c2621c92788"
    }
   },
   {
@@ -570,10 +507,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target ci": "b679f3a8965b735e",
-    "scripts/check_test_skip_budget.sh::": "86d14e669b19a306"
+    "Makefile::target ci": "de372d3ddd101741",
+    "scripts/check_test_skip_budget.sh::": "a9daed719ffa6836"
    }
   },
   {
@@ -600,26 +536,11 @@
      "effect": "that ref is the baseline; otherwise HEAD (working tree vs last commit)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": ".ci/min_coverage_views.txt holds 43.5, a non-integer; check_budget_monotonicity.sh read_int() rejects anything not ^[0-9]+$ and the loop `continue`s, so the views coverage floor is never compared and can be lowered with no budget-raise-ok trailer while the ratchet prints clean. Its header lists only three floors (min_coverage, min_coverage_logic, min_localization_coverage).",
-     "evidence": [
-      ".ci/min_coverage_views.txt:1",
-      "scripts/check_budget_monotonicity.sh:24-25",
-      "scripts/check_budget_monotonicity.sh:129-135",
-      "scripts/check_budget_monotonicity.sh:143",
-      "scripts/check_coverage.sh:43"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
-    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
-    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
-    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "e077302680bcc6ab",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
     "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
    }
   },
@@ -637,7 +558,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_fixed_font_budget.sh::": "30d5e2746e069f6c"
    }
@@ -655,9 +575,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_strict_concurrency_enabled.sh::": "be05d3aac3d60d4e"
+    "scripts/check_strict_concurrency_enabled.sh::": "69b0218a099f204d"
    }
   },
   {
@@ -671,7 +590,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_thread_sanitizer.sh::": "a89c9dfd4f676205"
    }
@@ -689,7 +607,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_no_orphan_swift.sh::": "d55b2639d709991a"
    }
@@ -705,9 +622,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/copy_linter/lint.py::": "23a02988758cfb85"
+    "Tools/copy_linter/lint.py::": "5373b51ca6189fff"
    }
   },
   {
@@ -721,9 +637,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_doc_links.sh::": "e3bc412afabf1b5c"
+    "scripts/check_doc_links.sh::": "e124dbf75252d374"
    }
   },
   {
@@ -737,7 +652,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_no_developer_endpoint.sh::": "df590bbb70bc5631"
    }
@@ -764,7 +678,6 @@
      "effect": "nothing to do; otherwise setup_venv.sh runs (and fails the target when no Python 3.10+ is found)"
     }
    ],
-   "flags": [],
    "deps": {
     "scripts/codemap/setup_venv.sh::": "2e836201c3bf282d"
    }
@@ -780,16 +693,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "d2527a25cec71c5c",
-    "scripts/check_codemap.sh::": "7556633b3058e90d"
+    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "scripts/check_codemap.sh::": "d855ae4972e708aa"
    }
   },
   {
    "key": "target codemap-impact",
    "hash": "2362bee2a01039bb",
-   "does": "After codemap-setup, runs `codemap.py impact --base $BASE` (BASE defaults to origin/main): prints every unit the working tree changed against that ref with its callers, the triggers, tests and docs that reach it, the shared state it touches and the open findings. Not a gate; always exits 0 unless the ref is unknown.",
+   "does": "After codemap-setup, runs `codemap.py impact --base $BASE` (BASE defaults to origin/main): prints every unit the working tree changed against that ref with its callers, the triggers, tests and docs that reach it, the shared state it touches and, when the local findings overlay exists, the open findings. Not a gate; always exits 0 unless the ref is unknown.",
    "entry": "make codemap-impact [BASE=<ref>]",
    "calls": [
     "Makefile::target codemap-setup",
@@ -798,11 +710,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "d2527a25cec71c5c",
-    "scripts/codemap/codemap.py::": "5d018c610440e0c2",
-    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
+    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "scripts/codemap/codemap.py::": "124fefe07124e0ad",
+    "scripts/codemap/codemap.py::def main": "5406a0247905c1b9"
    }
   },
   {
@@ -819,11 +730,10 @@
     "file:build/codemap/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "d2527a25cec71c5c",
-    "scripts/codemap/codemap.py::": "5d018c610440e0c2",
-    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
+    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "scripts/codemap/codemap.py::": "124fefe07124e0ad",
+    "scripts/codemap/codemap.py::def main": "5406a0247905c1b9"
    }
   },
   {
@@ -837,9 +747,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_gate_preflight.sh::": "022bce1a14ca644a"
+    "scripts/check_gate_preflight.sh::": "50d2bc54de2f5eb5"
    }
   },
   {
@@ -853,7 +762,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/verify_gates_fail.sh::": "6f091b6c9dfb0702"
    }
@@ -871,9 +779,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/generate_sbom.py::": "1468a1f316fb0f1e"
+    "scripts/generate_sbom.py::": "e3c8a0bdb0e501f7"
    }
   },
   {
@@ -890,9 +797,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/generate_sbom.py::": "1468a1f316fb0f1e"
+    "scripts/generate_sbom.py::": "e3c8a0bdb0e501f7"
    }
   },
   {
@@ -906,7 +812,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_perimeter_sync.sh::": "8fe9ffd70534bf49"
    }
@@ -924,9 +829,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_science_register.sh::": "788a8f29f19e0252"
+    "scripts/check_science_register.sh::": "1f484723766cdba1"
    }
   },
   {
@@ -942,7 +846,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_scoring_governance.sh::": "1c354b851d30e71e"
    }
@@ -958,7 +861,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_comment_citations.sh::": "1b6badad361be5a9"
    }
@@ -977,7 +879,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_aggregate_type_size.sh::": "7396aea18f3ef6aa"
    }
@@ -995,7 +896,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_localization_orphans.sh::": "6c11906399db0e5b"
    }
@@ -1011,7 +911,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_localization_format_args.sh::": "f35f257cb5811bb3"
    }
@@ -1036,18 +935,6 @@
      "effect": "grep error: lines from the log, sorted unique, print FAILED with log path, exit 1; on success fall through to \"release-build: OK\""
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The `ci` comment says it is \"the same set ci.yml runs\", but `ci` omits release-build while ci.yml's tests job runs `make release-build` (the optimizer-only diagnostics that once broke every Release archive), so a local `make ci` can pass on code whose Release build fails.",
-     "evidence": [
-      "Makefile:266-272",
-      ".github/workflows/ci.yml:482-488"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -1063,9 +950,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/simulate_ci.sh::": "036afd9e5ce223a9"
+    "scripts/simulate_ci.sh::": "b18acb41f01b0895"
    }
   },
   {
@@ -1081,21 +967,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The Makefile says ci-local runs 'what CI runs' and 'cannot drift', but simulate_ci.sh drops the thread-sanitizer job for --scope unit, while ci.yml runs that job on every scope except gates. A local `make ci-local-unit` therefore passes without the TSan run that a `unit` dispatch requires.",
-     "evidence": [
-      "Makefile:258-264",
-      "scripts/simulate_ci.sh:106-107",
-      ".github/workflows/ci.yml:417"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "scripts/simulate_ci.sh::": "036afd9e5ce223a9"
+    "scripts/simulate_ci.sh::": "b18acb41f01b0895"
    }
   },
   {
@@ -1155,55 +1028,54 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
-    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
-    "Makefile::target codemap-guard": "86407f3ed9c5a020",
-    "Makefile::target comment-citations": "5d99132a7ed35a3d",
-    "Makefile::target copy-perimeter": "42858b4dd6c79830",
-    "Makefile::target coremotion-isolation-guard": "40fcf69e652a20c7",
-    "Makefile::target date-ms-guard": "5d1483cc14f91acf",
-    "Makefile::target dated-comment-budget": "4d060a7644646ab1",
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
-    "Makefile::target doc-links": "a8f084188e2d717b",
-    "Makefile::target eager-prompt-guard": "50d14b391de121e4",
-    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
-    "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
-    "Makefile::target gate-preflight": "6920a992e5fe9a61",
-    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
-    "Makefile::target hr-feed-link-guard": "870a10aaace9cd4e",
-    "Makefile::target infoplist-guard": "534a23e094558e6d",
-    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
-    "Makefile::target license-header-guard": "5a874a7a5519c7ff",
-    "Makefile::target lint": "ee78d83b950fa63a",
-    "Makefile::target lint-budget": "1a28f599153715e4",
-    "Makefile::target locale-format-guard": "3bc960e72737676f",
-    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
-    "Makefile::target localization-format-guard": "0d43f8954fa435e8",
-    "Makefile::target localization-guard": "6f037f306cd54e75",
-    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6",
-    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f",
-    "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
-    "Makefile::target logger-self-reference-guard": "298678b9de1426cd",
-    "Makefile::target no-phone-home": "28f9f3dd4f70e0ce",
-    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
-    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
-    "Makefile::target perimeter-sync": "acc9ff850493b808",
-    "Makefile::target sbom-check": "e1a31616864cff02",
-    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
-    "Makefile::target science-register": "7d38d351a8e872c3",
-    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
-    "Makefile::target sendable-guard": "16583da771b94003",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
-    "Makefile::target skip-budget": "5163df861fd66554",
-    "Makefile::target snapshot-refs-guard": "63830b2fa0ad1c7e",
-    "Makefile::target spec-conformance": "060f9ad7c55731da",
-    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
-    "Makefile::target test-coverage": "06ed85ce10572ea0",
-    "Makefile::target uitest-reset-guard": "4f60211274aafec3",
-    "Makefile::target verify-gates": "585e699b6307cf8d"
+    "Makefile::target aggregate-type-size": "185103618755699f",
+    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
+    "Makefile::target codemap-guard": "31a759d3fd34483c",
+    "Makefile::target comment-citations": "d3fb280d89bc1785",
+    "Makefile::target copy-perimeter": "fbee448e717c17f3",
+    "Makefile::target coremotion-isolation-guard": "c2665e6fbeb378c4",
+    "Makefile::target date-ms-guard": "bf6f514735c220fa",
+    "Makefile::target dated-comment-budget": "ff56215a6ab7d46d",
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
+    "Makefile::target doc-links": "4731861b7121254e",
+    "Makefile::target eager-prompt-guard": "1546b659949fcc08",
+    "Makefile::target empty-range-guard": "d2cc5a46df38f2e0",
+    "Makefile::target fixed-font-budget": "85a3e2b2bff351e6",
+    "Makefile::target gate-preflight": "4af96d525dd02798",
+    "Makefile::target gates-wired-guard": "29ee806453e41bae",
+    "Makefile::target hr-feed-link-guard": "48b2243d46f8a51f",
+    "Makefile::target infoplist-guard": "796032f1f07f1dde",
+    "Makefile::target leaked-mutations-guard": "a37e4e3ced2c0b0e",
+    "Makefile::target license-header-guard": "6883c5cfe671bd33",
+    "Makefile::target lint": "cc79eff098f91f28",
+    "Makefile::target lint-budget": "83ede4e7a455a929",
+    "Makefile::target locale-format-guard": "6019b4b8c1092236",
+    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
+    "Makefile::target localization-format-guard": "3e270df8cbd4b018",
+    "Makefile::target localization-guard": "e2c1ec610e831e83",
+    "Makefile::target localization-orphan-guard": "6d166330dec47d08",
+    "Makefile::target localization-resolution-guard": "2767f94176460d10",
+    "Makefile::target log-redaction-guard": "96f425e39f4d0b2f",
+    "Makefile::target logger-self-reference-guard": "4ba2ef354e7ab3e5",
+    "Makefile::target no-phone-home": "66a41310eef1b44c",
+    "Makefile::target no-unowned-guard": "25ed7c1d3b02dd7c",
+    "Makefile::target orphan-swift-guard": "274019c065545658",
+    "Makefile::target perimeter-sync": "7b1a002692b1fe41",
+    "Makefile::target sbom-check": "46aecc781adb961a",
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca",
+    "Makefile::target science-register": "9e24175bb2b0670b",
+    "Makefile::target scoring-governance": "2093dbcb1f6e9e8e",
+    "Makefile::target sendable-guard": "c009f552884c46bc",
+    "Makefile::target shared-root-guard": "a9263da85d483554",
+    "Makefile::target skip-budget": "7ba8b35e95605b09",
+    "Makefile::target snapshot-refs-guard": "ab8804d23dd53ca7",
+    "Makefile::target spec-conformance": "76fac68887ff9527",
+    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
+    "Makefile::target test-coverage": "2f52b6f381055f27",
+    "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
+    "Makefile::target verify-gates": "62403efc5c06c498"
    }
   },
   {
@@ -1223,7 +1095,6 @@
      "effect": "prints nothing-to-do message; else du -sh and rm -rf the unquoted list (word-split, so a directory name with spaces would be split) and print removed"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1237,9 +1108,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/install-git-hooks.sh::": "ae500cc32ba0f539"
+    "scripts/install-git-hooks.sh::": "7ec5e6c0da3a466d"
    }
   }
  ],

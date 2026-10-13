@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func TrainingLoadNamespace.trajectoryRecord()",
@@ -48,15 +47,14 @@
      "effect": "true: weekAgoCTL = series[count-8].ctl; false: nil passed to verdict"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.ctlRampPerWeek(_:)": "fdb91e4f1da91114",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.fosterFields(_:)": "822dcbda6d218972",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.screenSeries(_:live:)": "50fe905b68d82edc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.trajectoryFields(verdict:rampRate:live:)": "e5a3abd394b42c5a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)": "b9e51bf888ce0384",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "84685e1e6ae035e6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.ctlRampPerWeek(_:)": "0d4b5f96e8ec667b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.fosterFields(_:)": "019ecebe71f4b2bf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.screenSeries(_:live:)": "1f616e8fe090c423",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.trajectoryFields(verdict:rampRate:live:)": "94863f4659d5a161",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)": "15593324c5dc4460",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -73,14 +71,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init FormDescriptor(tsb:)": "eea56a82a52bdb74",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init FormDescriptor(tsb:)": "70bbdb9d9c76cfb9",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)": "74140b75347b9801",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.word": "a856dde9211d5fd1",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel": "f67fc74dabbf06cf",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)": "b9e51bf888ce0384",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.word": "9cc81a48b6d405e0",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel": "45ef32e16e402589",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)": "15593324c5dc4460",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -103,9 +100,8 @@
      "effect": "false: day unchanged; true: new DaySample with live atl/ctl"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -119,7 +115,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41"
    }
@@ -141,26 +136,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Peaking heuristic (last 4 days TSB/CTL > 10%) is duplicated three times: isPeaking here, LoadTrajectoryLoader.peakingHeuristic and DashboardV2View peakingDetected.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:90",
-      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:274",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:266"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.isPeaking(_:)": "c66920844fc29366",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.isPeaking(_:)": "bdae8d7eb5189c90",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "35bc5507155babf3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -178,9 +160,8 @@
      "effect": "false: returns false; true: evaluates allSatisfy"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -200,7 +181,6 @@
      "effect": "nil (no load in last 7 days or calendar failure): returns empty dict so monotony/strain keys are omitted"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0"
    }

@@ -10,7 +10,6 @@
   "mem:OvernightStreamingCoordinator.armingWindDownSeconds (private static let = 15)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func OvernightStreamingCoordinator.launchDeviceRecordingLoop()",
@@ -37,11 +36,10 @@
      "effect": "returns silently; otherwise logs the 'never armed' error"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.awaitDeviceRecordingStart()": "13402cf017af8ded",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.awaitDeviceRecordingStart()": "0bdd81942d18980d",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -69,10 +67,9 @@
      "effect": "log and continue; the cancelled task may still be running"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "4354517274b97049",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "8d202b4b5ef89477",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -87,9 +84,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055"
    }
   },
   {
@@ -125,15 +121,14 @@
      "effect": "record refusal kind (battery refusal kept) and wait before retrying"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.armWhenStrapIsReady()": "6afc9c4cc491345a",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.noteArmingRefusal(_:)": "1814434a81759706",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.waitBeforeRetrying()": "cbb2d638bcb74aad",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "a7e162655795531a",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt:batteryNow:)": "9910f8f0876231c4"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.armWhenStrapIsReady()": "3db10e5d37b5d620",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.noteArmingRefusal(_:)": "452701d43d46d593",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.waitBeforeRetrying()": "19bae9656b0648fb",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt:batteryNow:)": "7c7819def6b291d7"
    }
   },
   {
@@ -156,10 +151,9 @@
      "effect": "return immediately"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "a7e162655795531a",
-    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "fde0bbdf2808590a"
    }
   },
   {
@@ -192,12 +186,11 @@
      "effect": "surfaceArmingRefusal, return BatteryRefusal(level)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.surfaceArmingRefusal(_:_:)": "a0d31a21a9fc2ca2",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "dbec95e92c154b09",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.surfaceArmingRefusal(_:_:)": "4275e1660e4ccb11",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "7e47fe24f4541e02",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -222,11 +215,10 @@
      "effect": "return without overwriting; else lastError = error"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "dbec95e92c154b09",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "7e47fe24f4541e02",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "c08b307347bf7c10"
    }
   },
   {
@@ -243,11 +235,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.attemptDeviceRecordingStart()": "6502b6f9c5037015",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "a7e162655795531a",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.attemptDeviceRecordingStart()": "5d59ab1e19f07d67",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880"
    }
   },
@@ -281,15 +272,14 @@
      "effect": "true: lastError = nil; false: keep"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "a7e162655795531a",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "dbec95e92c154b09",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "ba196d3ce7f16574",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "7e47fe24f4541e02",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -318,12 +308,11 @@
      "effect": "prints 0% in the message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)": "057d29d2220bf7a3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)": "08794a340dca5508",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "c08b307347bf7c10"
    }
   }
  ],

@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func DurationFormatter.hoursMinutes(minutes:)",
@@ -30,20 +29,6 @@
      "effect": "'Hh Mm' else 'Hh'; when h == 0 returns 'Mm'"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "SleepData.hoursMinutes re-implements LocalizedDuration.hoursMinutes plus this English fallback with its own fallback string, which disagrees for whole hours: SleepData's fallback prints '7h 0m' where DurationFormatter prints '7h'.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Extensions.swift:17",
-      "Emuqu/Sources/Models/SleepData.swift:83",
-      "Emuqu/Sources/Models/SleepData.swift:92",
-      "Emuqu/Sources/Views/NavigationHeader.swift:13"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -61,7 +46,6 @@
      "effect": "'Unknown'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -79,7 +63,6 @@
      "effect": "'Unknown'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -94,10 +77,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild": "a445014a645ad924",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild": "a877386a7f924daa",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "eface46bdd3b318b"
    }
   }
  ],

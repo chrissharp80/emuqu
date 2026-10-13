@@ -16,40 +16,6 @@
   "accessibility identifiers 'history.search', 'history.entryRow'"
  ],
  "toplevel": "`@State private var viewModel = HistoryViewModel()` (line 19) uses the default init, which binds AppDependencies.current.storage.sessionArchive and settingsManager rather than the @Environment(\\.dependencies) the view reads elsewhere; SwiftUI re-evaluates that initializer expression every time the HistoryView struct is re-created by DashboardV2View (historyDestination), building and discarding a HistoryViewModel. The stored onDelete/onUpdateTags closures are no longer called. #Preview builds HistoryView with no-op closures. Only production caller: DashboardV2View.swift historyDestination (MainTabView no longer passes delete/tag closures, so it gets DashboardV2View's no-op defaults).",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "HistoryViewModel() default arguments read AppDependencies.current (global) for archive and settings while the view uses @Environment(\\.dependencies) for CloudKit/assistant/settings; an injected environment (previews, snapshot tests at EmuquTests/RemainingScreenSnapshotTests.swift:38) still lists the global archive.",
-   "evidence": [
-    "Emuqu/Sources/Views/HistoryView.swift:15",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift:34",
-    "Emuqu/Sources/Views/HistoryView.swift:6"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The delete sequence (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion) now lives in SessionTrash.move, used by both History paths (MainTabView.deleteSession is gone), but TrendsV2View.deleteSession still carries its own copy (handoff from fix batch b22).",
-   "evidence": [
-    "Emuqu/Sources/Views/HistoryView.swift:1033",
-    "Emuqu/Sources/Views/TrendsV2View.swift:257"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "onDelete and onUpdateTags are stored but never called (History deletes through SessionTrash.move and saves tags in saveTags so it can report failures); they stay only until DashboardV2View, the #Preview and RemainingScreenSnapshotTests stop passing them (handoff from fix batch b22).",
-   "evidence": [
-    "Emuqu/Sources/Views/HistoryView.swift:14",
-    "Emuqu/Sources/Views/DashboardV2View.swift:539",
-    "EmuquTests/RemainingScreenSnapshotTests.swift:38"
-   ],
-   "found": "fix batch b22"
-  }
- ],
  "units": [
   {
    "key": "var HistoryView.visibleEntries",
@@ -63,7 +29,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -78,7 +43,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -95,12 +59,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionKey(for:now:)": "93d3da093d0850e7",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)": "fe3af8ee22fe9037",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "d9e6735c79be16fa"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionKey(for:now:)": "dd76090d78c98c69",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)": "98730c94686e8843",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "cbf171edbb857ac7"
    }
   },
   {
@@ -135,10 +98,9 @@
      "effect": "return 'Last Week'; otherwise fall through to month-year (formatted in app locale)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -163,10 +125,9 @@
      "effect": "newest first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
-    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "d26546370a46948a"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "30ff5843637cdec9"
    }
   },
   {
@@ -206,9 +167,8 @@
      "effect": "return key unchanged (already localized month-year)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -223,10 +183,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)": "ed079c556e3f0720",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyStack": "5fd6670454b117b4"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)": "6c7d0dd0ba86d87f",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyStack": "f6ef62f7a76ca1e9"
    }
   },
   {
@@ -252,13 +211,12 @@
      "effect": "true: emptyState (also shown briefly before the first async recompute lands, since filteredEntries starts []); false: historyList"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.emptyState": "aafac3550a5cc4fd",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.filterHeader": "26de41ef96c396ab",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyList": "c5b457ce64ea8bd4",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.emptyState": "3175e9a10f44b0c7",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.filterHeader": "bad6fa6e9a7bd3fa",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyList": "d80abcac455548b1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -274,11 +232,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.searchBar": "c47500cf41d077af",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.sessionTypeFilterBar": "5ef534aa57e2b9c1",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar": "bcb3e0dd79127437"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.searchBar": "567cd58803961774",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.sessionTypeFilterBar": "e144e7f552dc82f7",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar": "7b96a050ccf8923b"
    }
   },
   {
@@ -303,13 +260,12 @@
      "effect": "true: show clear button; false: hidden"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearSearchButton": "4370101c4aaf788b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearSearchButton": "bda3a93fffa0787f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -325,10 +281,9 @@
     "mem:HistoryViewModel.searchText"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -343,10 +298,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.scrollToTop(_:)": "930772d3a0aa4171",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyEntryList": "68a45f7c148c6fa6"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.scrollToTop(_:)": "16427697f55dd66d",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyEntryList": "5d14de90ebceb47f"
    }
   },
   {
@@ -367,10 +321,9 @@
      "effect": "false: return without scrolling"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "bf1ccde3e3388f6a",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "468b47faec455317"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "6c10e9e44f5df35d",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "6a508c1e76e472e6"
    }
   },
   {
@@ -382,7 +335,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -397,10 +349,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.entrySections": "aaf49cc0306b34b4",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreTrigger": "72ba7f081c547805"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.entrySections": "8e51ff5a530cdeec",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreTrigger": "488dec38d63f7b36"
    }
   },
   {
@@ -415,10 +366,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entrySection(_:entries:)": "2994902da508651b",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "468b47faec455317"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entrySection(_:entries:)": "df0b643cd60cdf38",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "6a508c1e76e472e6"
    }
   },
   {
@@ -434,11 +384,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRows(_:)": "6c202a9e1c528754",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.localizedSectionTitle(_:)": "c5cf806ab321a652",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "bf1ccde3e3388f6a"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRows(_:)": "de0d4fa336caab05",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.localizedSectionTitle(_:)": "249e2eb9f4587f9e",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "6c10e9e44f5df35d"
    }
   },
   {
@@ -452,9 +401,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRow(_:)": "0a09d2918bf93ca3"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRow(_:)": "5d01b5b1fb4c5e79"
    }
   },
   {
@@ -469,10 +417,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRowContent(_:)": "157beb64aae685d3",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withEntryActions(_:entry:)": "b8177382aa267314"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRowContent(_:)": "159dde78d2bc571a",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withEntryActions(_:entry:)": "7b84bc38edb415eb"
    }
   },
   {
@@ -494,9 +441,8 @@
      "effect": "?? 0 → no segment badge"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "0c1991e5a2951c6c"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "bcb6bbffcf68267a"
    }
   },
   {
@@ -512,11 +458,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askFloButton(_:)": "9d47ebbb1cccebb5",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteEntryButton(_:)": "09a7f8d02fcc41c3",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.editTagsButton(_:)": "243aaf73bff5e668"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askFloButton(_:)": "0afd84b5b4ddc7b5",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteEntryButton(_:)": "f6bff18b4895c7be",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.editTagsButton(_:)": "b2abc5e20b3c361b"
    }
   },
   {
@@ -528,9 +473,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -547,9 +491,8 @@
     "mem:HistoryView.showingDeleteAlert"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -571,12 +514,11 @@
      "effect": "button shown; else no leading swipe action"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "0c1991e5a2951c6c",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.opensTagEditor(_:)": "d9a1ec49ed30bb17"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "bcb6bbffcf68267a",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.opensTagEditor(_:)": "0da7cbb3898bee93"
    }
   },
   {
@@ -600,12 +542,11 @@
      "effect": "true: show button; false: no context menu item"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askAssistantAbout(entry:)": "23568f1e54271d20"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askAssistantAbout(entry:)": "84fc4ea9abfcd784"
    }
   },
   {
@@ -626,10 +567,9 @@
      "effect": "true: render load-more section; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.hasMore": "eb935b20f4443544",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreSection": "3a9b15ae871b5ff6"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.hasMore": "a3e2e970260ed2ee",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreSection": "2e8c2a516ad29e9c"
    }
   },
   {
@@ -643,9 +583,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreRow": "eb84b0a1a2141837"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreRow": "d29fafbffd7c1ab2"
    }
   },
   {
@@ -662,10 +601,9 @@
     "mem:HistoryViewModel.displayLimit"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()": "fbeba6075711db1c",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreProgress": "1a7ae443fb2baf48"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()": "945883e36f2d31c6",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreProgress": "2f01eb1e62abc0bc"
    }
   },
   {
@@ -683,11 +621,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "d9e6735c79be16fa",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "cbf171edbb857ac7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -712,13 +649,12 @@
     "mem:HistoryViewModel.linkedSegmentCounts"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "31cf379f4b178303",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()": "24b5c3f9505f1f8b",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "e1b3037d9f6ff8ee",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)": "8924953178659b81",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withFailureAlert(_:shown:)": "1133f56b9bb1d7be"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "090a425376b10bfe",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()": "d41668a7bc8f91ed",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "d6a61ae080d291f8",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)": "5d9077e373d91a25",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withFailureAlert(_:shown:)": "225dc533676d569a"
    }
   },
   {
@@ -747,9 +683,8 @@
      "effect": "failureMessage cleared"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -766,10 +701,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.deleteAlertActions": "695bc3d8b644bffd"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.deleteAlertActions": "bf33771e78d47bab"
    }
   },
   {
@@ -786,10 +720,9 @@
     "mem:HistoryView.deleteSessionId"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "63ea8b1c6b1c460c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "a63865b1246ad930"
    }
   },
   {
@@ -818,9 +751,8 @@
      "effect": "false: return (nothing to delete)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "79f58a11bdcf082f"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "0b500a6582db6646"
    }
   },
   {
@@ -848,12 +780,11 @@
      "effect": "log, failure alert, return false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "5a5b9af14dcd988b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "b2656c4803bdf3c8"
    }
   },
   {
@@ -869,7 +800,6 @@
     "mem:HistoryView.selectionTask"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -906,17 +836,16 @@
      "effect": "true: summary ''; false: ' (a, b)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "40b37a16b89fae33",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "70f6457ef9f4a2bb"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "6f0bbfe0076abce6",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "524cd20e7b5f0cba",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "f8c8c98fe9f15865"
    }
   },
   {
@@ -942,11 +871,10 @@
      "effect": "false: reportLoadFailure, return; true: await select(session)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.reportLoadFailure(_:)": "cf168bc4113ca595",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "6c01803f9dca642b"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "151db517594e3b0d",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.reportLoadFailure(_:)": "7c206b357943232b",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "df827838c9f8a943"
    }
   },
   {
@@ -969,21 +897,9 @@
      "effect": "failureMessage set; cancelled: nothing shown (new tap supersedes silently)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "A reading that cannot be read now raises the failure alert, but its text (\"Couldn't open this reading. Try again.\") has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22), so it is English in every language until the catalog is updated.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:441",
-      "Emuqu/Localizable.xcstrings"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1016,10 +932,9 @@
      "effect": "true: return without presenting; false: store and present"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "9990f6bb66c1edd2",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb"
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "01350655a5b18c85",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "083d7e30ca95aee7"
    }
   },
   {
@@ -1046,24 +961,11 @@
      "effect": "true: NavigationStack{MorningResultsView}; false: noAnalysisPlaceholder"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says tapping a session opens MorningResultsView; workouts open FitnessPostSummaryView and sessions without analysisResult get a 'No analysis data available' placeholder.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:845",
-      "Emuqu/Sources/Views/HistoryView.swift:412",
-      "Emuqu/Sources/Views/HistoryView.swift:417"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "ddba50cd2e5ad4a4",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.workoutSummarySheet(_:)": "31eb54af42d3e198",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noAnalysisPlaceholder": "2ef9a7aadcf0bd85"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "5966eba117260034",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.workoutSummarySheet(_:)": "158baf0a247587b7",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noAnalysisPlaceholder": "ec7f7c0e8e0c33cf"
    }
   },
   {
@@ -1079,9 +981,8 @@
     "mem:HistoryView.selectedSession"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "e09ba5b8b6a1747e"
    }
   },
   {
@@ -1098,11 +999,10 @@
     "mem:HistoryView.selectedSession"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1128,15 +1028,14 @@
     "archive:session re-archive (via collector reanalysis/sleep/unlink calls)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "5769cb4022f1481b",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "1c0421a2b011d161",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "df81e8aa6eb05449",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "48f14c8ee1eadceb",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "395b402942721771",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "cf1bd1510f0fda5e",
-    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "333a29ae1bdd40eb",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "c48db2045ab27323",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "4d7b559cc74765cb",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "6d67b2d3bce3e3ad",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "3da72af0ae6930a6",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "d1c0d843e53e5f99",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "ea9f986d8f72c9fd"
    }
   },
   {
@@ -1163,21 +1062,8 @@
      "effect": "sheet kept, alert shown; else selectedSession = nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says Delete from History 'Permanently deletes session', but the delete path (SessionTrash.move → archive.delete) moves it to Trash, as HistoryView's own alert text says (manual handoff from fix batch b22).",
-     "evidence": [
-      "docs/USERS_MANUAL.md:960",
-      "Emuqu/Sources/Views/HistoryView.swift:314",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:201"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "79f58a11bdcf082f"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "0b500a6582db6646"
    }
   },
   {
@@ -1205,12 +1091,11 @@
      "effect": "log and failure alert"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "d173acbc448c38ce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1234,10 +1119,9 @@
      "effect": "return; false: failure alert"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1255,13 +1139,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allFilterButton": "6b96bf7534b0c1cd",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.breatheFilterButton": "67650d6cb4fb0e72",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.extendedFilterButton": "34507904652d1c6d",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.napFilterButton": "36bb9b53d295fb98",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.quickFilterButton": "b724c897aa56c633"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allFilterButton": "66ac3f4ed984507e",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.breatheFilterButton": "affd98faf36304d5",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.extendedFilterButton": "f41a10a71a99f60f",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.napFilterButton": "d56991d5018fcfca",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.quickFilterButton": "092dd3f50a7459f9"
    }
   },
   {
@@ -1280,11 +1163,10 @@
     "mem:HistoryViewModel.selectedSessionType"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -1304,12 +1186,11 @@
     "mem:HistoryViewModel.selectedSessionType"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -1329,11 +1210,10 @@
     "mem:HistoryViewModel.selectedSessionType"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43"
    }
   },
   {
@@ -1353,11 +1233,10 @@
     "mem:HistoryViewModel.selectedSessionType"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43"
    }
   },
   {
@@ -1377,12 +1256,11 @@
     "mem:HistoryViewModel.selectedSessionType"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "c20316e0eba1838b"
    }
   },
   {
@@ -1397,11 +1275,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noReadingsYetSection": "57f844b0a6cf5d89",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noReadingsYetSection": "e8eda911edb4f087",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1425,12 +1302,11 @@
      "effect": "true: no-readings copy; false: no-match copy with clear button (also shown momentarily before the first recompute when the archive is non-empty)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearFiltersButton": "ef02f212c18fa4ed",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearFiltersButton": "b9228478cce1e114",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1448,9 +1324,8 @@
     "mem:HistoryViewModel.selectedSessionType"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1465,10 +1340,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allTagsButton": "096d79d373c3eeec",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagButtons": "0ed69179afc5e2dd"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allTagsButton": "2c7d76b13840265c",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagButtons": "d8800ae0f2a4f024"
    }
   },
   {
@@ -1483,10 +1357,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButton(_:)": "455154d95938364a"
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "e7c3fa915b887d54",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButton(_:)": "af627936941fd890"
    }
   },
   {
@@ -1509,10 +1382,9 @@
      "effect": "true: .isSelected trait; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButtonLabel(_:)": "5e2cdd67929f47f1",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.toggleTag(_:)": "75caf7dc9866e8a9"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButtonLabel(_:)": "c93a59a5bdc84514",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.toggleTag(_:)": "d69d451d6fa141a5"
    }
   },
   {
@@ -1534,7 +1406,6 @@
      "effect": "true: remove; false: insert"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1562,10 +1433,9 @@
      "effect": "true: white text; false: tag.color text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "fce753720d462aac",
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1"
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "e9a21f1935f1429c",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "c9c2903729a36884"
    }
   },
   {
@@ -1599,10 +1469,9 @@
      "effect": "true: .isSelected trait; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -1632,9 +1501,8 @@
      "effect": "true: .isSelected trait; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1655,11 +1523,10 @@
     "ck:session soft-delete flag (when iCloudSyncEnabled)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "0576298ec8979497"
    }
   },
   {
@@ -1679,9 +1546,8 @@
      "effect": "true: readiness = min(10, raw/5) (legacy ms-scale import); false: readiness = raw (NaN passes through and safeDisplayScore maps it to 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15"
    }
   }
  ],

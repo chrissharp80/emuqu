@@ -7,18 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "WatchMessageDecoding.decode's doc says any wrong-typed value is treated as absent rather than coerced; on the shipping path NSNumber bridges between Int, Double and Bool (an integer distance reads as a Double, 1 as true), which testNumbersBridgeBetweenIntAndDoubleOnTheWire pins for Int/Double. Only string-versus-number mismatches are absent.",
-   "evidence": [
-    "EmuquWatch Watch App/WatchMessageDecoding.swift:89",
-    "EmuquTests/WatchMessageDecodingTests.swift:109"
-   ],
-   "found": "t2 test pass"
-  }
- ],
  "units": [
   {
    "key": "func WatchMessageDecodingTests.testDecodeReadsEveryKnownField()",
@@ -39,37 +27,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named 'decode reads every known field' but the payload omits bandCode, alpha1Status, paceSecPerKm, ts and type, and the test never asserts sportLabel/sportRaw although it sends 'sport'; sentAt, sportRaw and isLiveSnapshot decoding are not covered by it.",
-     "evidence": [
-      "EmuquTests/WatchMessageDecodingTests.swift:25",
-      "EmuquTests/WatchMessageDecodingTests.swift:34",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:103",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:104",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:173",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:197"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d"
    }
   },
   {
@@ -89,17 +61,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d"
    }
   },
   {
@@ -121,17 +92,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)": "4e0f5e71e27c2f15",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)": "b8baf837548cba08",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e"
    }
   },
   {
@@ -153,18 +123,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)": "4e0f5e71e27c2f15",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)": "b8baf837548cba08",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e"
    }
   },
   {
@@ -180,7 +149,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -199,14 +167,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -226,15 +193,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b"
    }
   },
   {
@@ -248,21 +214,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "'ride' is not a Sport raw value (the phone sends 'bike', mapped to 'Ride' at WatchMessageDecoding.swift:252); the assertion passes through the title-case default branch, so the real bike→'Ride' mapping is not exercised and the test would still pass if that case were removed.",
-     "evidence": [
-      "EmuquTests/WatchMessageDecodingTests.swift:116",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:252",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:258"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b"
    }
   },
   {
@@ -282,28 +235,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Uses 'indoor_ride', which is not a Sport raw value (the phone sends 'indoor_bike'), so the label comes from the title-case fallback and the real indoor_bike→'Indoor Ride' mapping is never exercised.",
-     "evidence": [
-      "EmuquTests/WatchMessageDecodingTests.swift:122",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:253",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:258",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:15"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b"
    }
   },
   {
@@ -323,15 +262,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -351,15 +289,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -379,15 +316,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -407,15 +343,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -436,16 +371,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "333c83de78a8b055",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -466,16 +400,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "333c83de78a8b055",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -496,16 +429,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "333c83de78a8b055",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -526,16 +458,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "333c83de78a8b055",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -555,15 +486,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsStartWorkoutRequest(update:)": "81e779662872474b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -589,15 +519,14 @@
      "effect": "asserts the request is cleared"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsVoiceChatRequest(update:)": "fd01a4e514ba4fab",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsVoiceChatRequest(update:)": "c5d65cceca74ecd6",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -611,10 +540,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)": "b2e6bf57266faa4c",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)": "02ceca82db9a4f37",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae"
    }
   },
   {
@@ -628,9 +556,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae"
    }
   },
   {
@@ -644,9 +571,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae"
    }
   },
   {
@@ -660,9 +586,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae"
    }
   },
   {
@@ -676,7 +601,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "b2aa988307ccb4a7"
    }
@@ -692,7 +616,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "b2aa988307ccb4a7"
    }
@@ -708,7 +631,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "b2aa988307ccb4a7"
    }
@@ -729,15 +651,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d"
    }
   },
   {
@@ -760,31 +681,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Called a representative live-workout push, but the dictionary is hand-written with type 'state' (the phone sends 'liveState' via liveStatePayload), so a schema change on the iOS side does not show up here as the comment claims.",
-     "evidence": [
-      "EmuquTests/WatchMessageDecodingTests.swift:320",
-      "EmuquTests/WatchMessageDecodingTests.swift:324",
-      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:442"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d"
    }
   },
   {
@@ -804,15 +712,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -832,15 +739,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -860,9 +766,8 @@
      "effect": "asserts bandLabel is non-nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41"
    }
   },
   {
@@ -883,16 +788,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "2a2c6bf9ec78f7e3",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "04a7375ef5fab1f4",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e"
    }
   },
   {
@@ -913,16 +817,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "2a2c6bf9ec78f7e3",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "04a7375ef5fab1f4",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e"
    }
   },
   {
@@ -938,11 +841,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode": "9d8412b3cbe19c3c",
-    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)": "b2e6bf57266faa4c"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "f4cb0f82e172153d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode": "61eddc92c977ecf7",
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)": "02ceca82db9a4f37"
    }
   },
   {
@@ -964,34 +866,10 @@
      "effect": "asserts reply fields and Watch wording"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Claims every phone refusal is worded on the Watch, but the hand-written list omits WatchControlRefusal.strapBusy (the enum is not CaseIterable), so a missing or mismatched strapBusy wording would pass.",
-     "evidence": [
-      "EmuquTests/WatchMessageDecodingTests.swift:397",
-      "EmuquTests/WatchMessageDecodingTests.swift:400",
-      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:899"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Compares phoneText (LanguageManager.appBundle) with the Watch's refusalText (String(localized:) from the main bundle) without pinning the language, so it only agrees when the host language equals the app language.",
-     "evidence": [
-      "EmuquTests/WatchMessageDecodingTests.swift:406",
-      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:904",
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:216"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "c7f5d6de15beeb94"
    }
   },
   {
@@ -1008,12 +886,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "976ea31b2b6582c7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "c7f5d6de15beeb94"
    }
   },
   {
@@ -1031,13 +908,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "e0465c27131b9b06",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "0b79374d47e93c70",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "976ea31b2b6582c7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "c7f5d6de15beeb94"
    }
   },
   {
@@ -1053,11 +929,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "e0465c27131b9b06",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "0b79374d47e93c70",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef"
    }
   },
   {
@@ -1074,12 +949,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "976ea31b2b6582c7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "c7f5d6de15beeb94"
    }
   },
   {
@@ -1098,18 +972,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -1128,16 +1001,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612"
    }
   },
   {
@@ -1152,10 +1024,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
-    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)": "6ec06394ea861658"
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "1ced93abaeb28c00",
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)": "b3c3babca3fa6e4f"
    }
   },
   {
@@ -1169,9 +1040,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)": "be4fe8b4c5423c3f"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)": "4fd3a3d28cab8851"
    }
   },
   {
@@ -1185,9 +1055,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)": "35bb96d6ebaabadf"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)": "968554cc893f78a9"
    }
   },
   {
@@ -1199,7 +1068,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

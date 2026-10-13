@@ -12,19 +12,6 @@
   "mem:LivePaceEstimatorTests.runnerPace (static 1000/3.0 s/km)"
  ],
  "toplevel": "Private helper structs PaceRun and GPSCredit.",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "GPSCredit hand-copies WorkoutLocationManager's credit rule (max(3.5, min(1.5×accuracy, 20))) instead of calling it; the production rule uses both fixes' accuracies via noiseFloor (WorkoutLocationManager.swift:374,402), so a production change does not reach these tests.",
-   "evidence": [
-    "EmuquTests/LivePaceEstimatorTests.swift:192",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:372",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:402"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func LivePaceEstimatorTests.testAWalkerReadsElevenFiftyFourOnEveryTick()",
@@ -54,26 +41,25 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "606a5c533dda02cf",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "16b46203ef11475b",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -110,26 +96,25 @@
      "effect": "runs and checks one scenario per fix rate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "606a5c533dda02cf",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "16b46203ef11475b",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -166,26 +151,25 @@
      "effect": "runs and checks one scenario per accuracy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "606a5c533dda02cf",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "16b46203ef11475b",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -216,26 +200,25 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "606a5c533dda02cf",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "16b46203ef11475b",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -266,26 +249,25 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "606a5c533dda02cf",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func LivePaceEstimatorTests.assertSteady(_:from:around:_:file:line:)": "16b46203ef11475b",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -315,25 +297,24 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -374,25 +355,24 @@
      "effect": "asserts it is not faster than walking; nil ticks assert nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -421,18 +401,17 @@
      "effect": "0 when nil, failing the 400 assertion"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945"
    }
   },
   {
@@ -463,26 +442,25 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.reset()": "ee32ed6c36820d47",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.reset()": "863290b0a9e9a105",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -519,26 +497,25 @@
      "effect": "asserts METs equal the expected value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "779e33252e61c46e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "68d46ddfee2d8e82",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b",
-    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "6265b1120edc7a02"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "36bfa7a8dab58811",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:)": "4454fdf0b490b928",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11",
+    "EmuquTests/LivePaceEstimatorTests.swift::init PaceRun(speedMS:fixEverySec:accuracyM:)": "1dc1536eb00599c5"
    }
   },
   {
@@ -561,7 +538,6 @@
      "effect": "XCTFail and return, so later ticks are not checked"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -573,7 +549,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -597,19 +572,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "a2050434be04058f"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.paces(ticks:estimator:)": "e8c03a1bac772c85"
    }
   },
   {
@@ -651,22 +625,21 @@
      "effect": "pedometerMeters passed as nil; else the batched value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "dc61ef89bb63a41d",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "ca7511eee51617fe",
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e",
-    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "a3e388668c55307d",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4",
-    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "0d9ec95eb292d27b"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "9a50f3b3a2866b41",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "6efb8d0472369e11",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "b5276da2fe30f62c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "6757514a775f2b61",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "b18dc54689674175",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.update(_:)": "4dbf59c23850884a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945",
+    "EmuquTests/LivePaceEstimatorTests.swift::func GPSCredit.advance(through:)": "ef9823579fbe3f9f",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b",
+    "EmuquTests/LivePaceEstimatorTests.swift::init GPSCredit(run:)": "3e3e50f28db69e11"
    }
   },
   {
@@ -678,7 +651,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -703,9 +675,8 @@
      "effect": "-1 (invalid Doppler) when no Doppler accuracy is configured"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::init LivePaceEstimator.GPSSpeed(_:)": "7971b6b61fa4e636"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::init LivePaceEstimator.GPSSpeed(_:)": "b65bd46002248b07"
    }
   },
   {
@@ -717,7 +688,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -743,10 +713,9 @@
      "effect": "credits the step and moves the anchor; else nothing credited"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "a27c381eb1d2d528",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4"
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.fix(at:)": "d569737bff26a494",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b"
    }
   }
  ],

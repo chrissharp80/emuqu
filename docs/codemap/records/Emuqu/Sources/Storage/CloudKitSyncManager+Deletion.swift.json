@@ -14,7 +14,6 @@
   "ck:zone HRVSessions (deleted)"
  ],
  "toplevel": "Static constants confirmedTombstonesKey, maxConcurrentDeletions, tombstoneRecheckInterval.",
- "flags": [],
  "units": [
   {
    "key": "var CloudDeletionCoordinator.allCustomZoneIDs",
@@ -25,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -40,10 +38,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "fc96f3e5df8627d8",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "429f3f55443a1bdc"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "431df73ec2c6042f",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
   },
   {
@@ -84,41 +81,14 @@
      "effect": "returns false; local sync state untouched here (caller surfaces 'retry on network')"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "On timeout the zone-delete request is not awaited; it may still succeed server-side after this returns false, and the local sync state is then not reset by this path (the purge flow resets it separately per CloudKitSyncManager comment).",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:69",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:585",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:349"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "The wipe deletes the UserSettings zone but nothing resets CloudKitSettingsSync.zoneEnsured, which stays true for the rest of the launch; if the user turns iCloud Sync back on in the same launch, every settings push skips zone creation and fails with zoneNotFound (only .unknownItem is handled in saveSettingsRecord), surfacing as a settings-sync error until relaunch.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:21",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:73",
-      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:106",
-      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:340",
-      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:282",
-      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:236"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()": "09494044fe0e4fbf",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()": "0426945a3e30ef4d",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)": "6720aa1d0c2b20fa",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "4197c0ee35846f64",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "9d9f53d6c6cb5f26",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "3a22c7835b958669",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()": "8bea89edbf885d82",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()": "0ca9454789a3ebee",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)": "b94d95176527d91f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "9b59a27b5aa83580",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "785d8d6f1fff3139",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "bbe42fe440420a22",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -154,10 +124,9 @@
      "effect": "logs error, returns false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "ec009b4282be6e76",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "687c1c6537cbbac4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -189,12 +158,11 @@
      "effect": "logs, returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "ec009b4282be6e76",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "4197c0ee35846f64",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "687c1c6537cbbac4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "9b59a27b5aa83580",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -213,10 +181,9 @@
     "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v2/v3.remaining/initialized (legacyKeys)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()": "7e25fde951a9f3e0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "8500dcc7a519d3b2"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()": "6f9c9fc8c7894a0f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "d17f690cce688c93"
    }
   },
   {
@@ -256,9 +223,8 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693"
    }
   },
   {
@@ -311,18 +277,17 @@
      "effect": "flagSchemaUnavailable and return; else debug log (retried next full sync since not confirmed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "eb4887009d453a15",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteTombstoneConfirmed(_:)": "61d3e05ba91828cd",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "ebb1292d51647262",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "0c7a2d7f90ef31a3",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "7a8569689483db44",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "dfef16d502c6673b",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)": "f830825f449094f6",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "748de443eb227101",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteTombstoneConfirmed(_:)": "344b8204155ec2fb",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "33769eb1794473a5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "6fe5c2e2d14e16e4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "9f02f3a5e243f331",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)": "9b5041fd0a0e0090",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -363,14 +328,13 @@
      "effect": "saveNewTombstone and true; other errors propagate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)": "1fa5c41fa1184a82",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.saveNewTombstone(_:recordID:)": "ddf58cd255e0a8ef",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)": "88f6f92ffb9c393b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)": "b55b78716df66353",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.saveNewTombstone(_:recordID:)": "60ffc0179ff6c9d8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)": "c1cf0346294fe1af"
    }
   },
   {
@@ -387,9 +351,8 @@
     "ck:HRVSession/HRVSessions"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8"
    }
   },
   {
@@ -428,13 +391,12 @@
      "effect": "notes progress and starts the next"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "9a055d55cf7a893b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.tombstonesDue(among:)": "b9492cc93ca2343e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "0d538f934e3bb295",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "286bef847722bd78",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.tombstonesDue(among:)": "40d85bbf53613096",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -455,10 +417,9 @@
      "effect": "adds nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "8795509f2989aa34",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion": "524ec813713162ef"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "f6785ad50373fe59",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion": "3b5fbf88f40204e7"
    }
   },
   {
@@ -495,7 +456,6 @@
      "effect": "due when never confirmed or older than 24 h"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -517,7 +477,6 @@
      "effect": "starts empty when the key is missing"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

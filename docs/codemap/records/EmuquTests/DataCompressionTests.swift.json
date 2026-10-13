@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func DataCompressionTests.testCompressDecompressRoundtrip()",
@@ -23,12 +22,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "f891c6fc57c664c3",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -45,12 +43,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "f891c6fc57c664c3",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -65,10 +62,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -89,22 +85,9 @@
      "effect": "asserts error is DataCompression.CompressionError (production throws .invalidBufferPointer when the empty buffer has no base address); success path asserts non-empty"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Accepts both outcomes for empty input, so it pins no behaviour: a CloudKit push of an empty payload may throw or upload a header and this test cannot tell which the app does.",
-     "evidence": [
-      "EmuquTests/DataCompressionTests.swift:53",
-      "EmuquTests/DataCompressionTests.swift:58",
-      "Emuqu/Sources/Storage/DataCompression.swift:55"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -121,12 +104,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "f891c6fc57c664c3",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -149,12 +131,11 @@
      "effect": "fills bytes[i] = i % 256"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "f891c6fc57c664c3",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -170,11 +151,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "f891c6fc57c664c3",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "e32b01e376c356b6"
    }
   },
   {
@@ -188,9 +168,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/DataCompression.swift::var DataCompression.CompressionError.errorDescription": "baaf20cb4987bf27"
+    "Emuqu/Sources/Storage/DataCompression.swift::var DataCompression.CompressionError.errorDescription": "81d448f2b8327ecf"
    }
   }
  ],

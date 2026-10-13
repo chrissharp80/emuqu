@@ -24,7 +24,6 @@
   "constants: accuracyThresholdMeters 65, minimumMovementMeters 3.5, accuracyNoiseMultiplier 1.5, liveSustainedClimbThresholdMeters 3.0"
  ],
  "toplevel": "Header comment describes While-Using authorization plus the location background mode (startTracking turns on allowsBackgroundLocationUpdates and the indicator) and that updates end when tracking stops. Created lazily by WorkoutRecorder.location (WorkoutRecorder.swift:156).",
- "flags": [],
  "units": [
   {
    "key": "var WorkoutLocationManager.isPaused",
@@ -45,7 +44,6 @@
      "effect": "inserts current track.count into trackPauses.gaps; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -61,7 +59,6 @@
     "mem:WorkoutLocationManager.authorizationStatus"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -88,7 +85,6 @@
      "effect": "does nothing; a denied user gets no prompt and no feedback"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -122,14 +118,13 @@
      "effect": "records whether to start after the prompt (only if notDetermined), requests auth, returns without tracking; otherwise proceeds to reset and start"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()": "1744863de5d3a812",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "2129e3a1af5eca36",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.requestAuthorization()": "441b0d2dd6e7fb60",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "a5016e6af12b062e",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startBarometricAltitudeUpdates()": "7c3078fdcc672c8d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()": "c31914253f98cd58",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "6b3c430ffd1a20b3",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.requestAuthorization()": "522c75fb8b15e4a6",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "d9c18f1152d4b18d",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startBarometricAltitudeUpdates()": "226d1f481aefa463",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -144,9 +139,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -164,7 +158,6 @@
     "mem:WorkoutLocationManager.isTracking"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -194,10 +187,9 @@
      "effect": "handler drops the update silently; otherwise ingests"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingestBarometricAltitude(raw:)": "389aa5fb004dc3a1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingestBarometricAltitude(raw:)": "3e6d0ed245573991",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -226,10 +218,9 @@
      "effect": "adds step to pausedAltitudeShift and returns without storing a sample; otherwise stores and advances"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.advanceLiveAltitudeRun(current:)": "445eda5c86d1d880",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "a04085e73532b1d4"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.advanceLiveAltitudeRun(current:)": "27e253c4e2020f8a",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
    }
   },
   {
@@ -260,7 +251,6 @@
      "effect": "adds to gain; else adds -move to loss"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -277,9 +267,8 @@
     "mem:WorkoutLocationManager.distanceMeters"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "a5016e6af12b062e"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "d9c18f1152d4b18d"
    }
   },
   {
@@ -300,9 +289,8 @@
     "mem:WorkoutLocationManager.track"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "a04085e73532b1d4"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
    }
   },
   {
@@ -346,11 +334,10 @@
      "effect": "creditMovement from it; else (empty track) appends the fix"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.creditMovement(from:to:)": "8b5f2a552ecd28fc",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isUsableFix(_:threshold:)": "9d9733b8dcd228c8",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.seedTrackIfEmpty(with:)": "e682cc57a2d37d60"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.creditMovement(from:to:)": "3bd46d97d987821b",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isUsableFix(_:threshold:)": "04858414241ea7c4",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.seedTrackIfEmpty(with:)": "d7b7ec3f55c41955"
    }
   },
   {
@@ -370,9 +357,8 @@
      "effect": "logs and returns false; otherwise true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -395,7 +381,6 @@
      "effect": "returns without change"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -429,12 +414,11 @@
      "effect": "marks step index as paused (route extends, no distance); otherwise adds distance and GPS elevation fallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.accumulateGPSElevationFallback(from:to:)": "a8c4855b89ca15c1",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.logJitterReject(current:delta:minStep:noiseFloor:)": "dccc7a4b1107cc5c",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.noiseFloor(previous:current:multiplier:)": "60749034cfdaeb46",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "a04085e73532b1d4"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.accumulateGPSElevationFallback(from:to:)": "a7ee0d900ec38f97",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.logJitterReject(current:delta:minStep:noiseFloor:)": "410f9145d524af8a",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.noiseFloor(previous:current:multiplier:)": "d9b8a476d147a3f3",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
    }
   },
   {
@@ -446,7 +430,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -479,7 +462,6 @@
      "effect": "adds to gain; else to loss"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -499,10 +481,9 @@
      "effect": "returns without logging; otherwise records time and logs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.noiseFloor(previous:current:multiplier:)": "60749034cfdaeb46",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.noiseFloor(previous:current:multiplier:)": "d9b8a476d147a3f3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -530,11 +511,10 @@
      "effect": "records last fix in ambient service; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingest(location:)": "10688290e98762e7",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "b4d57ad4cd3b8570",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingest(location:)": "58f6c0a8580569db",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "ce0c435dad46ab7e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -550,9 +530,8 @@
     "mem:WorkoutLocationManager.authorizationStatus"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startIfAuthorizedWhileWaiting()": "06cbfc05f8a7e8e0"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startIfAuthorizedWhileWaiting()": "27a0779fee38cea7"
    }
   },
   {
@@ -584,11 +563,10 @@
      "effect": "drops the request silently; otherwise starts tracking"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "2129e3a1af5eca36",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "fe48bf543867c029",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "a04085e73532b1d4"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "6b3c430ffd1a20b3",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "1fe4b206696f9e9a",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
    }
   },
   {
@@ -600,7 +578,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -620,10 +597,9 @@
      "effect": "return silently; else log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

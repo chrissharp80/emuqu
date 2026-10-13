@@ -12,7 +12,6 @@
   "static let userFactsHeader / englishOnlySection / routeLoadingGuidance / locationToolGuidance / locationPhrasingGuidance / dashboardCacheFooter (prompt text)"
  ],
  "toplevel": "Static prompt-text constants (lines 149-151, 394-449, 662-667).",
- "flags": [],
  "units": [
   {
    "key": "var AssistantSystemPrompt.Composed.combinedWithMarker",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -38,10 +36,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "52a5af558f45018e",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combinedWithMarker": "df6df5ef75af6f78"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "1534dfeb3115a556",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combinedWithMarker": "f44e0cfb7302379c"
    }
   },
   {
@@ -56,10 +53,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "7441da8d52caba42",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "43dcfab0221b3feb"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "465411f5e2ccd482",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "b66f52bdf4d632ed"
    }
   },
   {
@@ -100,24 +96,12 @@
      "effect": "appends userFactsHeader + facts; else omitted"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The only production caller (AssistantViewModel+Routing.composeSystemPromptForTurn, through compose) passes compactAppReference: true and never passes includeAppReference, so the full AppKnowledgeBase.reference arm and the no-reference arm are reached only from tests using the defaults. Removing the two parameters needs that call site changed first (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:137",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:617"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndFeatureSections(settings:)": "421c2670418bd878",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "9172792d4d8e2d62",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndFeatureSections(settings:)": "5161080655a7e7e5",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "2e705b336e3ba79a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -168,14 +152,13 @@
      "effect": "appends stable from header to end (facts are the last stable section)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleUnitsLine(settings:)": "57b95b6b50276022",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)": "80a725a36c5abe94",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleUnitsLine(settings:)": "41496ec85f4c16a6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)": "9a04681a8783f3ba",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -209,11 +192,10 @@
      "effect": "'unknown'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -241,10 +223,9 @@
      "effect": "appends it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)": "80a725a36c5abe94",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndUnitsDirective(settings:)": "a78677073e86aa73"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)": "9a04681a8783f3ba",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndUnitsDirective(settings:)": "9a1ce0c1cc075d88"
    }
   },
   {
@@ -264,7 +245,6 @@
      "effect": "tool overlay + capability index; else non-tool overlay"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "71a374d60c251976"
    }
@@ -308,12 +288,11 @@
      "effect": "appends '# Current data'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()": "5582756dfb59aa71",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()": "9862bafcafe07003",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()": "24cf72076d0d30a6",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()": "9b8b1adefbb8dbeb"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()": "b712acc089226fa2",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()": "4721865ea0a1ac16",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()": "64e6d02a457a92af",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()": "39888cbf8ba07675"
    }
   },
   {
@@ -358,16 +337,15 @@
      "effect": "appends snapshot; suppressed when dashboardContradicted or explicitOverrideRequested, omitted when cache cold"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.dashboardLoadSnapshot()": "708342bf412bbb71",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()": "3345d0f08cd28f84",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.dashboardLoadSnapshot()": "5543a403dd954f4d",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()": "d2f3e8b49e7ebdf3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "8d835818ff8a2734",
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "a324d8ef2615078a"
    }
   },
   {
@@ -381,9 +359,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.unitsAndLocaleBlock(settings:)": "a8a85044cc49cb0e"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.unitsAndLocaleBlock(settings:)": "c3d5b79f77bd97d4"
    }
   },
   {
@@ -437,11 +414,10 @@
      "effect": "feet else meters"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -461,9 +437,8 @@
      "effect": "returns ''"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeatureLines(_:)": "b7fb2ec061df4851"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeatureLines(_:)": "bce258fb302d987d"
    }
   },
   {
@@ -503,10 +478,9 @@
      "effect": "start -> 'open', end -> ' (ongoing)', reason omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4fdc3002bba9b633",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -532,14 +506,13 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "6d3db3f64fb1239d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "651137401d46dc0d",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "b16e14424dcc0cce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "85decd84bb9e108b"
    }
   },
   {
@@ -559,9 +532,8 @@
      "effect": "falls back to the unrounded now"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "6d3db3f64fb1239d"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "b16e14424dcc0cce"
    }
   },
   {
@@ -573,7 +545,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -608,13 +579,12 @@
      "effect": "appended"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "9e47ee844d879943",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.logDashboardSnapshot(_:)": "ff1c5a5106c74c66",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()": "3345d0f08cd28f84",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "44661642dff07e82",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.logDashboardSnapshot(_:)": "ccde1c933deed2d7",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()": "d2f3e8b49e7ebdf3",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -631,11 +601,10 @@
     "file:debug log"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "9e47ee844d879943",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "44661642dff07e82",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -661,14 +630,13 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)": "30b0039a7f4b7999",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)": "2bffe9a20054f303",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75"
    }
   }
  ],

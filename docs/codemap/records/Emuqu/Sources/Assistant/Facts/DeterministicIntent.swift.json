@@ -12,41 +12,6 @@
   "mem:DeterministicIntent.patterns (static let [Pattern], 14 entries)"
  ],
  "toplevel": "static let patterns (110-399) defines 14 Pattern handlers as closures: recovery_score_today (todaysOvernightEntry → recoveryScore×10 → RecoveryScoreCalculator.displayScore + ScoreVerdict(score:).localizedWord; nil when no reliable overnight or score), resting_hr_today (archive.retrieveLightweightOrLog(entry) → vitalsSnapshot.restingHeartRate; a read failure is logged and falls through to the LLM), hrv_rmssd_today (entry.meanRMSSD), sleep_duration_last_night (sleepSnapshot.nightSleepMinutes + measuredSleepEfficiency when non-nil), last_workout_summary (first .workout entry in newest-first archive.entries; endDate-date minutes; 0/no endDate → day only), trained_recently ('yesterday' substring picks dayStart(isYesterday:); sums the durations of every .workout that day; always returns a string, 'No workout recorded…' when none), score_breakdown_today (session.scoreBreakdown.factors localized label + rounded score, list-formatted, plus ScoreVerdict.safeDisplayScore(compositeScore)), sleep_stages_last_night (deep/REM/stages/breakdown triggers — light sleep is not matched; totalSleepIncludingNapMinutes; deep/REM minutes or 'No sleep stage data' when either is nil), body_weight (settings.bodyWeightKg, imperial when UnitsPreferenceStore.current.resolved == .imperial), max_hr and lthr (settings value, nil below MaxHeartRate.minimumUserEntered), sleep_latency (sleepSnapshot.sleepLatencyMinutes), sleep_efficiency (measuredSleepEfficiency or a 'wasn't measured' sentence), total_session_count (counts of all / .workout / .overnight entries; always answers). Replies use String(localized:bundle: LanguageManager.appBundle). Session reads use retrieveLightweightOrLog. Apostrophe classes accept ' and ’ and an omitted apostrophe ('whats'). Reads archive:SessionArchive.entries, archive:SessionArchive.retrieveLightweight, ud:UnitsPreferenceStore (units preference), mem:UserSettings fields.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "DeterministicIntentTests only exercise matching against an empty archive and dayStart; no test seeds an archive to check any handler's spoken numbers (e.g. the ×10 recovery scaling).",
-   "evidence": [
-    "EmuquTests/DeterministicIntentTests.swift:31",
-    "EmuquTests/DeterministicIntentTests.swift:159"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/VOICE_AND_TOOL_USE.md:149-150 says each pattern maps 1:1 to a fact-catalog read; no handler touches FactResolverRegistry (the header now says so) — they re-read SessionArchive/UserSettings directly, so the voice path duplicates catalog logic (e.g. 0-10 to 0-100 score conversion also in AppFactResolver+Live.swift:193) and can drift from what the LLM tools report.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:31",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:122",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:129",
-    "docs/VOICE_AND_TOOL_USE.md:149",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:193"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/FLOWCHART.md:1434 says a hit emits 'telemetry: deterministic_hit'; no such event exists in Swift (grep deterministic_hit) - servedDeterministically only debugLogs.",
-   "evidence": [
-    "docs/FLOWCHART.md:1434",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:460"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var DeterministicIntent.Pattern.compiled",
@@ -63,9 +28,8 @@
     "mem:DeterministicIntent.compiledCache"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "7c1667583e0fd7e3"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b"
    }
   },
   {
@@ -94,9 +58,8 @@
      "effect": "debugLog warning; trigger dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -134,11 +97,10 @@
      "effect": "logs 'match=<id> but no data' and returns nil; otherwise logs 'served' and returns the answer"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "77a1eda622a4fe77",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "b1c043197a492fd5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "97d4d663a9866f7d",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -152,9 +114,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688"
    }
   },
   {
@@ -166,7 +127,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -189,7 +149,6 @@
      "effect": "?? falls back to today's start (not reachable for Gregorian input); otherwise the previous day's start"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
@@ -218,10 +177,9 @@
      "effect": "?? uses entry.date → duration 0, midpoint = start date; an open session is matched by its start day"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "c301b14ed244493c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "bbb78b28d0699598",
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
@@ -248,9 +206,8 @@
      "effect": "relative phrase with -max(0,days) (future dates say 'today'); otherwise MMMMd date"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -282,10 +239,9 @@
      "effect": "?? LocalizedDuration.minutes(minutes) fallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -310,9 +266,8 @@
      "effect": "converts to pounds; else kilograms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -333,10 +288,9 @@
      "effect": "returns the duration-less sentence; otherwise the duration sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.spokenDuration(minutes:)": "1e59dd60957352c5",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.spokenDuration(minutes:)": "9cbaac5809e5868f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

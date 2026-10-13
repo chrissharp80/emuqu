@@ -11,7 +11,6 @@
   "mem:HRVAnalysisPipelineTests.pipeline (lazy HRVAnalysisPipeline over the two above + WindowSelector())"
  ],
  "toplevel": "Stored-property initialisers build a fresh ArtifactDetector and MockHealthKitService per test instance; `pipeline` is a lazy HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:) using them (calls HRVAnalysisPipeline.init at HRVAnalysisPipeline.swift:21, ArtifactDetector.init, WindowSelector.init).",
- "flags": [],
  "units": [
   {
    "key": "func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)",
@@ -25,10 +24,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "EmuquTests/Helpers/TestHelpers.swift::func createUniformPoints(count:rrMs:)": "d1f67528bc798f29"
+    "EmuquTests/Helpers/TestHelpers.swift::func createUniformPoints(count:rrMs:)": "7c616e5c048d95f2"
    }
   },
   {
@@ -43,10 +41,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)": "fa50f4e7a420e1ef"
+    "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)": "7261446ec33c34b2"
    }
   },
   {
@@ -58,7 +55,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -74,12 +70,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "eb3845d604230f5d",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "fd749975e445c349"
    }
   },
   {
@@ -95,11 +90,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "d02bd082175ccfbc",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "fd749975e445c349"
    }
   },
   {
@@ -115,11 +109,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "eb3845d604230f5d",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "fd749975e445c349"
    }
   },
   {
@@ -135,12 +128,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "6aad7214a42011a0",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "9a41ea5c2ae53057",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "eb3845d604230f5d",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "fd749975e445c349"
    }
   },
   {
@@ -152,18 +144,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Tautology: asserts a memberwise struct initialiser returns the values passed in; exercises no pipeline logic.",
-     "evidence": [
-      "EmuquTests/HRVAnalysisPipelineTests.swift:106",
-      "EmuquTests/HRVAnalysisPipelineTests.swift:112"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -179,11 +159,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "491f6de91d152ef3"
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "d02bd082175ccfbc",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::var HRVAnalysisPipelineTests.defaultANSConfig": "fd749975e445c349"
    }
   },
   {
@@ -197,7 +176,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
    }
@@ -213,7 +191,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
    }
@@ -229,7 +206,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
    }
@@ -245,7 +221,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
    }
@@ -261,7 +236,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
    }
@@ -277,7 +251,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97"
    }
@@ -293,9 +266,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "68172f4e1ca2b927"
    }
   },
   {
@@ -309,9 +281,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "68172f4e1ca2b927"
    }
   },
   {
@@ -325,9 +296,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "68172f4e1ca2b927"
    }
   },
   {
@@ -342,10 +312,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "f80dc2891d57d84b",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "d02bd082175ccfbc"
    }
   },
   {
@@ -360,10 +329,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "0075f1abb739432a"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "f80dc2891d57d84b",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createUniformSeries(beatCount:rrMs:)": "d02bd082175ccfbc"
    }
   },
   {
@@ -381,12 +349,11 @@
     "mem:MockHealthKitService.daytimeRestingHR (this test's own mock instance, set to 65)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "521e7cde9e218651"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "29594f6662ce07e7",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/HRVAnalysisPipelineTests.swift::func HRVAnalysisPipelineTests.createRealisticSeries(beatCount:)": "eb3845d604230f5d"
    }
   }
  ],

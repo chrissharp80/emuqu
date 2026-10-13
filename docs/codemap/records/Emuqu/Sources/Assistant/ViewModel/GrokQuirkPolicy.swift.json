@@ -11,7 +11,6 @@
   "mem:GrokQuirkPolicy.nudgeText (static string)"
  ],
  "toplevel": "maxAnnounceWithoutCallRetries = 2 and the static nudgeText are stored-property initializers; instances are created once per tool-use loop at AssistantViewModel+Tools.swift:63.",
- "flags": [],
  "units": [
   {
    "key": "init GrokQuirkPolicy(owner:provider:turnID:)",
@@ -22,7 +21,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -56,14 +54,13 @@
      "effect": "false: returns nil (normal exit); true: retry++, log, rewind, return nudge ChatTurn"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.lastUserAskedForLiveData(_:)": "fd11b96f3d140762",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "6f12300ab9e33386",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "7be3f43bea1560dd",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "9615c9c70ebcdbdd",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -97,13 +94,12 @@
      "effect": "true: substitute fallback text, save, warn-log; false: leave text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "6f12300ab9e33386",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "7be3f43bea1560dd",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -128,9 +124,8 @@
      "effect": "'sparkles' used when the assistant turn has no providerID (e.g. local guard/deterministic replies)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName": "66f4ed752cc89e1b"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName": "e5dd294caae30e03"
    }
   }
  ],

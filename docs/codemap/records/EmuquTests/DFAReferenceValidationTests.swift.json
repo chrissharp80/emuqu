@@ -12,29 +12,6 @@
   "asymptoticTolerance = 0.10"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says DFAAnalysisTests 'uses Double.random, which cannot say that', but DFAAnalysisTests now draws from this file's SeededGenerator (seeds 0xD1/0xD2); the comment is stale.",
-   "evidence": [
-    "EmuquTests/DFAReferenceValidationTests.swift:26",
-    "EmuquTests/DFAAnalysisTests.swift:21",
-    "EmuquTests/DFAAnalysisTests.swift:29"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says the α2 assertions 'hold to 0.10', but testPinkNoiseScalesAtOne checks α2 with accuracy 0.15.",
-   "evidence": [
-    "EmuquTests/DFAReferenceValidationTests.swift:49",
-    "EmuquTests/DFAReferenceValidationTests.swift:72"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func DFAReferenceValidationTests.testUncorrelatedNoiseScalesAtOneHalf()",
@@ -61,23 +38,22 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()": "f042f8e295a31b2f",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "0a5e1ad4105440d6",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()": "49b47b94705dafdf",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -104,22 +80,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "df9c87ae7e245183",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -147,23 +122,22 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()": "d5a266f9e9930fd3",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()": "35670f077f7d4f25",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "0a5e1ad4105440d6",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -193,25 +167,24 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()": "d5a266f9e9930fd3",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()": "f042f8e295a31b2f",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()": "35670f077f7d4f25",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "0a5e1ad4105440d6",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "df9c87ae7e245183",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()": "49b47b94705dafdf",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -238,22 +211,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "df9c87ae7e245183",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -280,22 +252,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "df9c87ae7e245183",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -319,31 +290,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The comment says a ramp's residuals are zero so the fluctuation collapses to the log(0) guard; but DFA integrates the mean-removed series first, turning the ramp into a parabola whose per-box linear residuals are non-zero (F(n) grows as n^2). The test only asserts finiteness, so the stated premise is never checked and neither is the value of α1.",
-     "evidence": [
-      "EmuquTests/DFAReferenceValidationTests.swift:124",
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:57",
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:125"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb"
    }
   },
   {
@@ -370,22 +328,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "d974a74f3293013a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "d7e0583f2c1a27e6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "58a7aa7613423b54",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "7f2fad3dffa0f23e",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "45c1b7844480ee39",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "ef1b2a25766e3eed",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "4f2518d51bc937db",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "cc2860b6d267dbd1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "df9c87ae7e245183",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -397,7 +354,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -409,7 +365,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -435,10 +390,9 @@
      "effect": "true: also append the sin value; false: drop it (odd count)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -452,9 +406,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "0a5e1ad4105440d6"
    }
   },
   {
@@ -468,9 +421,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "0a5e1ad4105440d6"
    }
   },
   {
@@ -496,10 +448,9 @@
      "effect": "true: redraw that octave's source; false: keep it"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   }
  ],

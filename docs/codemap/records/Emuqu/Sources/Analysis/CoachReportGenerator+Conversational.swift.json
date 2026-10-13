@@ -11,7 +11,6 @@
   "mem:CoachReportGenerator.historyLimit (static let 120; also read by WorkoutRecorder+Metrics.coachReportInputs)"
  ],
  "toplevel": "historyLimit = 120 static constant. The only entry is renderConversationalSummary(session:pastWorkouts:...) called from WorkoutRecorder.renderAndStageCoachReport with history picked from the archive index (the archive-taking overload and recentPastWorkouts were removed as dead).",
- "flags": [],
  "units": [
   {
    "key": "func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)",
@@ -36,15 +35,14 @@
      "effect": "returns the fixed 'Coach Report\\n\\nNo workout data...' text; else builds paragraphs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "86d496d8f9a0b1ee",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "460ea86485a7b4f5",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "c0f38b6443553a76",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "1053946b8adb8df0",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "26480030a8ac7c1c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "f5889f718c6e490c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "930e6c5d39525827",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "ac1c4ce0a6eee820",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "d825af500efc71e6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -64,9 +62,8 @@
      "effect": "returns nil (no comparison paragraph); else delegates"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonParagraph(session:meta:pastWorkouts:units:userMaxHR:)": "043c4afa0806438a"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonParagraph(session:meta:pastWorkouts:units:userMaxHR:)": "c609503726b50df4"
    }
   },
   {
@@ -96,14 +93,13 @@
      "effect": "route variant; else plain distance/duration line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "24ecb07e6937fccb",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)": "b5a55eb1bbb8f892",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "dbe667c792d47f39",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "366bea81e784c4a2",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)": "bbb1c3cfe3691aa7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -146,12 +142,11 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.alpha1Verdict(_:)": "1c6e5b916ad0b3c0",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.intensityLabel(percentOfMax:)": "374f3569711b4bff",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.meanHeartRate(_:)": "92f15a915e15c13a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.alpha1Verdict(_:)": "ad26eee25ad946f5",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.intensityLabel(percentOfMax:)": "4697a1e40e786b3b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.meanHeartRate(_:)": "d90b885419d36073",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -169,7 +164,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -204,9 +198,8 @@
      "effect": "'Threshold effort'; fall-through returns 'VO2max-level effort'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -237,10 +230,9 @@
      "effect": "AT1–AT2 tempo sentence; else 'below 0.50 … hard day'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "c0097d431bcafed9",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "d53fed41eed0dd16",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -263,12 +255,11 @@
      "effect": "returns nil; else the paragraph"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.cadenceDriftSentence(meta:)": "9db5d9dd2ccb7538",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decouplingSentence(meta:)": "4889cd3ec73e3b67",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateDriftSentence(meta:)": "7b73508829f98709",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.cadenceDriftSentence(meta:)": "e0f4bc32226708f8",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decouplingSentence(meta:)": "d87b5b7ddafeaadd",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateDriftSentence(meta:)": "ffda2ac9d175d86b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -294,10 +285,9 @@
      "effect": "drift-warning sentence; else 'well coupled' sentence (any value <5, including large negatives)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "f43714477d6c0441",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "c359e976811f92bb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -324,11 +314,10 @@
      "effect": "warning sentence; else 'within normal range'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "f43714477d6c0441",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "c359e976811f92bb",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "cfe47a2075181798",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -365,12 +354,11 @@
      "effect": "'rose by' sentence; else 'dropped by' sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "c0097d431bcafed9",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "d53fed41eed0dd16",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "cdb5a0cea6c4097b",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -402,11 +390,10 @@
      "effect": "[] else [sentence]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.combinationSentence(pace:hrDelta:todayPaceSecPerKm:todayAvgHR:units:)": "9332478a64cdc445",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlySentence(_:units:)": "240b6fec30ca950b",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "ecfc7c76022ed82a"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.combinationSentence(pace:hrDelta:todayPaceSecPerKm:todayAvgHR:units:)": "a1b5be44a8c459aa",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlySentence(_:units:)": "85abacada044e6bc",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "90630a4dff50a858"
    }
   },
   {
@@ -431,9 +418,8 @@
      "effect": "'sec/mi' text else 'sec/km'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -445,7 +431,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -466,10 +451,9 @@
      "effect": "'faster' sentence; else 'slower' (including exactly 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "ecfc7c76022ed82a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "90630a4dff50a858",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -518,13 +502,12 @@
      "effect": "heartRateOnlyChangedSentence; else returns nil (only reachable when a delta is NaN)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.bothChangedSentence(pace:hrDelta:)": "9586bfba261a1faa",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateOnlyChangedSentence(hrDelta:)": "493fd3d0a69c6c19",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlyChangedSentence(pace:)": "e7878fca5934ac57",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.bothChangedSentence(pace:hrDelta:)": "dbe7c5980bbffd9e",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateOnlyChangedSentence(hrDelta:)": "4bca651c0483f524",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlyChangedSentence(pace:)": "94b8da2703e72688",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -559,10 +542,9 @@
      "effect": "pushed harder than usual sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "24dd3fe5753df041",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "0c8ebe64851d5cfe",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -582,10 +564,9 @@
      "effect": "faster sentence; else slower"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "24dd3fe5753df041",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "0c8ebe64851d5cfe",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -605,9 +586,8 @@
      "effect": "'HR higher' sentence; else 'HR lower'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -642,25 +622,13 @@
      "effect": "returns []; else one routeLapSentence"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same 'up to 20 prior workouts with the same recognizedRouteName' selection as FitnessSummaryCards.priorRuns, implemented separately.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:302",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:274"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.averageRoutePace(_:)": "42e122bb4d2fd849",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.isSameRoute(_:routeName:sport:)": "753ce20f8c08160d",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeLapSentence(routeName:pace:)": "b46883dff425eaef",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "ecfc7c76022ed82a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.averageRoutePace(_:)": "95c43e8d33bc1a4c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.isSameRoute(_:routeName:sport:)": "b74e089d18d4042b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeLapSentence(routeName:pace:)": "1625569622547ac2",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "90630a4dff50a858",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -683,7 +651,6 @@
      "effect": "true; else sport must match"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -713,21 +680,8 @@
      "effect": "returns nil; else sec/km"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Line-for-line the same distance-weighted pace (>100 m, >60 s, totalDur*1000/totalDist, nil when totalDist<=100) as WorkoutHistoryBaselines.distanceWeightedPace and FitnessSummaryCards.accumulatePace.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:318",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:602",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:297"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e"
    }
   },
   {
@@ -752,10 +706,9 @@
      "effect": "faster sentence; else slower"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "24dd3fe5753df041",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "0c8ebe64851d5cfe",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -790,15 +743,14 @@
      "effect": "returns nil; else the paragraph"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonDeltas(session:meta:baselines:)": "7a46c0f4fbb9dbb6",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceVsHeartRateSentences(paceDeltaSecPerKm:hrDelta:todayPaceSecPerKm:todayAvgHR:sport:units:)": "b586524ba7800704",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeComparisonSentences(session:meta:pastWorkouts:units:)": "7b5893057c6e0db4",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.thinHistoryParagraph(meta:pastWorkouts:)": "1093562dc8e0614d",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "c2456ff3a7af308f",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "2dc1cfa3ae220984",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonDeltas(session:meta:baselines:)": "f13d3881e9c6218e",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceVsHeartRateSentences(paceDeltaSecPerKm:hrDelta:todayPaceSecPerKm:todayAvgHR:sport:units:)": "b9ce5929a08959e4",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeComparisonSentences(session:meta:pastWorkouts:units:)": "57da54f83184659a",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.thinHistoryParagraph(meta:pastWorkouts:)": "3ff9534cb536b04d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "5d7b3f88af576812",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "45d5fec7bbf69622",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -824,10 +776,9 @@
      "effect": "first-time text; else near-first text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.isSameRoute(_:routeName:sport:)": "753ce20f8c08160d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.isSameRoute(_:routeName:sport:)": "b74e089d18d4042b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -853,10 +804,9 @@
      "effect": "?? 0 fallback, unreachable because todayPace was just assigned"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.meanHeartRate(_:)": "92f15a915e15c13a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.meanHeartRate(_:)": "d90b885419d36073",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e"
    }
   },
   {
@@ -884,14 +834,13 @@
      "effect": "sentence includes 2-min drop; else 1-min only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.hrrRecoverySentence(oneMinuteDrop:)": "57c5263cd8b778b8",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.hrrRecoverySentence(oneMinuteDrop:)": "c6c362e4e4cfb1c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "7afc282d882e79cd",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -926,9 +875,8 @@
      "effect": "limited recovery"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -973,26 +921,14 @@
      "effect": "appends 'No load-management flags' line"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "HR drift >5% is narrated twice in the same email: in heartRateDriftSentence and again here.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:175",
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:431"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.freshnessAdvice(tsb:)": "48471e7748eada23",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.loadRangeAdvice(acwr:)": "1729a56d995e3f93",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "f43714477d6c0441",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.freshnessAdvice(tsb:)": "b3e6b86fa6d1cd69",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.loadRangeAdvice(acwr:)": "1446a5f9c8e176b5",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "c359e976811f92bb",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "cfe47a2075181798",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "65aaab02153bb768",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1028,10 +964,9 @@
      "effect": "room to add quality"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "5edbd44d3d44c8b7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1057,22 +992,9 @@
      "effect": "fresh sentence; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Email tells a user with TSB below −10 that tomorrow should be aerobic recovery only, while the PDF deep dive labels −10…−30 the productive 'adaptive zone' (tsbRow explanation, interpretTSB) — the two reports give opposite advice for the same TSB.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:463",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:200",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:383"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "c0097d431bcafed9",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "d53fed41eed0dd16",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1092,10 +1014,9 @@
      "effect": "sign strategy .always(); else .automatic"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -1115,10 +1036,9 @@
      "effect": "sign strategy .always(); else .automatic"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   }
  ],

@@ -7,28 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "createRRIntervals(count:meanMs:variability:) sine-wave generator is also declared in DFAAnalysisTests.",
-   "evidence": [
-    "EmuquTests/StressAnalysisTests.swift:9",
-    "EmuquTests/DFAAnalysisTests.swift:10"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "Borrows DFAReferenceValidationTests.SeededGenerator from another test class for its random fixtures.",
-   "evidence": [
-    "EmuquTests/StressAnalysisTests.swift:21",
-    "EmuquTests/DFAReferenceValidationTests.swift:154"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)",
@@ -45,7 +23,6 @@
      "effect": "appends one value per index"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,9 +36,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd"
    }
   },
   {
@@ -75,9 +51,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd"
    }
   },
   {
@@ -92,10 +67,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
-    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "5621be838cea891b"
+    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "062945a835bb3239"
    }
   },
   {
@@ -116,10 +90,9 @@
      "effect": "nil falls back to 0, which fails the > 0 assertion (redundant with the NotNil check)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
-    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "5621be838cea891b"
+    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "062945a835bb3239"
    }
   },
   {
@@ -135,11 +108,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
-    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createHighVariabilityRR(count:meanMs:)": "9fb2996cae7ad0f4",
-    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createLowVariabilityRR(count:meanMs:)": "9d2ca6c736bc631d"
+    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createHighVariabilityRR(count:meanMs:)": "7c84e754f0fe14f3",
+    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createLowVariabilityRR(count:meanMs:)": "e5236851715aa02a"
    }
   },
   {
@@ -153,7 +125,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d"
    }
@@ -170,10 +141,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
-    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "5621be838cea891b"
+    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "062945a835bb3239"
    }
   },
   {
@@ -187,9 +157,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b"
    }
   },
   {
@@ -203,9 +172,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b"
    }
   },
   {
@@ -219,9 +187,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b"
    }
   },
   {
@@ -235,22 +202,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Comments call the inputs '+1 SD each' / '-1 SD each', but against StressNormativeConstants (RMSSD 42±15, SD1 29.7±10.6) 61/42 and 23/16 are +1.27/+1.16 and -1.27/-1.29 SD; the symmetry holds only within the loose 0.3 tolerance (actual |1.142| vs |1.186|).",
-     "evidence": [
-      "EmuquTests/StressAnalysisTests.swift:103",
-      "EmuquTests/StressAnalysisTests.swift:104",
-      "Emuqu/Sources/Utilities/Constants.swift:550",
-      "Emuqu/Sources/Utilities/Constants.swift:556"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b"
    }
   },
   {
@@ -264,9 +217,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "9ea3043650467420"
    }
   },
   {
@@ -280,9 +232,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "9ea3043650467420"
    }
   },
   {
@@ -296,9 +247,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "9ea3043650467420"
    }
   },
   {
@@ -312,9 +262,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "9ea3043650467420"
    }
   },
   {
@@ -328,7 +277,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
    }
@@ -344,7 +292,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
    }
@@ -360,7 +307,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
    }
@@ -376,7 +322,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
    }
@@ -392,7 +337,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
    }
@@ -408,7 +352,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d"
    }
@@ -425,21 +368,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Pins acceptance of physiologically impossible negative RR intervals: computeStressIndex has no input validation (StressAnalysis.swift:17-30) and the test asserts it returns a positive number, though the negatives inflate MxDMn by ~1 s and shrink the index; the test locks in garbage-in rather than requiring rejection.",
-     "evidence": [
-      "EmuquTests/StressAnalysisTests.swift:211",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:21"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
-    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "5621be838cea891b"
+    "EmuquTests/StressAnalysisTests.swift::func StressAnalysisTests.createRRIntervals(count:meanMs:variability:)": "062945a835bb3239"
    }
   },
   {
@@ -453,9 +384,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b"
    }
   },
   {
@@ -469,7 +399,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
    }

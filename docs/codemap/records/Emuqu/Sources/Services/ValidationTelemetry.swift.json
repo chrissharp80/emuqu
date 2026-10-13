@@ -19,7 +19,6 @@
   "ud:telemetry.methodologyViews"
  ],
  "toplevel": "Type doc points the reset at Settings → Advanced → Diagnostics → Usage counts → Reset usage counts. Keys.retiredTimestamps lists the two last-event timestamp keys earlier builds wrote; only reset removes them.",
- "flags": [],
  "units": [
   {
    "key": "init ValidationTelemetry(defaults:)",
@@ -47,7 +46,6 @@
      "effect": "uses [:]"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -61,20 +59,6 @@
     "ud:telemetry.dashboardOpens"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Counters are held in the singleton's memory; Delete All My Data sweeps the telemetry.* UserDefaults keys but never calls reset(), so Diagnostics keeps the old counts and the next record* call writes the stale in-memory total back.",
-     "evidence": [
-      "Emuqu/Sources/Services/ValidationTelemetry.swift:48",
-      "Emuqu/Sources/Services/ValidationTelemetry.swift:49",
-      "Emuqu/Sources/Services/DataPurgeService.swift:328",
-      "Emuqu/Sources/Services/DataPurgeService.swift:696"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -88,7 +72,6 @@
     "ud:telemetry.chipDrillInsByKey"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -100,7 +83,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -114,7 +96,6 @@
     "ud:telemetry.trajectoryVisits"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -128,7 +109,6 @@
     "ud:telemetry.modeActivationsByKind"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -142,7 +122,6 @@
     "ud:telemetry.methodologyViews"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -158,11 +137,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.counts(_:)": "5d9bced1925e244b",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::var ValidationTelemetry.totalDrillIns": "54cf81b416346693"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.counts(_:)": "d4db27482cf5fad7",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::var ValidationTelemetry.totalDrillIns": "cc85881cb88d709a"
    }
   },
   {
@@ -174,7 +152,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -200,7 +177,6 @@
      "effect": "removeObject(forKey:)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

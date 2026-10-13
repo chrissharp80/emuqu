@@ -14,7 +14,6 @@
   "kc:AppConfig.keychainService / session-encryption-key[-vN] (v1 account 'session-encryption-key', vN 'session-encryption-key-vN'; kSecAttrAccessibleAfterFirstUnlock)"
  ],
  "toplevel": "keychainService is AppConfig.keychainService. shared built lazily on first access.",
- "flags": [],
  "units": [
   {
    "key": "func EncryptionManager.keychainAccount(for:)",
@@ -31,7 +30,6 @@
      "effect": "legacy account name; else suffixed name"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,7 +41,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -68,10 +65,9 @@
      "effect": "throw encryptionFailed; else build framed data"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "d57929ceabea0682"
    }
   },
   {
@@ -103,11 +99,10 @@
      "effect": "openAsBare(whole blob); else rethrow original error"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "15d03da16e5017b6",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "ca6b1a77384a1d1d",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "d8c98cac26eff591"
    }
   },
   {
@@ -132,9 +127,8 @@
      "effect": "throw framedError"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "d8c98cac26eff591"
    }
   },
   {
@@ -151,9 +145,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "73bbaca567719214"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "e2135a76562a08f7"
    }
   },
   {
@@ -177,9 +170,8 @@
      "effect": "return false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "d57929ceabea0682"
    }
   },
   {
@@ -205,11 +197,10 @@
      "effect": "return nil (also for legacy version-prefixed v1 and bare blobs, which are never re-framed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6"
    }
   },
   {
@@ -240,10 +231,9 @@
      "effect": "return legacy parse; else bare v1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "8cd1311d2fa505f4",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "8e9549f30eb3395f"
    }
   },
   {
@@ -261,7 +251,6 @@
      "effect": "return (byte2, rest); else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -284,7 +273,6 @@
      "effect": "return; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -317,11 +305,10 @@
      "effect": "return that one; else cache and return this one"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "598d3b1447a1ad8b",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "25a975a4420f8455",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "6fb7272cbaa2c234"
    }
   },
   {
@@ -339,9 +326,8 @@
     "mem:EncryptionManager.cachedKeys"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "dfee940ff7356857"
    }
   },
   {
@@ -375,12 +361,11 @@
      "effect": "create+store new key and cache it; other errors propagate uncached"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)": "7beb37309a266a6e"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "598d3b1447a1ad8b",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "25a975a4420f8455",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "6fb7272cbaa2c234",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)": "bced1e929b282c26"
    }
   },
   {
@@ -403,9 +388,8 @@
      "effect": "return; else throw keychainError(status)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "4776b5a9830ddb55"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "2c50f7251bf0dba3"
    }
   },
   {
@@ -417,7 +401,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -440,10 +423,9 @@
      "effect": "log warning; error otherwise ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "4776b5a9830ddb55",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "2c50f7251bf0dba3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -470,7 +452,6 @@
      "effect": "throw keyNotFound; else throw keychainError"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -505,9 +486,8 @@
      "effect": "message with status"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

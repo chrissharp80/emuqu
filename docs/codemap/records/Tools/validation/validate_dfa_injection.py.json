@@ -9,7 +9,6 @@
   "file:Tools/validation/results/dfa_injection_nsr2db.json (written)"
  ],
  "toplevel": "Adds script dir to sys.path; runs main() as a script.",
- "flags": [],
  "units": [
   {
    "key": "def candidate_windows",
@@ -43,9 +42,8 @@
      "effect": "candidate; else counted as excluded_by_corrector and kept in flagged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631"
    }
   },
   {
@@ -83,7 +81,6 @@
      "effect": "shift 30 %; else merge and delete"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -176,31 +173,18 @@
      "effect": "print"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Summary statistics assume every trial produced alpha1: a_uncorr/a_app are stored as None when port_dfa.compute returns None (< 64 intervals after a missed-beat merge), and bland_altman/np.mean over them would raise TypeError. It ran because windows average 153 intervals, but a 64-70 interval window at 10 % missed beats would crash the run.",
-     "evidence": [
-      "Tools/validation/validate_dfa_injection.py:134",
-      "Tools/validation/validate_dfa_injection.py:147",
-      "Tools/validation/port_dfa.py:132"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
-    "Tools/validation/validate_dfa_injection.py::def candidate_windows": "f105f0762cfa5872",
-    "Tools/validation/validate_dfa_injection.py::def inject": "08efcbc5f47cde0b",
-    "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
+    "Tools/validation/validate_dfa_injection.py::def candidate_windows": "661bfc7c62d1430f",
+    "Tools/validation/validate_dfa_injection.py::def inject": "6575e01f3ac3eadf",
+    "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5"
    }
   }
  ],
  "deps": {
-  "Tools/validation/validate_dfa_injection.py::def main": "35cc15ae37d9632e",
-  "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+  "Tools/validation/validate_dfa_injection.py::def main": "78cc173f1408e58d",
+  "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5"
  }
 }

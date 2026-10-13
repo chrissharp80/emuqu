@@ -19,7 +19,6 @@
   "poincarePaddingFraction: internal global let 0.15"
  ],
  "toplevel": "Only type declarations and stored lets; PoincareGeometry stored lets set in its init. Global let poincarePaddingFraction = 0.15 (Poincaré padding share). Free functions clampedAnalysisWindow/poincareBeatPairs/beatAtLocation/windowTimeLabels/strokeHorizontalGrid/tracePaths are internal (module-visible).",
- "flags": [],
  "units": [
   {
    "key": "init PoincareGeometry(pairs:size:)",
@@ -41,7 +40,6 @@
      "effect": "uses 1200 ms as maxRR when empty; same unreachable fallback"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -53,7 +51,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -67,9 +64,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "4caaf479994c1c63"
    }
   },
   {
@@ -86,12 +82,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)": "3b9ea5321048ad29"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "c516da654be58b2a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)": "983aa53d41b5f7ba"
    }
   },
   {
@@ -116,14 +111,13 @@
      "effect": "returns without drawing anything (blank canvas, no 'no data' text); else draws all layers"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.beatPairs()": "cda1ff241865130b",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawBeatPoints(_:_:pairs:)": "f622b39717092eb6",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawDispersionEllipse(_:_:pairs:)": "08231bc923376149",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawIdentityLine(_:_:)": "740c3894a37673b6",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPlotBackground(_:_:)": "2d1197f78ec4a7b2",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::init PoincareGeometry(pairs:size:)": "6bb76530d871f650"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.beatPairs()": "0644f280d14b5510",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawBeatPoints(_:_:pairs:)": "ad893ea34b2f7bd1",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawDispersionEllipse(_:_:pairs:)": "9d8a07cae59a1b44",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawIdentityLine(_:_:)": "751c22834abafcf9",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPlotBackground(_:_:)": "f35b77f3c465a651",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::init PoincareGeometry(pairs:size:)": "e88379f945197c36"
    }
   },
   {
@@ -144,22 +138,9 @@
      "effect": "returns [] (plot blank)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Poincaré pair extraction is shared on screen (poincareBeatPairs) but still exists in two other places: the PDF renderer's poincarePairs/isCleanPair (ReportSectionRenderer+Charts.swift) is its own copy (same clean-pair rule today) with 10% padding against 15% here (poincarePaddingFraction), and HRVDetailV2View.buildPoincarePairs uses the whole series with no window and no artifact filter. Handoff b23: both to call poincareBeatPairs and share poincarePaddingFraction.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsCharts.swift:66",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:42",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:252"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "c074417af862e2eb",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func poincareBeatPairs(series:flags:window:)": "e9b233d172188f23"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "62e0adac571b7c03",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func poincareBeatPairs(series:flags:window:)": "04aaaf482db3a35a"
    }
   },
   {
@@ -171,7 +152,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -183,7 +163,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -197,12 +176,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "6b9334b0b7601406",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "7123f9bcf1ae25f2",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "fd9a005962746c26",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "956674cb2d7e8575",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -222,10 +200,9 @@
      "effect": "iterates every step-th pair; no iteration when empty (caller guards)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "7123f9bcf1ae25f2",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "956674cb2d7e8575",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -243,14 +220,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.chartCanvas(size:)": "5fb5044f86c47f37",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.rrAtLocation(_:size:)": "ae6d00b61bb03cab",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.body": "0b56d1a93f875433",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.chartCanvas(size:)": "bf789ed965d6edcd",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.rrAtLocation(_:size:)": "80635a8ad410793e",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.body": "34ba96a52d8d0186",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -270,9 +246,8 @@
      "effect": "returns nil; else returns rr and label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)": "ddd81faef24f0463"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)": "0d91c183d3e3b42b"
    }
   },
   {
@@ -293,10 +268,9 @@
      "effect": "returns with blank canvas; else drawTachogram"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.drawTachogram(_:size:rrValues:)": "5c1a1b5271e7b40b",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.tachogramValues()": "6d006129fa7ca6ef"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.drawTachogram(_:size:rrValues:)": "0e1eb26cc125322a",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.tachogramValues()": "760db89083865e0d"
    }
   },
   {
@@ -321,9 +295,8 @@
      "effect": "true → values; false → nil (prevents divide-by-zero xScale)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "c074417af862e2eb"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "62e0adac571b7c03"
    }
   },
   {
@@ -349,11 +322,10 @@
      "effect": "1200 fallback on empty; unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)": "4da3af1877c2b4dd",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)": "9bfea854cc83e65b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)": "29b420a19b4a5acb",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)": "4769624524ed7e94",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -369,11 +341,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func FrequencyBandsView.stackedBar(width:)": "9ae9cdc166aa759c",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.accessibilitySummary": "799f9108ac0fa8bf",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend": "20f5f5a9f7b991fa"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func FrequencyBandsView.stackedBar(width:)": "b64f7b4e1cafe13c",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.accessibilitySummary": "36c6f9400b7812c4",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend": "9580412d6d58ce5a"
    }
   },
   {
@@ -394,10 +365,9 @@
      "effect": "returns summary without the ratio clause; else includes ratio"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -435,10 +405,9 @@
      "effect": "true → gray VLF segment drawn; false → omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -463,10 +432,9 @@
      "effect": "fallback 0 never used since guarded by line 304"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -478,11 +446,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -500,13 +467,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.chartCanvas(size:)": "6cdf7a6318ee4c6d",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrAtLocation(_:size:)": "fccfce9978778bab",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.body": "0b56d1a93f875433"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.chartCanvas(size:)": "6b8d7805abe9bae4",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrAtLocation(_:size:)": "cb61d54e76dd6368",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.body": "34ba96a52d8d0186"
    }
   },
   {
@@ -526,9 +492,8 @@
      "effect": "returns nil; else bpm and label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)": "ddd81faef24f0463"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)": "0d91c183d3e3b42b"
    }
   },
   {
@@ -549,10 +514,9 @@
      "effect": "returns, blank canvas; else drawHRTrace"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.artifactFreeHRValues()": "60e72d812b603e71",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.drawHRTrace(_:size:hrValues:windowCount:)": "047e2cfa92191149"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.artifactFreeHRValues()": "f21b0b5261d1292d",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.drawHRTrace(_:size:hrValues:windowCount:)": "1563df72ac165fd5"
    }
   },
   {
@@ -592,9 +556,8 @@
      "effect": "true → (values, window.count); false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "c074417af862e2eb"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "62e0adac571b7c03"
    }
   },
   {
@@ -617,7 +580,6 @@
      "effect": "100 bpm when empty; unreachable"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -640,12 +602,11 @@
      "effect": "closing x uses last point's index; 0 fallback unreachable (non-empty)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrPaddedRange(_:)": "b0c93309d5e67364",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.strokeAverageLine(_:size:hrValues:yFor:)": "6bdfa3debaa59cf2",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)": "4da3af1877c2b4dd",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)": "9bfea854cc83e65b"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrPaddedRange(_:)": "3793a794777b1896",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.strokeAverageLine(_:size:hrValues:yFor:)": "aa97de3eb1b6c807",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)": "29b420a19b4a5acb",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)": "4769624524ed7e94"
    }
   },
   {
@@ -657,7 +618,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -680,7 +640,6 @@
      "effect": "range; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -708,7 +667,6 @@
      "effect": "pair dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -741,15 +699,14 @@
      "effect": "label gets the (artifact) suffix"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "7123f9bcf1ae25f2",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "c074417af862e2eb"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "956674cb2d7e8575",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "62e0adac571b7c03"
    }
   },
   {
@@ -771,11 +728,10 @@
      "effect": "returns []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "c074417af862e2eb"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "62e0adac571b7c03"
    }
   },
   {
@@ -793,7 +749,6 @@
      "effect": "one line per supplied y"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -821,7 +776,6 @@
      "effect": "true → fill path closed to baseline; false → fill is the empty line"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -836,10 +790,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func ScrubbableWindowChart.chartStack(_:)": "12aa9d2662dd67ef",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.touchGesture": "d06422a4c788cf7a"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func ScrubbableWindowChart.chartStack(_:)": "866d1ef2c78b3dca",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.touchGesture": "bc0a6715f0a49e6a"
    }
   },
   {
@@ -855,10 +808,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func ScrubbableWindowChart.touchOverlay(_:chartHeight:)": "f11e96209adf3ee1",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ChartXAxisLabels.body": "5711114147009b0d"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func ScrubbableWindowChart.touchOverlay(_:chartHeight:)": "8d9bc26192a69efc",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var ChartXAxisLabels.body": "466a2ca3f6aad416"
    }
   },
   {
@@ -889,12 +841,11 @@
      "effect": "tooltip drawn"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func ScrubbableWindowChart.tooltipX(_:width:)": "dce8fb2154aa3207",
-    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::var ChartTooltip.body": "73cc589610329291",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func ScrubbableWindowChart.tooltipX(_:width:)": "4a12455710545420",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::var ChartTooltip.body": "e026e9820c1af765",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -915,7 +866,6 @@
      "effect": "updates the touch; else ignored"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -938,7 +888,6 @@
      "effect": "width − 50"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -952,10 +901,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func windowTimeLabels(session:result:width:count:)": "af9371bfa2e97d92",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func windowTimeLabels(session:result:width:count:)": "99483a8954cec6b7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   }
  ],
