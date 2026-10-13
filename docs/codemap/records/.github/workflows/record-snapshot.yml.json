@@ -1,0 +1,125 @@
+{
+ "file": ".github/workflows/record-snapshot.yml",
+ "hash": "73a7a38276b7a105",
+ "role": "Temporary pull-request workflow that re-records the MorningFeelingBadge snapshot reference on macOS and pushes it to the PR head branch.",
+ "types": [],
+ "state": [
+  "permissions contents: write"
+ ],
+ "toplevel": "Trigger: pull_request only. One job; job env HEAD_REF (github.head_ref) and REFERENCE (EmuquTests/__Snapshots__/badge-morning-feeling.raw).",
+ "units": [
+  {
+   "key": "job record-snapshot",
+   "hash": "8eb0db4fe7b5fbc0",
+   "does": "macOS-26 job (timeout 45): checkout PR head branch, Xcode 26.6, resolve simulator, record the badge-morning-feeling snapshot, commit and push it.",
+   "entry": "GitHub Actions job; every pull_request event.",
+   "calls": [
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Checkout",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Select Xcode",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Resolve simulator destination",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Record MorningFeelingBadge snapshot",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Commit and push reference"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Checkout": "14b260b9c7c2cde6",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Commit and push reference": "4e5a88e3a4f2b8ff",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Record MorningFeelingBadge snapshot": "28f853532f376a4c",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Resolve simulator destination": "c2feb9aabdfaaa25",
+    ".github/workflows/record-snapshot.yml::step record-snapshot/Select Xcode": "e17d9bad2c824f69",
+    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
+   }
+  },
+  {
+   "key": "step record-snapshot/Checkout",
+   "hash": "56087fbad600953a",
+   "does": "actions/checkout of github.head_ref (the PR branch, not the merge ref), with push credentials persisted.",
+   "entry": "Step of record-snapshot.yml job record-snapshot (pull_request)",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "step record-snapshot/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of record-snapshot.yml job record-snapshot (pull_request)",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "step record-snapshot/Resolve simulator destination",
+   "hash": "b5b6ad9540c8ac8c",
+   "does": "Runs scripts/select_simulator_destination.sh Emuqu Emuqu.xcodeproj into steps.destination.outputs.value.",
+   "entry": "Step of record-snapshot.yml job record-snapshot (pull_request)",
+   "calls": [
+    "ext:script scripts/select_simulator_destination.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
+   }
+  },
+  {
+   "key": "step record-snapshot/Record MorningFeelingBadge snapshot",
+   "hash": "46f3ab7369737658",
+   "does": "`xcodebuild test -only-testing:EmuquTests/ComponentSnapshotTests/testMorningFeelingBadgeRenders`, parallel testing off, with SNAPSHOT_RECORD=1 and TEST_RUNNER_SNAPSHOT_RECORD=1 so the test runner records the reference; ignores xcodebuild's exit status, then requires the reference file to differ from HEAD.",
+   "entry": "Step of record-snapshot.yml job record-snapshot (pull_request)",
+   "calls": [
+    "ext:xcodebuild test",
+    "EmuquTests/ComponentSnapshotTests.swift::func ComponentSnapshotTests.testMorningFeelingBadgeRenders()"
+   ],
+   "reads": [],
+   "writes": [
+    "EmuquTests/__Snapshots__/badge-morning-feeling.raw"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "xcodebuild exits non-zero (always, for a recording run)",
+     "effect": "echo a note and continue"
+    },
+    {
+     "at": "+8",
+     "cond": "git diff shows the reference unchanged",
+     "effect": "emit an error annotation and fail the step"
+    }
+   ],
+   "deps": {
+    "EmuquTests/ComponentSnapshotTests.swift::func ComponentSnapshotTests.testMorningFeelingBadgeRenders()": "3ffae30d2db7dde7"
+   }
+  },
+  {
+   "key": "step record-snapshot/Commit and push reference",
+   "hash": "39477aef618d1f5f",
+   "does": "Sets git identity Chris Sharp <chrissharp80@gmail.com>, stages only the reference, commits \"Re-record MorningFeelingBadge snapshot\" and pushes HEAD to HEAD_REF.",
+   "entry": "Step of record-snapshot.yml job record-snapshot (pull_request)",
+   "calls": [
+    "ext:git commit",
+    "ext:git push"
+   ],
+   "reads": [
+    "EmuquTests/__Snapshots__/badge-morning-feeling.raw"
+   ],
+   "writes": [
+    "PR head branch on origin"
+   ],
+   "branches": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}
