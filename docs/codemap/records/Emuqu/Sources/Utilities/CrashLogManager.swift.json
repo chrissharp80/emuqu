@@ -19,19 +19,6 @@
   "static noBackupIndexExplanation (report text)"
  ],
  "toplevel": "Stored lets crashLogFileName/exceptionLogFileName/previousCrashFileName and launchDate; static installedInstance lock; static report text constants terminationCauseBlock and noBackupIndexExplanation. File-level structs MemoryTraceSummary and MemoryTraceSample follow the class. No #if blocks.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "No test in EmuquTests/EmuquUITests references CrashLogManager: promotion, termination-report dedupe (previousCrashPredates), scrubbing and clearAll are unverified.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/CrashLogManager.swift:100",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift:424",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift:80"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var CrashLogManager.crashLogURL",
@@ -44,9 +31,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "da0ec9c4adf3139d"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "1a0b62e6f0169b5d"
    }
   },
   {
@@ -60,9 +46,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "da0ec9c4adf3139d"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "1a0b62e6f0169b5d"
    }
   },
   {
@@ -76,9 +61,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "da0ec9c4adf3139d"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "1a0b62e6f0169b5d"
    }
   },
   {
@@ -92,9 +76,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151"
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
    }
   },
   {
@@ -111,9 +94,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34"
    }
   },
   {
@@ -130,9 +112,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34"
    }
   },
   {
@@ -144,7 +125,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -180,11 +160,10 @@
      "effect": "no report written"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.installSignalHandlers()": "0d7ba09591742fd6",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.promoteCurrentCrashLog()": "8d48ab5c2b2557e4",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeCrashLog(type:name:reason:stackTrace:)": "5cab914a25d259d3"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.installSignalHandlers()": "154f5b3c9d5b3f53",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.promoteCurrentCrashLog()": "0327ef1311f6f2ee",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeCrashLog(type:name:reason:stackTrace:)": "54bed86c6da11524"
    }
   },
   {
@@ -213,11 +192,10 @@
      "effect": "logged at .info via debugLog and swallowed; the file stays and the badge persists"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -259,12 +237,11 @@
      "effect": "throws the first one (others dropped); otherwise returns normally"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "6eb84f0604e71b79",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "3e21aaad916fafdb",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "42903f9b99aae4ef",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "de1f0584b7f18c13",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34"
    }
   },
   {
@@ -294,15 +271,14 @@
      "effect": "logs and returns without writing (that report already explains this session); otherwise builds the report and writes [existing, report] joined"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.diagnosticContextBlock()": "aea1274bde8bdcef",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.forensicsBlock(sessionId:sessionStart:)": "5ca5fc89fff8db6a",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousCrashPredates(_:)": "204ddfffde1cb461",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)": "9f58b3be7b9e5079",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeTerminationReport(_:)": "f679a44f99c92857",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "43c2b5700d16c347",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.diagnosticContextBlock()": "e54adf74f6a455bc",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.forensicsBlock(sessionId:sessionStart:)": "c02915bfa7bc2b50",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousCrashPredates(_:)": "d27db834a905e7e0",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)": "b47d0326aeff52e0",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeTerminationReport(_:)": "d8390fbfd88eb4ba",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "880d93efa788a4f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -331,10 +307,9 @@
      "effect": "logs the error and returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -359,11 +334,10 @@
      "effect": "logged via debugLog; report lost silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -378,10 +352,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)": "391dfc8f500f6e49",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "955b2955a8d2f1af"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)": "e52acffd4ed1790e",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b"
    }
   },
   {
@@ -395,9 +368,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)": "877618c420b1f7c1"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)": "154b77c6609e26ea"
    }
   },
   {
@@ -413,9 +385,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatDiagnosticContext(launchedAt:)": "0991cd24c3fdd49c"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatDiagnosticContext(launchedAt:)": "14293fe7de5b3137"
    }
   },
   {
@@ -448,13 +419,12 @@
      "effect": "debugLog at .warning ('Failed to write crash log export'), returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "955b2955a8d2f1af",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "43c2b5700d16c347",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "880d93efa788a4f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -470,7 +440,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -498,14 +467,13 @@
      "effect": "returns 'No memory/thermal samples recorded for this session.'; otherwise formats the summary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager": "8aac7ee745cb0544",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousProcessTrace(_:launchedAt:)": "7d62a6e17f121664",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.traceTimeline(_:)": "69376f0efaa77c54",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)": "40832e8cc8121a00",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager": "aa3e8d73f2d5e3c9",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousProcessTrace(_:launchedAt:)": "88c01021b8d911ef",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.traceTimeline(_:)": "8b2ba777c3ba36c1",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)": "0402e4531b58bf11",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "a26593368b9b7383"
    }
   },
@@ -536,7 +504,6 @@
      "effect": "returns all earlier samples; otherwise those from the last 'launch' sample on"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -556,20 +523,8 @@
      "effect": "'?' in its place"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same sample-row field extraction exists in SettingsDiagnosticsViews.sampleRow.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:331",
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:173"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSample(_:)": "05503fcff7465478",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSample(_:)": "9fd8e1317273305e",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryMB": "b22f8d5157b4fa76"
    }
   },
@@ -610,12 +565,11 @@
      "effect": "'(legacy single-file format)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)": "047398ba9378e6e0",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.byteDescription(_:)": "15b5508ccfd31892",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.elapsedDescription(from:to:)": "cf15b294b4e56700",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "955b2955a8d2f1af"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)": "4e8c602562811623",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.byteDescription(_:)": "0c9c139782727141",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.elapsedDescription(from:to:)": "7a57555a44422778",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b"
    }
   },
   {
@@ -648,7 +602,6 @@
      "effect": "'Mm Ss'; else 'Ss'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -676,7 +629,6 @@
      "effect": "'N KB'; else '%.1f MB'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -699,12 +651,11 @@
      "effect": "label 'Timestamp'; else 'Detected'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "955b2955a8d2f1af",
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersionString": "8d61b000dcf8cde9"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "76f45a25c424e560",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersionString": "79cd8016731537fb"
    }
   },
   {
@@ -759,13 +710,12 @@
      "effect": "logged via debugLog; partial state (e.g. written but sources not removed → re-promoted next launch, duplicating that report)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "6eb84f0604e71b79",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "3e21aaad916fafdb",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "43c2b5700d16c347",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "42903f9b99aae4ef",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "de1f0584b7f18c13",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "880d93efa788a4f4",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "b9299bf5843c1f34",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -791,10 +741,9 @@
      "effect": "NSLog failure; app runs without signal handlers"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "6eb84f0604e71b79",
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_install_crash_signal_handlers": "46c9d90fdbbcee56"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "42903f9b99aae4ef",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_install_crash_signal_handlers": "889b868d6b8c77c9"
    }
   },
   {
@@ -812,11 +761,10 @@
     "file:exception_log.txt"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.crashInfoBlock(type:name:reason:)": "1f30ec4cf5007ec3",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.persistCrashLog(_:)": "d5cda4994ea2bdc5",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stackTraceBlock(_:)": "02956a53bbc3f3e7"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.crashInfoBlock(type:name:reason:)": "6b33164d78db9f4f",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.persistCrashLog(_:)": "8a101b32f2e92f23",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stackTraceBlock(_:)": "c3e80e43abf7f4b8"
    }
   },
   {
@@ -830,9 +778,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)": "391dfc8f500f6e49"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)": "e52acffd4ed1790e"
    }
   },
   {
@@ -844,7 +791,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -868,10 +814,9 @@
      "effect": "NSLog only; crash report lost"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "3e21aaad916fafdb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "de1f0584b7f18c13",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31"
    }
   },
   {
@@ -907,22 +852,9 @@
      "effect": "averageMB 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same peak-memory/peak-thermal/warning summarisation is re-implemented in SettingsDiagnosticsViews (memoryMB/maxThermal/memoryWarnings); this struct now carries averageMB too so that view can use it (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:532",
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:135",
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:143"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func MemoryTraceSummary.hotterThermal(_:_:)": "d650432a77fdf7a5",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func MemoryTraceSummary.megabytes(in:)": "79d928b49c6b641b"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func MemoryTraceSummary.hotterThermal(_:_:)": "bdd823b42daef325",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func MemoryTraceSummary.megabytes(in:)": "91bd38dc1d2df90d"
    }
   },
   {
@@ -940,7 +872,6 @@
      "effect": "returns current; otherwise candidate"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -963,7 +894,6 @@
      "effect": "returns bytes/1048576; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -975,7 +905,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

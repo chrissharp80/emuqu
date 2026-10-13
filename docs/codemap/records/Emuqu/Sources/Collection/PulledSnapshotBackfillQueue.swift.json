@@ -12,7 +12,6 @@
   "mem:PulledSnapshotBackfillQueue.isDraining (@MainActor static var Bool, re-entrancy guard set by RRCollector+Reanalysis.swift:518)"
  ],
  "toplevel": "Static lets key/attemptsKey/maxAttempts; @MainActor static var isDraining=false. All functions are nonisolated statics doing read-modify-write on UserDefaults; callers (RRCollector+Reanalysis.swift:516-522) are @MainActor.",
- "flags": [],
  "units": [
   {
    "key": "func PulledSnapshotBackfillQueue.adding(_:)",
@@ -30,10 +29,9 @@
     "ud:cloudkit.pendingSnapshotBackfill"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee"
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "194163f0146fe130",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "82cacc94b45151da"
    }
   },
   {
@@ -66,11 +64,10 @@
      "effect": "sets attempts[id]=nil (removes counter)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee",
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()": "31b8017df89bc235"
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "194163f0146fe130",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "82cacc94b45151da",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()": "878c46daf0a02c0f"
    }
   },
   {
@@ -118,11 +115,10 @@
      "effect": "true: id appended to retry (re-queued at back); false: id dropped from queue permanently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee",
-    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()": "31b8017df89bc235"
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "194163f0146fe130",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "82cacc94b45151da",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()": "878c46daf0a02c0f"
    }
   },
   {
@@ -142,7 +138,6 @@
      "effect": "key absent or not a string array → empty queue"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -162,7 +157,6 @@
      "effect": "absent key or a dictionary with non-Int values → empty dictionary (all counters silently reset)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -176,7 +170,6 @@
     "ud:cloudkit.pendingSnapshotBackfill"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

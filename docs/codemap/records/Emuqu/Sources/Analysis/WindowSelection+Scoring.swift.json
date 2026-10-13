@@ -13,7 +13,6 @@
   "private static WindowSelector.minRequiredBeats = 120"
  ],
  "toplevel": "Config property defaults (S:12-70) set every selector threshold; Config.default = Config().",
- "flags": [],
  "units": [
   {
    "key": "func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
@@ -42,12 +41,11 @@
      "effect": "return nil; else select organized window"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "d64bb13f16557e5f",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "a463d54597301fb6"
    }
   },
   {
@@ -91,13 +89,12 @@
      "effect": "log the band; then return (boundaries, band)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)": "96ddc079bba05bc2",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logBoundaryResolution(sleepStartMs:wakeTimeMs:boundaries:)": "6984a8f3a20584db",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSearchBandDetails(band:boundaries:points:)": "135fa81ee9f915ce",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2e6265d7977be6de",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)": "73eb513432924dc0",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logBoundaryResolution(sleepStartMs:wakeTimeMs:boundaries:)": "7ee6db6446d46aed",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSearchBandDetails(band:boundaries:points:)": "67159fad3e287204",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "7828fa4e1a6782f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -129,11 +126,10 @@
      "effect": "log 'no valid windows even at 15%'; else log the fallback; return the permissive windows"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)": "8f96ebd9c9885c80",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)": "ba420edbc19a8bb5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -154,10 +150,9 @@
      "effect": "log rejection count; else nothing extra"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "d11b6ae9135ac986",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "195365f3209248df",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -183,13 +178,12 @@
      "effect": "log and return nil (peak fallback happens in caller); else buildRecoveryWindow"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:baselineStats:)": "03c4a89850a4ce15",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)": "39a183f513663890",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.withoutIsolatedSpikes(_:)": "966011cc38125e81",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:baselineStats:)": "4130cff77e03d0fa",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)": "0bb1e558d4bfc42c",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.withoutIsolatedSpikes(_:)": "9e13f7f9ebc2dec7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -206,11 +200,10 @@
     "mem:WindowSelector.lastOrganizedZones"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.mergeAdjacentZones(_:)": "4e981994a575fe51",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.mergeAdjacentZones(_:)": "5743f3c05034c95c",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "a463d54597301fb6",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -242,14 +235,13 @@
      "effect": "log the resolved wake minute; else log that the wake was past the recording or not after sleep start and the recording end is used"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "e0b679e0e966de5c",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)": "7eb486f8a66ce6b0",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "bd15fe1919501d17",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)": "3e6a5b1c40f8577c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "c6494e9e347f8808",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)": "723c09a0207183e1",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "ff01e12ea81f8052",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)": "f0d7b20b4f5520b3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "36537747d03af114"
    }
   },
   {
@@ -271,13 +263,12 @@
      "effect": "average BPM = beats/minutes; else 60"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)": "7eb486f8a66ce6b0",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "b40adc3e78e80de9",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "bd15fe1919501d17",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)": "723c09a0207183e1",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "83ccb7d074bed83a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "f90a72f335bf0df9",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "ff01e12ea81f8052",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -292,11 +283,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)": "20474a68b221cd88",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "b40adc3e78e80de9"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)": "89a7614ced393f13",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "83ccb7d074bed83a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "f90a72f335bf0df9"
    }
   },
   {
@@ -324,12 +314,11 @@
      "effect": "return nil; else build from first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "dffb11794bace6d0",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "f3653c3dee27ee86",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "f253fc72c0248c82",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "605b5a5dd0a43041",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "1dbb8825dde76a2d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "3bfaa129c438de1a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -355,10 +344,9 @@
      "effect": "higher RMSSD first; else later relativePosition first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logWindowRanking(_:count:)": "5e2328dafb98a3e8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "e7951116886bd63e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logWindowRanking(_:count:)": "7b69c7bdd10d533b",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "ea932045e1a531b7"
    }
   },
@@ -379,9 +367,8 @@
      "effect": "append a rank/position/minute line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "ea932045e1a531b7"
    }
   },
@@ -402,9 +389,8 @@
      "effect": "higher first; else later position first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -421,13 +407,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSelectedWindow(finalBlock:positionPercent:isConsolidated:)": "7ac5ad6f940c67a7",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)": "e78e86c416a0c790",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSelectedWindow(finalBlock:positionPercent:isConsolidated:)": "023086b36064d32b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)": "2c193f059ce6d2f6",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -445,7 +430,6 @@
      "effect": "print 'N/A'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -465,10 +449,9 @@
      "effect": "log warning with timestamps; else no warning"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -496,9 +479,8 @@
      "effect": "extend the last merged zone; else append as new zone"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -531,25 +513,11 @@
      "effect": "return nil; else WindowSelectionResult(recovery, nil)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "baselineStats defaults to nil, so callers that omit it silently switch ranking from Tier 1 score to raw RMSSD; RRCollector+DeviceRecording:186 omits it while HRVAnalysisPipeline/SessionRecoveryService/ReanalysisService pass one, so device-recording results can pick a different window than morning processing for the same night (ReanalysisService:210 documents this exact divergence as a past bug).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:448",
-      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:186",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:227",
-      "Emuqu/Sources/Services/ReanalysisService.swift:211"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "dda47d3b587f6267",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "3fbae8e0c12c91ce",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "f253fc72c0248c82"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "16c3936d139cf456",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "669eedb6ca395ad9",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "3bfaa129c438de1a"
    }
   },
   {
@@ -573,11 +541,10 @@
      "effect": "log and return it; else fall back to peakRMSSDFallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakRMSSDFallback(in:flags:sleepStartMs:wakeTimeMs:)": "0a9af3059a900ce7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakRMSSDFallback(in:flags:sleepStartMs:wakeTimeMs:)": "ad88bab95f104a3b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -598,10 +565,9 @@
      "effect": "log success; else log 'will analyze full session'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "4ed43aaa6681b62c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "07b4462f836e6423",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -631,14 +597,13 @@
      "effect": "return nil; else build PeakCapacity"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)": "20474a68b221cd88",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "d11b6ae9135ac986",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakCapacityScan(points:from:to:windowSize:)": "7484c3b4a5980280",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)": "89a7614ced393f13",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "195365f3209248df",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "83ccb7d074bed83a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakCapacityScan(points:from:to:windowSize:)": "d3ad36e1e40409f9",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -650,9 +615,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -672,9 +636,8 @@
      "effect": "avg BPM = beats/minutes; else 60"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -717,10 +680,9 @@
      "effect": "return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "4ed43aaa6681b62c"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "07b4462f836e6423"
    }
   },
   {
@@ -756,15 +718,14 @@
      "effect": "log and return nil (unreachable: the spike-filtered set of a non-empty input is non-empty); else build window"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "d11b6ae9135ac986",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)": "2b84242cefdee7dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakBandDetails(metric:band:)": "303f7b19c37cd9a7",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectPeakBlock(from:metric:)": "0af07c6166727d01",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "195365f3209248df",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)": "eac9025dd914bba1",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakBandDetails(metric:band:)": "7ee8c937ac1bf754",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a00b8fdb80a12ef3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "7a1f2730d6bdbbb2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectPeakBlock(from:metric:)": "bc12b8728e5e3c28",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -785,11 +746,10 @@
      "effect": "avg BPM = beats/minutes; else 60"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "b40adc3e78e80de9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "83ccb7d074bed83a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "f90a72f335bf0df9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -819,9 +779,8 @@
      "effect": "log the SDNN proxy note"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -838,13 +797,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakSelectionReason(finalBlock:metric:)": "2135f2cc6deb174b",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakSelectionReason(finalBlock:metric:)": "f85e23eb3f3b491d",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -865,10 +823,9 @@
      "effect": "print 'N/A'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakMetricDescription(finalBlock:metric:)": "b683bb56a0a4f12f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakMetricDescription(finalBlock:metric:)": "03967eb11bff2ef3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -896,7 +853,6 @@
      "effect": "SDNN labelled as total-power proxy"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -924,23 +880,11 @@
      "effect": "return nil; else build manual window"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test calls analyzeAtPosition, the user-facing manual window override.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:724",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:479"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.evaluateManualWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:targetMs:)": "8beeb67749aa6428",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualRecoveryWindow(from:)": "0a2ae3442fdb17ac",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualWindowIndices(points:targetMs:)": "491f43d4212ed72a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.evaluateManualWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:targetMs:)": "7ce4c6c6838431bf",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualRecoveryWindow(from:)": "7db328e12382e764",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualWindowIndices(points:targetMs:)": "680bad29f5d1e38d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -962,11 +906,10 @@
      "effect": "clamp end to count and start to max(0, end-400); else keep centred window"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "e0b679e0e966de5c",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.closestBeatIndex(points:targetMs:)": "2a147b370a68d41c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "c6494e9e347f8808",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.closestBeatIndex(points:targetMs:)": "bac9f2f87aa393de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -994,7 +937,6 @@
      "effect": "return after - 1; else after"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1016,11 +958,10 @@
      "effect": "log 'too little usable signal' and return nil; else return block"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "833d6e9a87f668b5",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "e0b679e0e966de5c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "bbfb350a6490456b",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "c6494e9e347f8808",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1037,13 +978,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualSelectionReason(for:)": "1707cfa9f04fd9f0",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualSelectionReason(for:)": "9d58763ab5e385a8",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -1061,7 +1001,6 @@
      "effect": "print 'N/A'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1073,7 +1012,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1085,7 +1023,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1097,7 +1034,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1123,10 +1059,9 @@
      "effect": "sleep start = recording start; else max(recording start, translated position)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEnd(wakeTimeMs:points:after:recordingEndMs:)": "c47050580a006946",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)": "55041b0a54d59d93"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEnd(wakeTimeMs:points:after:recordingEndMs:)": "08d73a2ea928e414",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)": "8fdc119de984f46c"
    }
   },
   {
@@ -1151,9 +1086,8 @@
      "effect": "return min(wake, recording end); else recordingEndMs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)": "55041b0a54d59d93"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)": "8fdc119de984f46c"
    }
   },
   {
@@ -1181,9 +1115,8 @@
      "effect": "return the last beat's t_ms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   },
   {
@@ -1201,11 +1134,10 @@
      "effect": "return SearchBand; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "bd15fe1919501d17",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs": "77dfbabbc87e6644"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "ff01e12ea81f8052",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "36537747d03af114",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs": "30e4f7dfc5b8c924"
    }
   },
   {
@@ -1238,7 +1170,6 @@
      "effect": "beats/2; else max(60, beats*3/5)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

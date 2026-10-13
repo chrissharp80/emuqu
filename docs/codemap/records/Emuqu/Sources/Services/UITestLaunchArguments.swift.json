@@ -12,7 +12,6 @@
   "launch arg: -UITests-SeedArchive (UITestLaunchArguments.swift:23)"
  ],
  "toplevel": "UITestArchiveSeed and its generator are wrapped in #if DEBUG (lines 34-106) so they do not exist in Release; UITestLaunchArguments exists in Release but isPresent returns false there (line 29).",
- "flags": [],
  "units": [
   {
    "key": "var UITestLaunchArguments.forcesPaywall",
@@ -25,9 +24,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "a252f883d024c684"
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "ebd1a43f652620ce"
    }
   },
   {
@@ -41,9 +39,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "a252f883d024c684"
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "ebd1a43f652620ce"
    }
   },
   {
@@ -57,7 +54,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -79,11 +75,10 @@
      "effect": "true: generate one more beat, advance tMs by rr and append; false: stop and return the points (~22,700 beats for 6 h at ~950 ms)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.SeededGenerator.next()": "75b63bc7074b9db2",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::init UITestArchiveSeed.SeededGenerator(seed:)": "7433e1d5e1b4f397"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.SeededGenerator.next()": "ce022aba7a0b2731",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::init UITestArchiveSeed.SeededGenerator(seed:)": "4184780a47c9b7b6"
    }
   },
   {
@@ -112,13 +107,12 @@
      "effect": "true (guard fails): return without doing anything, so a relaunch without -UITests-FreshInstall never plants a second seed; false: generate, score and archive the synthetic night."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "1abdec3bff1dd1a9",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.archive(_:into:)": "a46027685705ed68",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "29773b84e855dfb0",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.syntheticOvernightPoints(hours:)": "ef38a7c465f20f85",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c"
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "e87d8c4b22f52ea5",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.archive(_:into:)": "a819c69d1ae0fa2b",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "c8b7b25bbb7589ad",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.syntheticOvernightPoints(hours:)": "125f5767d961c55f",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "50306885fddfe9c9"
    }
   },
   {
@@ -138,9 +132,8 @@
      "effect": "fallback 0: start == end (zero-length session); never happens from plantIfRequested because syntheticOvernightPoints always returns points for hours=6."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -164,9 +157,8 @@
      "effect": "error is logged with NSLog and swallowed; the UI test then runs with an empty archive and fails on the missing Recent strip/History entry rather than on the seed error."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f"
    }
   },
   {
@@ -178,7 +170,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -190,7 +181,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

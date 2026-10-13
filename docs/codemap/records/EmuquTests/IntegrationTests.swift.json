@@ -10,7 +10,6 @@
   "mem:NSTimeZone.default (process-global, set to UTC for the class)"
  ],
  "toplevel": "static savedDefaultTimeZone lock holds the process time zone between class setUp and tearDown.",
- "flags": [],
  "units": [
   {
    "key": "func IntegrationTests.setUp()",
@@ -26,9 +25,8 @@
     "mem:IntegrationTests.savedDefaultTimeZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -51,7 +49,6 @@
      "effect": "restores it; otherwise leaves NSTimeZone.default as is"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -80,31 +77,19 @@
     "file:Documents/HRVOffline (directory created)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "ReconciliationManager(archive:) always uses the host's real Documents/HRVOffline directory (Reconciliation.swift:24-31) and loads its pending sessions, so only the archive is hermetic; leftover pending sessions from the app or other suites are shared state.",
-     "evidence": [
-      "EmuquTests/IntegrationTests.swift:41",
-      "Emuqu/Sources/Storage/Reconciliation.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "fc2191e2b7d8fc89",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "92ae4c7489717cfc",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
-    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "6e8e2fed6dd8bc4d"
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "7e3511f4c5d567ae",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "b919cf08f0fdacb9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "17d074d153fdef6e",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "07817035de90f97b"
    }
   },
   {
@@ -126,27 +111,15 @@
     "file:temp ArchiveHashTest-<UUID> archive"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named 'HashMatchesFileBytes' but never compares a hash to the file bytes itself; it trusts verifyIntegrity()'s boolean and checks only the retrieved id.",
-     "evidence": [
-      "EmuquTests/IntegrationTests.swift:88",
-      "EmuquTests/IntegrationTests.swift:97"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()": "0ef85a6a572c5c4c",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()": "44cb7266b59d022f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
-    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "6e8e2fed6dd8bc4d"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "07817035de90f97b"
    }
   },
   {
@@ -161,10 +134,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9"
    }
   },
   {
@@ -195,25 +167,14 @@
      "effect": "asserts 0.30 ≤ position ≤ 0.70; when relativePosition is nil the band check is skipped silently"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The 30-70% band assertions run only inside `if let window, let relativePosition`; a window without relativePosition passes without any band check.",
-     "evidence": [
-      "EmuquTests/IntegrationTests.swift:161"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -231,23 +192,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Fixture t_ms advances 1000 ms per beat while rr_ms is 1000 + i%50, so beat timestamps disagree with the intervals the analyzers read.",
-     "evidence": [
-      "EmuquTests/IntegrationTests.swift:183"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
    }
   },
   {
@@ -275,29 +225,16 @@
      "effect": "appends a seeded random RR"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Only asserts metrics are positive; any non-zero output (including wrong values) passes, so it is a smoke test, not a check of the pipeline's numbers.",
-     "evidence": [
-      "EmuquTests/IntegrationTests.swift:239",
-      "EmuquTests/IntegrationTests.swift:250",
-      "EmuquTests/IntegrationTests.swift:260"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
-    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "cb87bf74aa427591"
    }
   },
   {
@@ -311,9 +248,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
    }
   },
   {
@@ -333,15 +269,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
-    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf",
-    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "835b5f66978c7fc1",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "54463ad77747366d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "dcf8268413b66d44",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "742fc3ca9355c34b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "8c5116320962efc5"
    }
   },
   {
@@ -361,16 +296,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
-    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "835b5f66978c7fc1",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "54463ad77747366d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "dcf8268413b66d44",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "742fc3ca9355c34b",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "8c5116320962efc5"
    }
   },
   {
@@ -387,13 +321,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
-    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "835b5f66978c7fc1",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "54463ad77747366d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "8c5116320962efc5"
    }
   },
   {
@@ -409,12 +342,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "474586cf18129a57",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -429,9 +361,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "86c8a8c6446a4920",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -446,9 +377,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "86c8a8c6446a4920",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -463,9 +393,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "86c8a8c6446a4920",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -480,9 +409,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   }
  ],

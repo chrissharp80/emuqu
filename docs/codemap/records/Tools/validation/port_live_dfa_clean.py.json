@@ -7,7 +7,6 @@
   "LOW_CONFIDENCE_CORRECTED_FRACTION=0.03, MAX_CORRECTED_FRACTION=0.06 (lines 12-13), mirror LiveDFAAnalyzer.swift:213,216"
  ],
  "toplevel": "Constants only.",
- "flags": [],
  "units": [
   {
    "key": "def _is_artifact_beat",
@@ -29,7 +28,6 @@
      "effect": "False"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,23 +57,8 @@
      "effect": "drop oldest"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The same mask as LiveDFAAnalyzer.artifactMask (trailing 5-beat median, 20 % gate, flagged beats never enter the median) marks normal sinus beats as artifacts: on nsr2db it corrected >= 1 interval in 21.6 % of artifact-free 120-s windows (every beat annotated N), and in 7.3 % of all artifact-free windows the corrected fraction exceeded 6 %, so the app withholds alpha1 on clean data; correction shifted alpha1 by +0.041 (LoA -0.26 to +0.34) in the touched windows.",
-     "evidence": [
-      "Tools/validation/port_live_dfa_clean.py:23",
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:489",
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:503",
-      "Tools/validation/RESULTS.md:364",
-      "Tools/validation/results/dfa_injection_nsr2db.json:1"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def _is_artifact_beat": "21a54b8e88d15a26"
+    "Tools/validation/port_live_dfa_clean.py::def _is_artifact_beat": "2f6049a28cd9da27"
    }
   },
   {
@@ -133,7 +116,6 @@
      "effect": "copy right; neither: unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -154,10 +136,9 @@
      "effect": "returns input, 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "090f0fea7001fd1f",
-    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "580d6907059f0bb1"
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "7907eedf3ee30ccd",
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "44524cb22922ba2a"
    }
   },
   {
@@ -169,7 +150,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

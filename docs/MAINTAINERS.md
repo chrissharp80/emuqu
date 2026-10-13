@@ -442,11 +442,10 @@ settings singleton — drives launch gating), `RRModels`, `WorkoutMetadata` /
 Extracted from `UserSettings.swift` 2026-08-18 when that file crossed the
 1,500-line budget. Owns every derived sleep time — overnight window, morning
 cutoff, daytime-HR window, nap window — all as pure functions of a reference
-date. Covered by `AcquisitionPureLogicTests`, which is where a **inverted
-daytime-HR window** was found: `daytimeHRStart` shifted wake forward a day and
-`daytimeHREnd` did not shift bedtime, so for every ordinary schedule (including
-the shipped 22:00 default) the window ran backwards, the `HKQuery` predicate
-matched nothing, and daytime resting HR silently never resolved for anyone.
+date. Covered by `AcquisitionPureLogicTests`, which pins the direction of the
+**daytime-HR window**: it must run forward from wake to bedtime for every
+ordinary schedule (including the 22:00 default), or the `HKQuery` predicate
+matches nothing and daytime resting HR never resolves.
 
 ### 5.7 `Protocols/` — DI seams (1 file)
 
@@ -889,8 +888,9 @@ Two things to know before you touch this:
   `isGrandfatheredBetaTester` honours it only once Apple has verified the
   install's `AppTransaction` as production; a sandbox install (TestFlight,
   App Review) meets the customer's paywall whatever the anchor holds. Do not
-  grant from a cached build-type flag: one that survived a TestFlight → App
-  Store upgrade once granted permanent free access with no proof behind it.
+  grant from a cached build-type flag: it can survive a TestFlight → App
+  Store upgrade, and would then grant permanent free access with no proof
+  behind it.
 - **The anchor is written by the one-time history check, and by one
   deliberate migration.** A sandbox receipt anchors nothing.
   `migrateLegacyTestFlightFlag` promotes the pre-2026-08-22
@@ -899,8 +899,9 @@ Two things to know before you touch this:
   check, so the evidence is real, one generation removed — and this migration
   is precisely what grandfathers the EXISTING tester cohort, who would
   otherwise meet a paywall on the first launch of the paid build. Note the
-  tension with the bug above: the same surviving flag that was a bug when it
-  silently granted entitlement is, read deliberately and once, the migration.
+  tension with the rule above: the same flag that must not grant entitlement
+  when read as a live build type is, read deliberately and once, the
+  migration.
 - **`isDeveloperInstall` must never write the anchor.** A developer install
   is not a beta tester; stamping a permanent entitlement from it would follow
   that Apple ID onto the App Store build forever. And it grants only on
@@ -977,7 +978,7 @@ make debt-budget   # enforce the tech-debt budgets in .ci/*.txt
 make ci            # the full lint + budgets + coverage suite (what CI runs)
 make setup-hooks   # install .githooks/pre-commit (SwiftFormat + SwiftLint + code map)
 
-make codemap-guard  # the code map is current (records, re-checks, findings ratchet)
+make codemap-guard  # the code map is current (records, re-checks)
 make codemap-impact # everything this branch's changes can affect, against origin/main
 make codemap-report # browsable map in build/codemap (serve it with python3 -m http.server)
 
@@ -1251,23 +1252,20 @@ bash scripts/check_refactor_spec_conformance.sh
 function, initializer, computed property and protocol requirement, each script
 function, Makefile target and workflow step, and each Markdown section. A record
 says what the unit does, what triggers it, what it calls, what shared state it
-reads and writes, what each branch does, and what is wrong with it. Full
+reads and writes, and what each branch does. Full
 reference: [`codemap/README.md`](codemap/README.md).
 
 The call graph combines the calls the records name with the calls, property
 reads, protocol dispatch and closure assignments found mechanically in the code.
 `make codemap-impact` lists, for every unit a branch changed, its callers up to
 the user-facing triggers that reach it, the tests and docs that reach it, the
-shared state it touches and who else touches it, and the open findings on all
-of them. Pull requests get the same list in the `gates.yml` job summary.
+shared state it touches and who else touches it. Pull requests get the same list in the `gates.yml` job summary.
 
 `make codemap-guard` (also in `make ci`, both workflows and the pre-commit hook)
 fails when:
 
 - a unit or file has no record, or the record is empty;
-- the code changed after its record was last stamped;
-- open high- or medium-severity findings differ from
-  `.ci/codemap_open_high.txt` / `.ci/codemap_open_med.txt` (they only go down).
+- the code changed after its record was last stamped.
 
 It also counts the records to re-check, and `codemap.py status` lists them:
 a unit whose callee now describes different behaviour from when the unit was

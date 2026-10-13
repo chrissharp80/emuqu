@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func FrequencyDomainTests.tearDown()",
@@ -20,21 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "tearDown calls teardownDFTCache expecting cleanup, but the function body is empty by design (FrequencyDomainAnalysis.swift:100 \"Intentionally no-op\"), contradicting the type doc at :68 that says it \"provides explicit cleanup\"; the DFT setup cache persists across all tests.",
-     "evidence": [
-      "EmuquTests/FrequencyDomainTests.swift:7",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:68",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:100"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "fc58f768615e360e"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "4afe7ba6757c906e"
    }
   },
   {
@@ -59,9 +45,8 @@
      "effect": "VLF nil (default window <10 min) counts as 0 in total"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -86,9 +71,8 @@
      "effect": "nil VLF counts as 0 in total"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -108,9 +92,8 @@
      "effect": "fills the synthetic signal"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -130,9 +113,8 @@
      "effect": "fills the synthetic signal"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -157,9 +139,8 @@
      "effect": "nil VLF compared as 0 so the >0 assertion fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -173,9 +154,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -195,9 +175,8 @@
      "effect": "only used in the failure message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -211,9 +190,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -233,9 +211,8 @@
      "effect": "asserts ≈ 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "c1a65a13c32b42ef"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "8fce009620f5056c"
    }
   },
   {
@@ -255,9 +232,8 @@
      "effect": "fills the synthetic signal"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -283,32 +259,9 @@
      "effect": "fills the synthetic signal"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named 'DFT cache is properly managed' but asserts only totalPower > 0 and that teardown does not crash; cache reuse/eviction is not observed.",
-     "evidence": [
-      "EmuquTests/FrequencyDomainTests.swift:256",
-      "EmuquTests/FrequencyDomainTests.swift:271",
-      "EmuquTests/FrequencyDomainTests.swift:275"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The final \"Teardown should not crash\" step calls a function whose body is empty (FrequencyDomainAnalysis.swift:99-101), so it verifies nothing about cache management.",
-     "evidence": [
-      "EmuquTests/FrequencyDomainTests.swift:275",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:100"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "fc58f768615e360e"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "4afe7ba6757c906e"
    }
   },
   {
@@ -328,9 +281,8 @@
      "effect": "fills the synthetic signal"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -344,9 +296,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -360,9 +311,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -376,21 +326,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Pins a single-window VLF report from a 50-s (200-sample) signal whenever the caller passes usableWindowMin ≥ 10 (FrequencyDomainAnalysis.swift:455), which the Welch path refuses below one 1024-sample segment (:233-238). No production caller can reach this combination (only caller :185 derives usableWindowMin from the signal length), so the test locks in an unreachable, physically unresolvable VLF figure.",
-     "evidence": [
-      "EmuquTests/FrequencyDomainTests.swift:335",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:455",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:185"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
    }
   },
   {
@@ -410,9 +347,8 @@
      "effect": "appends time and RR"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219"
    }
   },
   {
@@ -426,9 +362,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219"
    }
   }
  ],

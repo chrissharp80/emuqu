@@ -10,18 +10,6 @@
   "file:Tools/validation/results/sleep_<db>_<mode>_<bounds>.json (written)"
  ],
  "toplevel": "Adds script dir to sys.path; runs main() as a script.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The mode argument is ignored for CAP (cap_records(mode) never reads it; CAP RR is always every detected beat), yet the outputs are named sleep_cap_nn_*.json, implying normal-to-normal RR.",
-   "evidence": [
-    "Tools/validation/validate_sleep.py:69",
-    "Tools/validation/validate_sleep.py:183"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "def slpdb_records",
@@ -72,11 +60,10 @@
      "effect": "age/sex = first two words else ''"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/validation_common.py::def all_beat_rr_points": "c111b17b37a8c175",
-    "Tools/validation/validation_common.py::def beats_from_ann": "a0facaa81dee6d9a",
-    "Tools/validation/validation_common.py::def nn_rr_points": "fe7261db6cd56d02"
+    "Tools/validation/validation_common.py::def all_beat_rr_points": "a68f31d99be15ab6",
+    "Tools/validation/validation_common.py::def beats_from_ann": "53d193430cadc5c0",
+    "Tools/validation/validation_common.py::def nn_rr_points": "6be0203bacb4805a"
    }
   },
   {
@@ -103,9 +90,8 @@
      "effect": "skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260"
    }
   },
   {
@@ -133,7 +119,6 @@
      "effect": "return it"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -181,12 +166,11 @@
      "effect": "pair recorded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/validate_sleep.py::def majority": "e097dc12994e277b",
-    "Tools/validation/validation_common.py::def confusion": "df998ee7a724b9fc",
-    "Tools/validation/validation_common.py::def summary_from_cm": "77390317c9244e8e"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/validate_sleep.py::def majority": "e0a48939b55179ae",
+    "Tools/validation/validation_common.py::def confusion": "412acd7cd54f988d",
+    "Tools/validation/validation_common.py::def summary_from_cm": "3958a06323c25238"
    }
   },
   {
@@ -257,17 +241,16 @@
      "effect": "Bland-Altman"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/validate_sleep.py::def cap_records": "ae155ef8052a3de5",
-    "Tools/validation/validate_sleep.py::def evaluate_record": "a43eb116b5ddbd36",
-    "Tools/validation/validate_sleep.py::def slpdb_records": "9ff19c35b33e7e9f",
-    "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2",
-    "Tools/validation/validation_common.py::def summary_from_cm": "77390317c9244e8e"
+    "Tools/validation/validate_sleep.py::def cap_records": "a19d1c0244e95f0a",
+    "Tools/validation/validate_sleep.py::def evaluate_record": "d805684e1f8528ae",
+    "Tools/validation/validate_sleep.py::def slpdb_records": "1f379e924b0863e1",
+    "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5",
+    "Tools/validation/validation_common.py::def summary_from_cm": "3958a06323c25238"
    }
   }
  ],
  "deps": {
-  "Tools/validation/validate_sleep.py::def main": "6f7248a906fb33e1"
+  "Tools/validation/validate_sleep.py::def main": "b2e239c6defa5c35"
  }
 }

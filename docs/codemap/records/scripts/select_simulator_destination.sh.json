@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "set -euo pipefail. `xcodebuild -showdestinations` (errors swallowed with || true) piped to awk: for lines with 'platform:iOS Simulator' and not 'placeholder', extracts the id; remembers the first as fallback; prints and exits on the first whose line contains 'name:iPhone'; END prints the fallback only if no iPhone was found. Empty result -> stderr and exit 1; else prints 'id=<udid>'. The first listed iPhone is taken, not a specific model or OS.",
- "flags": [],
  "units": [],
  "deps": {}
 }

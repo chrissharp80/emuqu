@@ -19,24 +19,6 @@
   "mem:SleepScienceAnalyzer.EnhancedScoreWeights.* (static lets: duration 25, efficiency 20, stageHalf 10, fragmentation 15, cycles 10, architecture 10, ratioCap 1.1, unmeasuredEfficiencyRatio 0.5, unmeasuredSectionRatio 0.5, population deep 20%/REM 25%, deviationPenaltySlope 0.5, cycleLengthHours 1.5, minimumExpectedCycles 3, durationDebt threshold 0.85 / ceiling 90 / floor 60)"
  ],
  "toplevel": "Static constants above; no global code. EnhancedScoreWeights is also read directly by SleepDetailV2View+Breakdown.swift and HelpScienceAccuracyTests.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "SleepDetailV2View+Breakdown re-implements the duration, efficiency, stage-half and cycle sub-scores of the enhanced score (rescaled to 0-100) instead of reading the analyzer's per-section values, which it now exposes as SleepAnalysis.sections; until the view reads them, any formula change here (such as this pass's neutral credit for unmeasured continuity/cycles and the below-range stage penalty) must be mirrored by hand there or the breakdown rows disagree with the shown score.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:464",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:479",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:502",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:206",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:215",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:225",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:243",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:253"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var SleepScienceAnalyzer.EnhancedScoreSections.total",
@@ -47,7 +29,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,7 +40,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -112,34 +92,18 @@
      "effect": "true: cycles scored from completeCycles; false: unmeasured (half credit)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "ARCHITECTURE.md says the enhanced score is used only when stage data is available and the weighted Tier-2 formula is the fallback when no stage breakdown exists (FEATURES.md says the same), but analyze returns non-nil for every night with nightSleepMinutes > 0, stages or not, so calculateSleepScore always returns the enhanced score (which now gives unmeasured sections neutral credit) and the weighted formula runs only for zero-minute nights. The docs still describe the old split.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:369",
-      "docs/ARCHITECTURE.md:370",
-      "docs/FEATURES.md:71",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:80",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:121",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:142"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "6f4c6833a3f0186f",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.SleepCycle.isComplete": "ca44c9605bb05fc5",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "9c3243fa2fb60671",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "28ea680cd0311cee",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "2d354b1c6b164ed3",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "e39de52cb4050595",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "02eb52d17da0ea58",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.SleepCycle.isComplete": "9997aef8e8c6b316",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -170,10 +134,9 @@
      "effect": "nil REM treated as 0% REM, same as above"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb"
    }
   },
   {
@@ -198,9 +161,8 @@
      "effect": "true: awakenings/hour; false: 0. Always true after the guard at 125 since awakeMinutes >= 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.countAwakenings(_:)": "115947fcda6f2a8b"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.countAwakenings(_:)": "05d4600a79611dca"
    }
   },
   {
@@ -223,7 +185,6 @@
      "effect": "true: increments count; false: no change"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -255,11 +216,10 @@
      "effect": "always true when first exists; else-branch returns builder.cycles without finishing (unreachable)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.consume(_:)": "db01e45f2961ae0c",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.finish(at:)": "8ed81fef399fd829",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::init SleepScienceAnalyzer.SleepCycleBuilder(cycleStart:)": "cf823d82e649e722"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.consume(_:)": "4dcf8dbd501146e1",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.finish(at:)": "0f232064549f1b8c",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::init SleepScienceAnalyzer.SleepCycleBuilder(cycleStart:)": "73c728c29f028042"
    }
   },
   {
@@ -271,7 +231,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -307,10 +266,9 @@
      "effect": "true: closeCycle(at: run start); false: return and keep waiting. remExitStart is always set at 208, so only the 15-minute test matters"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.closeCycle(at:)": "3ee39d1125e3ba93",
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.SleepCycleBuilder.closeCycle(at:)": "a6ada1c0d839be8d",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e"
    }
   },
   {
@@ -322,7 +280,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -340,7 +297,6 @@
      "effect": "false: final fragment dropped, returns existing cycles; true: appended"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -362,12 +318,11 @@
      "effect": "false: returns .unknown (score 50); true: computes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.halfScore(_:)": "3155d486298f5843",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.share(_:of:)": "4ed0a45ac24870e4",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageMinutesPerHalf(intervals:midpoint:)": "e28ef8d72accedee",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.halfScore(_:)": "893897bf6c20eb08",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.share(_:of:)": "1884edb92a531e7c",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageMinutesPerHalf(intervals:midpoint:)": "5d4107a666d85f90",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971"
    }
   },
   {
@@ -379,7 +334,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -397,9 +351,8 @@
      "effect": "false: 0; true: min(100, half/total*100)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "b3476abc01fea7b7"
    }
   },
   {
@@ -419,9 +372,8 @@
      "effect": "halves.add(interval, midpoint)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.add(_:midpoint:)": "ceed03154291b71d"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.add(_:midpoint:)": "77919175e8841376"
    }
   },
   {
@@ -448,11 +400,10 @@
      "effect": "true: all to second half; else split by time fraction"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addFirst(_:_:)": "284d7368b6b3c26c",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addSecond(_:_:)": "a77ba026cd628e4a",
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addFirst(_:_:)": "1eed0e72b38b4dc4",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.HalfNightStages.addSecond(_:_:)": "5fc5a1c2080e46b5",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e"
    }
   },
   {
@@ -475,7 +426,6 @@
      "effect": "adds to firstREM"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -498,7 +448,6 @@
      "effect": "adds to secondREM"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -512,9 +461,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.expectedStages(forAge:)": "9beb1d047f31801b",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.expectedStages(forAge:)": "eeb890ee2ba68a26",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
    }
@@ -564,7 +512,6 @@
      "effect": "3-10, 15-20, 75"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -579,22 +526,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production code calls computeEnhancedScore any more: analyze builds the sections once (enhancedScoreSections) and scores them (enhancedScore(of:)). Only SleepScienceAnalyzerTests call it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:469",
-      "EmuquTests/SleepScienceAnalyzerTests.swift:231"
-     ],
-     "found": "fix pass b03"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "6f4c6833a3f0186f"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "9c3243fa2fb60671",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "e39de52cb4050595",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScoreSections(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "02eb52d17da0ea58"
    }
   },
   {
@@ -610,11 +545,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.durationDebtCapped(_:ratio:)": "a35af0d3e9ad8082",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.durationDebtCapped(_:ratio:)": "aac65c44dcc1d7b4",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "b3476abc01fea7b7",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097"
    }
   },
   {
@@ -642,13 +576,12 @@
      "effect": "cycles = cyclePoints * unmeasuredSectionRatio (5)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.efficiencyRatio(sleepData:ageNorms:)": "07c0af52f0696c06",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stagesScore(sleepData:ageNorms:)": "55eaec12b09ac96f",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "9c3243fa2fb60671",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.efficiencyRatio(sleepData:ageNorms:)": "28a82c40b091d000",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stagesScore(sleepData:ageNorms:)": "26d141302d7ec5ff",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097"
    }
   },
   {
@@ -673,10 +606,9 @@
      "effect": "no age norms: population 85% used"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "9c3243fa2fb60671",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b"
    }
   },
   {
@@ -702,11 +634,10 @@
      "effect": "nil stage minutes contribute neutral 5 points each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageHalf(minutes:night:populationTargetPct:expectedRange:)": "8ed9ca0e4e70b20f",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "9c3243fa2fb60671",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.stageHalf(minutes:night:populationTargetPct:expectedRange:)": "d2fe30a3923f266b",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb"
    }
   },
   {
@@ -729,7 +660,6 @@
      "effect": "true: full 10 points; false (below range): penalised by distance below the bound"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -747,9 +677,8 @@
      "effect": "false: returns total; true: min(total, ceiling)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "b3476abc01fea7b7"
    }
   },
   {
@@ -770,11 +699,10 @@
      "effect": "false: returns original unchanged; true: rebuilds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.adjustedSegment(_:original:allIntervals:envelopeUnspecifiedTotal:)": "021b67b641a19fd1",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.adjustedSegment(_:original:allIntervals:envelopeUnspecifiedTotal:)": "3eab8626abc8c82c",
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.rebuiltSleepData(original:state:segments:intervals:envelopeUnspecified:)": "ff31820644aa494f",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053"
    }
   },
   {
@@ -817,15 +745,14 @@
      "effect": "true: SleepData.efficiencyPercent(total, inBed); false: original efficiency"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "462c31feab84c606",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "b3476abc01fea7b7",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "f493e4f1da71f444",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "61d2f431b27f328e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "2d061fa425f61f22",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -862,12 +789,11 @@
      "effect": "core minutes or nil (gated on deep, not core)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "f493e4f1da71f444",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "ca7eb433764d66d9",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "61d2f431b27f328e"
    }
   },
   {
@@ -885,7 +811,6 @@
      "effect": "true: nil; false: stored sleepEfficiency"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

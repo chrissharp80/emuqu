@@ -13,7 +13,6 @@
   "mem:WatchConnectivityBridge.plainControls (static [MessageType]: stop/pause/resume/acknowledge)"
  ],
  "toplevel": "Two static constants plus plainControls (the four plain workout controls). The extension mutates bridge state declared in WatchConnectivityBridge.swift: latestWatchHR, latestWatchStrapHR, pendingWatchStrapRR (capped at 1000), latestWatchStrapAt, lastProcessedContextTimestamp (queued channels only).",
- "flags": [],
  "units": [
   {
    "key": "func WatchConnectivityBridge.session(_:activationDidCompleteWith:error:)",
@@ -37,9 +36,8 @@
      "effect": "returns; nothing sent, no strap push"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendHeldDualChannelMessages()": "cce6879260334721"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendHeldDualChannelMessages()": "a90a2563ff90e8f3"
    }
   },
   {
@@ -68,10 +66,9 @@
      "effect": "latestWatchHR = nil (and its timestamp)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()": "827e9e5d5b87ba49",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()": "95470dbd9135991a",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "cc77ca20f9a80dea"
    }
   },
   {
@@ -96,12 +93,11 @@
      "effect": "logs \"unknown\"; routing then ignores it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "8d3b32f98c35ded3",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "ef9806509bf6d12d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "8447b83e627a0ff4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -128,14 +124,13 @@
      "effect": "logs \"unknown\"; handleIncomingWithReply replies unknownMessage refusal"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WCReplyBox.send(_:)": "a0ebf85643006137",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8dae1f37d6c5a7e6",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::init WCReplyBox(_:)": "123a51b3dfd05e9b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WCReplyBox.send(_:)": "f5197395d9c4765e",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "356e7f641663fed8",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "ef9806509bf6d12d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "8447b83e627a0ff4",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::init WCReplyBox(_:)": "ae8de8672c731990",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -168,13 +163,12 @@
      "effect": "drops the payload"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.acceptsQueuedIntent(_:)": "d433e6ab7c4f7e6c",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "8d3b32f98c35ded3",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "ef9806509bf6d12d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "8447b83e627a0ff4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -186,7 +180,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -200,7 +193,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -225,12 +217,11 @@
      "effect": "drops"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.acceptsQueuedIntent(_:)": "d433e6ab7c4f7e6c",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "8d3b32f98c35ded3",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "ef9806509bf6d12d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "8447b83e627a0ff4"
    }
   },
   {
@@ -277,11 +268,10 @@
      "effect": "logs warning and returns false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStale(_:ts:)": "d8c83e37aa362a2e",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)": "3f6f847891c7665e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStale(_:ts:)": "b1a5c8cc2ab60c8e",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)": "15a737eb8e885f6b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -316,10 +306,9 @@
      "effect": "isStaleQueuedIntent(ts)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)": "969eb281db069232",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)": "b1906f3e664d8760"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)": "e4f97db84f9cfdb4",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)": "5329ff7f87fcfa2e"
    }
   },
   {
@@ -339,7 +328,6 @@
      "effect": "returns false; else checks type membership and ts < start"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -351,7 +339,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -371,7 +358,6 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -398,9 +384,8 @@
      "effect": "returns false; else logs and true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -472,15 +457,14 @@
      "effect": "ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8dae1f37d6c5a7e6",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleWatchStrapSample(_:)": "1763b13c1f964929",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.replayCachedLiveState()": "03b80c199f14720b",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "27a30ef24a5e8e8c",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "1ced93abaeb28c00",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "356e7f641663fed8",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleWatchStrapSample(_:)": "81ab178a03556bbe",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.replayCachedLiveState()": "fa2a01e4aaa66986",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "2c6be8a3984f12a4",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "cc77ca20f9a80dea",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -505,10 +489,9 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "ac0c6b7ae1d4cb2f",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "bde2b789827c6a66"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "883b53af3296043d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "2fc788d7975459bf"
    }
   },
   {
@@ -553,11 +536,10 @@
      "effect": "drops the oldest beyond 1000"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleStrapSample(_:)": "b0e8e702057c890e",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.rrMillis(in:)": "27f011ef0cc3f963"
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "1ced93abaeb28c00",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleStrapSample(_:)": "f98201e9ec674366",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.rrMillis(in:)": "96057a66d314c7aa"
    }
   },
   {
@@ -589,9 +571,8 @@
      "effect": "tries NSNumber.doubleValue; non-numbers dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)": "6ec06394ea861658"
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)": "b3c3babca3fa6e4f"
    }
   },
   {
@@ -617,9 +598,8 @@
      "effect": "refusal reply; else {ok:true}"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74"
    }
   },
   {
@@ -633,9 +613,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef"
    }
   },
   {
@@ -667,10 +646,9 @@
      "effect": "log prints \"nil\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "0c9cc31fb9e0f7e1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "ee945ccc04a158ac",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -729,16 +707,15 @@
      "effect": "handleIncoming then {ok:true}"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlHandler(for:)": "73f369410f63daaf",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "0c9cc31fb9e0f7e1",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.currentStateReply()": "83cbc9b969562e38",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "27a30ef24a5e8e8c",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startWorkoutReply(_:)": "810bc435b3ced8c5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlHandler(for:)": "47d96ea30f7a31bf",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "ee945ccc04a158ac",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.currentStateReply()": "addf1021d4fdf3ca",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "8d3b32f98c35ded3",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "2c6be8a3984f12a4",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startWorkoutReply(_:)": "0df28e947229ad60",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -776,7 +753,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -803,15 +779,14 @@
      "effect": "refusal .phoneNotReady"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "49edab9094df9643",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "e0465c27131b9b06",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "ef5f5c32f78e25ec",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "0b79374d47e93c70",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -836,9 +811,8 @@
      "effect": "{ok:false, needsDisclaimer:true}; else ok with state label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74"
    }
   },
   {
@@ -861,10 +835,9 @@
      "effect": "returns it tagged; else explicit not-recording reply"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "ac0c6b7ae1d4cb2f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "883b53af3296043d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -897,7 +870,6 @@
      "effect": "transferUserInfo, return; else sendMessage whose error handler queues transferUserInfo"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -917,9 +889,8 @@
      "effect": "logs and returns Data(); decoding then yields [:] and the message is ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -944,9 +915,8 @@
      "effect": "logs warning and returns [:]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -958,7 +928,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -972,7 +941,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

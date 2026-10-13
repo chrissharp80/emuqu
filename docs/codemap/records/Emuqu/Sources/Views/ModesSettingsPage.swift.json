@@ -8,18 +8,6 @@
  ],
  "state": [],
  "toplevel": "settingsManager defaults to AppDependencies.current.app.settingsManager at init (line 10) while telemetry goes through the @Environment dependencies; PageSnapshotTests passes SettingsManager.shared explicitly. Reached from SettingsView.swift:240 and SettingsSearchIndex.swift:172.",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "The page reads settings from the AppDependencies.current global captured at init but services from the SwiftUI environment, so a preview/test that injects a different dependencies environment edits one SettingsManager and records telemetry on another. Moving settings to @Environment needs PageSnapshotTests to stop passing settingsManager: (handoff from fix batch b22).",
-   "evidence": [
-    "Emuqu/Sources/Views/ModesSettingsPage.swift:10",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift:109"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var ModesSettingsPage.body",
@@ -35,13 +23,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingSection": "d7b5f81a25211749",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackModeSection": "a8686a7bd8ece02a",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachSection": "8f6e20d1400e5802",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingSection": "135b3836c219c55b",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackModeSection": "60e5c50d9e13cdad",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachSection": "45b502f73366bb28",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -57,11 +44,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackModeFooter": "611c3a4651f9355e",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggle": "d46e5e541b24fe42"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackModeFooter": "eb6e337acd160905",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggle": "c2d7826b95cf3c2c"
    }
   },
   {
@@ -75,9 +61,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -93,11 +78,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFields": "022594490eeff080",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFooter": "9ee43fcca28f842a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFields": "7722d187d99d7a48",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFooter": "5aec19b56ac9451f"
    }
   },
   {
@@ -124,11 +108,10 @@
      "effect": "caption 'On (auto)'; false → 'Off'"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -142,9 +125,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -160,11 +142,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFields": "0f00cc22d5d97e87",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFooter": "46d68597504bacc6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFields": "4aa6ac1dfc1c63db",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFooter": "033b126933e4185a"
    }
   },
   {
@@ -186,11 +167,10 @@
      "effect": "shows the 'Auto-deactivate on' DatePicker row; otherwise only the toggle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachEndDateRow": "607462e002335b38",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "bbb83ecf47fd16a2",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachToggle": "ad212aeb909c9fa5"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachEndDateRow": "1588616d0f544f46",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "6f8e56d343bb15c8",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachToggle": "2702c209f1a4d0bd"
    }
   },
   {
@@ -204,9 +184,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -230,13 +209,12 @@
     "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)": "b29a48972f91d8f3",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggleLabel": "f2a71e7adcbfe8df"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)": "c76abdbd19811265",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggleLabel": "b1deba95b3652ba0"
    }
   },
   {
@@ -251,11 +229,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackStatusText": "fc356c14b60f347e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackStatusText": "1849fe565d3c72dc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -283,10 +260,9 @@
      "effect": "treats days since start as 0, so 21 remaining"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -304,13 +280,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.setOverreach(_:)": "c22c4ed806b6a0dd",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "bbb83ecf47fd16a2",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachStatusText": "d3a3900456b48930",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.setOverreach(_:)": "9bcdfd466556fc96",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "6f8e56d343bb15c8",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachStatusText": "5ec2f3ffaadf83ac",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -327,9 +302,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "35bc5507155babf3"
    }
   },
   {
@@ -349,10 +323,9 @@
     "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)": "520c910ef75c9415"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)": "ad296f57f469d17e"
    }
   },
   {
@@ -370,7 +343,6 @@
      "effect": "returns start of today, which would allow an end date that switches the mode off immediately"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
@@ -401,12 +373,11 @@
      "effect": "returns 'Active until <abbreviated date>.'; nil (switched on open-ended before both screens shared TrainingModeSwitches) → 'Active. Tap below to set an end date.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "bbb83ecf47fd16a2"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "6f8e56d343bb15c8"
    }
   },
   {
@@ -435,12 +406,11 @@
      "effect": "true: picker; false: button that saves the default end date"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.overreachEndDatePicker(_:)": "87944d10c198c66b",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "009af1b617485a6f"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.overreachEndDatePicker(_:)": "dc6a0ebb39098e9e",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "9739f876a8dce754"
    }
   },
   {
@@ -460,11 +430,10 @@
     "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.earliestOverreachEnd": "436d0ed423be0f21"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.earliestOverreachEnd": "c6a45fbdd879e137"
    }
   },
   {
@@ -490,10 +459,9 @@
      "effect": "telemetry recorded; off: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "0e1cfdf6203d9109"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "209c56e78f1c22c5"
    }
   },
   {
@@ -521,11 +489,10 @@
      "effect": "clear the end date and return; true: save the default end date and record telemetry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "0e1cfdf6203d9109",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "009af1b617485a6f"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "209c56e78f1c22c5",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "9739f876a8dce754"
    }
   },
   {
@@ -543,7 +510,6 @@
      "effect": "today + 7 × 24 h"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

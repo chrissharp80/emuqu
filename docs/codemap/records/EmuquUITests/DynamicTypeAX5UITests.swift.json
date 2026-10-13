@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/DynamicTypeAX5UITests.swift:38",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var DynamicTypeAX5UITests.screen",
@@ -30,10 +17,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9"
    }
   },
   {
@@ -48,10 +34,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b"
    }
   },
   {
@@ -63,7 +48,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -78,11 +62,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "0622e50ef17aa8bf",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "57b740ae4cc0c6fd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -96,10 +79,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -115,11 +97,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "10620a1e9034251a",
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "0622e50ef17aa8bf",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "13dcc82f2cabdf0c",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "57b740ae4cc0c6fd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -133,20 +114,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc says every element that carries a label must keep a non-empty one at AX5; the test checks only the disclaimer agree button",
-     "evidence": [
-      "EmuquUITests/DynamicTypeAX5UITests.swift:106",
-      "EmuquUITests/DynamicTypeAX5UITests.swift:112"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -167,11 +136,10 @@
      "effect": "assert usable target"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "10620a1e9034251a",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "13dcc82f2cabdf0c",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8"
    }
   },
   {
@@ -191,10 +159,9 @@
      "effect": "XCTFail and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
-    "EmuquUITests/DynamicTypeAX5UITests.swift::var DynamicTypeAX5UITests.screen": "4c2d0efbf05d2c89"
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::var DynamicTypeAX5UITests.screen": "877f7365e643dc46"
    }
   },
   {
@@ -222,21 +189,8 @@
      "effect": "swipe up"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Uses bare isHittable, which the harness documents raises (fails the test) when no activation point can be derived (EmuquUITests.swift:247-259), and scrollViews.firstMatch, which can be the dashboard behind the cover (EmuquUITests.swift:736-739)",
-     "evidence": [
-      "EmuquUITests/DynamicTypeAX5UITests.swift:153",
-      "EmuquUITests/EmuquUITests.swift:247",
-      "EmuquUITests/EmuquUITests.swift:736"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6"
    }
   }
  ],

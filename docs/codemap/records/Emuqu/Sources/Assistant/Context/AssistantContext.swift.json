@@ -9,7 +9,6 @@
  ],
  "state": [],
  "toplevel": "Struct declaration with Codable synthesis; liveWorkout, liveHRVSession, ambientLocation and liveWorkoutSamples are var so AssistantContextSource overlays fresh broker data after build (liveWorkoutSamples defaults to nil in the memberwise init). The renderers read only the value: ages and day windows are measured from generatedAt and the HR history from liveWorkoutSamples.",
- "flags": [],
  "units": [
   {
    "key": "func AssistantContext.renderLiveStateForCloud(now:)",
@@ -57,14 +56,13 @@
      "effect": "append '📍 LOCATION: ...'; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "628485a8b92002f2",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "c765e15bb23aadf2",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "bdfa54d8a2381dc9",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)": "f01fe165fab46080",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -102,9 +100,8 @@
      "effect": "use 0 days; then return MOST RECENT label with POSIX/gregorian yyyy-MM-dd date"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -164,15 +161,14 @@
      "effect": "return nil; else return joined line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)": "910f25b372d620e7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "bdfa54d8a2381dc9",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)": "db0162e05a121a11",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "f61c85490ac7ce5f",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0"
    }
   },
   {
@@ -187,10 +183,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.motionBits(_:)": "fe00dcb015db2ce2",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.placeBits(_:)": "d5e02473e0f241d7"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.motionBits(_:)": "45576c00179d910d",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.placeBits(_:)": "bcadb3cee512c1c7"
    }
   },
   {
@@ -233,7 +228,6 @@
      "effect": "append it"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -276,7 +270,6 @@
      "effect": "append '(Ns old)'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -331,10 +324,9 @@
      "effect": "return []; else one LIVE LOCATION line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca046840e972fc1"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca606f01e5d1edf"
    }
   },
   {
@@ -359,9 +351,8 @@
      "effect": "return []; else the history line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrBucketSummaries(_:)": "dd1a942bb88b89bc"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrBucketSummaries(_:)": "edcb604f225702d4"
    }
   },
   {
@@ -404,7 +395,6 @@
      "effect": "fallback avg (unreachable since hrs non-empty)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -426,11 +416,10 @@
      "effect": "return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutBits(_:)": "6ff2a664318d8229",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutHRHistoryLines()": "286cf9dd1b1005b1",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLocationLines(_:)": "5ed452f799305954"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutBits(_:)": "39eccd6d0fcebc0b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutHRHistoryLines()": "c96696a6c3149a68",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLocationLines(_:)": "e00b2e7526171fe3"
    }
   },
   {
@@ -480,12 +469,11 @@
      "effect": "append α1 value and band; else 'α1 unavailable: <alpha1Status>'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
    }
   },
   {
@@ -523,10 +511,9 @@
      "effect": "append 'last error: ...'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -551,9 +538,8 @@
      "effect": "return []; else one LOCATION line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "628485a8b92002f2"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "c765e15bb23aadf2"
    }
   },
   {
@@ -614,11 +600,10 @@
      "effect": "append Profile line; else only algorithm line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "972202b5df1bd6b8",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc"
    }
   },
   {
@@ -649,10 +634,9 @@
      "effect": "append 'Score history NOT yet recomputed' warning"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weightsText(_:_:_:)": "a96bd2fbb13d74ee",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::var AssistantContext.tierWeightsText": "d58942615e967d6f"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weightsText(_:_:_:)": "6b16325ae253927b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::var AssistantContext.tierWeightsText": "022f934461784702"
    }
   },
   {
@@ -666,9 +650,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weightsText(_:_:_:)": "a96bd2fbb13d74ee"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weightsText(_:_:_:)": "6b16325ae253927b"
    }
   },
   {
@@ -686,7 +669,6 @@
      "effect": "two-part text; else three-part"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -708,11 +690,10 @@
      "effect": "return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLoadAndFeelingLines(_:)": "c530fbaee076f432",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayPhysiologyLines(_:)": "ff01c66d570cec48",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayScoreLines(_:)": "c6e4e38206656791"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLoadAndFeelingLines(_:)": "b8a4d3275713da32",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayPhysiologyLines(_:)": "982bf23825165483",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayScoreLines(_:)": "0d57fbf9511b5c17"
    }
   },
   {
@@ -742,10 +723,9 @@
      "effect": "append Coach note"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26"
    }
   },
   {
@@ -761,11 +741,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayHRVLines(_:)": "1b452bd3d61e6ab4",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayOvernightHRLines(_:)": "9fee240841f9f6d5",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todaySleepLines(_:)": "22513cf1ee57ef51"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayHRVLines(_:)": "16d8da261aa5d84d",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayOvernightHRLines(_:)": "99f584bcee68a74d",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todaySleepLines(_:)": "565fb89b9c12a29d"
    }
   },
   {
@@ -785,7 +764,6 @@
      "effect": "one HRV line; else []"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrvLine(_:)": "b3167a38fb85e3c2"
    }
@@ -808,10 +786,9 @@
      "effect": "one line; else []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)": "34ee98aff246e92f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)": "05edcf70fec5f9df",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -826,10 +803,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)": "910f25b372d620e7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)": "db0162e05a121a11",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -849,9 +825,8 @@
      "effect": "empty clause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -881,10 +856,9 @@
      "effect": "append ' (fragmented)' or nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "f61c85490ac7ce5f",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0"
    }
   },
   {
@@ -909,10 +883,9 @@
      "effect": "append feeling with label clamped to 1..5 index"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadCore(_:)": "96c41c1da63dfed7",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadCore(_:)": "d08d57196d6ced67",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "ec4cf9ffd067edc5"
    }
   },
   {
@@ -937,11 +910,10 @@
      "effect": "append summary line (rendered even when yesterday is nil, without a header)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayMetricLines(_:)": "06c242101201142d"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "c689fc8d106d17b9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "8c0620f2c1dbb1a3",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayMetricLines(_:)": "af534124267dfe2f"
    }
   },
   {
@@ -995,16 +967,15 @@
      "effect": "append 'Self-rated feeling: N/5'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrvLine(_:)": "b3167a38fb85e3c2",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)": "34ee98aff246e92f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadLine(_:)": "ffb61f5391b0c0bd",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)": "05edcf70fec5f9df",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadLine(_:)": "d7225ad9ac74a553",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "f61c85490ac7ce5f",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "ec4cf9ffd067edc5",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0"
    }
   },
   {
@@ -1024,9 +995,8 @@
      "effect": "append time"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1041,10 +1011,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadCore(_:)": "96c41c1da63dfed7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadCore(_:)": "d08d57196d6ced67",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1064,10 +1033,9 @@
      "effect": "append ACWR"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -1092,10 +1060,9 @@
      "effect": "return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLine(_:dateFormatter:)": "0af2d63144dc61be"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLine(_:dateFormatter:)": "a7fa7611bc31dafa"
    }
   },
   {
@@ -1166,11 +1133,10 @@
      "effect": "append feel"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1210,9 +1176,8 @@
      "effect": "append"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1232,9 +1197,8 @@
      "effect": "return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.metricTrendLine(_:)": "069ec448bbff8961"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.metricTrendLine(_:)": "d7c527579c71bcfd"
    }
   },
   {
@@ -1254,9 +1218,8 @@
      "effect": "append '% vs baseline'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1289,12 +1252,11 @@
      "effect": "append up to 3"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "c689fc8d106d17b9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "8c0620f2c1dbb1a3",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "30b2563ae878de80",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b"
    }
   },
@@ -1320,9 +1282,8 @@
      "effect": "append '    note: ...'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.workoutBits(_:dateFormatter:)": "9f0d26d34eb382df"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.workoutBits(_:dateFormatter:)": "bb5c41d36becad6f"
    }
   },
   {
@@ -1398,13 +1359,12 @@
      "effect": "append elev"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sensorBits(_:)": "c3e85dc98126f4cb",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.estimatedCalories(avgMETs:durationSec:)": "7a49b7f83b5f3b33",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sensorBits(_:)": "0661f25dbeb0a764",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.estimatedCalories(avgMETs:durationSec:)": "85d102e0da657cc5",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -1469,9 +1429,8 @@
      "effect": "append"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1497,10 +1456,9 @@
      "effect": "append older-count line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutDetailLines(_:)": "7b41dfa80e1c0284",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklyRollupLines()": "5d06407587412266"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutDetailLines(_:)": "66888b0dbf9f629a",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklyRollupLines()": "07b741b4eb794e54"
    }
   },
   {
@@ -1526,10 +1484,9 @@
      "effect": "append it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.thirtyDayTotalLine(sevenDayCount:)": "fa65169095e03c91",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.thirtyDayTotalLine(sevenDayCount:)": "5f2aeff7cb2409fb",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1549,9 +1506,8 @@
      "effect": "return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
   {
@@ -1575,32 +1531,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "includeAmbientLocation defaults to true (fail-open): the privacy gate for cloud-bound renders depends on every cloud caller remembering to pass the disclosure-matched value; today the only cloud-capable caller (fallbackContextRender) does, and Routing:511 renders only for Apple, but a new caller using the default would send street-level location to a cloud provider outside a workout.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:778",
-      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:793",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:644",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:511"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLines()": "9b1c37c7c135cfc6",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLines()": "6f39631ee5033130",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "0d437b3e1a9e56e3",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703"
    }
   },
   {
@@ -1612,7 +1554,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1632,9 +1573,8 @@
      "effect": "return 'efficiency not measured'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   }
  ],

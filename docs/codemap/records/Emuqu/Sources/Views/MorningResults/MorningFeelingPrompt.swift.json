@@ -15,28 +15,6 @@
   "mem:MorningFeelingPrompt.pendingCommit (@State DispatchWorkItem?)"
  ],
  "toplevel": "FlowLayout.spacing defaults to 6; MorningFeelingPrompt.existingTags defaults to []. MorningFeelingPrompt is constructed by DashboardMorningFeelingChip.swift:42 and StateSnapshotTests.swift:123.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "MorningFeelingDisplay is the prompt's and badge's mapping, but DashboardMorningFeelingChip keeps its own 1-5 emoji/label table (with 'Felt good' for 4 where MorningFeelingDisplay says 'Good'), so the dashboard chip and the prompt/badge can drift (handoff from fix batch b22).",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:308",
-    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift:21"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The 1-5 morning feeling is collected by two separate UIs: this prompt and PreScorePromptView (stored through RecordView.applyMorningFeelingAnswers), with separate value mappings.",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:15",
-    "Emuqu/Sources/Views/RecordView+Results.swift:100"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var MorningFeelingPrompt.feelings",
@@ -50,10 +28,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "18b4003425849fee",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "74253412e562436a",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "e32ff7078ceb2441"
    }
   },
   {
@@ -73,7 +50,6 @@
      "effect": "nothing selected → false; else selected <= 2"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -110,13 +86,12 @@
      "effect": "pending auto-commit cancelled (no-op when none)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingPromptActions": "d9abce7e9b94dcaf",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale": "d2432b6244dc9c12",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingTagPicker": "0ec287417ad96387",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.promptTitle": "84d4a41d3940ce0a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingPromptActions": "5ef971b60b7d05a2",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale": "abe50812e0b0ce41",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingTagPicker": "5689afe57e691a98",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.promptTitle": "c123ae8f8316c626",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835"
    }
   },
   {
@@ -136,10 +111,9 @@
      "effect": "new answer → 'How do you feel this morning?'; editing → 'Change your feeling'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -154,10 +128,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingButton(_:)": "7e82efb13b424707",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelings": "266c625cab1f7122"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingButton(_:)": "247f5d6e5188cc2f",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelings": "4c6889d18ca65149"
    }
   },
   {
@@ -178,11 +151,10 @@
      "effect": "traits [.isButton, .isSelected]; else .isButton"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingLabel(_:)": "8b4707ece7ca7fc8",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)": "aeed680de005e329"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "e32ff7078ceb2441",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingLabel(_:)": "e687271724f616d1",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)": "ccf8ee5713525184"
    }
   },
   {
@@ -203,11 +175,10 @@
      "effect": "feeling 1-2 → tag chips shown; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags": "6239a3ef55be16fd",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.tagSection": "f52b36b0e9ad7189"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags": "6984f56bb9205c3c",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.tagSection": "7f6c12739f9eb20a"
    }
   },
   {
@@ -222,10 +193,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.doneFeelingButton": "208fc2d70c97e8f6",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.skipFeelingButton": "7f0506d262ba2089"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.doneFeelingButton": "9ac9f6d368fc1b10",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.skipFeelingButton": "a06a4187271eb9cc"
    }
   },
   {
@@ -246,11 +216,10 @@
      "effect": "'Skip'; editing → 'Cancel' (existing value kept because nothing is committed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "e32ff7078ceb2441",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -272,13 +241,12 @@
      "effect": "feeling 1-2 → Spacer + Done; feelings 3-5 rely on the auto-commit timer, no Done"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.commitExplicit()": "55ccf92a03597c77",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags": "6239a3ef55be16fd",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "e32ff7078ceb2441",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.commitExplicit()": "0d616d25d39e9712",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.showTags": "6984f56bb9205c3c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -304,12 +272,11 @@
      "effect": "feeling colour at 15% opacity; else clear"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)": "42440404b74801a1",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)": "456752bf49519121",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -325,13 +292,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.cluster": "84f5f488ff069969",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipRow(title:tags:)": "321e3cbfe14adcd9",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "6117be36341144ca",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.cluster": "3a682c1c34e2258d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipRow(title:tags:)": "9b8039ec7c9ea6eb",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "6d112e5fbfc5bf78",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -345,10 +311,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipFlow(_:)": "2c9ced7704163b1a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipFlow(_:)": "c866f79f8158ba89",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -362,9 +327,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChip(_:)": "ef0ba79dd028ac40"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChip(_:)": "794d37a60b81d411"
    }
   },
   {
@@ -387,11 +351,10 @@
      "effect": "adds .isSelected trait; else no extra trait"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChipLabel(_:isOn:)": "cef46172221f76e3",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.toggle(_:isOn:)": "69e2792a96f255d9"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "e32ff7078ceb2441",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tagChipLabel(_:isOn:)": "9988d60db2adf438",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.toggle(_:isOn:)": "f1b10ad4f51b3eba"
    }
   },
   {
@@ -411,7 +374,6 @@
      "effect": "remove tag; else insert tag"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -433,13 +395,12 @@
      "effect": "label textPrimary; else textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.emoji": "4ecab369fbbb86f1",
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.localizedLabel": "179605d421a5d05a",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.TagChipChrome.body(content:)": "cef594c083fc729d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.emoji": "eee9b57347814f28",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.localizedLabel": "0b172e51c1cc9dbd",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.TagChipChrome.body(content:)": "3f86393ddad38dee",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -462,10 +423,9 @@
      "effect": "primary.opacity(0.5) stroke; else clear"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820"
    }
   },
   {
@@ -494,9 +454,8 @@
      "effect": "schedule 1 s auto-commit with no tags; 1-2 → no commit, tag section shown"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
    }
   },
   {
@@ -524,7 +483,6 @@
      "effect": "tags = Array(selectedTags); else []"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -544,9 +502,8 @@
      "effect": "proposed width, else unbounded (single row)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)": "eafe472bebff040d"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)": "2b4a0509ec5ff8e7"
    }
   },
   {
@@ -566,9 +523,8 @@
      "effect": "place subview idx; zero subviews → nothing placed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)": "eafe472bebff040d"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func FlowLayout.layout(subviews:maxWidth:)": "2b4a0509ec5ff8e7"
    }
   },
   {
@@ -591,7 +547,6 @@
      "effect": "wrap to next row (y += rowHeight + spacing); else stay on row (an oversize first chip overflows)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -634,7 +589,6 @@
      "effect": "U+1F610 neutral for out-of-range"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -679,9 +633,8 @@
      "effect": "OK"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -724,9 +677,8 @@
      "effect": "textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -742,12 +694,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "18b4003425849fee",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "74253412e562436a",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "e32ff7078ceb2441",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   }
  ],

@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Markdown only.",
- "flags": [],
  "units": [
   {
    "key": "§ Training Load — end-to-end calculation",
@@ -24,15 +23,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "c56b06672fd5d0dd",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "6dca408cb769ec28",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "bd6aa4da9d441b8c"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "260269964760c014",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "c47251a7f3a7932a",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "b6c00d6916c00fac",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "4a1413b92b7c6d6e",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "63967a28585e4a5e"
    }
   },
   {
@@ -50,13 +48,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc"
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "0484425576594949",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "b03ad9f228bd03fa",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "08ca06d4f7a41cbf",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826"
    }
   },
   {
@@ -72,22 +69,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Quoted code shows `effectiveLoad(restingHR: Double = 60, maxHR: Double? = nil)`; the real signature is `effectiveLoad(restingHR: Double, maxHR: Double)` with no defaults and a non-optional maxHR, so the doc implies a 60 bpm resting default that does not exist.",
-     "evidence": [
-      "docs/TRAINING_LOAD.md:38",
-      "Emuqu/Sources/Collection/HealthDataTypes.swift:333"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "6da7c607ba44d751",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)": "0e6ca7af113872c5",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48"
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "2165868632351d87",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)": "d24d2d7ac836e89c",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "08ca06d4f7a41cbf"
    }
   },
   {
@@ -107,27 +92,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The doc's 'same order as WorkoutMetadata.preferredTrainingLoad' holds only by hand: the six-tier ladder is written twice (TrainingLoadPrecedence.stored feeds ATL/CTL, preferredTrainingLoad feeds the per-workout rows), with no shared definition, so a tier change in one makes the row's load differ from the load counted in CTL.",
-     "evidence": [
-      "docs/TRAINING_LOAD.md:53",
-      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:83",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:709"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "bff2d08aed4fed7c",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "dbca3958b68fa5b2",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "c2761244f5a0267d",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "76ca57d4e4884777"
    }
   },
   {
@@ -145,12 +117,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "862cfd3dfcfb7632",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)": "98732597083cf83f",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "6da7c607ba44d751",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)": "d57c82dcbf1c40a0",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "2165868632351d87",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2"
    }
   },
@@ -173,17 +144,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "4a3ae641cba0ef72",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)": "0058ec3b86912664",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "b03ad9f228bd03fa",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "56c5e32efc48e3fd",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)": "29043457a215ad45",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)": "ef8d75c92178244a",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "4e23a88ccff23cef",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)": "af22d142fcf62ad8",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)": "c08f99eb5e367da3",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutDataScore(_:)": "3dff8a910c9f9a0b"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "d7b1cfbb94bf332a",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)": "74eb4580c3fa817e",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)": "2c0070754587a740",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutDataScore(_:)": "bb070e4a3e677749"
    }
   },
   {
@@ -202,27 +172,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Says the EWMA window constants are 'also mirrored' at TrainingConstants.EWMA (acuteDays 7, chronicDays 42), implying a second copy; they are the only copy and are what Point.stepped reads, so editing them changes ATL/CTL directly rather than a mirror.",
-     "evidence": [
-      "docs/TRAINING_LOAD.md:194",
-      "Emuqu/Sources/Analysis/TrainingLoadSeries.swift:39",
-      "Emuqu/Sources/Analysis/TrainingLoadSeries.swift:40",
-      "Emuqu/Sources/Utilities/Constants.swift:343"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "0484425576594949",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "8ccd36469279a69c",
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "c30287884e799aea",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "8457ef6dcff2944b",
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "fee4f972f248039e",
-    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.makeSamples()": "edbe67771cf67e43"
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "d7b5612921729235",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "858276868b88e9c4",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "e01ed28e5f944d39",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.makeSamples()": "6dd6bc66cf55b4a4"
    }
   },
   {
@@ -243,29 +199,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The doc names one peaking heuristic (LoadTrajectoryLoader.peakingHeuristic); the same 'ATL < CTL by >10% for the last 4 days' rule is implemented three times (Load & Trajectory loader, the Dashboard Load chip, the assistant trajectory fact), each a separate copy, so a threshold change in one leaves the chip, the screen and Flo disagreeing on Peaking.",
-     "evidence": [
-      "docs/TRAINING_LOAD.md:227",
-      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:274",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:266",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:90"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
-    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "74895ca444d7dd74",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "30086fb3a84d1cfb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "170d2c19f5ca8a6e",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)": "cd9c76e68397ba21"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)": "29ed5cb6aef3bf7d"
    }
   },
   {
@@ -285,15 +227,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "4a3ae641cba0ef72",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "56c5e32efc48e3fd",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()": "3d88aab61312c601",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()": "a8c7bc0e743a61de",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "1faf6972f9023f4e",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922"
    }
   },
   {
@@ -310,11 +251,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "74895ca444d7dd74",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "79a326701b55ae38",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "deb1966504f9047f"
    }
   }

@@ -1,15 +1,14 @@
 {
  "file": "scripts/codemap/inventory.py",
- "hash": "3024b0a88eb60223",
+ "hash": "7c2ecdf53c2a22b6",
  "role": "Inventory for the code map: lists every in-scope tracked file and every unit in it (Swift via tree-sitter, scripts/Makefile/workflows/Markdown via regex), giving each unit a stable key and each unit and file a content hash. Imported by codemap.py and report.py.",
  "types": [],
  "state": [
-  "EXCLUDE: glob patterns kept out of scope (binaries, LICENSE, the two large .xcstrings catalogs, docs/codemap/*, and the .ci/codemap_open_*.txt budgets, which change with every fix and are checked against the records by codemap.py)",
+  "EXCLUDE: glob patterns kept out of scope (binaries, LICENSE, the two large .xcstrings catalogs, and docs/codemap/*)",
   "NS_CODE: regex selecting non-Swift code files (.sh .py .c .m .h, Makefile, .githooks/, .github/workflows/)",
   "SWIFT_UNIT, SWIFT_TYPES, KIND_WORD: tree-sitter node kinds that are units / enclosing types, and the word each unit kind uses in its key"
  ],
  "toplevel": "Module docstring, `from __future__ import annotations`, imports (fnmatch, hashlib, re, subprocess, Path) and the four constants above. No code runs at import beyond defining them; tree_sitter is imported lazily inside inventory().",
- "flags": [],
  "units": [
   {
    "key": "def tracked_files",
@@ -24,7 +23,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -38,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -61,7 +58,6 @@
      "effect": "'#'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -86,9 +82,8 @@
      "effect": "skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _comment_prefix": "780fda98482e3656"
+    "scripts/codemap/inventory.py::def _comment_prefix": "89f33ecc9caccc22"
    }
   },
   {
@@ -124,13 +119,12 @@
      "effect": "labels are the first word of each comma-separated parameter; otherwise ()"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3",
-    "scripts/codemap/inventory.py::def _swift_units.name_of": "e4ca7269ee805e7c",
-    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0",
-    "scripts/codemap/inventory.py::def _swift_units.unit_kind": "bdf7574b36ade540",
-    "scripts/codemap/inventory.py::def _swift_units.walk": "5fc2018d3816c65c"
+    "scripts/codemap/inventory.py::def _swift_units.labels": "4b436b47cbf55fa2",
+    "scripts/codemap/inventory.py::def _swift_units.name_of": "8f71a06ada66ff44",
+    "scripts/codemap/inventory.py::def _swift_units.txt": "21200dfee34cd3c2",
+    "scripts/codemap/inventory.py::def _swift_units.unit_kind": "d5f326b1a46f2ea6",
+    "scripts/codemap/inventory.py::def _swift_units.walk": "b6b8dd32283e8496"
    }
   },
   {
@@ -142,7 +136,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -182,9 +175,8 @@
      "effect": "its stripped text; none found gives '?'"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0"
+    "scripts/codemap/inventory.py::def _swift_units.txt": "21200dfee34cd3c2"
    }
   },
   {
@@ -214,9 +206,8 @@
      "effect": "type text appended; otherwise the label alone"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0"
+    "scripts/codemap/inventory.py::def _swift_units.txt": "21200dfee34cd3c2"
    }
   },
   {
@@ -256,9 +247,8 @@
      "effect": "'closure-init'; otherwise None"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0"
+    "scripts/codemap/inventory.py::def _swift_units.txt": "21200dfee34cd3c2"
    }
   },
   {
@@ -291,12 +281,11 @@
      "effect": "key is \"<word> <Type><labels>\"; otherwise \"<word> <Type>.<name><labels>\""
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3",
-    "scripts/codemap/inventory.py::def _swift_units.name_of": "e4ca7269ee805e7c",
-    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0",
-    "scripts/codemap/inventory.py::def _swift_units.unit_kind": "bdf7574b36ade540"
+    "scripts/codemap/inventory.py::def _swift_units.labels": "4b436b47cbf55fa2",
+    "scripts/codemap/inventory.py::def _swift_units.name_of": "8f71a06ada66ff44",
+    "scripts/codemap/inventory.py::def _swift_units.txt": "21200dfee34cd3c2",
+    "scripts/codemap/inventory.py::def _swift_units.unit_kind": "d5f326b1a46f2ea6"
    }
   },
   {
@@ -314,7 +303,6 @@
      "effect": "that line is the end"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -326,7 +314,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -377,10 +364,9 @@
      "effect": "end of the step"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _brace_end": "0596434fc2aeebf6",
-    "scripts/codemap/inventory.py::def _trim": "b42ec70a3537d527"
+    "scripts/codemap/inventory.py::def _brace_end": "a844c0445448ca0f",
+    "scripts/codemap/inventory.py::def _trim": "b63688c796c1efbc"
    }
   },
   {
@@ -405,9 +391,8 @@
      "effect": "becomes a unit"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _trim": "b42ec70a3537d527"
+    "scripts/codemap/inventory.py::def _trim": "b63688c796c1efbc"
    }
   },
   {
@@ -438,11 +423,10 @@
      "effect": "its lines are left out of this hash"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _significant": "82bdc28c0a00bc98",
-    "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3",
-    "scripts/codemap/inventory.py::def digest": "2a8b8c86e2fb4393"
+    "scripts/codemap/inventory.py::def _significant": "de8cdf637bf104de",
+    "scripts/codemap/inventory.py::def _swift_units.labels": "4b436b47cbf55fa2",
+    "scripts/codemap/inventory.py::def digest": "a7b96dc21354355e"
    }
   },
   {
@@ -484,17 +468,16 @@
      "effect": "heading units; else no units"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/inventory.py::def _doc_units": "f73ccb0fda245952",
-    "scripts/codemap/inventory.py::def _finish": "d433c7014d66e509",
-    "scripts/codemap/inventory.py::def _ns_units": "6236f25d8b3b53ea",
-    "scripts/codemap/inventory.py::def _swift_units": "cf379810b9ee9393",
-    "scripts/codemap/inventory.py::def tracked_files": "77e7e8250674aa1a"
+    "scripts/codemap/inventory.py::def _doc_units": "e12fa5a055722efb",
+    "scripts/codemap/inventory.py::def _finish": "54b3e6b19312eab9",
+    "scripts/codemap/inventory.py::def _ns_units": "43e34c8482d65134",
+    "scripts/codemap/inventory.py::def _swift_units": "db658c4a7be44726",
+    "scripts/codemap/inventory.py::def tracked_files": "f05cbec08d4891cd"
    }
   }
  ],
  "deps": {
-  "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3"
+  "scripts/codemap/inventory.py::def _swift_units.labels": "4b436b47cbf55fa2"
  }
 }

@@ -26,19 +26,6 @@
   "mem:MetNorwayForecast.symbolConditions (static symbol base → English condition table)"
  ],
  "toplevel": "Header (6-22) states MET Norway terms compliance: User-Agent, 2-decimal coordinates, no repeat before Expires nor within 10 minutes, If-Modified-Since, fetches off the main thread. userAgent and the header-name statics are nonisolated (read by the nonisolated request/outcome); userAgent's initializer reads Bundle.main.appVersion. Response Decodable conformance synthesized; decoder uses .iso8601 dates.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "The request-gating and cache logic (refreshIfNeeded, cacheCovers, apply, isSamePlace) has no test; MetNorwayForecastTests only checks parsing, snapshot, symbols, the Expires parser, userAgent and the minimumRequestInterval constant.",
-   "evidence": [
-    "Emuqu/Sources/Services/WeatherService.swift:58",
-    "Emuqu/Sources/Services/WeatherService.swift:96",
-    "EmuquTests/MetNorwayForecastTests.swift:136"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var WeatherService.current",
@@ -58,19 +45,8 @@
      "effect": "returns snapshot; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "current is time-dependent but only snapshot/fetchedAt are observed, so an observing SwiftUI view does not refresh when the snapshot ages out; callers WorkoutRecorder+Context.swift:77/314 and WorkoutRecorder+Lifecycle.swift:649 read it imperatively, so the effect is limited to any future view binding.",
-     "evidence": [
-      "Emuqu/Sources/Services/WeatherService.swift:32"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "be38fc4a723f8f8d"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "ac9d70b86a004b09"
    }
   },
   {
@@ -106,14 +82,13 @@
      "effect": "sends forecast.lastModified as If-Modified-Since; otherwise nil (unconditional GET)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)": "dfcbbe5de590e2f3",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)": "779f8bfeebe45972",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)": "09610eee127e966f",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)": "fe69a81f4a6db998",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "091e57309d81d85c",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "a0643cefe3e7fc35"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)": "beee0aaaf2eed6b2",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)": "df7b2221f49bed77",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)": "d8664fd5e6e9b5c4",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)": "17e0a2c94a3cba84",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "28b89fb7eb34d9aa",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175"
    }
   },
   {
@@ -155,10 +130,9 @@
      "effect": "returns with forecast/snapshot/fetchedAt/fetchedAtCoord unchanged; otherwise all four stored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "be38fc4a723f8f8d",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "091e57309d81d85c"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "ac9d70b86a004b09",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "28b89fb7eb34d9aa"
    }
   },
   {
@@ -191,7 +165,6 @@
      "effect": "?? .distantPast so only the 30 min TTL applies; returns now < validUntil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -211,7 +184,6 @@
      "effect": "false; otherwise exact lat/lon equality"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -223,7 +195,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -253,11 +224,10 @@
      "effect": "logs warning, returns .failed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "091e57309d81d85c",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "2831fcfbb35cb020",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "28b89fb7eb34d9aa",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "9161637c63632c3f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -280,7 +250,6 @@
      "effect": "sets If-Modified-Since header; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -317,11 +286,10 @@
      "effect": "logs status, returns .failed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)": "0609b4706cf7a074",
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "532f2d5c0cae36e5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)": "d6248135505e11b7",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "e7fabc883fdb25ea",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -341,9 +309,8 @@
      "effect": "?? returns english unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditionNames()": "6e13755596a68daf"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditionNames()": "388838e123eb90ca"
    }
   },
   {
@@ -357,9 +324,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -379,10 +345,9 @@
      "effect": "returns snapshot; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa",
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "ad0bbfc38e9ed7fe",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab"
    }
   },
   {
@@ -397,9 +362,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab"
    }
   },
   {
@@ -422,7 +386,6 @@
      "effect": "?? falls back to next_6_hours symbol, else nil symbol"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -436,7 +399,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -464,7 +426,6 @@
      "effect": "?? 'Unknown'"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

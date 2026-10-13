@@ -7,18 +7,6 @@
   "dir:Emuqu/Sources"
  ],
  "toplevel": "set -euo pipefail; cd to repo root. SOURCE_ROOT=$1 or Emuqu/Sources (missing -> 2). Calls find_offenders \"$SOURCE_ROOT\" inside \"$(…)\" (the Python is in that function, not a here-document inside the substitution, so macOS bash 3.2 parses it); the Python masks string literals, finds String(localized:/NSLocalizedString( calls, skips lines starting //, paren-matches the call and requires `bundle:` inside and no `bundle: .main` / `bundle: Bundle.main`. Offenders -> exit 1. Else counts lookups with grep and prints clean. Watch target deliberately excluded. Wired: gates.yml, ci.yml, Makefile.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "README says every lookup must name LanguageManager.appBundle; the gate accepts any `bundle:` argument (e.g. bundle: .main).",
-   "evidence": [
-    "scripts/README.md:73",
-    "scripts/check_localization_bundle.sh:71"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "fn find_offenders",
@@ -31,11 +19,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/check_localization_bundle.sh::fn find_offenders": "f151ec1709515aef"
+  "scripts/check_localization_bundle.sh::fn find_offenders": "48011f047bbfe223"
  }
 }

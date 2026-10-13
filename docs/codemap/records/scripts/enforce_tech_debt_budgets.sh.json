@@ -13,7 +13,6 @@
   "env:GITHUB_STEP_SUMMARY (append)"
  ],
  "toplevel": "set -euo pipefail; no cd. Reads five budgets via read_budget (no integer validation; a non-integer makes the later (( )) arithmetic error under set -e). Write-path count (python): lines not starting with `//` (trailing and block comments still counted) matching `try?` followed on the same line by a call whose name starts write/save/persist/encode/store/setValue/setAttributes/setResourceValue/create/remove/delete/move/copy, or `.archive(`/`.flush(`/`.commit(`, case-insensitive. Main counts (python): block and line comments blanked, then platform singletons (URLSession, UIApplication, MXMetricManager, AVAudioApplication, WidgetCenter, AppTransaction, AVAudioSession, FileManager, NotificationCenter, UNUserNotificationCenter, WCSession, HKHealthStore `.shared`) blanked; counts `\\.shared\\b`, keyword `try?`, `\\bObservableObject\\b`. Large files: wc -l per file via xargs, rows with $2 == 'total' excluded. Builds summary; note_slack adds a FAIL (slack) line and sets failed when a count is below its budget (exact ratchet); each count > budget adds FAIL and sets failed. Prints summary, appends to GITHUB_STEP_SUMMARY, exits 1 if any FAIL.",
- "flags": [],
  "units": [
   {
    "key": "fn read_budget",
@@ -37,7 +36,6 @@
      "effect": "stderr, exit 65; otherwise echo the value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -58,13 +56,12 @@
      "effect": "append FAIL (slack) line, failed=1"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
-  "scripts/enforce_tech_debt_budgets.sh::fn note_slack": "a84feb6c5135d641",
-  "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+  "Tools/copy_linter/lint.py::": "5373b51ca6189fff",
+  "scripts/enforce_tech_debt_budgets.sh::fn note_slack": "a6eb51c1c34ce8df",
+  "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "f16c6c713183c00b"
  }
 }

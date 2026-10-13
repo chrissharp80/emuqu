@@ -12,19 +12,6 @@
   "mem:SleepClaimVerificationTests.efficiency (93.2)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "The buffer under test is the process-global MetricsVerifier.pendingCorrections, shared with the hosting app's assistant/voice code; tests drain it only in setUp, so anything the host or another suite records between drain and assertion changes the block. The documented de-duplication of identical metric/claim/value corrections (MetricsVerifier.swift:588-596) has no test.",
-   "evidence": [
-    "EmuquTests/HallucinationFeedbackTests.swift:24",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift:582",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift:594"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func HallucinationFeedbackTests.setUp()",
@@ -41,7 +28,6 @@
     "mem:MetricsVerifier.pendingCorrections"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587"
    }
@@ -61,7 +47,6 @@
     "mem:MetricsVerifier.pendingCorrections"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587"
    }
@@ -99,11 +84,10 @@
      "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
-    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "9f1e5eff4a202794"
    }
   },
   {
@@ -144,11 +128,10 @@
      "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
-    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "9f1e5eff4a202794"
    }
   },
   {
@@ -194,11 +177,10 @@
      "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
-    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "9f1e5eff4a202794"
    }
   },
   {
@@ -229,11 +211,10 @@
      "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
-    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "9f1e5eff4a202794"
    }
   },
   {
@@ -248,11 +229,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
-    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "da69d3f8ac88cf1b"
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "6f62321f76bb65e9"
    }
   },
   {
@@ -273,10 +253,9 @@
      "effect": "asserts no discrepancy"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
-    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "da69d3f8ac88cf1b"
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "6f62321f76bb65e9"
    }
   },
   {
@@ -291,10 +270,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
-    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "da69d3f8ac88cf1b"
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "6f62321f76bb65e9"
    }
   },
   {
@@ -312,7 +290,6 @@
      "effect": "peakHR is 0 when no heart rate is supplied"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -327,10 +304,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4988656d08a92650",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "ce35506b8f0d30c2"
    }
   },
   {
@@ -345,10 +321,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4988656d08a92650",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "ce35506b8f0d30c2"
    }
   },
   {
@@ -368,9 +343,8 @@
      "effect": "asserts no discrepancy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "ce35506b8f0d30c2"
    }
   },
   {
@@ -390,9 +364,8 @@
      "effect": "asserts no discrepancy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "ce35506b8f0d30c2"
    }
   },
   {
@@ -407,10 +380,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "0cfccfbc2dce2608",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "ce35506b8f0d30c2"
    }
   },
   {
@@ -424,9 +396,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "ce35506b8f0d30c2"
    }
   },
   {
@@ -440,9 +411,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationText(_:longForm:)": "b0f69d545534646f"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationText(_:longForm:)": "dda8fcfd58153976"
    }
   },
   {
@@ -454,7 +424,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

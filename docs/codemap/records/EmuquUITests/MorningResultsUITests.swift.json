@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/MorningResultsUITests.swift:35",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func MorningResultsUITests.setUp()",
@@ -37,14 +24,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)": "2b754ae9ec1519fb",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)": "5ba5620e216c04a8",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "50306885fddfe9c9",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -56,7 +42,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -74,14 +59,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)": "1c1ff9e3f23f61f1",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "efab8f8cde2d1594",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)": "226bfa536e17a32b",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "dc459fe29ba3495a"
    }
   },
   {
@@ -93,9 +77,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6"
    }
   },
   {
@@ -110,10 +93,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
-    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "f2aa19d16876df20",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "dc459fe29ba3495a"
    }
   },
   {
@@ -130,12 +112,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
-    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing": "41690cc8f3fd0531"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "f2aa19d16876df20",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing": "c8e5e2c52020060c"
    }
   },
   {
@@ -147,9 +128,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6"
    }
   },
   {
@@ -166,12 +146,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
-    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing": "41690cc8f3fd0531"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "f2aa19d16876df20",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing": "c8e5e2c52020060c"
    }
   },
   {
@@ -191,26 +170,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Never asserts the explainer sheet actually opened; it passes if the tap did nothing as long as the following swipe-down does not dismiss the results sheet",
-     "evidence": [
-      "EmuquUITests/MorningResultsUITests.swift:131",
-      "EmuquUITests/MorningResultsUITests.swift:132"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.dismissExplainer()": "befc3be91b2d0bfa",
-    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
-    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "3afc95d3936f4933",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "efab8f8cde2d1594",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.dismissExplainer()": "007acb67cf5f9bc9",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "f2aa19d16876df20",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "dc459fe29ba3495a"
    }
   },
   {
@@ -224,10 +191,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -250,13 +216,12 @@
      "effect": "swipe up"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
-    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "f2aa19d16876df20",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "dc459fe29ba3495a"
    }
   },
   {
@@ -272,24 +237,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Negative-only assertion: passes on any Dashboard that lacks the checklist phrase, including one that rendered no reading at all; selectTab's result is ignored",
-     "evidence": [
-      "EmuquUITests/MorningResultsUITests.swift:183",
-      "EmuquUITests/MorningResultsUITests.swift:174"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "1f05f416ecad4647",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "2da048db91bd45a6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "20fdac3cec598901",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   }
  ],

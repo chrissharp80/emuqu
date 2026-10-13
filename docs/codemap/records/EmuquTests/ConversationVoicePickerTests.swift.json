@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func ConversationVoicePickerTests.testLookupRunsOffTheMainActorAndIsCached()",
@@ -29,25 +28,12 @@
     "mem:ConversationVoicePicker.cache"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Name says the lookup 'runs off the main actor', but nothing asserts the executing thread; it only calls from Task.detached. Also the cache is a process-global static (VoiceConversationController+Speech.swift:623), so if any earlier test in the process looked up en-US both calls hit the cache and the 'second lookup enumerated again' regression could not be detected by this test.",
-     "evidence": [
-      "EmuquTests/ConversationVoicePickerTests.swift:9",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:602",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:623"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestInstalledVoice(matching:)": "8d71e407667420c8",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "85014ab958e8c3aa",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.logged(_:)": "949fbe62262f8989",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityName(_:)": "f87cb035eace2a64",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)": "43011858c7bdfb2b"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "f4829910f7275059",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.logged(_:)": "69a272ffb4e7c2cd",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityName(_:)": "ff40267dd7a33c67",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)": "3b58241a96c5d578"
    }
   }
  ],

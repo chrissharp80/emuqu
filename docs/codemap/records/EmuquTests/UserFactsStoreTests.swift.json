@@ -10,18 +10,6 @@
   "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json — per-test backing file (lazy tempDir/fileURL)"
  ],
  "toplevel": "fileURL is a lazy var derived from tempDir; tempDir creates a UUID-named temp directory on first access.",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "Class setUp forces process-global NSTimeZone.default to UTC although no test here reads dates or calendars; it is cargo-culted global mutation (restored in class tearDown).",
-   "evidence": [
-    "EmuquTests/UserFactsStoreTests.swift:26",
-    "EmuquTests/UserFactsStoreTests.swift:30"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func UserFactsStoreTests.setUp()",
@@ -35,9 +23,8 @@
     "mem:UserFactsStoreTests.savedDefaultTimeZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -58,7 +45,6 @@
      "effect": "restores it; otherwise NSTimeZone.default is left as is"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,9 +58,8 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -90,9 +75,8 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir": "3bf97872cf0404c9"
+    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir": "f6c3dd335597bcb5"
    }
   },
   {
@@ -117,16 +101,15 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -157,16 +140,15 @@
      "effect": "adds one fact per index"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -186,13 +168,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -217,16 +198,15 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -251,16 +231,15 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -285,16 +264,15 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -318,27 +296,14 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Cap assertion hard-codes 25 instead of UserFactsStore.maxFacts, unlike the add-cap test, so a cap change breaks this test with a misleading message.",
-     "evidence": [
-      "EmuquTests/UserFactsStoreTests.swift:137",
-      "EmuquTests/UserFactsStoreTests.swift:66",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:149"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)": "c354bbdd0cdc5a65",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)": "ffb8c5ec4320b53b",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -363,16 +328,15 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "5f671f580b979f5b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -396,15 +360,14 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "5f671f580b979f5b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -428,15 +391,14 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -461,15 +423,14 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
-    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "37c819299d37c048"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "9ef5a6c18ef81a6c"
    }
   },
   {
@@ -499,19 +460,18 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/*undecodable*"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)": "b4c88d9524e2058f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
-    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "37c819299d37c048",
-    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir": "3bf97872cf0404c9"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "ece1c58cdf429e28",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)": "ae62ef6e00124933",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "9ef5a6c18ef81a6c",
+    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir": "f6c3dd335597bcb5"
    }
   },
   {
@@ -538,17 +498,16 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
-    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "37c819299d37c048"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "6f744087b6e7bd8d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "9ef5a6c18ef81a6c"
    }
   },
   {
@@ -568,13 +527,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "4323ea47776c5cdb",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -598,15 +556,14 @@
     "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "4323ea47776c5cdb",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587"
    }
   },
   {
@@ -632,13 +589,12 @@
      "effect": "sleep 0.02 s and reopen; otherwise exit loop and assert count (fails after 30 s)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "340e30af8183af07",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "2a758c2c9ecc21a5",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "4b9e32d5fae82587",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   }
  ],

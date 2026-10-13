@@ -26,18 +26,6 @@
   "Timer flushTimer (5 s repeating)"
  ],
  "toplevel": "Static regex source strings and lineDateStyle are initialised lazily; persistentLoggingEnabled is hard-wired true under #if DEBUG in init. Free functions debugLog/correlationTagged/debugLogExternal and enum ExternalCause are top-level.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "scrubPHI's redaction output is not asserted by any test; RedactionPatternTests only checks that the patterns compile.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/DebugLog.swift:351",
-    "EmuquTests/RedactionPatternTests.swift:31"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var DebugLogger.persistentLoggingEnabled",
@@ -51,7 +39,6 @@
     "mem:DebugLogger.persistentLoggingEnabled"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -63,7 +50,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,9 +61,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "f55dbd73868f2e3a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "d502ecffccb8a34c"
    }
   },
   {
@@ -105,14 +90,13 @@
      "effect": "rotateIfNeeded+loadFromDisk queued on the logger queue; otherwise no disk load, ring buffer starts empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.deferDiskLoad()": "71c152e0cf4eb222",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.observeAppLifecycle()": "ee10aa52df5f39de",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)": "17eebbaabe47d9de",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()": "09abe494bab75fc5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.startFlushTimer()": "bcfd24ce79cf058a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled": "9b34d14e62197094"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.deferDiskLoad()": "c7460d2451364a02",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.observeAppLifecycle()": "9c33c5e2628d7fe2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)": "b6211b69825d339b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()": "0a6a546680f62278",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.startFlushTimer()": "bfcbcd45f45480ec",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled": "b70a6c282060488b"
    }
   },
   {
@@ -126,9 +110,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151"
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
    }
   },
   {
@@ -157,7 +140,6 @@
      "effect": "NSLog, continue"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -172,10 +154,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.loadFromDisk()": "1f8405df870346e0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.rotateIfNeeded()": "0d1496aadc803ee0"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.loadFromDisk()": "56b9fcdcf254d5ef",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.rotateIfNeeded()": "c15641bbd3ba5b20"
    }
   },
   {
@@ -190,9 +171,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()": "5bf6d5088a04dcd0"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()": "e4bb428a3cdfc662"
    }
   },
   {
@@ -209,10 +189,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appWillResignActive()": "451c49a9ed0272a6",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appWillTerminate()": "84a44ed587e64030"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appWillResignActive()": "90eecd856c207d5f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appWillTerminate()": "35e034ff35d894eb"
    }
   },
   {
@@ -226,9 +205,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()": "5bf6d5088a04dcd0"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()": "e4bb428a3cdfc662"
    }
   },
   {
@@ -242,9 +220,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "7b9bf7750ab9705e"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "2708646537e67dd9"
    }
   },
   {
@@ -268,11 +245,10 @@
      "effect": "dispatches recordPendingEntries to main; otherwise returns (an earlier hop will pick it up)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.recordPendingEntries()": "f74d79d93f1678e8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.recordPendingEntries()": "89837bc6933a5690",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -315,12 +291,11 @@
      "effect": "drops oldest down to 1000"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appendToRingBuffer(_:)": "17eac77095791928",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.isSignificant(message:level:)": "cb8fedfeafc94de0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.shouldCatalog(message:level:)": "7dd4560a21d00643"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.isSignificant(message:level:)": "2e196c6a1aadb2d5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.shouldCatalog(message:level:)": "ff6a2d7e12fb0021"
    }
   },
   {
@@ -338,10 +313,9 @@
     "mem:DebugLogger.exportBuffer"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:to:droppingOlderThan:cap:)": "e5a12b6ab941dc39",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "da21c5aa7193a747"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:to:droppingOlderThan:cap:)": "6e1a9c4508893510",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9"
    }
   },
   {
@@ -364,7 +338,6 @@
      "effect": "removes oldest overflow"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -381,7 +354,6 @@
     "mem:DebugLogger.exportBuffer"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -393,7 +365,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -411,7 +382,6 @@
      "effect": "true; otherwise text-marker check"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -425,9 +395,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "d6fbafbe56b69335"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "a876249b88e75f55"
    }
   },
   {
@@ -441,9 +410,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "d6fbafbe56b69335"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "a876249b88e75f55"
    }
   },
   {
@@ -480,11 +448,10 @@
      "effect": "append; otherwise createLogFile"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:)": "c483c0dc51be0a05",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.createLogFile(with:)": "c8637e716e1e4812",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:)": "60378d267219a467",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.createLogFile(with:)": "e0c6c5d3839f98b8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31"
    }
   },
   {
@@ -516,9 +483,8 @@
      "effect": "NSLog"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3"
    }
   },
   {
@@ -546,7 +512,6 @@
      "effect": "NSLog"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -561,10 +526,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "507c1db8e611eeaa",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "3ce0a99266611d57"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "47f2f851e771f6bc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "98e41a0944128cbf"
    }
   },
   {
@@ -584,9 +548,8 @@
      "effect": "runs another pass; else returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "3ce0a99266611d57"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "98e41a0944128cbf"
    }
   },
   {
@@ -615,7 +578,6 @@
      "effect": "NSLog 'REDACTION PATTERN FAILED' and return nil (caller redaction fails open)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -635,9 +597,8 @@
      "effect": "returns text unredacted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "368d0627695b64ef"
    }
   },
   {
@@ -672,7 +633,6 @@
      "effect": "NSLog; file keeps growing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -703,11 +663,10 @@
      "effect": "keeps most recent 5000"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLogLine(_:notBefore:)": "ce68bb66cbaab80f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.prependLoaded(_:)": "fd5c5f72e3686dc6"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLogLine(_:notBefore:)": "da9fd459fbc7c13d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.prependLoaded(_:)": "877377554fc80f25"
    }
   },
   {
@@ -730,9 +689,8 @@
      "effect": "filters loaded to those before entries.first; else uses all loaded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "da21c5aa7193a747"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9"
    }
   },
   {
@@ -750,7 +708,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -780,9 +737,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLineDate(_:)": "32f300a505984b7c"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLineDate(_:)": "9db53cd38311b0dc"
    }
   },
   {
@@ -810,9 +766,8 @@
      "effect": "NSLog"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "da21c5aa7193a747"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9"
    }
   },
   {
@@ -826,7 +781,6 @@
     "mem:DebugLogger.errorCatalog"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -863,11 +817,10 @@
      "effect": "counted as an entry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)": "5121a5e1ddd0476a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs()": "faab5b2c11cf46b8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "7b9bf7750ab9705e"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)": "b81a9a65a3251d3d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs()": "b542ffb0160d5140",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "2708646537e67dd9"
    }
   },
   {
@@ -893,11 +846,10 @@
      "effect": "body empty (header with 0 entries)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)": "5121a5e1ddd0476a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)": "b81a9a65a3251d3d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -914,12 +866,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild": "a445014a645ad924",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "76f45a25c424e560",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild": "a877386a7f924daa",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "eface46bdd3b318b"
    }
   },
   {
@@ -938,12 +889,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "76f45a25c424e560",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9"
    }
   },
   {
@@ -981,11 +931,10 @@
      "effect": "nil, error discarded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.dropFileProtection(at:)": "a65aa8e02ac106f4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "59bffe49f4d6aee5",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.dropFileProtection(at:)": "ceedc47fca9d0f04",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "666e2aa374448a9e",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -1007,7 +956,6 @@
      "effect": "NSLog"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1024,12 +972,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()": "ac264ab5ec2f9162"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()": "67e38a4d21126cdd"
    }
   },
   {
@@ -1051,13 +998,12 @@
     "mem:DebugLogger.pendingLines"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.log(_:category:level:)": "c0067765d359e81d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func correlationTagged(_:)": "eb29cf4dff19705a"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.log(_:category:level:)": "5a46f61a51da8480",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func correlationTagged(_:)": "f5a5272113e37c85"
    }
   },
   {
@@ -1079,9 +1025,8 @@
      "effect": "returns raw unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LogCorrelation.swift::var LogCorrelation.current": "88583a8a2d9f64ec"
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::var LogCorrelation.current": "99b22496bf18b145"
    }
   },
   {
@@ -1095,9 +1040,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

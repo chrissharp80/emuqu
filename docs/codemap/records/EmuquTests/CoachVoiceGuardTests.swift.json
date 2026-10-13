@@ -7,31 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "CoachVoiceGuard's doc (CoachVoiceGuard.swift, '## Wiring') still says CoachVoiceGuardTests asserts that StreamTextBuffer.flush and VoiceConversationController.speak call the guard; no test here (or elsewhere in EmuquTests) touches StreamTextBuffer, VoiceConversationController.speak or applyPostStreamEffects — testProhibitedPhraseIsNeverPublishedDuringStreaming replays the buffer loop with the guard's own functions — so removing a production call site would leave the suite green. This file's header now says so; the source doc and a call-site test need changes outside the test file (handoff).",
-   "evidence": [
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:25",
-    "EmuquTests/CoachVoiceGuardTests.swift:587",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:567",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:54"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Several assertions compare against English deflection copy ('healthcare professional', offensiveLanguageRule.deflection substring) or check only the current-language deflection, but the class never pins the app language; deflections resolve through LanguageManager.appBundle, so results depend on the host language.",
-   "evidence": [
-    "EmuquTests/CoachVoiceGuardTests.swift:452",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:73",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:135"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CoachVoiceGuardTests.testEveryScrubbedConceptHasARule()",
@@ -46,19 +21,6 @@
      "at": "+2",
      "cond": "for each scrubFromOutput concept",
      "effect": "asserts its id is among the rule ids"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "CoachVoiceGuard.rules is built by mapping scrubFromOutput, so this assertion is a tautology; it does not check that each concept has a specific deflection or a compiling regex (deflection falls back to observationFallback silently).",
-     "evidence": [
-      "EmuquTests/CoachVoiceGuardTests.swift:24",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:78",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:91"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -87,21 +49,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -138,20 +99,19 @@
      "effect": "asserts clean sentence index is still in the output"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -180,24 +140,23 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "5aa09298379bbd07",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "7ff5aa40668aa3e7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "d124fe9413d15941",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "e28b7b1aaa84329c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -226,24 +185,23 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "5aa09298379bbd07",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "7ff5aa40668aa3e7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "d124fe9413d15941",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "e28b7b1aaa84329c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -270,22 +228,21 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -318,21 +275,20 @@
      "effect": "scrubs and asserts the result passes the pre-check"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -357,12 +313,11 @@
      "effect": "asserts it is a scrubbed concept id"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "032607a2f8f307dd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "0602f428a21bf89d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "bb17ada00b09e689",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "3933f8975715f2f3"
    }
   },
   {
@@ -387,9 +342,8 @@
      "effect": "asserts the concept covers it"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/CoachVoiceGuardTests.swift::func CoachVoiceGuardTests.scripts(in:)": "4cef59723cbd76e4"
+    "EmuquTests/CoachVoiceGuardTests.swift::func CoachVoiceGuardTests.scripts(in:)": "c40f3e1af38b98e6"
    }
   },
   {
@@ -427,7 +381,6 @@
      "effect": "ignored"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -459,21 +412,20 @@
      "effect": "asserts no interception and identical output"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -505,19 +457,18 @@
      "effect": "true: continues to the order and trigger checks; false: XCTFail and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420"
    }
   },
   {
@@ -549,21 +500,20 @@
      "effect": "asserts no interception and identical output"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -595,20 +545,19 @@
      "effect": "asserts didIntercept is false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -640,20 +589,19 @@
      "effect": "asserts didIntercept is true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -685,20 +633,19 @@
      "effect": "asserts it is intercepted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -730,20 +677,19 @@
      "effect": "asserts not intercepted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -769,20 +715,19 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -808,20 +753,19 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -841,9 +785,8 @@
      "effect": "asserts its regex is non-nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -872,11 +815,10 @@
      "effect": "true: runs the match check; false: skips the rule silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "03aae03bb24b1cbb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -900,11 +842,10 @@
      "effect": "asserts its deflection is clean"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "03aae03bb24b1cbb"
    }
   },
   {
@@ -930,21 +871,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -970,21 +910,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1016,20 +955,19 @@
      "effect": "asserts it is intercepted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -1061,21 +999,20 @@
      "effect": "asserts no interception and identical output"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1107,20 +1044,19 @@
      "effect": "asserts it is intercepted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -1146,21 +1082,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1192,20 +1127,19 @@
      "effect": "asserts not intercepted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807"
    }
   },
   {
@@ -1220,11 +1154,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "ed30692d7732bb7c",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
@@ -1238,10 +1171,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "ed30692d7732bb7c",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
@@ -1256,11 +1188,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "ed30692d7732bb7c",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
@@ -1287,22 +1218,21 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "ed30692d7732bb7c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1340,33 +1270,21 @@
      "effect": "skips publishing this delta (continue); otherwise publishes the scrubbed complete part"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Re-implements the StreamTextBuffer publish loop in the test instead of driving StreamTextBuffer.flush, so a change to the real buffer (e.g. appending unscrubbed text) is not detected.",
-     "evidence": [
-      "EmuquTests/CoachVoiceGuardTests.swift:583",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:525"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "ed30692d7732bb7c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
@@ -1389,10 +1307,9 @@
      "effect": "calls containsProhibitedLanguage"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea"
    }
   },
   {
@@ -1419,21 +1336,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "03aae03bb24b1cbb",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1453,9 +1369,8 @@
      "effect": "asserts it is prohibited"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c"
    }
   },
   {
@@ -1487,21 +1402,20 @@
      "effect": "asserts identical output and no interception"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1528,21 +1442,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1570,22 +1483,21 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "7613642a16016ea5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1599,9 +1511,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -1629,23 +1540,22 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "87a6c73709daa16a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "7613642a16016ea5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -1660,10 +1570,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.confidentLanguage(of:)": "37fa5c686e9e6982"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "7613642a16016ea5",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.confidentLanguage(of:)": "4022330337731041"
    }
   },
   {
@@ -1702,9 +1611,8 @@
      "effect": "asserts the regex does not match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -1723,12 +1631,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "03aae03bb24b1cbb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   }
  ],

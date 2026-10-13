@@ -7,22 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Non-hermetic: hosted() injects RRCollector() (shared App Group archive and RawRRBackup), SettingsManager.shared, StoreKitManager.shared, CloudKitSyncManager.shared and VoiceConversationController.shared, and never calls useDefaultSettings(). Screens that list stored data (TrashView via collector on appear, LostSessionsView via .task, SavedRoutesPage via SavedRouteStore.shared) and the settings pages render whatever the host holds, so the snapshots can differ between machines; the hermetic SnapshotFixtures.collector()/useDefaultSettings() helpers used by other snapshot suites are not used here.",
-   "evidence": [
-    "EmuquTests/PageSnapshotTests.swift:16",
-    "EmuquTests/PageSnapshotTests.swift:17",
-    "Emuqu/Sources/Views/TrashView.swift:24",
-    "Emuqu/Sources/Views/LostSessionsView.swift:32",
-    "Emuqu/Sources/Views/SavedRoutesPage.swift:15",
-    "EmuquTests/SnapshotFixtures.swift:184"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func PageSnapshotTests.hosted(_:)",
@@ -44,12 +28,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -71,14 +54,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "2d6308bb50fa86bd",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "fdf08baf61874e5f",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -100,14 +82,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrashView.swift::var TrashView.body": "54375cf79eb1ed2d",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/TrashView.swift::var TrashView.body": "19f68333114db850",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -129,14 +110,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.body": "a69b71e03dc2a3cf",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.body": "a3c50681ad6686a0",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -158,14 +138,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.body": "2b0eff3da41e8b50",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.body": "c08edcd974e21a60",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -188,15 +167,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "010b76d536d1a790",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.body": "fc92d62427d2ddef",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "219485e012260453",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.body": "82a4a4bdaa214017",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -218,14 +196,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body": "1b69909cb8084fd8",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body": "51df882ab3e929a3",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -247,14 +224,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "d682cf1396e78539",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "cfd59f3a5995d405",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -276,14 +252,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body": "895513f4d8cefb3d",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body": "5192cc87d8390c2d",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -305,14 +280,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.body": "8932046a50d77690",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.body": "1a0cc76b499f9eee",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -334,14 +308,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body": "58a2293418b9354e",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body": "409f3c6691db0083",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -363,14 +336,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body": "9d902bfc2800dd9d",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body": "ad07bd87c1d479bd",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -392,14 +364,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "509f781a24b3cf76",
-    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "988a524ecbdca951",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "cfb3c4eddd439b05",
+    "EmuquTests/PageSnapshotTests.swift::func PageSnapshotTests.hosted(_:)": "7f00d8fecd6384a6",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   }
  ],

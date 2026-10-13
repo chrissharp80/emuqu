@@ -20,7 +20,6 @@
   "mem:RoutingSessionState.turnCount"
  ],
  "toplevel": "contextualEmbedder is a lazy stored property initialised by loadContextualEmbedder(); RoutingSessionState.turnCount = 0. The Tier-3 cap counter lives in UserDefaults (standard), so a relaunch does not reset it.",
- "flags": [],
  "units": [
   {
    "key": "func SmartProviderRouter.Tier.<(lhs:rhs:)",
@@ -31,7 +30,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -53,16 +51,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary": "7635398939270bf7",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "e68b27c975e4e4a2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.capabilityClassifier": "47b5297e6944b251",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary": "41a9b01d15ceeb84",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "d726263dcd064cf5",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "c74b7f5f64f2ae07",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.capabilityClassifier": "ec2561348ad501d4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -98,19 +95,6 @@
      "effect": "returns session.currentTier (sticky)"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test references SmartProviderRouter or RoutingSessionState: grepping EmuquTests for SmartProviderRouter, RoutingSessionState, sessionState.turnCount, route(message and recordTier3 finds nothing. TurnRouterTests covers only the pure TurnRouter. The sticky upgrade/downgrade rules, the settling window and the Tier-3 cap that pick the cloud provider are never exercised.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:84",
-      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:215",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:120"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -142,7 +126,6 @@
      "effect": "error discarded, returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -158,7 +141,6 @@
     "mem:SmartProviderRouter.wordEmbedder"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -181,10 +163,9 @@
      "effect": "word-vector mean; else contextual (nil on failure)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.contextualEmbedding(_:)": "3b0b6c67f7eda9bd",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.wordVectorEmbedding(_:)": "4df4d49ba5a3852a"
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.contextualEmbedding(_:)": "8555c81b0ee9f032",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.wordVectorEmbedding(_:)": "2c061f2ee5e9aea3"
    }
   },
   {
@@ -222,7 +203,6 @@
      "effect": "false: nil; true: returns sum / count"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.contextualEmbedder": "4743d11884ab4aeb"
    }
@@ -262,9 +242,8 @@
      "effect": "adds v[i]; all word vectors share one dimension so no bounds issue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.wordEmbedder": "7d849944de31d4f6"
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.wordEmbedder": "fbce3774460e2862"
    }
   },
   {
@@ -278,7 +257,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -305,9 +283,8 @@
      "effect": "continues from the stored count; else starts from 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b"
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "8c84121510de7a12"
    }
   },
   {
@@ -319,7 +296,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -352,7 +328,6 @@
      "effect": "divides by vectors.count"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "No top-level code.",
- "flags": [],
  "units": [
   {
    "key": "func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
@@ -27,22 +26,9 @@
      "effect": "returns true; otherwise logs 'skipped — user-adjusted sleep' and returns false"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md §13.2 says autoRefreshTodaysSleepIfImproved 'Skips entirely when session.sleepUserAdjusted == true', but the guard lets a user-adjusted session with a nil sleepSnapshot through (CloudKit-pulled case) and applyAutoRefresh then fills its snapshot.",
-     "evidence": [
-      "docs/FLOWCHART.md:806",
-      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:38",
-      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:128"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -79,25 +65,11 @@
      "effect": "firstSnapshot true; an empty prior snapshot met by another empty reading is not a first fill (no forced update/rescore)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md §13.2 gives the rescore threshold as '≥ 20 min or first snapshot'; the code also rescores on an onset move >= 15 min and on a source upgrade to HealthKit/hrValidated, and the update gate also passes on those, so the doc under-describes when scores change.",
-     "evidence": [
-      "docs/FLOWCHART.md:806",
-      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:91",
-      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:95",
-      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:97"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "d8d3231e47ac745b",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)": "bc65e91b58a590ac",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "695f34dc99dcf17c",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)": "9c376ad85e585a7a",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb"
    }
   },
   {
@@ -117,7 +89,6 @@
      "effect": "returns 0; otherwise computed move"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
    }
@@ -131,9 +102,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb"
    }
   },
   {
@@ -154,10 +124,9 @@
      "effect": "applyPulledSleep; otherwise applyFreshSleep"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "fd838752117cc6c9",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "1efcb890e37eb67c"
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "8f9178cd1d775e49",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "08fb02a1f8e571fd"
    }
   },
   {
@@ -187,11 +156,10 @@
      "effect": "sleepSegments = nil and return; otherwise mapped to SleepSegmentMs array"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "e9f79b449cb7a7c9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -216,10 +184,9 @@
      "effect": "fills sleepEndMs (clamped >= 0); otherwise unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   }
  ],

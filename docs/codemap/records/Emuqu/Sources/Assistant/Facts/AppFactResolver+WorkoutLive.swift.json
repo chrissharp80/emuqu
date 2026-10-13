@@ -11,20 +11,6 @@
   "static let segmentLookbackDescription"
  ],
  "toplevel": "Conforms to FactNamespaceResolver; registered at AppFactResolver.swift:200. Static description string line 465.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references workout.live.snapshot, .active, .hr, .alpha1, .location or segment_lookback_at_current_position.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift:248",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift:258",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift:409",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift:433"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var WorkoutLiveNamespace.snapshot",
@@ -39,11 +25,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "651137401d46dc0d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -55,7 +40,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -78,10 +62,9 @@
      "effect": "false: nil; true: tuple"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -111,18 +94,17 @@
      "effect": "false: missing('no workout active'); true: merged record"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.coreFields(_:)": "9d50f94f024634e2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.historicalFields(_:)": "01ebf208ad144db7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.motionFields(_:)": "c9fddc1a1968204c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.racePredictionFields(_:)": "e234b640f4dd6fc9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.readinessFields(_:)": "285a1a9312327dc3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.trendFields(_:)": "9f5b5b8d67383621",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.zoneFields(_:)": "2607bc975cfdcd8d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.coreFields(_:)": "94a135b832abac8c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.historicalFields(_:)": "4f5d1d37efde1792",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.motionFields(_:)": "723af6b12c3f8645",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.racePredictionFields(_:)": "8f5b6d5c50ac5c60",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.readinessFields(_:)": "fcdf2ff84f5b8bf0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.trendFields(_:)": "88b49b00c77d1eab",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.zoneFields(_:)": "2f4f028936a13e9c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495"
    }
   },
   {
@@ -160,13 +142,12 @@
      "effect": "adds strap_silent_sec"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
    }
   },
   {
@@ -234,13 +215,12 @@
      "effect": "adds target_zone"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca046840e972fc1",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.currentMETs": "6f3b89f858af7316"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca606f01e5d1edf",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.currentMETs": "1d6cc698b8094164"
    }
   },
   {
@@ -288,14 +268,13 @@
      "effect": "adds projected_minutes_until_fade"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "37f4cb69898f6e4d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "cdb5a0cea6c4097b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "a49fc922fd0875af",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "30171ba55743b2d5",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "a14332360ad925a3"
    }
   },
   {
@@ -328,7 +307,6 @@
      "effect": "adds historical_sport_avg_alpha1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -362,12 +340,11 @@
      "effect": "returns with startForecastFields; otherwise adds today_atl/ctl/tsb and liveForecastFields"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.liveForecastFields(atl:ctl:)": "96a03e78c8f63a87",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.liveTrainingLoad()": "7cd1c18f677d0b4b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.startForecastFields(_:)": "ed7eb852f54435b6",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.liveForecastFields(atl:ctl:)": "7de3b15506f5167f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.liveTrainingLoad()": "950a4b044adb0137",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.startForecastFields(_:)": "fee516c6db1c81e1",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -383,11 +360,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "b8856c5a7837a0f6",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "8870bda47c69ce73",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "cb80abd36b9745a7"
    }
   },
   {
@@ -401,7 +377,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -424,9 +399,8 @@
      "effect": "adds dominant_zone"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034"
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "1e7fc71f5aca8bab"
    }
   },
   {
@@ -459,7 +433,6 @@
      "effect": "adds marathon"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -474,10 +447,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.sensorEntries": "5af4f863527df8e3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.derivedEntries": "0054abc98f900fdb"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.sensorEntries": "6b150a726ff5c06d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.derivedEntries": "28f51f66d5b6db51"
    }
   },
   {
@@ -494,12 +466,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1Entries": "9c37d899585617c9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveOutputEntries": "990b423a49274c9f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLivePaceEntries": "f28fd266984d17aa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveStateEntries": "6d65b1e8e8c4311c"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1Entries": "37817ba1bab74dd3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveOutputEntries": "6d54f88a06cd6245",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLivePaceEntries": "a07e234dc8e72946",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveStateEntries": "3c53aa4d32ed2d6c"
    }
   },
   {
@@ -516,12 +487,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveActiveEntry": "e7fdcdd9d642db81",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveElapsedSecEntry": "dcd71bbbdaf277a2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveSnapshotEntry": "d0e9ccf4d6e46597",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveSportEntry": "0bfc32302ea95d12"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveActiveEntry": "10233071b9dace23",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveElapsedSecEntry": "09949bcbbc6adb6b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveSnapshotEntry": "4010db5eca0130cf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveSportEntry": "28c78f11abead5e5"
    }
   },
   {
@@ -538,12 +508,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveDistanceMetersEntry": "1b8c73d64f1767d1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveHrEntry": "e1defd1556b535ce",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLivePaceSecPerKmEntry": "8d474516d53c0784",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveSpeedMPerSEntry": "14ba615da6a911a7"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveDistanceMetersEntry": "72f1bbe0ddb9345e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveHrEntry": "bad0f648f55f3636",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLivePaceSecPerKmEntry": "6fe4a94e188753ce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveSpeedMPerSEntry": "f3630910e51ec942"
    }
   },
   {
@@ -559,11 +528,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1BandEntry": "56f26a67fd1d7e66",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1Entry": "31442215c9b047c5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1StatusEntry": "4a66ce486433ef74"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1BandEntry": "40bb624bc238eaed",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1Entry": "5b100c00c9fba9ad",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveAlpha1StatusEntry": "deab750ee00e0fbc"
    }
   },
   {
@@ -581,13 +549,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.segmentLookbackEntry": "5ed40d8204a013ba",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveCadenceSpmEntry": "07ac55b234925580",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveElevationGainMetersEntry": "94111c4fb230c82a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveLocationEntry": "610aad5f1033e7a3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLivePowerWattsEntry": "e5a5258bf4d01246"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.segmentLookbackEntry": "1cc5388e6f504ef4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveCadenceSpmEntry": "d596320f148253ca",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveElevationGainMetersEntry": "8480af6313d777be",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveLocationEntry": "f33135dc40be2d23",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLivePowerWattsEntry": "ea8dc440c3f419dc"
    }
   },
   {
@@ -604,10 +571,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -624,10 +590,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.snapshotRecord()": "c6dca5526f504f64",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.snapshotRecord()": "228e311f77952977",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -651,11 +616,10 @@
      "effect": "nil → missing('no workout active')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -679,12 +643,11 @@
      "effect": "nil → missing('no workout active')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -713,11 +676,10 @@
      "effect": "nil → missing('no HR sample yet')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -746,12 +708,11 @@
      "effect": "nil → missing('pace not yet resolvable')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0"
    }
   },
   {
@@ -780,12 +741,11 @@
      "effect": "nil → missing('speed not yet resolvable')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca046840e972fc1"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca606f01e5d1edf"
    }
   },
   {
@@ -809,11 +769,10 @@
      "effect": "nil → missing('no workout active')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -842,11 +801,10 @@
      "effect": "nil → missing('no current α1 — <alpha1Status>')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -870,11 +828,10 @@
      "effect": "nil → missing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -898,11 +855,10 @@
      "effect": "nil → missing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -931,12 +887,11 @@
      "effect": "nil → missing('cadence not yet resolvable')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde"
    }
   },
   {
@@ -960,12 +915,11 @@
      "effect": "nil → missing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -994,12 +948,11 @@
      "effect": "nil → missing('no power reading — no foot pod, rower or bike trainer power source connected')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -1048,11 +1001,10 @@
      "effect": "adds accuracy_meters"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1067,10 +1019,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.resolveWorkoutLiveSegmentLookbackAtCurrentPosition()": "03204235f68fab2a",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.resolveWorkoutLiveSegmentLookbackAtCurrentPosition()": "88f64e442369b85d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1106,11 +1057,10 @@
      "effect": "true: missing(.notRecorded,'no past workouts passed within 50m'); false: list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.lookbackMatches(near:radius:excluding:)": "630d6660ff7b0f9e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.lookbackMatches(near:radius:excluding:)": "0006759ce272f742",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "e7f777318054c5e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "1ba6c66e6d3ba495"
    }
   },
   {
@@ -1127,9 +1077,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func SegmentPointSampler.matches(in:near:radius:include:)": "234dd848a3623113"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func SegmentPointSampler.matches(in:near:radius:include:)": "fa5acdb77956b0ae"
    }
   }
  ],

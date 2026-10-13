@@ -25,7 +25,6 @@
   "mem:StrapRecordingPolicy.lowBatteryWarningPercent = 20"
  ],
  "toplevel": "Static constants listed in state; no other top-level behaviour.",
- "flags": [],
  "units": [
   {
    "key": "func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)",
@@ -52,7 +51,6 @@
      "effect": ".startVeritySense; else (H10 or nil type) .startH10"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,9 +73,8 @@
      "effect": "recordingState .idle; otherwise nil (no change)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "560f6c23efe28ae7"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "b46f35d8396e05f2"
    }
   },
   {
@@ -105,7 +102,6 @@
      "effect": ".fetchVeritySense; else .skipVeritySenseNotRecording"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -123,7 +119,6 @@
      "effect": "returns false; else the conjunction"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -156,9 +151,8 @@
      "effect": ".pause(1000 ms); otherwise .resetLink"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -170,7 +164,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -190,21 +183,8 @@
      "effect": "returns false"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production caller: RRCollector.hasUnrecoveredData (RRCollector.swift:353) re-implements the same check inline via isStrapRecordingSaved and only cites this function in a comment; only StrapRecordingPolicyTests call it.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecordingPolicy.swift:213",
-      "Emuqu/Sources/Collection/RRCollector.swift:353",
-      "EmuquTests/StrapRecordingPolicyTests.swift:298"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "f4347e3e082c9ca1"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "eccad6c84469d4b6"
    }
   },
   {
@@ -216,7 +196,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -244,7 +223,6 @@
      "effect": ".retryable"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -267,7 +245,6 @@
      "effect": "compares against lowBatteryWarningPercent (20); else against refusedAt"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -285,7 +262,6 @@
      "effect": "returns false; else batteryLevel <= 20"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

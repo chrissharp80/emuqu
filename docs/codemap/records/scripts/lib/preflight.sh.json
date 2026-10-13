@@ -8,7 +8,6 @@
   "file:<lock>/owner, <lock>/pid"
  ],
  "toplevel": "On source: runs `git rev-parse --git-dir` (errors swallowed) and sets GATE_TREE_LOCK. git-dir is relative ('.git') when run from the repo root, so the lock path is relative to the caller's cwd. No `set` options are changed.",
- "flags": [],
  "units": [
   {
    "key": "fn gate_mktemp",
@@ -32,7 +31,6 @@
      "effect": "FATAL, exit 70; else print path"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -50,7 +48,6 @@
      "effect": "FATAL, exit 70; else return 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -70,9 +67,8 @@
      "effect": "FATAL, exit 70; else print path"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe"
+    "scripts/lib/preflight.sh::fn gate_mktemp": "1c30783c35634923"
    }
   },
   {
@@ -100,7 +96,6 @@
      "effect": "stop waiting"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -130,9 +125,8 @@
      "effect": "FATAL, exit 75; otherwise treat as stale: warn, rm -rf, mkdir (exit 70 on failure)"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "f17cd95e79a7f4fd"
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "97a305043cdfc25b"
    }
   },
   {
@@ -152,7 +146,6 @@
      "effect": "rm -rf; else nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -182,17 +175,16 @@
      "effect": "FATAL, exit 75; else warn, remove lock, return 0 (the leaked mutation is not checked, only a hint printed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "f17cd95e79a7f4fd"
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "97a305043cdfc25b"
    }
   }
  ],
  "deps": {
-  "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "8261ba2c532e1783",
-  "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
-  "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
-  "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
-  "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "de19fe67d79d4de5"
+  "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "1eefdbbc8287980c",
+  "scripts/lib/preflight.sh::fn gate_mktemp": "1c30783c35634923",
+  "scripts/lib/preflight.sh::fn gate_mktemp_dir": "682ea7074aff111b",
+  "scripts/lib/preflight.sh::fn gate_release_tree_lock": "59418dd1be593444",
+  "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "9b85fbe8e85c7fef"
  }
 }

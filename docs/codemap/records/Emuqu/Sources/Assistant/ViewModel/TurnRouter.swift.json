@@ -14,7 +14,6 @@
  ],
  "state": [],
  "toplevel": "No stored state; all value types. Covered by EmuquTests/TurnRouterTests.swift.",
- "flags": [],
  "units": [
   {
    "key": "func TurnRouter.Inputs.with(tierStage:)",
@@ -25,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -46,10 +44,9 @@
      "effect": "true: return early decision; false: return tierDecision"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "66ce2d2d3e7f3a2d"
    }
   },
   {
@@ -63,9 +60,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab"
    }
   },
   {
@@ -91,11 +87,10 @@
      "effect": "true: returns appleVoiceBypass; false: returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "b8dcd07893b5fbfc",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "fa441d7a58690ed6",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a"
    }
   },
   {
@@ -116,11 +111,10 @@
      "effect": "true: Decision(cloud, model, tier nil); false: userPick with 'no consented cloud' log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -161,10 +155,9 @@
      "effect": "true: Decision with override provider/model; false: Decision with mapping provider/model"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "a8869f9eabad73ec",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a"
    }
   },
   {
@@ -176,7 +169,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -201,11 +193,10 @@
      "effect": "true: log + return (cloudID, model); false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "f6172fdb1b989cc6",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "8432a1cca189e61c",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -223,9 +214,8 @@
      "effect": "false: skip id; true: return isAvailable && isConsented as the match predicate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -258,7 +248,6 @@
      "effect": ".anyAccepted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -286,7 +275,6 @@
      "effect": "returns chain unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -302,11 +290,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "0276a09075301d19",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "d978f16e726671bf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

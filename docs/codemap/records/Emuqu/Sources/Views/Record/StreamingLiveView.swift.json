@@ -11,31 +11,6 @@
   "mem:BreathingAudioManager.isEnabled (toggled/cleared here)"
  ],
  "toplevel": "No globals. Inputs are observable StreamingLifecycle / PolarManager / BreathingAudioManager references plus the RRCollector and a stopStreaming closure.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "The Stop-now accessibility hint promises 'Two minutes or more is scored and saved', but stopStreamingSession scores only when at least 120 beats arrived (RRCollector+Streaming.swift:148); a 2+ minute reading at under 60 bpm (common at rest) has fewer than 120 beats and is returned as a failed session. The code comment on the row says '120 beats', contradicting the user-facing hint.",
-   "evidence": [
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:60",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:73",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift:148"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "USERS_MANUAL (Quick Reading Section) documents a progress ring with live HR in the centre, a stats row (beats, elapsed, average RR) and a \"Stop Early\" button; the panel has none of these (HR is a small row, the button reads \"Stop now\"; the unused stats row was deleted). The manual needs updating (handoff).",
-   "evidence": [
-    "docs/USERS_MANUAL.md:361",
-    "docs/USERS_MANUAL.md:364",
-    "docs/USERS_MANUAL.md:365",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:64"
-   ],
-   "found": "fix batch b24"
-  }
- ],
  "units": [
   {
    "key": "var StreamingProgressPanel.formattedStreamingTime",
@@ -49,10 +24,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "bbc80a6af0d5bc78"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "3e1c60d3226afa65"
    }
   },
   {
@@ -71,11 +45,10 @@
     "mem:RRCollector.onStreamingComplete"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::var BreathingAudioManager.isEnabled": "7b36a148ef3441fd",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::func StreamingProgressPanel.installAutoCompleteHandler()": "7dd2a7372c95cbe1",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2Body": "97e2cb4948e53dc4"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::var BreathingAudioManager.isEnabled": "dfeebf5ca9dbdae0",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::func StreamingProgressPanel.installAutoCompleteHandler()": "8a196b0f31b8c780",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2Body": "3cdfd20a321e9914"
    }
   },
   {
@@ -91,19 +64,6 @@
     "mem:RRCollector.onStreamingComplete"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "onStreamingComplete keeps the closure captured from the RecordView value that built this panel after the panel disappears; it captures that view's @State bindings (selectedTags, sessionNotes) at install time and is only replaced when another panel appears. Works because RecordView @State storage is stable for the tab's lifetime.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:36",
-      "Emuqu/Sources/Collection/RRCollector.swift:105",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:85"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -122,15 +82,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.updatePhase(_:)": "5e94a6572b4b5481",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.slowPacedBreathing(onPhaseUpdate:)": "1d763d418079e0a2",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.liveHRReadout": "16a7379c49d52df6",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.stopReadingRow": "8be3f6db6fef69e0",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.timeRemainingReadout": "a19a53992a60cffd",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.voiceGuideToggle": "1480858b93cc820f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.updatePhase(_:)": "61b5c83b26c06b1b",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.slowPacedBreathing(onPhaseUpdate:)": "938fc906c2c607a2",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.liveHRReadout": "cf2bd129a34114bd",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.stopReadingRow": "2523743d1d32bb97",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.timeRemainingReadout": "832aeacb00d5412e",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.voiceGuideToggle": "a259def3a8c1d327",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -146,23 +105,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The Stop-now accessibility hint promises 'Two minutes or more is scored and saved', but stopStreamingSession scores only when at least 120 beats arrived (RRCollector+Streaming.swift:148); a 2+ minute reading at under 60 bpm (common at rest) has fewer than 120 beats and is returned as a failed session. The code comment on the row says '120 beats', contradicting the user-facing hint.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:60",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:73",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:148"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -178,13 +124,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.formattedStreamingTime": "188730501733e784",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.formattedStreamingTime": "0303b468dd78d0b8",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -207,11 +152,10 @@
      "effect": "true: HR row; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -228,10 +172,9 @@
     "mem:BreathingAudioManager.isEnabled"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::var BreathingAudioManager.isEnabled": "7b36a148ef3441fd",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2BodyLabel": "e7dee01a530a6ff2"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::var BreathingAudioManager.isEnabled": "dfeebf5ca9dbdae0",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2BodyLabel": "fcc1a1d058c1c01d"
    }
   },
   {
@@ -264,14 +207,13 @@
      "effect": "wongOptimalText vs textTertiary colour"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "6e537adbf549c0ed",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "53f65185e79162c5",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -286,10 +228,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var LiveDataPanel.currentHRRow": "ccac9161ea892a99",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var LiveDataPanel.waveformAndStats": "affae7223601428a"
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var LiveDataPanel.currentHRRow": "efa408bb1400fe0c",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var LiveDataPanel.waveformAndStats": "0777b06b95cc815a"
    }
   },
   {
@@ -311,10 +252,9 @@
      "effect": "true: HR row; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -336,9 +276,8 @@
      "effect": "true: waveform + stats card; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "d5f519d5f06649a0"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "e8fe38e65c439b19"
    }
   }
  ],

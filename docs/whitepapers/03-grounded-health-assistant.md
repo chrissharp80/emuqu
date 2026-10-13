@@ -592,7 +592,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 ## 6. Verification
 
-These methods are software controls, not physiological measurements. The science register (`Tools/science_register/register.json`, scoring version v3.1.oct2026) classifies the app's physiological heuristics; none of its entries covers a method in this paper. Test results for the physiological methods of Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([link](01-overnight-recovery-measurement.md)), and Paper 2, *Real-Time DFA α1 and Dropout-Robust Training Load* ([link](02-exercise-hrv-and-training-load.md)), are in the cross-implementation report, `Tools/validation/RESULTS.md`. Verifier tolerances are set from dashboard rounding and metric noise; detection rates on real model output are not claimed.
+These methods are software controls, not physiological measurements. The science register (`Tools/science_register/register.json`, scoring version v3.1.oct2026) classifies the app's physiological heuristics; none of its entries covers a method in this paper. Test results for the physiological methods of Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([link](01-overnight-recovery-measurement.md)), and Paper 2, *Real-Time DFA α1 and Dropout-Robust Training Load* ([link](02-exercise-hrv-and-training-load.md)), come from the cross-implementation scripts in `Tools/validation/`. Verifier tolerances are set from dashboard rounding and metric noise; detection rates on real model output are not claimed.
 
 Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts at e028039) and by CI gates.
 

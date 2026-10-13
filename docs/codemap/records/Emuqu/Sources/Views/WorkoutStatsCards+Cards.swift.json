@@ -12,18 +12,6 @@
   "static let WorkoutStatsCards.hrAtStopWindowSec = 15"
  ],
  "toplevel": "Imports Charts, CoreLocation, MapKit, MessageUI, SwiftUI (MapKit and MessageUI are unused by anything in this file). Declares three static lets (120 s HRR capture window, 30 s write grace, 15 s HR-at-stop window) and three file-private free functions (distanceScale, elevationMarks, hrrNarrativeText).",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "hrrCaptureWindowSec = 120 must match the recorder's independent literal captureWindowSec: 120 passed to HRRCaptureService; changing one without the other makes the countdown banner/chip disagree with the real capture window.",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:472",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:279"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var WorkoutStatsCards.activeDuration",
@@ -37,9 +25,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
     "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "903803b5c4ac8e80"
    }
   },
@@ -60,9 +47,8 @@
      "effect": "H:MM:SS, else formatMMSS"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "20b1392066bc3d57"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "60746288b355abd5"
    }
   },
   {
@@ -83,7 +69,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)": "e3ee164f6171edaf",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "27db5f08943554ab"
@@ -110,12 +95,11 @@
      "effect": "false: returns nil; true: returns UnitsPreference.formatPace(elapsedSec:distanceMeters:) (itself nil if distance ≤ 50 / elapsed ≤ 10, unreachable here)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "10aef8a5289537eb",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "9f6523aed76afcae",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "27db5f08943554ab",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
    }
   },
   {
@@ -155,9 +139,8 @@
      "effect": "50.0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "1e12edb6a8998474"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "d44d34030adb9e58"
    }
   },
   {
@@ -177,19 +160,8 @@
      "effect": "false: nil; true: '\\(peak) bpm' string."
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only caller is ViewSnapshotTests.testDerivedDisplayStrings; no production caller.",
-     "evidence": [
-      "EmuquTests/ViewSnapshotTests.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -214,20 +186,9 @@
      "effect": "empty: nil; else the average string."
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only caller is ViewSnapshotTests.testDerivedDisplayStrings; no production caller.",
-     "evidence": [
-      "EmuquTests/ViewSnapshotTests.swift:186"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -245,7 +206,6 @@
      "effect": "no samples: offset 0 → domain 0…1 min."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -276,13 +236,12 @@
      "effect": "true: hrChart; false: empty-state text."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChart(points:samples:userMax:)": "fe1fada5893114cf"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "9bfa4c55c4d67420",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChart(points:samples:userMax:)": "5b2f7b62419bf151"
    }
   },
   {
@@ -299,13 +258,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)": "23ed5263aa666599",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartDomain(points:userMax:)": "815ec097e3088e11",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZoneBands(points:userMax:)": "a08d9cc4cc17a2d1",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "b4bb779da2e8505d"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)": "eceebc48f959ac95",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartDomain(points:userMax:)": "82f3156bcb5c6e46",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZoneBands(points:userMax:)": "042acabc1d5738e4",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "9fa053056bd62338"
    }
   },
   {
@@ -330,9 +288,8 @@
      "effect": "empty: xEnd 0 (unreachable for the same reason)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZones(userMax:)": "d8cd744389fc7a3e"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrZones(userMax:)": "35cb0c375f259936"
    }
   },
   {
@@ -344,7 +301,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -365,15 +321,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.paceSuffix": "037de3ce42900ea4",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)": "b0b75811f890bbb3",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartPoints(samples:)": "176b9e434fcea45c",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.paceSuffix": "17e288b6f78d3874",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)": "c1ff28da4cde9e74",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartPoints(samples:)": "d163ca6fea5bcfd3",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
    }
   },
   {
@@ -397,14 +352,13 @@
      "effect": "true: chart; false: empty-state text."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceDomain(points:)": "23a21e0174395844",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "72d11aba93eecdb5",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "b4bb779da2e8505d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "9bfa4c55c4d67420",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceDomain(points:)": "b9e2218564507162",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "074c639f7360bff6",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "9fa053056bd62338"
    }
   },
   {
@@ -416,7 +370,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -444,11 +397,10 @@
      "effect": "false: sample dropped (very slow jitter, and any bike speed ≥ 40 km/h)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.paceDisplayMinutes(from:)": "fa7c0500089f44c9",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.sportSpeedCeiling": "581948ebf03cedca",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.paceDisplayMinutes(from:)": "4ec32243a2bcfa38",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.sportSpeedCeiling": "37f55730d8a0f9de",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
    }
   },
   {
@@ -463,9 +415,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)": "23ed5263aa666599"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartXDomain(samples:)": "eceebc48f959ac95"
    }
   },
   {
@@ -494,14 +445,13 @@
      "effect": "true: chart; false: empty text."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "72d11aba93eecdb5",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.powerChartTitle": "15e7dcc24d0e253c"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "9bfa4c55c4d67420",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "074c639f7360bff6",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.powerChartTitle": "ff54b14860d7cd2f"
    }
   },
   {
@@ -521,9 +471,8 @@
      "effect": "on-foot → Running Power (W); else Power"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -558,27 +507,14 @@
      "effect": "true: chart; false: empty text."
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Title is always 'Cadence (spm)' although for bike/indoorBike/airBike the values are RPM and for row strokes/min, as cadenceCap's own comment says.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:299",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:334",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:335"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "1e12edb6a8998474",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "3bd57f08975c78a1",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.filterCadence(_:sport:)": "cf495c86e89edea8",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "72d11aba93eecdb5"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "d44d34030adb9e58",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "9bfa4c55c4d67420",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.filterCadence(_:sport:)": "73ed71c55e7144f0",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.simpleLineChart(points:tint:samples:height:)": "074c639f7360bff6"
    }
   },
   {
@@ -593,10 +529,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)": "e98d23d0d7ce2653",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.truncatingTailSpike(_:)": "64d2c0a11738498c"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)": "402e54a2a7b9d70d",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.truncatingTailSpike(_:)": "9f7e1c3fda1aebec"
    }
   },
   {
@@ -639,7 +574,6 @@
      "effect": "60"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -662,7 +596,6 @@
      "effect": "truncate there"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -674,10 +607,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -689,9 +621,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -709,7 +640,6 @@
      "effect": "40…max(userMax,160)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -727,7 +657,6 @@
      "effect": "empty: 0…20 (unreachable from paceChartBody, which needs ≥ 2 points)."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -770,15 +699,14 @@
      "effect": "nil: 0."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "693589472732a638",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationChart(_:maxX:xLabel:yLabel:)": "3f3002fd3890db09",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationPoints(imperial:)": "bd436c88616ca9a4",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)": "9122e07d73744f47",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "8f1418f8c07ccb73"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationChart(_:maxX:xLabel:yLabel:)": "26707ecabf57e7db",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationPoints(imperial:)": "18481ec7865fc5fa",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)": "10a37cb330f286a9",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
    }
   },
   {
@@ -799,10 +727,9 @@
      "effect": "true: altitude × UnitConstants.feetPerMeter; false: × 1.0 (metres)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)": "bed2160c48e81661",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func distanceScale(imperial:)": "bd728b84a97b7275"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)": "06c95415cda726a9",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func distanceScale(imperial:)": "11508d77bd5b0886"
    }
   },
   {
@@ -825,12 +752,11 @@
      "effect": "true: chart; false: caption text."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func elevationMarks(_:xLabel:yLabel:)": "1c68a6700ce754fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "b4bb779da2e8505d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func elevationMarks(_:xLabel:yLabel:)": "292be17d83974423",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.leadingGridAxis": "9fa053056bd62338"
    }
   },
   {
@@ -848,7 +774,6 @@
      "effect": "endDate nil: startDate + last sample offset; no samples either: startDate."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -862,20 +787,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "AppFactResolver.postStopHRRWindowOpen re-implements the same rule (hrrSamples == nil within hrrCaptureWindowSec + hrrWriteGraceSec of the end) with its own reference date (archive entry endDate, no sample-offset fallback), so assistant and summary can disagree for sessions without an endDate.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:817",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:479"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "b9bb58a5731c3818"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "579cbc8d29110b31"
    }
   },
   {
@@ -897,10 +810,9 @@
      "effect": "render the timeline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownTick(now:stoppedAt:)": "9b1b2322c9af3354",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "b9bb58a5731c3818"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownTick(now:stoppedAt:)": "7b7e96d2642e3be2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "579cbc8d29110b31"
    }
   },
   {
@@ -920,9 +832,8 @@
      "effect": "true: countdown row; false: nothing (banner disappears after the window even if no samples ever arrive)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownRow(remaining:)": "661c8f022d898f83"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownRow(remaining:)": "508f4f5ffbf87de3"
    }
   },
   {
@@ -936,10 +847,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownText(remaining:)": "b07390cb99edf7e9"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownText(remaining:)": "aa6975d7e77b7363"
    }
   },
   {
@@ -954,12 +864,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "20b1392066bc3d57"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "60746288b355abd5"
    }
   },
   {
@@ -971,7 +880,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -995,33 +903,9 @@
      "effect": "static body, else 1 Hz timeline"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The card recomputes the drop from hrAtStop (last sample HR within 15 s of the final sample) while the stored drop, shown by hrrSentence, the Fitness tab mean and CSV, uses the recorder's live currentHR at Stop; the two stop-HR sources can differ, so one session can show two different 1-minute HRR numbers.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:626",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:77",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:662",
-      "Emuqu/Sources/Analysis/CSVExporter.swift:93"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test exercises hrrCard or its helpers (hrAtStop, stopReferencedDrop, hrrNeverCaptured, hrrStatusChip); ViewSnapshotTests covers only the chart/elevation cards and derived strings.",
-     "evidence": [
-      "EmuquTests/ViewSnapshotTests.swift:149",
-      "EmuquTests/ViewSnapshotTests.swift:177"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardBody(now:)": "02a041e7df6a7867",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "6d41a4fe8dad0089"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardBody(now:)": "fa469ec14be6d5b0",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "4f8942a710b6bfc0"
    }
   },
   {
@@ -1042,16 +926,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardHeader(captureFinished:captureFailed:oneMinDrop:now:)": "14480a44f9821928",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrativeBlock(_:captureFinished:)": "c3e5b0ea2eb3acdf",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "6d41a4fe8dad0089",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueRow(_:captureFinished:)": "3536b91e2f4e2fe1",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "adc3caf2bb56673a",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.stopHRReferenceRow": "7cd29591ee8adb6d"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCardHeader(captureFinished:captureFailed:oneMinDrop:now:)": "2c73f4befb5d12d1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrativeBlock(_:captureFinished:)": "a203dcec4cccabae",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "4f8942a710b6bfc0",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueRow(_:captureFinished:)": "fbbbd42a3f98c89c",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "02d6297f0ee528e3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.stopHRReferenceRow": "1874799cfacca250"
    }
   },
   {
@@ -1066,12 +949,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrStatusChip(captureFinished:captureFailed:oneMinDrop:now:)": "f3f4a647c874259d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrStatusChip(captureFinished:captureFailed:oneMinDrop:now:)": "ea5862438746836c"
    }
   },
   {
@@ -1094,7 +976,6 @@
      "effect": "false: nil."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1114,22 +995,9 @@
      "effect": "true: stop-referenced drop; false: stored drop."
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "HRRSample.drop is documented as 'Drop from peak HR' and peakHR as the reference peak, but the capture service fills both with HR at Stop; readers of the model (and this unit's comment) rely on the wrong meaning.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:279",
-      "Emuqu/Sources/Analysis/HRRCaptureService.swift:36",
-      "Emuqu/Sources/Analysis/HRRCaptureService.swift:183"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop": "0533588d2e74f61c",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop": "582dfdfbdfa287ce",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -1150,12 +1018,11 @@
      "effect": "true: row; false: empty."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop": "0533588d2e74f61c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop": "582dfdfbdfa287ce"
    }
   },
   {
@@ -1170,12 +1037,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueBlock(label:sample:goodThreshold:okThreshold:captureFinished:)": "47a4533400a8a993"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "7afc282d882e79cd",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueBlock(label:sample:goodThreshold:okThreshold:captureFinished:)": "efea91396b06d745"
    }
   },
   {
@@ -1214,26 +1080,12 @@
      "effect": "shows 'couldn't be captured'. When samples exist but none within 60±10 s, no branch matches and nothing is rendered."
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When capture finished with a non-empty hrrSamples array but none within 60±10 s (e.g. only a 2-minute reading), no narrative renders and hrrStatusChip also renders nothing, leaving a card with '— not yet' placeholders and no explanation.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:673",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:679",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:702",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:975"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)": "2b5f9b943f7dc12b",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "adc3caf2bb56673a",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func hrrNarrativeText(_:)": "889a73d90569d424"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)": "29f2ba9edfeda1ac",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "02d6297f0ee528e3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func hrrNarrativeText(_:)": "2c73757e4d06a3b7"
    }
   },
   {
@@ -1271,13 +1123,12 @@
      "effect": "not captured"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "d07c6b408e1fbecc",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownChip(now:)": "ae023fc1c905e170",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrLabel(drop:)": "0f4f0d156b94841a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "0bd65631a3fcf89d",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownChip(now:)": "2ca4937db943beeb",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrLabel(drop:)": "e044400df240db47"
    }
   },
   {
@@ -1292,11 +1143,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "b9bb58a5731c3818"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrStopDate": "579cbc8d29110b31"
    }
   },
   {
@@ -1326,9 +1176,8 @@
      "effect": "'ok'; else 'slower'."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1358,21 +1207,8 @@
      "effect": "moderate sentence; else slower-than-expected sentence."
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "hrrSentence (and WorkoutPDFReport.hrrSentences) grade the same 18/12/8 bands with different wording, on the stored drop rather than the card's stopReferencedDrop.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:661",
-      "Emuqu/Sources/Export/WorkoutPDFReport.swift:438",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:734"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1393,11 +1229,10 @@
      "effect": "reading, else placeholder"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrPlaceholder(captureFinished:)": "ddc2606674b5a286",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrReading(_:goodThreshold:okThreshold:)": "2537f6e1d3c3c1af"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrPlaceholder(captureFinished:)": "f099c52d7c41e49f",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrReading(_:goodThreshold:okThreshold:)": "ddd82617791efdf4"
    }
   },
   {
@@ -1415,15 +1250,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "d07c6b408e1fbecc",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)": "0efc498f4a7ec53f",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "adc3caf2bb56673a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "0bd65631a3fcf89d",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)": "e9901cceb00f32e9",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "02d6297f0ee528e3"
    }
   },
   {
@@ -1444,11 +1278,10 @@
      "effect": "not captured, else not yet"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1471,7 +1304,6 @@
      "effect": "amber; else orange."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1489,7 +1321,6 @@
      "effect": "1/1609.344; else 1/1000."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1504,9 +1335,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93"
    }
   },
   {
@@ -1518,9 +1348,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1543,18 +1372,6 @@
      "at": "+6",
      "cond": "verticalAccuracy < 0",
      "effect": "skip the fix (distance still accumulates)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The type comment says the share sheet reaches elevationSeries through a forwarder, but the forwarder FitnessPostSummaryView.elevationSeries has no callers anywhere; the only caller is elevationPoints in this file.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards.swift:13",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:48"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -1586,21 +1403,8 @@
      "effect": "'via Apple Health'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the share sheet reaches hrrProvenanceLabel through a forwarder; FitnessPostSummaryView.hrrProvenanceLabel (and the hrrNarrative forwarder) have no callers, so both forwarders are dead.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards.swift:13",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:52",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift:20"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

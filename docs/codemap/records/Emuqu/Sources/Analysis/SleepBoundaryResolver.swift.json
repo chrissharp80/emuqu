@@ -13,31 +13,6 @@
   "mem:OnsetDetection.minimumBeats=300, windowSize=120, stepSize=30, minimumWindows=16 (5 before + 10 after + the candidate), hrDropThreshold=8.0, sleepCeilingMidpointFraction=0.5"
  ],
  "toplevel": "Static constants only. Instance held by RRCollector (RRCollector.swift:179,714).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "The whole HR-validation path is unreachable in production: the only caller (RRCollector+Analysis.swift:131) passes neither rrPoints nor useHREstimation, so validatedHealthKitBoundaries always returns HealthKit as-is and resolveFromHREstimation/validateBoundaries/reconciledStart/reconciledEnd run only from SleepBoundaryResolverTests; the type doc's resolution order items 1-2 never happen.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:93",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:113",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift:131",
-    "EmuquTests/SleepBoundaryResolverTests.swift:163"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "API_REFERENCE lists SleepBoundaryResolver.computePhysioWindows and analyzeHRSleepQuality; neither exists anywhere in the repo.",
-   "evidence": [
-    "docs/API_REFERENCE.md:682",
-    "docs/API_REFERENCE.md:684",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:52"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "init RRWindowSweep(_:)",
@@ -48,7 +23,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,7 +50,6 @@
      "effect": "advance hi"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -88,7 +61,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -115,11 +87,10 @@
      "effect": "true: return the HR boundaries unchanged; false: nil/nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "5e2d61ca19668fca",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "cd39b61c14eebf23",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validatedHealthKitBoundaries(_:rrPoints:sessionStart:)": "3c36de82a3f24d7c"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "cddb16e9e94fe00e",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "93d733bbd00b257b",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validatedHealthKitBoundaries(_:rrPoints:sessionStart:)": "80bc9d0f65152ff3"
    }
   },
   {
@@ -140,10 +111,9 @@
      "effect": "false: HK boundaries as-is; true: validateBoundaries"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "5e2d61ca19668fca",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "cddb16e9e94fe00e",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "c5eade7befa02829"
    }
   },
   {
@@ -166,7 +136,6 @@
      "effect": "clamp; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -181,9 +150,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)": "ab20fe73c711ad95",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)": "6a90ccf38448340d",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)": "1c982e8a65cfcdb1"
    }
   },
@@ -217,7 +185,6 @@
      "effect": "hrStart (earlier or later)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -245,7 +212,6 @@
      "effect": "true: hrEnd; false: hkEnd"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -282,11 +248,10 @@
      "effect": "true: return onset; false: debug log, nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "bbdf7a47c5220b71",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "c8e6d9cdb3103456",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "affcbf6fc850904d",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "84c287edd627d0a3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -316,10 +281,9 @@
      "effect": "streamed beat: wall clock; internal-recording beat: t_ms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "61532c95347760ef",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   },
   {
@@ -339,9 +303,8 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "7f0108f249102317"
    }
   },
   {
@@ -372,10 +335,9 @@
      "effect": "true: its time; false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)": "53b82fffa0910db5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)": "5be6143f57ccd8d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -410,11 +372,10 @@
      "effect": "error logged via debugLog, nil returned (caller falls back to recording bounds)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)": "fe0165a7fbe9ea39",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)": "7897100ae242c86c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "3584905ec72431dd"
    }
   },
   {
@@ -446,11 +407,10 @@
      "effect": "return start-only boundaries; else nil"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d5f25d3b38744676",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "3584905ec72431dd"
    }
   }
  ],

@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func RespirationAnalysisTests.testInsufficientDataReturnsNil()",
@@ -20,9 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -36,19 +34,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "No assertion: the test only checks it does not crash; any return value, including a wrong rate, passes.",
-     "evidence": [
-      "EmuquTests/RespirationAnalysisTests.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -68,9 +55,8 @@
      "effect": "appends one modulated RR value and advances t by 0.8 s"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -90,9 +76,8 @@
      "effect": "appends one modulated RR value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -106,9 +91,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -123,10 +107,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad",
-    "EmuquTests/RespirationAnalysisTests.swift::func RespirationAnalysisTests.uniform()": "49ebead58da6e526"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98",
+    "EmuquTests/RespirationAnalysisTests.swift::func RespirationAnalysisTests.uniform()": "f690260c987db888"
    }
   },
   {
@@ -138,7 +121,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -163,32 +145,8 @@
      "effect": "asserts rate <= 40; nil passes with no assertion"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Assertion cannot fail: the band search caps the peak at 0.5 Hz (30 br/min) and a guard rejects >40, so the conditional assert is tautological; nil also passes.",
-     "evidence": [
-      "EmuquTests/RespirationAnalysisTests.swift:111",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:74",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:26"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "With one RR per 0.8 s the 0.8 Hz modulation is above the beat-sampling Nyquist (0.625 Hz) and aliases; a Python replica of the estimator on this input returns 26.95 br/min, a plausible in-band rate, which the conditional <=40 assertion accepts. The test does not check rejection of high-rate input.",
-     "evidence": [
-      "EmuquTests/RespirationAnalysisTests.swift:104",
-      "EmuquTests/RespirationAnalysisTests.swift:106",
-      "EmuquTests/RespirationAnalysisTests.swift:111"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -202,9 +160,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   },
   {
@@ -218,20 +175,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named for the resampling minimum of 4 but 3 samples are rejected by the rr.count >= 60 guard first, so the resampling edge case is never reached.",
-     "evidence": [
-      "EmuquTests/RespirationAnalysisTests.swift:136",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:17"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }
   }
  ],

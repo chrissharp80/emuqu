@@ -15,17 +15,6 @@
   "mem:Verification.Config.strict"
  ],
  "toplevel": "Config.default (minPoints 300, 0.083 h, max artifact 15%, warn 5%) and Config.strict (4 h). RRCollector.swift:239 builds a relaxed streaming config (120 pts, 0.025 h, 20%/10%).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "Config.strict is only used by EmuquTests/VerificationTests.swift:366 (no production caller).",
-   "evidence": [
-    "Emuqu/Sources/Analysis/Verification.swift:78"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func Verification.Result.isRejectedFor(_:)",
@@ -36,17 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "isRejectedFor is only called from EmuquTests/VerificationTests.swift.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/Verification.swift:37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -64,7 +42,6 @@
      "effect": "passed+no warnings → 'Passed verification'; passed+warnings → 'Passed with warnings'; not passed → 'Rejected: …'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,7 +53,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -104,17 +80,16 @@
      "effect": "false → tooFewPointsResult (not logged)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.classifyArtifacts(points:flags:)": "2f3d7451a29d76a4",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeDurationHours(points:)": "a699fe774ce825aa",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeRRDrift(points:)": "c4bb6296cbf56afb",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.findMaxGap(points:)": "770918271f7030c5",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.metrics(points:flags:stats:)": "20f8cb2bb1561663",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runChecks(points:stats:)": "befc2c63f8aab4fb",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.tooFewPointsResult(pointCount:)": "2a4d1408ae3f2e53",
-    "Emuqu/Sources/Analysis/Verification.swift::var Verification.Result.summary": "2476e8f4cc716db0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.classifyArtifacts(points:flags:)": "4fb353400358bd09",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeDurationHours(points:)": "6257fe2120476b74",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeRRDrift(points:)": "5dbb2218278a1cc8",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.findMaxGap(points:)": "de81bc7ecf2e0a34",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.metrics(points:flags:stats:)": "df0ab6adf8779fff",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runChecks(points:stats:)": "f6f27890b488b0f3",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.tooFewPointsResult(pointCount:)": "d87a254c3aed9adb",
+    "Emuqu/Sources/Analysis/Verification.swift::var Verification.Result.summary": "826f0ff6113c0f5d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -130,11 +105,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkDuration(_:reasons:errors:)": "0abe1f14f0dd9000",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)": "20d7b8c61c47a63a",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runThresholdChecks(artifacts:pointCount:reasons:errors:warnings:)": "2c3319da20e16590"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkDuration(_:reasons:errors:)": "9b6559826388ee1c",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)": "d2c1e584b56810a2",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runThresholdChecks(artifacts:pointCount:reasons:errors:warnings:)": "885f7883f1378ff3"
    }
   },
   {
@@ -150,12 +124,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkArtifactThresholds(artifactPercent:reasons:errors:warnings:)": "e1302f30f0f1b7d6",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)": "435914377e0bc0cd",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkOutOfBounds(oobLowCount:oobHighCount:pointCount:reasons:errors:warnings:)": "4f37383408e10d2d",
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkArtifactThresholds(artifactPercent:reasons:errors:warnings:)": "42fd104a8c399b82",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)": "ae4eaa2abbd9b80c",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkOutOfBounds(oobLowCount:oobHighCount:pointCount:reasons:errors:warnings:)": "5024ed389510cab4",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "80da80e90960eab3"
    }
   },
   {
@@ -167,9 +140,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935"
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "80da80e90960eab3"
    }
   },
   {
@@ -183,9 +155,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -197,9 +168,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -217,9 +187,8 @@
      "effect": "return 0 (unreachable after minPoints guard)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -239,10 +208,9 @@
      "effect": "true → tooShort + error; false → nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "bff61ea81bf970ca",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -277,9 +245,8 @@
      "effect": "ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.countOutOfBounds(_:low:high:)": "29aee831d5c66dbe"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.countOutOfBounds(_:low:high:)": "56c56c66320ff457"
    }
   },
   {
@@ -302,7 +269,6 @@
      "effect": "high += 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -332,9 +298,8 @@
      "effect": "update max"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -346,22 +311,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Drift is the mean RR of the last 10% of beats minus the first 10% across the WHOLE recording, with artifacts included. Over a normal night heart rate falls, so a sleeper going from 60 to 40 bpm (1000 to 1500 ms) exceeds verificationDriftRejectMs 400 and gets an 'Issues Found' badge with 'Excessive RR drift ... (electrode movement suspected)' shown in RecordVerificationSection.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/Verification.swift:267",
-      "Emuqu/Sources/Analysis/Verification.swift:270",
-      "Emuqu/Sources/Analysis/Verification.swift:287",
-      "Emuqu/Sources/Analysis/Verification.swift:289",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:29",
-      "Emuqu/Sources/Views/RecordVerificationSection.swift:34"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -391,21 +340,9 @@
      "effect": "excessiveDrift + error"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A single >5 s gap anywhere (e.g. one BLE dropout in an 8 h night, or a merged-session seam) marks the whole session as rejected for signal loss.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/Verification.swift:280",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "bff61ea81bf970ca",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -430,10 +367,9 @@
      "effect": "warning; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "bff61ea81bf970ca",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -458,10 +394,9 @@
      "effect": "warning; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "bff61ea81bf970ca",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -491,10 +426,9 @@
      "effect": "long-interval warning"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "bff61ea81bf970ca",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

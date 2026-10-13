@@ -21,19 +21,6 @@
   "mem:TrendVerdict.zCritical (2.2414)"
  ],
  "toplevel": "Static constants only; tCriticalTable values match Student t upper 1.25% points.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "recentChangePercent is filled even when movement is .flat, and AppFactResolver+Sleep.recentWeekChange reports it to the assistant without checking movement, contradicting weeklyRMSSDChange's doc that a surface printing the figure 'never announces noise as a trend'.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift:79",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift:234",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:776"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TrendVerdict.evaluate(_:scale:)",
@@ -67,16 +54,15 @@
      "effect": "true → direction of slope; false → .flat"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.changePercent(_:earlierMean:scale:)": "d1627e3849ae4a60",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
-    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.changePercent(_:earlierMean:scale:)": "18f491eac37149c3",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "9cc64f8e27181c94",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "b67179f0dfb6f2a5",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "d2f2e5b2a119276f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "3d4d39f411d5e21d",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "0e9a2bbf3ddec0a0",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "a91ab07c92f681c9",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "60a8e0362cf21198"
    }
   },
   {
@@ -90,9 +76,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f"
    }
   },
   {
@@ -115,7 +100,6 @@
      "effect": "true → ln(value); false → value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -133,7 +117,6 @@
      "effect": "fallback lastDay 0 (only for empty input, which evaluate never passes)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -151,7 +134,6 @@
      "effect": "true → .up; false (incl. 0) → .down"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -171,15 +153,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.earlierSD(_:scale:)": "fde9414b0ac5e7a7",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)": "198c5e42ab1ab981",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)": "bea65e09acc4d7de",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)": "6483a01cedea743f",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.earlierSD(_:scale:)": "0fc5baf5ad74ccc8",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)": "99991654a2535817",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)": "54f6bbe1c2fc3355",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)": "4e0dc3051cf0904f",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "d85dc9d487cc44ae",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6"
    }
   },
   {
@@ -200,10 +181,9 @@
      "effect": "true → widenedLnSD; false → sampleSD"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "ae142517b1b31736"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "dcb3e6827e60897b",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "03349b986abb84fb"
    }
   },
   {
@@ -219,19 +199,6 @@
      "at": "+1",
      "cond": "scale == .logarithmic",
      "effect": "true → max(sd, floor); false → sd"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The ln-RMSSD SD floor is applied to every logarithmic metric (SDNN, LF/HF in TrendAnalysis) though it is calibrated for ln(RMSSD).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift:153",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:236",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:241"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -251,7 +218,6 @@
      "effect": "true → 0; false → diff"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -269,7 +235,6 @@
      "effect": "SE>0 → ratio; SE≤0 and diff==0 → 0; SE≤0 and diff≠0 → infinity (always significant)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -309,14 +274,13 @@
      "effect": "true → change; false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)": "198c5e42ab1ab981",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)": "bea65e09acc4d7de",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)": "6483a01cedea743f",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)": "99991654a2535817",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)": "54f6bbe1c2fc3355",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "d874226bc2c2b1ed",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)": "4e0dc3051cf0904f",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "fd96eff5220453bb",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6"
    }
   },
   {
@@ -339,7 +303,6 @@
      "effect": "linear: nonzero → percent; zero → nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -357,7 +320,6 @@
      "effect": "true → table value; false → expansion"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -369,7 +331,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -390,10 +351,9 @@
      "effect": "false → nil; true → percent"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "8467fec4366d2470"
    }
   }
  ],

@@ -8,18 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No unit tests exercise ImportDataView's import/batch logic (only ImportSleepWindowTests for the helper and snapshot tests rendering the empty screen).",
-   "evidence": [
-    "EmuquTests/ImportSleepWindowTests.swift",
-    "EmuquTests/TabScreenSnapshotTests.swift:60"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ImportDataView.handleFileSelection(_:)",
@@ -60,10 +48,9 @@
      "effect": "log error and set errorMessage to its localizedDescription"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.loadFile(at:)": "ba921ea4f1b9fcbc",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.loadFile(at:)": "855d9258369d1439",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -106,15 +93,14 @@
      "effect": "errorMessage, isImporting false, status Import failed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.parseFile(at:importer:)": "bd40551e1568c3aa",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showEliteHRV(_:)": "1a6e348102d942fa",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showFlowHRV(_:)": "ab79e7b105dbc949",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showStandardRR(_:)": "462ac9167d6c3154",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.parseFile(at:importer:)": "6d4a955a8f3200ad",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showEliteHRV(_:)": "2512b5b13058bfde",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showFlowHRV(_:)": "751fb31c344840d4",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showStandardRR(_:)": "abc9080b78e8d141",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -151,24 +137,13 @@
      "effect": ".standardRR(importContent result); throws on a format it cannot parse"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Non-UTF-8 exports (e.g. UTF-16 or Latin-1 CSV from Windows tools) are rejected as unreadable: the one reader, RRDataImporter.readFile/readUTF8, has no encoding fallback (handoff from fix batch b22; moved here from the deleted readTextContents).",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter.swift:216"
-     ],
-     "found": "fix batch b22"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importContent(_:fileName:)": "af6913cbcfa71156",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "96ca398e8619f984",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readFile(at:)": "a3ac7f0bb7c5300c"
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "0e1f4ca5e57ee8b5",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "5ecdca0181ccc180",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importContent(_:fileName:)": "3d7cc67de8eb5785",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "1912ebdf19d614dd",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "6317d6610d1f28bc",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readFile(at:)": "66f5f089a5e198b7"
    }
   },
   {
@@ -192,12 +167,11 @@
     "mem:ImportDataView.importStatusMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount": "9f1a41e1a5ac2de1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)": "50956028a95f4fe3",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount": "674a5e388c35a6a8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)": "56999fcd3c2ff68c",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -220,11 +194,10 @@
     "mem:ImportDataView.importStatusMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newEliteSessions(_:)": "608321d2b56e0959",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newEliteSessions(_:)": "3e76427b2242923d",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -241,10 +214,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "848e586933a18c74",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "9ee650a0ac71e106"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "200604cc5c2d081f"
    }
   },
   {
@@ -263,11 +235,10 @@
     "mem:ImportDataView.importStatusMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -310,28 +281,16 @@
      "effect": "failAnalysis(insufficient clean data)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "A dateless file is now dated by the user (DatePicker 'Recorded' in the preview; Analyze waits for it), but the picker's footnote ('This file doesn't say when it was recorded. …') has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22), so it is English in every language.",
-     "evidence": [
-      "Emuqu/Sources/Views/ImportDataView+Preview.swift:156",
-      "Emuqu/Localizable.xcstrings"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "31a829f00727e339",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logAnalysisSuccess(result:)": "71366d363f076b4c",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.makeImportedSession(from:startingAt:)": "5fa5ca175b148f71",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.pipelineAnalysis(of:sleep:)": "02c7808d2dec1f63",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.presentResults(_:)": "0eb8eea3c0bbcc11",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "a61c8e3779b61a1a",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logAnalysisSuccess(result:)": "9a905f42caea0f04",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.makeImportedSession(from:startingAt:)": "6c52531e775bd639",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.pipelineAnalysis(of:sleep:)": "5940c973348403d4",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.presentResults(_:)": "47c76e6565404e8f",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -355,13 +314,12 @@
      "effect": "failAnalysis(no RR data), nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)": "7c1b3f2a81d6b3e1",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "31a829f00727e339",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "6dca8d1cd823759f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)": "f912aa7e831c60ff",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "a61c8e3779b61a1a",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -388,13 +346,12 @@
      "effect": "return it; else analyzeFullSession"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "29594f6662ce07e7",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d"
    }
   },
   {
@@ -412,10 +369,9 @@
     "mem:ImportDataView @State (view-local)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -429,9 +385,8 @@
     "mem:ImportDataView @State (view-local)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -449,9 +404,8 @@
     "mem:ImportDataView.importStatusMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -466,10 +420,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "7033ee2115866c44",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb"
    }
   },
   {
@@ -500,14 +453,13 @@
      "effect": "log a high-artifact warning; otherwise nothing extra"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectArtifacts(in:)": "ec87d33992ca0065",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "80da80e90960eab3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectArtifacts(in:)": "edf663917d706310",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -521,10 +473,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -555,10 +506,9 @@
      "effect": "logged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "d173acbc448c38ce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -600,11 +550,10 @@
      "effect": "error shown, results closed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSession(_:)": "e6b3b81c616289da",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyMeasuredSleep(_:to:)": "21f20c76dc684d24",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFailureMessage(_:)": "794d38df7198a936"
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSession(_:)": "008e98ace21ab0e2",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyMeasuredSleep(_:to:)": "d656c66de062c879",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFailureMessage(_:)": "fde41bc69987fbba"
    }
   },
   {
@@ -619,12 +568,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "fbe6931741cf3567",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.offsets(of:from:)": "271eab86aa0e6e56",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "ac182743afc7c2ec",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.offsets(of:from:)": "b511eb228bf89091",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -652,9 +600,8 @@
      "effect": "fall through to generic 'Failed to save' message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -689,16 +636,15 @@
      "effect": "log and failBatch('Failed to save sessions: …')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)": "471efd127012ae27",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)": "deb4bf6cf3314058",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.materialiseEliteSessions(_:originalFileName:)": "cfb5ae8417331d87",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)": "7740d343f819dffe",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)": "c79fa55ef153ac91",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)": "ba676e4d47985080",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.materialiseEliteSessions(_:originalFileName:)": "a22cb8e6bb5c8756",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)": "e5273291229428e8",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -727,12 +673,11 @@
      "effect": "update status line with progress; otherwise only progress tuple"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "848e586933a18c74",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -775,25 +720,10 @@
      "effect": "errorMessage 'No valid sessions to import', status 'Import failed' — also the outcome when every Emuqu session failed analysis (total 0, failed>0), so the user is not told the failures were analysis failures"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "unchanged = total - processed counts every session archiveBatch did not write or merge, including ones dropped because the existing copy failed to read or re-write (mergeIntoExisting logs and drops), so the screen reports 'All N sessions already up to date' / 'already up to date' and auto-dismisses when sessions were in fact lost.",
-     "evidence": [
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:355",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:364",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:365",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:874",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:875"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -830,17 +760,16 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)": "efe41cf2f674d4c6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectArtifacts(in:)": "ec87d33992ca0065",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logWindow(_:)": "3653165c3f407379",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.pipelineAnalysis(of:sleep:)": "02c7808d2dec1f63",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.sleepBounds(for:healthKit:)": "7200fe2f83c7b540",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)": "032e148a141c05e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectArtifacts(in:)": "edf663917d706310",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logWindow(_:)": "18880857f9ac62e6",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.pipelineAnalysis(of:sleep:)": "5940c973348403d4",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.sleepBounds(for:healthKit:)": "33a140a350bdf7e4",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -864,22 +793,11 @@
      "effect": "logged with the error, empty Offsets"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When Apple Health sleep cannot be read (denied access, locked device) the session is analysed with the whole recording as sleep; the error and its cause are now logged, but the screen still gives the user no sign of it.",
-     "evidence": [
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:403"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.offsets(of:from:)": "271eab86aa0e6e56",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.offsets(of:from:)": "b511eb228bf89091",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "82eed2cd6e6be7d6"
    }
   },
   {
@@ -910,10 +828,9 @@
      "effect": "log that the full recording is used as the sleep period"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "fbe6931741cf3567",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "ac182743afc7c2ec",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -933,10 +850,9 @@
      "effect": "log the reason only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -969,14 +885,13 @@
      "effect": "log and set status 'All sessions already imported', return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeFlowSessions(_:originalFileName:)": "12ca1777732dedee",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logImportInventory(_:)": "675d64e139170797",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)": "50956028a95f4fe3",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFlowSessions(_:failedCount:startTime:)": "bd018718cc09c428",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeFlowSessions(_:originalFileName:)": "9db20f4feae5c3bb",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logImportInventory(_:)": "0c211b5786ee156c",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)": "56999fcd3c2ff68c",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFlowSessions(_:failedCount:startTime:)": "acb2198ba32ead87",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -1000,11 +915,10 @@
      "effect": "one log line each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount": "9f1a41e1a5ac2de1",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount": "674a5e388c35a6a8",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -1022,11 +936,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)": "efe41cf2f674d4c6",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "9ee650a0ac71e106",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)": "032e148a141c05e3",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "200604cc5c2d081f",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9"
    }
   },
   {
@@ -1058,13 +971,12 @@
      "effect": "append; otherwise failedCount += 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedSession(_:originalFileName:healthKit:)": "2bfaea7f58600606",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedSession(_:originalFileName:healthKit:)": "cab27d61f13073f5",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -1096,16 +1008,15 @@
      "effect": "log and failBatch('Failed to save sessions: …')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)": "471efd127012ae27",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)": "deb4bf6cf3314058",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)": "7740d343f819dffe",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)": "c79fa55ef153ac91",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)": "ba676e4d47985080",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)": "e5273291229428e8",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"
    }
   },
   {
@@ -1117,9 +1028,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

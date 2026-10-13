@@ -13,21 +13,6 @@
   "mem:DailyLoopAnalysis.swcSDMultiple = 0.5"
  ],
  "toplevel": "Constructed by HolisticDailyReport.analysis() (Export/HolisticDailyReport.swift:269-278) and EmuquTests/DailyLoopAnalysisTests.swift. Stored inputs only; everything else is computed.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The loop uses its own cumulative-load cuts (TSB <= -5 or ACWR >= 1.3 to block .underloading; ACWR >= 1.5 for the Tomorrow override) while TrainingAdviceGate uses TSB <= -15 and ACWRBand; the two load models sit side by side in the same report and can disagree.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:102",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:103",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:371",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:63",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:91"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var DailyLoopAnalysis.loopState",
@@ -79,12 +64,11 @@
      "effect": ".highStrain"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hasIntensitySignal": "213c3b674a34396f",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isCumulativelyLoaded": "19783c127e6598fc",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBand": "aaf0eb9d5d56a9b6",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "b5682ac548b17fd6"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hasIntensitySignal": "bd34ac9adce05e89",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isCumulativelyLoaded": "144ea2fbb9cc838b",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBand": "301a0b152cc82593",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "583042c97d1e2368"
    }
   },
   {
@@ -114,9 +98,8 @@
      "effect": ".below; else .within"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "16bbab64b69b1bb7"
    }
   },
   {
@@ -139,9 +122,8 @@
      "effect": "true: true; false: false (also false when there is no snapshot)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445"
    }
   },
   {
@@ -189,22 +171,11 @@
      "effect": "'Not enough data yet'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The .undetermined blurb says the loop needs a workout and three earlier nights; it is also shown when the workout has no α1/HR samples (hasIntensitySignal false), where the missing piece is the intensity data.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:137"
-     ],
-     "found": "fix pass b02"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingVerdict": "89ef5c432e52e276",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "1224a4ecfc49bfef",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.underloadingVerdict": "224942899e314952",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingVerdict": "618e205e6ed592e0",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "67d8a72b5d26c66d",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.underloadingVerdict": "d092123b10eeb5e2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -225,10 +196,9 @@
      "effect": "false: real-work blurb; true: past-load blurb"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "b5682ac548b17fd6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "583042c97d1e2368",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -256,12 +226,11 @@
      "effect": "'normal effort' sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "85c981896052d586",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "46f0a5af8d73848f",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)": "bcfbcdac1a60f330",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "728106e00d9ef476",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -296,9 +265,8 @@
      "effect": ".neutral"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "1224a4ecfc49bfef"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "67d8a72b5d26c66d"
    }
   },
   {
@@ -351,7 +319,6 @@
      "effect": ".moderate; otherwise falls to .easy"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -374,7 +341,6 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -400,10 +366,9 @@
      "effect": "false: nil; true: returns mean/sd"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)": "236fc4f1f7638bfe",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)": "c3676108604e2b47",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "dcb3e6827e60897b"
    }
   },
   {
@@ -417,7 +382,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.lnRmssdBaseline": "cba079938aaba280"
    }
@@ -439,7 +403,6 @@
      "effect": "false: nil; true: (ln today - mean)/sd"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.lnRmssdBaseline": "cba079938aaba280"
    }
@@ -455,9 +418,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBand": "aaf0eb9d5d56a9b6"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBand": "301a0b152cc82593"
    }
   },
   {
@@ -471,9 +433,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBand": "aaf0eb9d5d56a9b6"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBand": "301a0b152cc82593"
    }
   },
   {
@@ -493,9 +454,8 @@
      "effect": "false: nil; true: (today/baseline - 1)*100"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD": "59dcc4120d020599"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD": "62cc968833009ac1"
    }
   },
   {
@@ -511,11 +471,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvOpening": "b210548fdfcfc5be",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopExplanation": "dc1a9db1fc490838",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLine": "ef87e470ed517eee"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvOpening": "185cb29203cd3d5c",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopExplanation": "23d705b292918243",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLine": "bdd06edd151e029d"
    }
   },
   {
@@ -573,12 +532,11 @@
      "effect": "hard sentence with load"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hasIntensitySignal": "213c3b674a34396f",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "b5682ac548b17fd6",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLoad": "b421a04c73e37367",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hasIntensitySignal": "bd34ac9adce05e89",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "583042c97d1e2368",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLoad": "710ac1136e3bc2ed",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -611,9 +569,8 @@
      "effect": "false: nil; true: rounded Int"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "03a72852e5d15141"
    }
   },
   {
@@ -650,11 +607,10 @@
      "effect": "true: '<ms> ms this morning'; false: 'no morning HRV reading'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "bec284afd11203ef",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "2b3b6397cf80f431",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "16bbab64b69b1bb7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -702,12 +658,11 @@
      "effect": "train-as-planned copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingExplanation": "72a758869b11c11b",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "1224a4ecfc49bfef",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.underloadingExplanation": "dd879fc4f7dcf4e7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingExplanation": "9968ff262cdf3cf6",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "67d8a72b5d26c66d",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.underloadingExplanation": "6b1c6dc9860603ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -728,10 +683,9 @@
      "effect": "false: 'keep the next session at normal effort'; true: 'today is a green light'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "85c981896052d586",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "46f0a5af8d73848f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -745,9 +699,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08"
    }
   },
   {
@@ -768,10 +721,9 @@
      "effect": "false: adaptation copy; true: easy-day copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "b5682ac548b17fd6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "583042c97d1e2368",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -824,13 +776,12 @@
      "effect": "train as planned, more later"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.absorbingAction(tsb:)": "8619c430cdc7156c",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.underloadingAction(tsb:)": "46d69c93b3e816ad",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "1224a4ecfc49bfef",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.absorbingAction(tsb:)": "98639f54d75febb9",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.underloadingAction(tsb:)": "3a4e1fcf8bace4b9",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "67d8a72b5d26c66d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -858,12 +809,11 @@
      "effect": "true: TSB-quoting interval invitation; false: generic quality-session window copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)": "dd7e027678f2aeb8",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.heldLoadAction": "e29bd29e83beac9d",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "85c981896052d586",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)": "6ccbe3ca3435ca14",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.heldLoadAction": "0d1e3172e128464e",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "46f0a5af8d73848f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -897,13 +847,12 @@
      "effect": "true: TSB-quoting copy; false: generic easy/rest copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)": "dd7e027678f2aeb8",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.heldLoadAction": "e29bd29e83beac9d",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "85c981896052d586",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "b5682ac548b17fd6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)": "6ccbe3ca3435ca14",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.heldLoadAction": "0d1e3172e128464e",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "46f0a5af8d73848f",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "583042c97d1e2368",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -924,10 +873,9 @@
      "effect": "normal-training line; else easy/rest line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -941,10 +889,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   }
  ],

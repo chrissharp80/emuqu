@@ -16,7 +16,6 @@
   "mem:FrequencyDomainAnalyzer.welchOverlap = 0.5"
  ],
  "toplevel": "Static lets: band ranges from HRVConstants.FrequencyBands (Constants.swift), the 10-min VLF gate defined here. The DFT cache is a global lock-guarded dictionary shared with RespirationAnalyzer (RespirationAnalysis.swift:55); setups are created on demand and leaked for the app lifetime.",
- "flags": [],
  "units": [
   {
    "key": "func FrequencyDomainAnalyzer.getDFTSetup(size:)",
@@ -45,7 +44,6 @@
      "effect": "false: returns nil without caching; true: caches and returns"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -57,20 +55,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "getDFTSetup's doc says teardownDFTCache 'provides explicit cleanup on memory warning or termination' and EmuquApp's observer is documented 'Drop the DFT cache under memory pressure', but the function is an empty no-op, so the observer does nothing.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:68",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:100",
-      "Emuqu/EmuquApp.swift:227",
-      "Emuqu/EmuquApp.swift:234"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -105,9 +89,8 @@
      "effect": "false: nil; true: computes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219"
    }
   },
   {
@@ -138,10 +121,9 @@
      "effect": "false: nil; true: resample + PSD"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)": "1309e697c4bcdd76"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)": "952c9ae354f512d0"
    }
   },
   {
@@ -181,14 +163,13 @@
      "effect": "true: VLF from vlfPower (may still be nil if <1024 samples); false: VLF nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "23bfd3112564120f",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "87a5fc39e52eaa65",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)": "b612a65c5c8ce2d3",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.vlfPower(data:fs:)": "d3d38bc7e316b03e",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.welchFallback(data:fs:usableWindowMin:segLen:)": "2ae4f42e1ed2825b"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "cf6fa552329ebdca",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "c4df26e859d2e264",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "7c343b7d83be2af8",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)": "c3c93382ad34146a",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.vlfPower(data:fs:)": "abfde966085d1802",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.welchFallback(data:fs:usableWindowMin:segLen:)": "bec68b2ce82ddf46"
    }
   },
   {
@@ -211,7 +192,6 @@
      "effect": "VLF absent contributes 0 to total power"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -233,11 +213,10 @@
      "effect": "false: nil; true: returns band VLF"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "23bfd3112564120f",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "87a5fc39e52eaa65",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "cf6fa552329ebdca",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "c4df26e859d2e264",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "7c343b7d83be2af8"
    }
   },
   {
@@ -258,21 +237,9 @@
      "effect": "false (long data but no setup): returns lf=0, hf=0, totalPower=0, ratio nil — zeros rather than nil; true: single-window PSD"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When vDSP cannot create a DFT setup for a long signal the function returns LF=0/HF=0/total 0 instead of nil, so callers store and display zero spectral power as a measurement.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:254",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:255"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeSingleWindowPSD(signal:fs:usableWindowMin:)": "9c14da662cb52227",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeSingleWindowPSD(signal:fs:usableWindowMin:)": "d76c5ed10b102aff",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "7c343b7d83be2af8"
    }
   },
   {
@@ -300,10 +267,9 @@
      "effect": "divides by numSegments"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)": "d2a003312f7a9e1a",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "c1a65a13c32b42ef"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)": "54c042def1c5bdcd",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "8fce009620f5056c"
    }
   },
   {
@@ -324,7 +290,6 @@
      "effect": "adds doubled power for interior bins; DC and Nyquist added once"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -352,7 +317,6 @@
      "effect": "true: slope sxy/sxx; false: slope 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -385,12 +349,11 @@
      "effect": "false (2 knots): linearResample; true: spline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.evaluateSpline(knots:fs:sampleCount:tStart:)": "34707e465554b817",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.intervalsAndSlopes(t:values:)": "22b7b93457ea00bd",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearResample(t:values:fs:sampleCount:tStart:)": "cfa0a54512e66d67",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.secondDerivatives(h:delta:n:)": "22296cec57c3f271"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.evaluateSpline(knots:fs:sampleCount:tStart:)": "aad395f56169878f",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.intervalsAndSlopes(t:values:)": "ba423690c16c4159",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearResample(t:values:fs:sampleCount:tStart:)": "fed986e9217b3f99",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.secondDerivatives(h:delta:n:)": "709efe4d80e6a9d1"
    }
   },
   {
@@ -413,7 +376,6 @@
      "effect": "true: fraction along the segment; false: 0 (constant values[0])"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -436,7 +398,6 @@
      "effect": "true: slope; false: 0 for duplicate timestamps"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -459,7 +420,6 @@
      "effect": "back substitution"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -489,10 +449,9 @@
      "effect": "true: cubic spline value; false: values[s]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.splineValue(at:segment:knots:)": "3b6f280aa315cdd1",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.splineValue(at:segment:knots:)": "f5b4862c7109d1fb",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "f5cfa44b0dbe97b9"
    }
   },
   {
@@ -504,7 +463,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -545,23 +503,9 @@
      "effect": "true: adds VLF to total; false: 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "In production this path only runs for signals shorter than one 256-sample Welch segment (<64 s) and usableWindowMin is that same duration (computeFromCleanPairs), so the windowMin >= 10 min VLF branches can never be true; only direct computePSD calls with an inflated usableWindowMin (tests) reach them.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:207",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:185",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:455",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:459"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "23bfd3112564120f",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.singleWindowSpectrum(signal:fs:fftN:)": "21ec792663261e8b"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "cf6fa552329ebdca",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.singleWindowSpectrum(signal:fs:fftN:)": "8f9daccbfa19daa2"
    }
   },
   {
@@ -586,11 +530,10 @@
      "effect": "false: nil; true: computes spectrum"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)": "d2a003312f7a9e1a",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "c1a65a13c32b42ef"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)": "54c042def1c5bdcd",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "7c343b7d83be2af8",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "8fce009620f5056c"
    }
   },
   {
@@ -623,7 +566,6 @@
      "effect": "adds to hf; other bins (DC, >0.4 Hz) ignored"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

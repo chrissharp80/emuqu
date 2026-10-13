@@ -12,7 +12,6 @@
   "mem:PhoneticOverrides.domainRules (static let, three 'live'->laɪv/lyve rules, lines 69-111)"
  ],
  "toplevel": "Static lets: markupPattern `\\[\\[([^|\\]]+)\\|([^\\]]+)\\]\\]` and three DomainRules for 'live' (live+measurement noun; your/you're/going/right now.../currently + live not followed by a location preposition; live now/view/screen/tracking/recording), each with ipa laɪv and respelling 'lyve'. The ZIP and 'live' passes are English-only (english: false skips them).",
- "flags": [],
  "units": [
   {
    "key": "func PhoneticOverrides.stripForDisplay(_:)",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -45,11 +43,10 @@
      "effect": "adds the IPA attribute; invalid ranges skipped (logged by isApplicable)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.isApplicable(_:attrLength:)": "4c8478bd3451430c",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:english:)": "dad8cc8c25add62f"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.isApplicable(_:attrLength:)": "7cf82af989000b41",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:english:)": "b3101a57241cb36e"
    }
   },
   {
@@ -69,10 +66,9 @@
      "effect": "true: returns true; false: debugLog warning with range/source and returns false (hint dropped)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -106,11 +102,10 @@
      "effect": "applyDomainRule"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)": "b702e90ed306617a",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "c4c4013fc7b33374",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)": "939c0b5ec1f0331e"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)": "2dbfb79248bd86f3",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "73a2a9b3f07a75ce",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)": "0e92319b6d53eaeb"
    }
   },
   {
@@ -138,10 +133,9 @@
      "effect": "false: match skipped (continue) — its markup text stays in neither `out` nor is the cursor advanced, so the raw [[..]] text is emitted with the next segment"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.wordRange(of:in:scanning:)": "a28f68b07145b3ad",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.wordRange(of:in:scanning:)": "2837a243c4fd41de",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
    }
@@ -175,12 +169,11 @@
      "effect": "false: continue (no respelling, no hint); true: respell + append domain hint"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyRespelling(_:at:to:)": "b8e92855ca0c4357",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.overlapsAuthored(_:_:)": "cababe80f9162010",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.wordRange(of:in:scanning:)": "a28f68b07145b3ad"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyRespelling(_:at:to:)": "8d3c20090ba46439",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.overlapsAuthored(_:_:)": "42127eb49c1c9d95",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.wordRange(of:in:scanning:)": "2837a243c4fd41de"
    }
   },
   {
@@ -215,9 +208,8 @@
      "effect": "false: nil; true: returns absolute range"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.lastWholeWord(_:in:)": "552947d353f17a2c"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.lastWholeWord(_:in:)": "17b81a1b3bfd23f8"
    }
   },
   {
@@ -237,10 +229,9 @@
      "effect": "false: nil (word never overlaid)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "368d0627695b64ef"
    }
   },
   {
@@ -252,9 +243,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4"
    }
   },
   {
@@ -280,10 +270,9 @@
      "effect": "false: debugLog warning and return without substituting; true: substitute with matchLeadingCase"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.matchLeadingCase(of:to:)": "6fd5d0278e4ddeb0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.matchLeadingCase(of:to:)": "dd9a8016c07aa750",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -303,9 +292,8 @@
      "effect": "explicit pattern first; state pattern second (already-expanded ZIPs no longer match \\d{5})"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZips(in:pattern:)": "5b6b161bc6993dad"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZips(in:pattern:)": "3c3a33d06aea0230"
    }
   },
   {
@@ -335,9 +323,8 @@
      "effect": "false: continue (match left as-is)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.zipReplacement(for:in:)": "10187505039ca889"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.zipReplacement(for:in:)": "db07053883d68353"
    }
   },
   {
@@ -362,9 +349,8 @@
      "effect": "false (no ZIP+4): returns zip-only replacement; true: combined range with ' dash ' + spaced suffix digits"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.spacedDigits(_:)": "f99b791247b2cb41"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.spacedDigits(_:)": "0b7eb68806629f01"
    }
   },
   {
@@ -376,7 +362,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -399,7 +384,6 @@
      "effect": "true: capitalised replacement; false: replacement unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

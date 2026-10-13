@@ -15,7 +15,6 @@
   "static malformedQueryStatus = 400: a malformed-query reply, not held against any host"
  ],
  "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion and AppConfig.contactEmail at first access. One shared instance is created in AppDependencies.OverpassServices.client.",
- "flags": [],
  "units": [
   {
    "key": "init OverpassClient(minRequestGap:transport:)",
@@ -28,9 +27,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "911c63dec6852471"
    }
   },
   {
@@ -80,14 +78,13 @@
      "effect": "false: throw firstCoolingFailure() without a request; true: ask hosts"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "6453551b86226021",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "87198b97ee6d6376",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstCoolingFailure()": "77417b8783044814",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "12271f710e56c231",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "0d538d71b59b7ef4",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "da8b6b13f8d5078a"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "65f503a06384ce30",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "9f262dafd2a4c36d",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstCoolingFailure()": "ee57f70fc8907a69",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "462400d4033ffc8f",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "0d7ad241e1aaf7f8",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "ef4ed613735cf86e"
    }
   },
   {
@@ -130,10 +127,9 @@
      "effect": "coolDown host, record failure, try next"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)": "89d2c243406835f8",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)": "e60066c5a787e0d9"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)": "ab300dd107e644df",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.coolDown(_:after:)": "3314efbca7e916d4"
    }
   },
   {
@@ -161,7 +157,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -181,7 +176,6 @@
      "effect": "false: nil; true: data"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -218,9 +212,8 @@
      "effect": "false (left the queue on cancellation): throw .cancelled; true: caller holds the slot"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.leaveQueue(_:)": "bc80bcd18a33f6b0"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.leaveQueue(_:)": "dee6723da3edb924"
    }
   },
   {
@@ -242,7 +235,6 @@
      "effect": "false: return; true: remove and resume(false)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -265,7 +257,6 @@
      "effect": "true: requestInFlight = false; false: resume first waiter with true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -285,10 +276,9 @@
      "effect": "return .failure(error)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "22160adbfc9bcd70",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "e64d6097be23ac67",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -308,7 +298,6 @@
      "effect": "used when no endpoint has a cooling entry (not reachable from post, which only calls it when all hosts cool)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -341,10 +330,9 @@
      "effect": "log label fallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "2b7a6b079b4b909e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "1c79076fbebb9a8f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -373,9 +361,8 @@
      "effect": "true: remove soonest-expiring entry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.isIncomplete(_:)": "26072ae8e9f8ebfb"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.isIncomplete(_:)": "f45dfb07cc2b35c0"
    }
   },
   {
@@ -401,9 +388,8 @@
      "effect": "return false; else log and return true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -447,12 +433,11 @@
      "effect": "host label for status errors"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "606ac89637df545d",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "3646d3a1c11d2341"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "2567cc2cfc252e83",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "911c63dec6852471",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "f1acd038f2039461"
    }
   },
   {
@@ -479,9 +464,8 @@
      "effect": "false: return; true: sleep remaining"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -509,7 +493,6 @@
      "effect": "false: throw refused(status)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -523,9 +506,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "1dfb1d209d0e56ce"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.formEncoded(_:)": "2c4012448f58671e"
    }
   },
   {
@@ -543,7 +525,6 @@
      "effect": "falls back to the raw string if encoding fails"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

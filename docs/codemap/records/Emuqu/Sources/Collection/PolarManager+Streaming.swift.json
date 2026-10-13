@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "Header comment: a streaming session does not own any BLE subscription; the feed (StrapHeartRateFeed) runs whenever the strap is linked. Test hooks are under #if DEBUG.",
- "flags": [],
  "units": [
   {
    "key": "func PolarManager.startStreaming()",
@@ -49,12 +48,11 @@
      "effect": "restart the feed (PPI kind); H10/unknown type keeps the HR feed already running"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.resetStreamingState()": "c9beeb003f5808b2",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreamingElapsedTimer()": "bbe2f473a1d66388",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "2d55ec4c54631141",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.resetStreamingState()": "c45413a999167b3e",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreamingElapsedTimer()": "094ffa5dda7c19cf",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "f8dec8c6901491d8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -73,10 +71,9 @@
     "mem:PolarManager.isStreaming"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreamingInternal()": "cd706d435e62f6ad",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreamingInternal()": "15a9a31399e122bd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -105,11 +102,10 @@
      "effect": "restart the feed (back to HR); otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "2d55ec4c54631141",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()": "664cc74a2baade67"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "f8dec8c6901491d8",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()": "8ca3a946f05155d7"
    }
   },
   {
@@ -133,7 +129,6 @@
     "mem:PolarManager.isStreaming"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -151,10 +146,9 @@
     "mem:PolarManager.streamingTimer"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.scheduleElapsedSecondsUpdate()": "6d2fc5fa2161d11d"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.scheduleElapsedSecondsUpdate()": "1a33d0012dee8db8"
    }
   },
   {
@@ -178,9 +172,8 @@
      "effect": "return without updating"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
    }
   },
   {
@@ -223,13 +216,12 @@
      "effect": "break out of the batch"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -283,25 +275,13 @@
      "effect": "hr stored; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "ingestPpi (the Verity Sense live-buffering path, incl. the StrapPPIFilter gate and hr=0 → nil mapping) has no test caller; its only caller is StrapHeartRateFeed.swift:139.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:121",
-      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:139"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
-    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "a6da80f32dae8fea"
    }
   },
   {
@@ -326,9 +306,8 @@
      "effect": "return false (cap hit)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314"
    }
   },
   {
@@ -350,7 +329,6 @@
      "effect": "return 0"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
    }
@@ -384,10 +362,9 @@
      "effect": "log the cap warning once and set the flag"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -422,10 +399,9 @@
      "effect": "return without logging; else log heartbeat and stamp"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastSignificantLogTime": "0a16c59264ddd485",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastSignificantLogTime": "58238266b62d2056",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -439,7 +415,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -461,7 +436,6 @@
      "effect": ".disconnected; else .connected"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -481,9 +455,8 @@
      "effect": "uses Date() as the base"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3"
    }
   },
   {
@@ -503,7 +476,6 @@
     "mem:PolarManager.lastUIUpdateBeatCount"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

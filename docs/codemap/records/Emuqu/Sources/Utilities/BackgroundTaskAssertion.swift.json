@@ -11,7 +11,6 @@
   "BackgroundTaskToken.identifier: UIBackgroundTaskIdentifier (starts .invalid)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "init BackgroundTaskAssertion(name:onExpire:)",
@@ -29,21 +28,9 @@
     "mem:BackgroundTaskToken.identifier"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test in EmuquTests references BackgroundTaskAssertion; the exactly-once end() contract (expiry then completion, or the reverse) that keeps iOS from killing the app is unverified.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:16",
-      "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:28"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()": "df6c76e6e0de16d4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()": "c71ba304b6cfb9de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -61,9 +48,8 @@
     "mem:BackgroundTaskToken.identifier"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()": "df6c76e6e0de16d4"
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskToken.end()": "c71ba304b6cfb9de"
    }
   },
   {
@@ -87,7 +73,6 @@
      "effect": "true: return without calling UIKit; false: call endBackgroundTask and set .invalid."
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

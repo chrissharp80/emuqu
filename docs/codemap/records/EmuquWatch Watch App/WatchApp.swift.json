@@ -12,7 +12,6 @@
   "mem:WatchApp.scenePhase (@Environment)"
  ],
  "toplevel": "Stored-property initializers read WatchSessionManager.shared (whose first access runs WatchSessionManager.init, activating WCSession) and WatchStrapConnector.shared, and construct a fresh WatchWorkoutManager (WatchApp.swift:11-16). The comment at 13-15 says this file is the only place a `.shared` instance is read in the Watch target; grep confirms (only WatchApp.swift:11,16,23).",
- "flags": [],
  "units": [
   {
    "key": "init WatchApp()",
@@ -28,10 +27,9 @@
     "mem:WatchStrapConnector.sessionManager"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager()": "30a5bbdc4dda23c8",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.attach(sessionManager:)": "26407dbe25d72b2a"
+    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager()": "b118ee51566677fa",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.attach(sessionManager:)": "7d48ec4309a5a4d5"
    }
   },
   {
@@ -50,26 +48,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says the saved strap reconnects automatically on Watch app launch, but the scene calls setAutoReconnect(!displayOnly) and displayOnlyMode defaults to true, so in the default mode the Watch never reconnects (and disconnects) a saved strap.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1416",
-      "EmuquWatch Watch App/WatchApp.swift:34",
-      "EmuquWatch Watch App/WatchApp.swift:35",
-      "EmuquWatch Watch App/WatchSessionManager.swift:112",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:278"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchApp.swift::func WatchApp.followScenePhase(_:)": "0afc0f89d984f90b",
-    "EmuquWatch Watch App/WatchApp.swift::func WatchApp.wireUp()": "ae438d928af1b3da",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.setAutoReconnect(_:)": "7b28d58801a2fa0a"
+    "EmuquWatch Watch App/WatchApp.swift::func WatchApp.followScenePhase(_:)": "b5771b7720475746",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchApp.wireUp()": "6819dac39ce53af4",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.setAutoReconnect(_:)": "bc98e78cf0dab290"
    }
   },
   {
@@ -97,10 +80,9 @@
      "effect": "false: return; true: pull current state"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "19232ab440a9dfb0",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.appDidEnterBackground()": "0cca82852a16a1a8"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "f310532499ce3701",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.appDidEnterBackground()": "9508bd883aebfebe"
    }
   },
   {
@@ -120,23 +102,11 @@
     "hk:HKWorkoutType share / heartRate read authorization"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says the Watch prompts for HealthKit the first time the user taps Start; the code requests authorization on the first appear of the root view, before any tap.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1424",
-      "EmuquWatch Watch App/WatchApp.swift:66"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.attach(workoutManager:)": "8d388cb3a7cb6831",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "19232ab440a9dfb0",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.followPhoneMessages(of:)": "68fc975eef7ce55a",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "42513ab83b997254"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.attach(workoutManager:)": "edef00cecb0b8ad5",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "f310532499ce3701",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.followPhoneMessages(of:)": "299a5690f80c0332",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "f8c9538d39f28688"
    }
   }
  ],

@@ -11,19 +11,6 @@
  ],
  "state": [],
  "toplevel": "Only stored `let`/`var` properties with doc comments; UpcomingClimb.lengthMeters/gainMeters default 0, roadName nil; RouteTopology.turnsAhead defaults []. Built by WorkoutRecorder+Context.buildContext (Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:70).",
- "flags": [
-  {
-   "kind": "unreachable-branch",
-   "sev": "low",
-   "text": "`hrDriftPercent` is always passed nil by the only production builder, so the hrDriftPercent fact-sheet line never appears.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:46",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:484",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:73"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutAIContext.asFactSheet()",
@@ -48,32 +35,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "asFactSheet() and its thirteen section builders are the voice coach's live context (installed at WorkoutRecorder+Start.swift:334) but no file in EmuquTests calls asFactSheet; tests only construct WorkoutAIContext for other engines.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutAIContext.swift:439",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:334"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.alpha1Lines()": "c370dfcef48748f2",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.equipmentLines()": "9bfdc3e7cb0c0b1e",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.heartRateLines()": "8c8c258a5f9ab7d9",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalBaselineLines()": "53d0ecf438734fef",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.identityLines()": "5e815af064e7d409",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.liveTrendLines()": "723563a3fb263354",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.motionLines()": "97cd0f2f37c3ea66",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.racePredictionLines()": "086ceea277134344",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.readinessLines()": "f694a780da3cebc0",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.targetLines()": "858e1a61ad00fdee",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainLines()": "9ed9f0b80d864928",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.timeInZoneLines()": "70faa71d59f6b90a",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.weatherLines()": "1cfdb138199c7297"
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.alpha1Lines()": "ad2c64c7217d25ab",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.equipmentLines()": "44b4def3f84f089f",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.heartRateLines()": "70e90a3530408f6c",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalBaselineLines()": "474dcce871000c51",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.identityLines()": "61d2b727c0476ac0",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.liveTrendLines()": "dae75a2347cbe2bd",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.motionLines()": "c2e4578ad7cd6c9f",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.racePredictionLines()": "bc29052d4d83a01c",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.readinessLines()": "6c16f52a82da3719",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.targetLines()": "02d9c024544face7",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainLines()": "51cabe4b6c07952a",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.timeInZoneLines()": "4047d95ebd8cd1ea",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.weatherLines()": "9c2e1cfdb39a17a2"
    }
   },
   {
@@ -85,7 +60,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -126,10 +100,9 @@
      "effect": "adds hrDriftPercent=%.1f; nil (always in production, buildContext passes nil): omitted"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
-    "Emuqu/Sources/Views/HRZone.swift::var HRZone.label": "f0cf986d3646699e"
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.label": "3f59d08048c1cbcf"
    }
   },
   {
@@ -155,10 +128,9 @@
      "effect": "adds alpha1FitR2=%.2f; nil: omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Band.label": "eca50adaab9646e8",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.label": "10bfaf49e728454a"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Band.label": "bac8be283bbac3b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.label": "72ffbb260c2f3e74"
    }
   },
   {
@@ -201,12 +173,11 @@
      "effect": "adds currentMETs=%.1f; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.cadenceAndPowerLines()": "82c562026cb4f28b",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.splitPaceLines()": "6f37f164fbb1ca04",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.cadenceAndPowerLines()": "7abadc92ca93605d",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.splitPaceLines()": "672a3c833ba29136",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0"
    }
   },
   {
@@ -231,9 +202,8 @@
      "effect": "adds splitMinus<i>Formatted; nil: only the raw line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0"
    }
   },
   {
@@ -266,7 +236,6 @@
      "effect": "adds powerW=silent; false: no power line"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -281,10 +250,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.addressLines()": "d834e988b51703cc",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainGeometryLines()": "89f7a101f16bb136"
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.addressLines()": "22fbaf7b4a317e1b",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainGeometryLines()": "21535f3e25f013d5"
    }
   },
   {
@@ -302,7 +270,6 @@
      "effect": "flatMap yields nil and the line is omitted; non-empty: emitted; nil: omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -353,10 +320,9 @@
      "effect": "adds upcomingClimbM=<m>@<grade>pct; else omitted (routeTopology is never emitted)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.compassCardinal(degrees:)": "895a944b104952ce",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce"
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.compassCardinal(degrees:)": "45a1aabcab5ce093",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "5bb96da9a63df0aa"
    }
   },
   {
@@ -379,9 +345,8 @@
      "effect": "append weatherApparentTemperatureC"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "ad0bbfc38e9ed7fe"
    }
   },
   {
@@ -399,7 +364,6 @@
      "effect": "adds strapSilentSec=%.0f; nil: omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -417,7 +381,6 @@
      "effect": "adds targetZone line; nil: returns []"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -452,9 +415,8 @@
      "effect": "adds projectedMinutesUntilFade=%.0f; nil: omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0"
    }
   },
   {
@@ -484,9 +446,8 @@
      "effect": "adds historicalSportAvgAlpha1; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalPaceLines()": "4e686ff3c6232b4a"
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalPaceLines()": "16222777406fa339"
    }
   },
   {
@@ -511,9 +472,8 @@
      "effect": "adds historicalSportAvgPaceFormatted; nil: only raw line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0"
    }
   },
   {
@@ -566,7 +526,6 @@
      "effect": "adds recoveryHoursNeeded=%.0f; else omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -589,7 +548,6 @@
      "effect": "adds dominantZone=Z<n>; else omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -622,7 +580,6 @@
      "effect": "adds line; else omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -634,7 +591,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

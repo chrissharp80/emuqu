@@ -13,7 +13,6 @@
   "ud:AppleLanguages (read in systemLanguage; written via AppLanguage.apply)"
  ],
  "toplevel": "shared is created lazily via thread-safe static let; revisionBox initial 0.",
- "flags": [],
  "units": [
   {
    "key": "var LanguageManager.appBundle",
@@ -28,9 +27,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
    }
   },
   {
@@ -46,9 +44,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae"
    }
   },
   {
@@ -62,9 +59,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "dafc68364aaed5a6"
    }
   },
   {
@@ -78,9 +74,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "dafc68364aaed5a6"
    }
   },
   {
@@ -94,7 +89,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -108,9 +102,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae"
    }
   },
   {
@@ -130,9 +123,8 @@
      "effect": "returns .rightToLeft; otherwise .leftToRight"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae"
    }
   },
   {
@@ -149,12 +141,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "65a32eccfb71b524",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "40b91b35656ce492",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d"
    }
   },
   {
@@ -180,10 +171,9 @@
      "effect": "falls back to Bundle.main; otherwise the .lproj bundle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "3a83e6bf2674bdc3",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.systemLanguage()": "0433c87d0edfdd9a"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "a34cc9a161a26762",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.systemLanguage()": "b78f671217b3a5c8"
    }
   },
   {
@@ -216,10 +206,9 @@
      "effect": "returns Locale.current (keeps region); otherwise Locale(identifier: code)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "3a83e6bf2674bdc3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "a34cc9a161a26762",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
    }
   },
   {
@@ -241,25 +230,10 @@
     "notif:LanguageManagerDidChangeLanguage"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/API_REFERENCE.md says setLanguage 'Resets cached formatters'; setLanguage only persists AppleLanguages, swaps locale/bundle, posts languageDidChangeNotification and bumps revision; no formatter cache is touched.",
-     "evidence": [
-      "docs/API_REFERENCE.md:1625",
-      "Emuqu/Sources/Services/LanguageManager.swift:130",
-      "Emuqu/Sources/Services/LanguageManager.swift:132",
-      "Emuqu/Sources/Services/LanguageManager.swift:135",
-      "Emuqu/Sources/Services/LanguageManager.swift:137"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "40b91b35656ce492",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "dafc68364aaed5a6",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930"
    }
   },
   {
@@ -289,9 +263,8 @@
      "effect": "returns base bundle; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
    }
   }
  ],

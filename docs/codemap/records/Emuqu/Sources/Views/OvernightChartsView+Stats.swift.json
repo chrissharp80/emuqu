@@ -14,18 +14,6 @@
   "mem:OrganizedZonesCache.shared (read/written via AppDependencies.current.app.organizedZonesCache, not declared here)"
  ],
  "toplevel": "Only type declarations; OvernightStatsComputer conforms to Sendable so it can be captured by Task.detached in OvernightChartsView.loadOvernightStats.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "No unit test references OvernightStatsComputer, trimmedMeanHR, uncoveredWindows or any helper here; only OvernightSnapshotTests renders OvernightChartsView, whose stats load in an async .task.",
-   "evidence": [
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:12",
-    "EmuquTests/OvernightSnapshotTests.swift:7"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func OvernightStatsComputer.computeOvernightStats()",
@@ -48,13 +36,12 @@
      "effect": "OvernightStats.empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeRollingRMSSD(points:flags:)": "325529df04b3b424",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.makeStats(_:)": "270f1f502dafc6c2",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(series:)": "781614793bfe751b",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepSegmentRanges(series:)": "aa3a706da291177b",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepHR(points:flags:segmentRanges:sleepStartMs:sleepEndMs:)": "c9c8d4848d6bfda8"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeRollingRMSSD(points:flags:)": "94e6c8ee5276de2c",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.makeStats(_:)": "c08bbe38576fab45",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(series:)": "0242c045078688c9",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepSegmentRanges(series:)": "c0609797476808df",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepHR(points:flags:segmentRanges:sleepStartMs:sleepEndMs:)": "ef290de88959c527"
    }
   },
   {
@@ -69,10 +56,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)": "9ae57d610a188f71",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepWindowHRValues(points:flags:hasStoredHR:segmentRanges:sleepStartMs:sleepEndMs:fallback:)": "2e801523375e95b1"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)": "3fa962d34f7cc56c",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepWindowHRValues(points:flags:hasStoredHR:segmentRanges:sleepStartMs:sleepEndMs:fallback:)": "c49ea4537060b29b"
    }
   },
   {
@@ -122,20 +108,19 @@
      "effect": "band; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartEnd(lastPoint:segmentRanges:)": "515d60e6579b0780",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartStart(firstPoint:segmentRanges:)": "c74ecdf7eeace674",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.findPeakHRV(rollingRMSSD:band:)": "65574054d968cb6e",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)": "d6a92b5a54919bdf",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.organizedZones(series:flags:sleepStartMs:sleepEndMs:)": "0e4cc00089c0b670",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.peakSearchBand(sleepStartMs:sleepEndMs:)": "db7f9d7003c2a59d",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepFields(_:durationMs:)": "0142083f5a90bdb1",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.trimmedMeanHR(_:)": "be73f57a10afea4f",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowFields(_:)": "e4fea3c92ddc49fc",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::var OvernightStatsComputer.hasKnownSleepBoundaries": "80318230cc3651cd"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartEnd(lastPoint:segmentRanges:)": "7764e49770041070",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartStart(firstPoint:segmentRanges:)": "295742e5cc3f2e92",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.findPeakHRV(rollingRMSSD:band:)": "83926fff497b9510",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)": "f58daac49ff50224",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.organizedZones(series:flags:sleepStartMs:sleepEndMs:)": "398359d878833592",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.peakSearchBand(sleepStartMs:sleepEndMs:)": "00c8e0e68e0a8a1f",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepFields(_:durationMs:)": "8477a2bab8bf8f31",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.trimmedMeanHR(_:)": "5b095597f91f8a80",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowFields(_:)": "f7eac6f3c565e121",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::var OvernightStatsComputer.hasKnownSleepBoundaries": "fe22a8dc11db51d9"
    }
   },
   {
@@ -150,11 +135,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.analysisWindowTimes(points:series:)": "20228cca5f60e03b",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)": "d6a92b5a54919bdf"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.analysisWindowTimes(points:series:)": "00524a9dff04a245",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)": "f58daac49ff50224"
    }
   },
   {
@@ -168,9 +152,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.deriveSleepDuration(recordingStartTime:recordingDurationMs:)": "bd0a849a3614ba9a"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.deriveSleepDuration(recordingStartTime:recordingDurationMs:)": "7a6d1194818a0985"
    }
   },
   {
@@ -201,11 +184,10 @@
      "effect": "true: log and use fallback (full recording HR); false: return filtered"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)": "9ae57d610a188f71"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)": "3fa962d34f7cc56c"
    }
   },
   {
@@ -233,7 +215,6 @@
      "effect": "mean of the 5–95% slice"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -263,9 +244,8 @@
      "effect": "true: points[windowEnd].t_ms; false: last point t_ms, or 0 when no points (?? fallback)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77"
    }
   },
   {
@@ -283,7 +263,6 @@
      "effect": "return firstPoint.t_ms; else min(firstPoint.t_ms, earliest segment start)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -303,9 +282,8 @@
      "effect": "return lastPoint.endMs; else max(lastPoint.endMs, latest segment end)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -325,9 +303,8 @@
      "effect": "?? fallback: computeOrganizedZonesOnDemand scan (cached)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "a479f6778a4811b5"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "9a1fc5687eba155a"
    }
   },
   {
@@ -356,27 +333,15 @@
      "effect": "return cached zones"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same cache-then-WindowSelector zone computation as RecoveryScoreDetailView.computeOrganizedZonesOnDemand (whose comment calls it 'Same fallback the legacy OvernightChartsView uses'). It is now internal; handoff b23 for RecoveryScoreDetailView to call it.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:243",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:478"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache": "f98e9c73c61cdf4f",
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:sleepStartMs:sleepEndMs:)": "b8d27569a271e0b6",
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.set(_:sleepStartMs:sleepEndMs:zones:)": "78f1f082b81e2d78"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "a463d54597301fb6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache": "c4f9529a76f6cd0d",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:sleepStartMs:sleepEndMs:)": "f84dc3b15e8bb9a3",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.set(_:sleepStartMs:sleepEndMs:zones:)": "fb5580e3f0a1942f"
    }
   },
   {
@@ -400,13 +365,12 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache": "f98e9c73c61cdf4f",
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:sleepStartMs:sleepEndMs:)": "b8d27569a271e0b6",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(series:)": "781614793bfe751b"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache": "c4f9529a76f6cd0d",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:sleepStartMs:sleepEndMs:)": "f84dc3b15e8bb9a3",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(series:)": "0242c045078688c9"
    }
   },
   {
@@ -422,24 +386,8 @@
     "archive:SessionArchive.update"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md says the on-demand organized-zone fallback re-runs the scan 'without rewriting the archive', but OvernightChartsView.loadOvernightStats calls backfillZonesToArchive, which re-archives the session with the computed zones (and posts flowRecoveryArchiveChanged).",
-     "evidence": [
-      "docs/FLOWCHART.md:449",
-      "docs/FLOWCHART.md:452",
-      "Emuqu/Sources/Views/OvernightChartsView.swift:216",
-      "Emuqu/Sources/Views/OvernightChartsView.swift:217",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:279",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:296"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.writeZonesIfStillEmpty(sessionId:zones:)": "eb15368d373a007b"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.writeZonesIfStillEmpty(sessionId:zones:)": "5b6d055c85ded96f"
    }
   },
   {
@@ -479,16 +427,15 @@
      "effect": "logged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.fillMissingZones(_:in:)": "1c6c1c8e6719bf7e",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.zonesMissing(in:)": "a3b750eff76540b6"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.fillMissingZones(_:in:)": "f2d2ef72a41f1ccc",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.zonesMissing(in:)": "1c7a39659e478089"
    }
   },
   {
@@ -500,7 +447,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -520,9 +466,8 @@
      "effect": "no change"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.zonesMissing(in:)": "a3b750eff76540b6"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.zonesMissing(in:)": "1c7a39659e478089"
    }
   },
   {
@@ -558,10 +503,9 @@
      "effect": "last beat"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.onBeatClock(_:_:)": "a41af6e23003b1e8"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.onBeatClock(_:_:)": "e4703c874f8bd757"
    }
   },
   {
@@ -579,7 +523,6 @@
      "effect": "true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -611,13 +554,12 @@
      "effect": "single envelope"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.onBeatClock(_:_:)": "a41af6e23003b1e8",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(series:)": "781614793bfe751b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "474586cf18129a57",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.onBeatClock(_:_:)": "e4703c874f8bd757",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(series:)": "0242c045078688c9"
    }
   },
   {
@@ -631,9 +573,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.tMs(forSessionOffset:series:sessionStart:)": "d1ee109ddc5fc9c2"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.tMs(forSessionOffset:series:sessionStart:)": "9c707793f56baa4c"
    }
   },
   {
@@ -654,11 +595,10 @@
      "effect": "offset returned unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.indexClosestToWallClock(_:)": "41804bfb7d5db680",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.indexClosestToWallClock(_:)": "d05f1ea3fb9fc658",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -679,10 +619,9 @@
      "effect": "true: storedHRValues; false: windowedHRValues"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.storedHRValues(points:flags:rangeStart:rangeEnd:)": "8986986fa246162a",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowedHRValues(points:flags:rangeStart:rangeEnd:)": "c0161e4784d9d0c5"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.storedHRValues(points:flags:rangeStart:rangeEnd:)": "e68205a15013bd6a",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowedHRValues(points:flags:rangeStart:rangeEnd:)": "8c1f20cd523d65f2"
    }
   },
   {
@@ -720,7 +659,6 @@
      "effect": "skip; else append (index, hr, t_ms)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -761,10 +699,9 @@
      "effect": "step 5 beats; else step to window.nextIndex"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.physiologicalHR(_:)": "dd731b4ed235f850",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.rrWindow(points:flags:from:rangeEnd:)": "b7d117f2d55be944"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.physiologicalHR(_:)": "9ea4e521450cb22d",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.rrWindow(points:flags:from:rangeEnd:)": "01e0c2c7c8522424"
    }
   },
   {
@@ -787,9 +724,8 @@
      "effect": "nil; else hr"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9"
    }
   },
   {
@@ -822,7 +758,6 @@
      "effect": "count beat and add RR; else skip beat"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -852,20 +787,8 @@
      "effect": "snap i to last index; else i += 30"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md says rolling RMSSD uses 5-min windows; code uses a 300-beat window (duration varies with HR).",
-     "evidence": [
-      "docs/FLOWCHART.md:420",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:444"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "ee2c622148b79727"
    }
   },
   {
@@ -888,21 +811,6 @@
      "effect": "avg 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The PDF report reimplements the rolling 300-beat/30-step peak RMSSD scan (OvernightReportRenderer.calculatePeakRMSSD/scanForPeakRMSSD) with the 30-70% band taken over the recording only, while the screen takes it over the HealthKit sleep span when present; the PDF's peak RMSSD and its time can differ from the Overnight screen's Peak HRV card for the same night. (Handoff b23: the PDF to take its band from OvernightStatsComputer.peakSearchBand.)",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:467",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:481",
-      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:493",
-      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:501",
-      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:541"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -914,7 +822,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -938,13 +845,12 @@
      "effect": "HealthKit fields with isFromHealthKit true; else estimatedSleepFromRecording"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.awakePeriods(_:)": "a0f50e4afa381e4f",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.estimatedSleepFromRecording(durationMs:)": "7487f722f0028ae4",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)": "de24f3a392fe1ba3",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.healthKitSleepMinutes(_:)": "a402d78a07c769f7"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.awakePeriods(_:)": "66f92a4798683a0f",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.estimatedSleepFromRecording(durationMs:)": "d97b860e372b53dc",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)": "4c0723082db82caf",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.healthKitSleepMinutes(_:)": "e9eb767eb66ec295"
    }
   },
   {
@@ -962,10 +868,9 @@
      "effect": "nil (no awakenings card); else the count"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -990,10 +895,9 @@
      "effect": "nil; else (end-start)/60 which includes awake time inside the span"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971"
    }
   },
   {
@@ -1009,11 +913,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
-    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent": "8eb93a57b54b022c",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)": "de24f3a392fe1ba3"
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "10530faf3f817085",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent": "f7ec7882f9bead4e",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)": "4c0723082db82caf"
    }
   },
   {
@@ -1027,9 +930,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -1043,9 +945,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "74dd30b7b246e519"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "394ea47b09866958"
    }
   },
   {
@@ -1081,23 +982,12 @@
      "effect": "append HK samples for each"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "HealthKit segment bounds (wall-clock offsets from session.startDate) are compared against recordingStartMs/EndMs, which the caller takes from the beats' t_ms; on a streamed night whose t_ms drifted after BLE drops the uncovered sub-windows are shifted by that drift. The stats computer now moves sleep bounds with tMs(forSessionOffset:series:sessionStart:); this gap-fill path does not yet.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:619"
-     ],
-     "found": "fix batch b23"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.hkSamples(in:segIdx:)": "3aec352919ab5180",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.isPlausibleSegment(startMs:endMs:index:)": "106c4bf5d3ef7117",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.uncoveredWindows(segStartMs:segEndMs:recordingStartMs:recordingEndMs:)": "8dbef40bc9ca7c46"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.hkSamples(in:segIdx:)": "7b9ff6266485dc70",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.isPlausibleSegment(startMs:endMs:index:)": "52854282afe6137d",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.uncoveredWindows(segStartMs:segEndMs:recordingStartMs:recordingEndMs:)": "139e5c10159fbf4f"
    }
   },
   {
@@ -1117,9 +1007,8 @@
      "effect": "log and false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1147,7 +1036,6 @@
      "effect": "add post-recording sub-window"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1182,15 +1070,14 @@
      "effect": "sample dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "ababe979d0000127",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "0cb31e51c3346ac7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "3584905ec72431dd"
    }
   }
  ],

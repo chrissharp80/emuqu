@@ -28,7 +28,6 @@
   "mem:WatchMessageDecoding.stopIntentType = \"stopWorkoutFromWatch\""
  ],
  "toplevel": "StateUpdate.isLiveSnapshot defaults false; Bounds, maxSendTimeLead and stopIntentType are static lets. No other top-level code.",
- "flags": [],
  "units": [
   {
    "key": "func WatchMessageDecoding.decode(_:)",
@@ -49,12 +48,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "61134419c010b612",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d"
    }
   },
   {
@@ -72,16 +70,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b"
    }
   },
   {
@@ -99,7 +96,6 @@
      "effect": "true: return value; false: return nil (treated as absent)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -120,10 +116,9 @@
      "effect": "false: return nil (α1 dropped as not live); true: bounded alpha1"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "12b23c81bca96efe"
    }
   },
   {
@@ -149,10 +144,9 @@
      "effect": "known: Watch-localized label; else (nil code or unknown code) fallback to message[\"band\"] as? String, which may itself be nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "2f8f6ae5015a0016",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "8110a6372c54ac41"
    }
   },
   {
@@ -170,7 +164,6 @@
      "effect": "absent: return true (alpha1 taken as sent); present: return status == \"ok\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -208,7 +201,6 @@
      "effect": "nil, caller falls back to the phone's band text"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -228,9 +220,8 @@
      "effect": "absent: return message[\"paceDisplay\"] as? String (may be nil); present: pace(secPerKm:imperial:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "2a2c6bf9ec78f7e3"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "04a7375ef5fab1f4"
    }
   },
   {
@@ -258,9 +249,8 @@
      "effect": "true: \"<time> /mi\"; false: \"<time> /km\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -308,7 +298,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -343,9 +332,8 @@
      "effect": "worded code text if known, else phone's error string, else localized \"unknown error\"; result prefixed \"iPhone: \""
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "c7f5d6de15beeb94"
    }
   },
   {
@@ -413,18 +401,6 @@
      "effect": "raw with _→space, capitalized"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Restates iOS Sport.localizedName table by hand; a sport added on iOS shows a title-cased raw value on the Watch until this switch is updated.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:246",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:54"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -452,7 +428,6 @@
      "effect": ".stopped; otherwise falls to .none"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -482,9 +457,8 @@
      "effect": "current value kept"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df"
    }
   },
   {
@@ -496,7 +470,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -514,7 +487,6 @@
      "effect": "absent: false; present: state != \"idle\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -526,7 +498,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -538,7 +509,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -588,7 +558,6 @@
      "effect": ".unknown(raw)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -600,9 +569,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae"
    }
   },
   {
@@ -620,7 +588,6 @@
      "effect": "true: apply; false: stale, drop"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -643,7 +610,6 @@
      "effect": "returned"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -659,18 +625,6 @@
      "at": "+1",
      "cond": "switch on pct",
      "effect": "<50 nil; 50..<60 1; 60..<70 2; 70..<80 3; 80..<90 4; else 5"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Restates HRZone.classify buckets (iOS target) by hand; nothing pins the two together until a test compares them (handoff b38).",
-     "evidence": [
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:460",
-      "Emuqu/Sources/Views/HRZone.swift:37"
-     ],
-     "found": "fix pass b38"
     }
    ],
    "deps": {}
@@ -713,21 +667,9 @@
      "effect": "heartRate = rate, else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test covers strapMeasurement (lost-contact, HR 0, energy-expended and RR paths), unlike the iOS HeartRateMeasurement parser; tests handed off (b38).",
-     "evidence": [
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:497",
-      "EmuquTests/HeartRateMeasurementTests.swift:35"
-     ],
-     "found": "second read; moved from WatchStrapConnector.parseHeartRateMeasurement"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.lostContact(_:)": "293352b3ca91aa5a",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.rrMillis(in:from:)": "be6e49d590de5bd7"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.lostContact(_:)": "49bdf192b9167228",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.rrMillis(in:from:)": "5470b8cee6134af4"
    }
   },
   {
@@ -739,7 +681,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -757,7 +698,6 @@
      "effect": "append one interval"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

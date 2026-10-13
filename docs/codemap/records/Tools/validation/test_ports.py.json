@@ -11,19 +11,6 @@
   "git object e028039:EmuquTests/HRVReferenceFixtures.swift (read via `git show`)"
  ],
  "toplevel": "Imports the six port modules and swift_rng; module-level @case decorators register 114 runners in CASES; the __main__ block (lines 1040-1048) runs every case, prints PASS/FAIL lines and 'N/M cases matched', exits 1 if any failed. Not referenced by any .github workflow, so port drift from Swift is only caught when someone reruns it by hand.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The ports and this suite are pinned to commit e028039 and are not run in CI (no workflow references Tools/validation); a later change to the ported Swift methods would leave RESULTS.md, which the white papers cite, silently describing old code. At main 8d32097 only comment lines of LiveDFAAnalyzer.swift changed since e028039.",
-   "evidence": [
-    "Tools/validation/test_ports.py:1",
-    "docs/whitepapers/02-exercise-hrv-and-training-load.md:629",
-    ".github/workflows/ci.yml"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "def case",
@@ -36,10 +23,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def case.deco": "a319a2d32bdca81d",
-    "Tools/validation/test_ports.py::def case.deco.run": "76cc61a5964ea8dc"
+    "Tools/validation/test_ports.py::def case.deco": "a1d4e7001637a575",
+    "Tools/validation/test_ports.py::def case.deco.run": "e2a2fd6335a64581"
    }
   },
   {
@@ -51,9 +37,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def case.deco.run": "76cc61a5964ea8dc"
+    "Tools/validation/test_ports.py::def case.deco.run": "e2a2fd6335a64581"
    }
   },
   {
@@ -71,7 +56,6 @@
      "effect": "recorded as FAIL with 'exception ...'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -83,7 +67,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -95,7 +78,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -110,11 +92,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
-    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc",
-    "Tools/validation/test_ports.py::def _ #114": "d1cff3c09fddfd74"
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "582b7331f8c1f0eb",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "a6db82cd4872df85",
+    "Tools/validation/test_ports.py::def _ #114": "246cf1461d868d5c"
    }
   },
   {
@@ -129,10 +110,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
-    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc"
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "582b7331f8c1f0eb",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "a6db82cd4872df85"
    }
   },
   {
@@ -147,10 +127,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def rr_sin": "916e7d9cf542bac3"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def rr_sin": "2d50fdacdb0c5ebc"
    }
   },
   {
@@ -165,10 +144,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def rr_sin": "916e7d9cf542bac3"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def rr_sin": "2d50fdacdb0c5ebc"
    }
   },
   {
@@ -183,10 +161,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -201,10 +178,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -219,10 +195,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def rr_sin": "916e7d9cf542bac3"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def rr_sin": "2d50fdacdb0c5ebc"
    }
   },
   {
@@ -237,10 +212,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -255,10 +229,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -273,22 +246,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Mirrors a Swift test that re-seeds 0xD1 on every call, so the 5 'independent' white-noise series are identical and the mean over 5 equals one sample; the case gives no averaging (the comment at line 109 acknowledges it).",
-     "evidence": [
-      "Tools/validation/test_ports.py:109",
-      "Tools/validation/test_ports.py:110"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e",
-    "Tools/validation/test_ports.py::def white_d1": "8ef4ecf74f30ad67"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38",
+    "Tools/validation/test_ports.py::def white_d1": "aac43a5b79c2e46d"
    }
   },
   {
@@ -303,10 +264,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -321,10 +281,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -339,10 +298,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -356,9 +314,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522"
    }
   },
   {
@@ -373,10 +330,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -390,9 +346,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522"
    }
   },
   {
@@ -407,10 +362,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def correlated_d2": "2dfd5cf971cb98e6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def correlated_d2": "0b275171470d0ee0"
    }
   },
   {
@@ -436,10 +390,9 @@
      "effect": "append sine branch"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
-    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc"
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "582b7331f8c1f0eb",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "a6db82cd4872df85"
    }
   },
   {
@@ -453,9 +406,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def gaussian": "42d5eb13fc728e72"
+    "Tools/validation/test_ports.py::def gaussian": "7c1bc0419dd4d3af"
    }
   },
   {
@@ -475,9 +427,8 @@
      "effect": "accumulate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def gaussian": "42d5eb13fc728e72"
+    "Tools/validation/test_ports.py::def gaussian": "7c1bc0419dd4d3af"
    }
   },
   {
@@ -508,11 +459,10 @@
      "effect": "redraw that octave"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "90afc0a15361b35d",
-    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "ee1dacb8da07f9fc",
-    "Tools/validation/test_ports.py::def _ #114": "d1cff3c09fddfd74"
+    "Tools/validation/swift_rng.py::def SplitMix64.__init__": "582b7331f8c1f0eb",
+    "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "a6db82cd4872df85",
+    "Tools/validation/test_ports.py::def _ #114": "246cf1461d868d5c"
    }
   },
   {
@@ -532,12 +482,11 @@
      "effect": "compute and cache"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def brownian": "eda6650e019c53b9",
-    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0",
-    "Tools/validation/test_ports.py::def uncorrelated": "fae2cbb31a92b235"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def brownian": "12d877ce6981d3ae",
+    "Tools/validation/test_ports.py::def pink": "667149e2d8852a73",
+    "Tools/validation/test_ports.py::def uncorrelated": "df423af82c506a95"
    }
   },
   {
@@ -553,11 +502,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def ref": "a8880098dd7d5d4d"
    }
   },
   {
@@ -573,11 +521,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def ref": "a8880098dd7d5d4d"
    }
   },
   {
@@ -593,11 +540,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def ref": "a8880098dd7d5d4d"
    }
   },
   {
@@ -612,10 +558,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def ref": "a8880098dd7d5d4d"
    }
   },
   {
@@ -630,10 +575,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def ref": "c80ae4b961c0846e"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def ref": "a8880098dd7d5d4d"
    }
   },
   {
@@ -649,11 +593,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def pink": "667149e2d8852a73"
    }
   },
   {
@@ -669,11 +612,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def pink": "667149e2d8852a73"
    }
   },
   {
@@ -687,19 +629,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The detail f-string dereferences r['alpha1'] even when r is None, so a None result turns into a TypeError recorded as 'exception ...' instead of a clean FAIL detail.",
-     "evidence": [
-      "Tools/validation/test_ports.py:261"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522"
    }
   },
   {
@@ -714,10 +645,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def pink": "a8e8af307c6dc9c0"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def pink": "667149e2d8852a73"
    }
   },
   {
@@ -729,7 +659,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -745,11 +674,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -764,10 +692,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -782,10 +709,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -800,10 +726,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -818,10 +743,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -837,11 +761,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -856,10 +779,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -875,11 +797,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -893,9 +814,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "fc013a933a38b25a"
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "55b1d7a81b7b6c15"
    }
   },
   {
@@ -911,11 +831,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -930,10 +849,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -948,10 +866,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -965,9 +882,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba"
    }
   },
   {
@@ -982,10 +898,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -1000,10 +915,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def sine": "68b38dd5683e8fe5"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def sine": "ad2965a2e581028a"
    }
   },
   {
@@ -1017,9 +931,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f"
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "ef520dc51d2a2e67"
    }
   },
   {
@@ -1033,9 +946,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f"
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "ef520dc51d2a2e67"
    }
   },
   {
@@ -1051,11 +963,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def sine_np": "08ed16bb3fd6f059"
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def sine_np": "03b0cd9d5efe9c31"
    }
   },
   {
@@ -1067,7 +978,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1107,9 +1017,8 @@
      "effect": "REM RR; else core RR"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8"
+    "Tools/validation/swift_rng.py::def deterministic_offset": "58b13d5ed563fc39"
    }
   },
   {
@@ -1127,7 +1036,6 @@
      "effect": "emit"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1148,10 +1056,9 @@
      "effect": "build and classify"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def sleep_night": "4eabb36421fe9d16"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def sleep_night": "3bf04fe2f6c0ae35"
    }
   },
   {
@@ -1167,11 +1074,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a",
-    "Tools/validation/test_ports.py::def sleep_night": "4eabb36421fe9d16"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def night_result": "330f6a2b00b2abcb",
+    "Tools/validation/test_ports.py::def sleep_night": "3bf04fe2f6c0ae35"
    }
   },
   {
@@ -1186,10 +1092,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def night_result": "330f6a2b00b2abcb"
    }
   },
   {
@@ -1204,10 +1109,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def night_result": "330f6a2b00b2abcb"
    }
   },
   {
@@ -1222,10 +1126,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def uniform": "621aaa6266ac9899"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def uniform": "dfad2184b923142d"
    }
   },
   {
@@ -1239,9 +1142,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671"
    }
   },
   {
@@ -1256,10 +1158,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def uniform": "621aaa6266ac9899"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def uniform": "dfad2184b923142d"
    }
   },
   {
@@ -1274,10 +1175,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def sleep_night": "4eabb36421fe9d16"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def sleep_night": "3bf04fe2f6c0ae35"
    }
   },
   {
@@ -1292,10 +1192,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def night_result": "330f6a2b00b2abcb"
    }
   },
   {
@@ -1309,9 +1208,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "6d7d01c192270907"
    }
   },
   {
@@ -1325,9 +1223,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "6d7d01c192270907"
    }
   },
   {
@@ -1341,9 +1238,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "6d7d01c192270907"
    }
   },
   {
@@ -1357,9 +1253,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "6d7d01c192270907"
    }
   },
   {
@@ -1373,9 +1268,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be"
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "d37b23eb90c1621f"
    }
   },
   {
@@ -1390,10 +1284,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "d37b23eb90c1621f",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1407,9 +1300,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be"
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "d37b23eb90c1621f"
    }
   },
   {
@@ -1424,10 +1316,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "d37b23eb90c1621f",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1442,10 +1333,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/swift_rng.py::def deterministic_offset": "58b13d5ed563fc39"
    }
   },
   {
@@ -1460,10 +1350,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6",
-    "Tools/validation/test_ports.py::def night_result": "915a416e30eb396a"
+    "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671",
+    "Tools/validation/test_ports.py::def night_result": "330f6a2b00b2abcb"
    }
   },
   {
@@ -1477,9 +1366,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874"
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "e8dabcb17d91dc9a"
    }
   },
   {
@@ -1491,7 +1379,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1506,10 +1393,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874",
-    "Tools/validation/test_ports.py::def fw": "7684ef923893dafd"
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "e8dabcb17d91dc9a",
+    "Tools/validation/test_ports.py::def fw": "c568a77b2b9d6cfb"
    }
   },
   {
@@ -1524,10 +1410,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874",
-    "Tools/validation/test_ports.py::def fw": "7684ef923893dafd"
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "e8dabcb17d91dc9a",
+    "Tools/validation/test_ports.py::def fw": "c568a77b2b9d6cfb"
    }
   },
   {
@@ -1542,10 +1427,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "e5efde449d3d895e",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "f58c7fb92c671aef",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1560,10 +1444,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1578,10 +1461,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1596,10 +1478,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1614,10 +1495,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1631,7 +1511,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564"
    }
@@ -1647,7 +1526,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564"
    }
@@ -1663,9 +1541,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260"
    }
   },
   {
@@ -1679,9 +1556,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260"
    }
   },
   {
@@ -1695,9 +1571,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260"
    }
   },
   {
@@ -1711,9 +1586,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260"
    }
   },
   {
@@ -1729,11 +1603,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "2d3fb11667581edd",
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "244369dbdc9c836a",
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1748,10 +1621,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "2d3fb11667581edd",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "244369dbdc9c836a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -1765,9 +1637,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "2d3fb11667581edd"
+    "Tools/validation/port_artifact_detection.py::def artifact_percentage": "244369dbdc9c836a"
    }
   },
   {
@@ -1781,9 +1652,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260"
    }
   },
   {
@@ -1795,7 +1665,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1809,9 +1678,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631"
    }
   },
   {
@@ -1831,9 +1699,8 @@
      "effect": "overwrite"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def steady": "262abb5110a50d02"
+    "Tools/validation/test_ports.py::def steady": "10b1b459e38fba9f"
    }
   },
   {
@@ -1850,12 +1717,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1872,12 +1738,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1894,12 +1759,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1916,12 +1780,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1937,11 +1800,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1956,10 +1818,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1974,10 +1835,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -1994,12 +1854,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2016,12 +1875,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2038,12 +1896,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2058,10 +1915,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2077,11 +1933,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2099,13 +1954,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2121,11 +1975,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2139,9 +1992,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c"
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0"
    }
   },
   {
@@ -2156,10 +2008,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2171,18 +2022,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Tautology against the port's own constants (0.03/0.06 typed into port_live_dfa_clean.py); it cannot detect divergence from LiveDFAAnalyzer.swift:213,216.",
-     "evidence": [
-      "Tools/validation/test_ports.py:835",
-      "Tools/validation/port_live_dfa_clean.py:12"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -2199,12 +2038,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a",
-    "Tools/validation/test_ports.py::def steady": "262abb5110a50d02"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779",
+    "Tools/validation/test_ports.py::def steady": "10b1b459e38fba9f"
    }
   },
   {
@@ -2221,12 +2059,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
-    "Tools/validation/test_ports.py::def _mod": "e39989554b889a52",
-    "Tools/validation/test_ports.py::def cl": "a9719737a2f7558a"
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
+    "Tools/validation/test_ports.py::def _mod": "c33363886e42ecae",
+    "Tools/validation/test_ports.py::def cl": "be0c8cae713a9779"
    }
   },
   {
@@ -2249,7 +2086,6 @@
      "effect": "advance time by gap"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -2265,11 +2101,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2285,11 +2120,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2305,11 +2139,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2325,11 +2158,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2345,11 +2177,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2364,10 +2195,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2381,9 +2211,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a"
    }
   },
   {
@@ -2400,12 +2229,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/port_time_domain.py::def is_recording_break": "d466268e8a19ca17",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/port_time_domain.py::def is_recording_break": "47e7256338c1a013",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2421,11 +2249,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2440,10 +2267,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2459,17 +2285,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Reads fixtures with `git show e028039:...`; in a shallow clone or a source export without that commit every HRVReferenceValidationTests case fails with an exception rather than testing anything.",
-     "evidence": [
-      "Tools/validation/test_ports.py:947"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -2489,9 +2304,8 @@
      "effect": "load fixtures"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9"
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c"
    }
   },
   {
@@ -2506,10 +2320,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2521,7 +2334,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -2536,10 +2348,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
    }
   },
   {
@@ -2556,12 +2367,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def _an": "04977f39f20e4b70",
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
    }
   },
   {
@@ -2577,11 +2387,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def _raw_rmssd": "a2f18a97cef83b09",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def _raw_rmssd": "5a041ad859946a18",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
    }
   },
   {
@@ -2599,13 +2408,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def _raw_rmssd": "a2f18a97cef83b09",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def _an": "04977f39f20e4b70",
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def _raw_rmssd": "5a041ad859946a18",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
    }
   },
   {
@@ -2624,25 +2432,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "This extra case asserts only the raw value 28.98 and the superseded pre-5c4a23d 'collapsed array' value 16.03 recomputed inline; the current-rule pipeline RMSSD (15.96) is printed but not asserted, so it documents a stale Swift doc comment rather than testing the port.",
-     "evidence": [
-      "Tools/validation/test_ports.py:1014",
-      "Tools/validation/test_ports.py:1015"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
-    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def _raw_rmssd": "a2f18a97cef83b09",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "b3f74109a79b5da9",
+    "Tools/validation/test_ports.py::def _an": "04977f39f20e4b70",
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def _raw_rmssd": "5a041ad859946a18",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
    }
   },
   {
@@ -2660,13 +2456,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
-    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "b3f74109a79b5da9",
+    "Tools/validation/test_ports.py::def _an": "04977f39f20e4b70",
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
    }
   },
   {
@@ -2684,13 +2479,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/test_ports.py::def _an": "45f2a8fbb6005e56",
-    "Tools/validation/test_ports.py::def _fixtures": "a3c00706d3ba14e9",
-    "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab",
-    "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/test_ports.py::def _an": "04977f39f20e4b70",
+    "Tools/validation/test_ports.py::def _fixtures": "78a96c91e59c074c",
+    "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8",
+    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
   {
@@ -2702,7 +2496,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -2716,9 +2509,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8"
+    "Tools/validation/swift_rng.py::def deterministic_offset": "58b13d5ed563fc39"
    }
   },
   {
@@ -2732,9 +2524,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "e5efde449d3d895e"
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "f58c7fb92c671aef"
    }
   },
   {
@@ -2749,11 +2540,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
-    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/test_ports.py::def _contiguous": "903029a6ad5b59af",
+    "Tools/validation/test_ports.py::def _single_window": "f2c1195c6a1a5059",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -2768,11 +2558,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
-    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/test_ports.py::def _contiguous": "903029a6ad5b59af",
+    "Tools/validation/test_ports.py::def _single_window": "f2c1195c6a1a5059",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -2786,10 +2575,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "6beca26f8d23fc15",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e45087e5f291fbff",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -2807,14 +2595,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f",
-    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
-    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
-    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "ef520dc51d2a2e67",
+    "Tools/validation/test_ports.py::def _contiguous": "903029a6ad5b59af",
+    "Tools/validation/test_ports.py::def _single_window": "f2c1195c6a1a5059",
+    "Tools/validation/test_ports.py::def _varied": "5d1d13175e6e607d",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -2831,13 +2618,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
-    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
-    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def _contiguous": "903029a6ad5b59af",
+    "Tools/validation/test_ports.py::def _single_window": "f2c1195c6a1a5059",
+    "Tools/validation/test_ports.py::def _varied": "5d1d13175e6e607d",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   },
   {
@@ -2853,11 +2639,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
-    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
-    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2"
+    "Tools/validation/test_ports.py::def _contiguous": "903029a6ad5b59af",
+    "Tools/validation/test_ports.py::def _single_window": "f2c1195c6a1a5059",
+    "Tools/validation/test_ports.py::def _varied": "5d1d13175e6e607d"
    }
   },
   {
@@ -2874,19 +2659,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
-    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
-    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2",
-    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/test_ports.py::def _contiguous": "903029a6ad5b59af",
+    "Tools/validation/test_ports.py::def _single_window": "f2c1195c6a1a5059",
+    "Tools/validation/test_ports.py::def _varied": "5d1d13175e6e607d",
+    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3"
    }
   }
  ],
  "deps": {
-  "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8",
-  "Tools/validation/test_ports.py::def case": "ec4717160ed3d622",
-  "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
+  "Tools/validation/swift_rng.py::def deterministic_offset": "58b13d5ed563fc39",
+  "Tools/validation/test_ports.py::def case": "f5ae384c007deda4",
+  "Tools/validation/test_ports.py::def fix": "492e7cc27b1660c8"
  }
 }

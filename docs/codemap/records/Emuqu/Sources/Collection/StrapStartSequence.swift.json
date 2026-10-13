@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "var StrapStartSequence.Step.isDestructive",
@@ -19,7 +18,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -31,7 +29,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,18 +40,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The deviceType parameter is unused: every strap gets the same three steps, so the per-device API and the tests that loop over devices assert a constant.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapStartSequence.swift:54",
-      "EmuquTests/StrapStartSequenceTests.swift:20"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -81,22 +66,10 @@
      "effect": "returns false; else compares indices"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Called only from StrapStartSequenceTests; production arming iterates steps(for:) directly (PolarManager+Recording.swift:90,143), and because steps(for:) is constant this always returns true.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapStartSequence.swift:62",
-      "EmuquTests/StrapStartSequenceTests.swift:64"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive": "4c3b5245dd7a67fe",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue": "df25396474b2b8c4"
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive": "f1b52507f268c29f",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue": "8065e2f48d905439"
    }
   }
  ],

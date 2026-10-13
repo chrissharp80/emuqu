@@ -10,7 +10,6 @@
   "headerLine, profileLine, algorithmLine, locationLine: static expected render lines"
  ],
  "toplevel": "Static expected lines for the golden masters: the context header, the fixture's profile line, the algorithm line with the current ScoringWeights, and the fixture's 📍 LOCATION line.",
- "flags": [],
  "units": [
   {
    "key": "func CompactRenderParityTests.profile()",
@@ -21,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -35,9 +33,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()": "6e951b288a4b40a8"
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()": "e785ec97ede28418"
    }
   },
   {
@@ -54,12 +51,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.baselines()": "71db5fc5640aae47",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()": "6e951b288a4b40a8",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.summary()": "ae49cd454f07e9ba",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.trends()": "82aebdbfa272c18d"
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.baselines()": "e25aedc7698b0113",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()": "e785ec97ede28418",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.summary()": "ea17611963c214aa",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.trends()": "7a498838fc7c4df7"
    }
   },
   {
@@ -71,7 +67,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -83,7 +78,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -95,7 +89,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -121,7 +114,6 @@
      "effect": "asserts the render has exactly as many lines as expected"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -147,35 +139,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The determinism check renders only the minimal fixture, in which every section that reads the wall clock is empty: recentWorkoutLines filters by Date().timeIntervalSince (not generatedAt) and the live-state line prints snapshot_age_sec from Date(); the test therefore cannot detect the time-dependence it says it guards against.",
-     "evidence": [
-      "EmuquTests/CompactRenderParityTests.swift:73",
-      "EmuquTests/CompactRenderParityTests.swift:66",
-      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:743",
-      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:765",
-      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:327"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   },
   {
@@ -201,21 +178,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   },
   {
@@ -247,21 +223,20 @@
      "effect": "asserts the line equals itself with trailing spaces stripped"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   },
   {
@@ -287,21 +262,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   },
   {
@@ -327,21 +301,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()": "04a99bba6176b4cb"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "972202b5df1bd6b8",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "0d437b3e1a9e56e3",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()": "edb7b6a99d507db6"
    }
   },
   {
@@ -367,21 +340,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   },
   {
@@ -408,22 +380,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)": "3279a49f7796812c",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "972202b5df1bd6b8",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "0d437b3e1a9e56e3",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)": "09f0289e79d3d31e",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   },
   {
@@ -450,22 +421,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)": "3279a49f7796812c",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()": "04a99bba6176b4cb"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "972202b5df1bd6b8",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "0d437b3e1a9e56e3",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)": "09f0289e79d3d31e",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()": "edb7b6a99d507db6"
    }
   },
   {
@@ -491,21 +461,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "2a80fc25cc992ef4",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "91aa0e82438c4b14",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "546e324005bb975a",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
-    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "e2e3399e6e18fac2"
    }
   }
  ],

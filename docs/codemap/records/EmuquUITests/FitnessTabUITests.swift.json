@@ -7,29 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/FitnessTabUITests.swift:31",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc lists 'The \"Discover trails near me\" entry'; line 101-106 says that control was renamed and never lived at top level",
-   "evidence": [
-    "EmuquUITests/FitnessTabUITests.swift:12",
-    "EmuquUITests/FitnessTabUITests.swift:101"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func FitnessTabUITests.setUp()",
@@ -44,11 +21,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8"
    }
   },
   {
@@ -60,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,22 +50,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hand-rolled tab tap (no hittability poll, no content confirmation) instead of UITestNav.selectTab",
-     "evidence": [
-      "EmuquUITests/FitnessTabUITests.swift:51",
-      "EmuquUITests/EmuquUITests.swift:400"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "be282b6b9770776e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -113,13 +76,12 @@
      "effect": "assert no alert (pass otherwise)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "83be2a584d29726a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "3afc95d3936f4933",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "cdef994eaa46bd74"
    }
   },
   {
@@ -147,23 +109,12 @@
      "effect": "tap it; else no tap"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTSkipUnless on the run chip means a simulator where the recorder never comes up reports skip, so the route-picker path can go untested in CI without failing",
-     "evidence": [
-      "EmuquUITests/FitnessTabUITests.swift:113"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "83be2a584d29726a"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "cdef994eaa46bd74"
    }
   },
   {
@@ -178,21 +129,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Asserts only absence of an alert and tabBar.exists; a non-alert blocking sheet or full-screen cover (which leaves the tab bar in the hierarchy) passes",
-     "evidence": [
-      "EmuquUITests/FitnessTabUITests.swift:151"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "83be2a584d29726a"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
+    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "cdef994eaa46bd74"
    }
   }
  ],

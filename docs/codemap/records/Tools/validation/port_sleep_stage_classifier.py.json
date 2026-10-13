@@ -1,6 +1,6 @@
 {
  "file": "Tools/validation/port_sleep_stage_classifier.py",
- "hash": "b8b86b5996cff388",
+ "hash": "2a5fab4d3587bfdd",
  "role": "Python port of HRVSleepStageClassifier.classify RR-only path (HRVSleepStageClassifier.swift, +Watch smoothing/intervals, SleepBoundaryResolver RRWindowSweep, SleepClassifierConstants @ e028039, feature windows re-synced with the per-window gap fix after 99f28e6): 5-min feature windows (HR, RMSSD over originally adjacent valid beats with no recording break, SDNN, CV, DFA alpha1 on the longest break-free stretch with invalid beats interpolated and withheld above 6 % interpolated, LF/HF and HF on that stretch timed on the beat-sum clock), within-night percentile ranks, weighted deep/REM/awake scores with time-of-night priors, thresholds, one-window smoothing and interval minutes. Re-checked against main 8d32097: every constant, weight table, rank, score, smoothing and interval rule matches; the one divergence is SleepStageInterval.durationMinutes, which main rounds and the port truncates (see unit :247). Recording breaks use the t_ms rule only (the input carries no wall clock).",
  "types": [],
  "state": [
@@ -9,7 +9,6 @@
   "Weight tables W_DEEP_*, W_REM_*, W_AWAKE_* (lines 35-44)"
  ],
  "toplevel": "Constants and weight dictionaries; imports port_dfa, port_frequency_domain and port_live_dfa_clean.",
- "flags": [],
  "units": [
   {
    "key": "def is_valid_rr",
@@ -20,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -38,7 +36,6 @@
      "effect": "0.0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -68,9 +65,8 @@
      "effect": "cv = sdnn/avg else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def root_mean_square": "b08ea4ead354351b"
+    "Tools/validation/port_sleep_stage_classifier.py::def root_mean_square": "1b8fe9ba5427170c"
    }
   },
   {
@@ -82,7 +78,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -113,10 +108,9 @@
      "effect": "longest None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def is_recording_break": "90bf293f4f5415e0",
-    "Tools/validation/port_sleep_stage_classifier.py::def is_valid_rr": "bfd5aabd81d91c4c"
+    "Tools/validation/port_sleep_stage_classifier.py::def is_recording_break": "9bd4c28841bddd90",
+    "Tools/validation/port_sleep_stage_classifier.py::def is_valid_rr": "0f8d35b6df8348c4"
    }
   },
   {
@@ -141,9 +135,8 @@
      "effect": "None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "090f0fea7001fd1f"
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "7907eedf3ee30ccd"
    }
   },
   {
@@ -175,11 +168,10 @@
      "effect": "alpha1 else None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
-    "Tools/validation/port_sleep_stage_classifier.py::def interpolated_stretch": "0ca226c1d1097c51"
+    "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
+    "Tools/validation/port_sleep_stage_classifier.py::def interpolated_stretch": "39c88c3aa946482b"
    }
   },
   {
@@ -204,9 +196,8 @@
      "effect": "appends (time, rr)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f"
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "ef520dc51d2a2e67"
    }
   },
   {
@@ -239,12 +230,11 @@
      "effect": "lfHfRatio/hfPower set; else None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def window_alpha1": "5b0c45e231505b8f",
-    "Tools/validation/port_sleep_stage_classifier.py::def window_beats": "6cdb9142e5d2c936",
-    "Tools/validation/port_sleep_stage_classifier.py::def window_frequency": "4be0da71ef9182d1",
-    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "6beca26f8d23fc15"
+    "Tools/validation/port_sleep_stage_classifier.py::def window_alpha1": "e736e019fb485ef8",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_beats": "6991cabd934771f1",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_frequency": "b1721e1d294b60b8",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e45087e5f291fbff"
    }
   },
   {
@@ -284,7 +274,6 @@
      "effect": "append"
     }
    ],
-   "flags": [],
    "deps": {
     "Tools/validation/port_sleep_stage_classifier.py::def feature_window": "524a5479dc8efb12"
    }
@@ -319,7 +308,6 @@
      "effect": "assign average rank"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -354,9 +342,8 @@
      "effect": "median"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "038efe4a7a1756be"
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_ranks": "d37b23eb90c1621f"
    }
   },
   {
@@ -374,7 +361,6 @@
      "effect": "1.0; < 0.6 -> 0.4; else 0.15"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -392,7 +378,6 @@
      "effect": "1.0; > 0.35 -> 0.25; else 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -422,9 +407,8 @@
      "effect": "W_DEEP_DFA; else W_DEEP_TD"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def _deep_temporal": "9d51f711ce2e144d"
+    "Tools/validation/port_sleep_stage_classifier.py::def _deep_temporal": "f0d725a17cc56ac7"
    }
   },
   {
@@ -454,9 +438,8 @@
      "effect": "W_REM_DFA; else W_REM_TD"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def _rem_temporal": "aff92237c7cbfb37"
+    "Tools/validation/port_sleep_stage_classifier.py::def _rem_temporal": "440f06356c101372"
    }
   },
   {
@@ -474,7 +457,6 @@
      "effect": "W_AWAKE_FREQ; else W_AWAKE_NOFREQ"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -502,7 +484,6 @@
      "effect": "rem; else core"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -536,13 +517,12 @@
      "effect": "rem = 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def _awake_score": "1f7b11385eb5f6a2",
-    "Tools/validation/port_sleep_stage_classifier.py::def _deep_score": "c161c8cdc3a67671",
-    "Tools/validation/port_sleep_stage_classifier.py::def _feature_ranks": "4694584d3ae57d55",
-    "Tools/validation/port_sleep_stage_classifier.py::def _rem_score": "a0156f6cee7e0980",
-    "Tools/validation/port_sleep_stage_classifier.py::def classify_stage": "ae79d987f61b65ac"
+    "Tools/validation/port_sleep_stage_classifier.py::def _awake_score": "c673aa0b0d4937c1",
+    "Tools/validation/port_sleep_stage_classifier.py::def _deep_score": "01f024e1caaa9450",
+    "Tools/validation/port_sleep_stage_classifier.py::def _feature_ranks": "5fe5bc26c22c15e6",
+    "Tools/validation/port_sleep_stage_classifier.py::def _rem_score": "39cf007ceb544ef4",
+    "Tools/validation/port_sleep_stage_classifier.py::def classify_stage": "10003491237d0205"
    }
   },
   {
@@ -575,7 +555,6 @@
      "effect": "replaced"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -603,7 +582,6 @@
      "effect": "close interval and start new"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -615,21 +593,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Truncates interval minutes (int(seconds/60)) as SleepStageInterval.durationMinutes did at e028039, but at main 8d32097 durationMinutes rounds ((seconds/60).rounded()), so the port and RESULTS.md ('per-interval truncated minutes from summarise') no longer match the app: the final interval of a night (the only one not a whole number of 5-min windows) can differ by 1 minute per stage total.",
-     "evidence": [
-      "Tools/validation/port_sleep_stage_classifier.py:248",
-      "Tools/validation/port_sleep_stage_classifier.py:11",
-      "Emuqu/Sources/Models/SleepDomain.swift:107",
-      "Emuqu/Sources/Models/SleepDomain.swift:108",
-      "Tools/validation/RESULTS.md:77"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -663,31 +626,17 @@
      "effect": "add minutes"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Measured with this port (which reproduces all 28 ported HRVSleepStageClassifierTests cases and matches HRVSleepStageClassifier.swift line by line), the app's RR-only staging agrees with PSG near chance (pooled 5-min kappa 0.072 on slpdb, 0.146 on CAP) and over-reports deep sleep by about +70 min per night on slpdb; SleepResolver uses these intervals as the night's stages for strap-only nights, so users see these deep/REM minutes.",
-     "evidence": [
-      "Tools/validation/RESULTS.md:200",
-      "Tools/validation/RESULTS.md:216",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:120",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:638"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "e5efde449d3d895e",
-    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "fab2f415622fd874",
-    "Tools/validation/port_sleep_stage_classifier.py::def compute_window_scores": "2ea281b3401c0437",
-    "Tools/validation/port_sleep_stage_classifier.py::def duration_minutes": "1725f145d497a424",
-    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "486fcfc2d7820200"
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "f58c7fb92c671aef",
+    "Tools/validation/port_sleep_stage_classifier.py::def build_intervals": "e8dabcb17d91dc9a",
+    "Tools/validation/port_sleep_stage_classifier.py::def compute_window_scores": "f91ab12fb74fdc99",
+    "Tools/validation/port_sleep_stage_classifier.py::def duration_minutes": "78ed67a4e317cdc9",
+    "Tools/validation/port_sleep_stage_classifier.py::def smooth_stages": "6d7d01c192270907"
    }
   }
  ],
  "deps": {
-  "Tools/validation/port_live_dfa_clean.py::def _interpolate": "090f0fea7001fd1f",
-  "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6"
+  "Tools/validation/port_live_dfa_clean.py::def _interpolate": "7907eedf3ee30ccd",
+  "Tools/validation/port_sleep_stage_classifier.py::def classify": "9459fb986a64e671"
  }
 }

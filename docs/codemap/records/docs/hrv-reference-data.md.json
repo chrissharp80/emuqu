@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "§ HRV reference data",
@@ -18,7 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab"
    }
@@ -38,13 +36,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "ad980a2153126177",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()": "d3768a925919f396",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "242a9f14830dbc54",
-    "scripts/fetch_hrv_reference.py::def metrics": "bb5f1954ac26fa9f"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "6f2ea748c5e0ccc5",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()": "c72cc7fcffb848e4",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "384bee052ea593f9",
+    "scripts/fetch_hrv_reference.py::def metrics": "cd6cbe7d12a491f6"
    }
   },
   {
@@ -59,10 +56,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/fetch_hrv_reference.py::def fetch": "b866b3c332a7783d",
-    "scripts/fetch_hrv_reference.py::def swift_source": "bef81cf5f348c2a3"
+    "scripts/fetch_hrv_reference.py::def fetch": "3ce4d692d5d50e6b",
+    "scripts/fetch_hrv_reference.py::def swift_source": "9c3631439edfcaf3"
    }
   },
   {
@@ -78,11 +74,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "ad980a2153126177",
-    "scripts/fetch_hrv_reference.py::def build": "15b744243a1ffa4b",
-    "scripts/fetch_hrv_reference.py::def main": "be9b545a1497b588"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "6f2ea748c5e0ccc5",
+    "scripts/fetch_hrv_reference.py::def build": "50c386b686e1286b",
+    "scripts/fetch_hrv_reference.py::def main": "ead654f483ee2ec9"
    }
   },
   {
@@ -101,27 +96,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc says the suite 'asserts that the filtered pipeline never reports a larger RMSSD than the raw one', and the test comment justifies it as 'removing outliers can only shrink a root-mean-square of differences'. That is false in general: the gated estimator drops pairs, and the RMS of a subset of differences can exceed the RMS of all of them. The assertion holds only empirically on these 20 fixtures, so a future fixture could fail it without any app defect.",
-     "evidence": [
-      "docs/hrv-reference-data.md:73",
-      "EmuquTests/HRVReferenceValidationTests.swift:139",
-      "EmuquTests/HRVReferenceValidationTests.swift:148",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:268"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)": "7c72c210409bd511",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()": "c10591b811563132",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()": "2761d9971b0b07f0",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "242a9f14830dbc54"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()": "e3ad3e25f1f4641a",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()": "04286bd788bd9e09",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "384bee052ea593f9"
    }
   }
  ],

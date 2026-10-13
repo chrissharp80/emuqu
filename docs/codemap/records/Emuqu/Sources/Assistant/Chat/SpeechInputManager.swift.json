@@ -13,7 +13,6 @@
   "mem:AudioSessionCoordinator claim .dictation"
  ],
  "toplevel": "engine is a lazy AVAudioEngine created on first start().",
- "flags": [],
  "units": [
   {
    "key": "init SpeechInputManager()",
@@ -32,9 +31,8 @@
      "effect": "fallback to en-US recognizer (non-English speaker gets English recognition)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -52,7 +50,6 @@
      "effect": "false; else supportsOnDeviceRecognition"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -94,12 +91,11 @@
      "effect": "throw SpeechError.unavailable (shown in alert)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)": "41c9c42700dbc6a3",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)": "9d38175052529545",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()": "aa6d1a9d8b0e3721",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable": "a64517e452b41ad5"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)": "a70b82a03029f6a0",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)": "6135a29e5eec7531",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()": "228f51d88ec09baf",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable": "c197f17031a60741"
    }
   },
   {
@@ -124,13 +120,12 @@
      "effect": "releaseSessionIfIdle then rethrow"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "549ce264679b3059",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.startEngine(appendingTo:)": "213bbf0694d9554f",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "6c0254444e6494ee",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.startEngine(appendingTo:)": "36a0cae302ef6d90",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
   {
@@ -166,14 +161,13 @@
      "effect": "remove tap, throw unavailable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.removeTapAndFail(_:)": "6a7f3d20c389e3be",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resetEngineAndReadFormat(_:)": "20f943d010bc12e7",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.tapBlock(appendingTo:)": "d0b58006e95944d1",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.removeTapAndFail(_:)": "d4b00a347c218905",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resetEngineAndReadFormat(_:)": "f1e6e9cff1d1009f",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.tapBlock(appendingTo:)": "0c26aa40abb29da1",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap": "7e6c68b98e72edff",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine": "22735babeeafa906",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine": "2fd985820cf7bd86"
    }
   },
@@ -186,7 +180,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -202,11 +195,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineReset": "de1302811e9b0894",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineReset": "87e2f02eb35d1e5b",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16daaf0af55b8047",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5"
    }
   },
   {
@@ -220,9 +212,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5"
    }
   },
   {
@@ -249,10 +240,9 @@
      "effect": "return; else endRecording(failure:) with the error text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)": "a8439667d3c00fd8"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)": "56926249015808ac"
    }
   },
   {
@@ -270,9 +260,8 @@
     "mem:AudioSessionCoordinator claims"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "241347482ec4b62f"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "fa2b9b6187823abb"
    }
   },
   {
@@ -297,11 +286,10 @@
      "effect": "return transcript without touching audio"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "549ce264679b3059",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "6c0254444e6494ee",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16daaf0af55b8047",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5"
    }
   },
   {
@@ -321,11 +309,10 @@
     "mem:AudioSessionCoordinator claims"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "549ce264679b3059",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "6c0254444e6494ee",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16daaf0af55b8047",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5"
    }
   },
   {
@@ -349,12 +336,11 @@
      "effect": "return without deactivating; else deactivate with notifyOthersOnDeactivation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "2b1ef60dc554e6ae",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "b8c5445601085093",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "37f8c4633bbb78c6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
   {
@@ -384,9 +370,8 @@
      "effect": "on-device unavailable message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -412,7 +397,6 @@
      "effect": "throw micDenied"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

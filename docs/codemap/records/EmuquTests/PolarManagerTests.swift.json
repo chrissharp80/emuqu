@@ -7,22 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The streaming-ingestion tests here duplicate PolarManagerIntegrationTests through the same ingestHeartRate path: testMultipleSamplesInBatch vs testMultipleSamplesWithMixedAvailability, testCumulativeTimeTracking vs testHighFrequencyDataBurst/testMaxStreamDuration, testWallClockTimeCapture vs testStreamingWithBLEHiccups.",
-   "evidence": [
-    "EmuquTests/PolarManagerTests.swift:57",
-    "EmuquTests/PolarManagerIntegrationTests.swift:78",
-    "EmuquTests/PolarManagerTests.swift:99",
-    "EmuquTests/PolarManagerIntegrationTests.swift:99",
-    "EmuquTests/PolarManagerTests.swift:127",
-    "EmuquTests/PolarManagerIntegrationTests.swift:15"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func PolarManagerTests.testRRDataExtractionWhenAvailable()",
@@ -43,18 +27,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "7f131f27d900cbb4",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -76,18 +59,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "7f131f27d900cbb4",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -108,17 +90,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -139,27 +120,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTAssertNoThrow wraps a non-throwing call; it can never fail (a trap would crash the run instead), so only the count assertion carries weight.",
-     "evidence": [
-      "EmuquTests/PolarManagerTests.swift:92"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -181,18 +151,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "7f131f27d900cbb4",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -215,20 +184,19 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRateForTesting(_:elapsedMs:)": "ada5e182d18472bb",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRateForTesting(_:elapsedMs:)": "78acda1b3d2addf3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -256,18 +224,17 @@
      "effect": "one single-beat batch per iteration with RR varied by beat % 5"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "27300dd6b5f58314",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "12b592052a08f04d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "25ef3eed5c375dca",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "ddc584c91173bab0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "7f131f27d900cbb4",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d"
    }
   },
   {
@@ -290,19 +257,18 @@
     "ud:<usagePrefix>value/changedAt/hours.ACTIVE-DEVICE (standard suite, StrapBatteryUsageTracker.persist; never cleaned up)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)": "6c87482bae1a9d59",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "f6454d20b7084cd4",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)": "16c764180c0afea4",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "6031ca4c1242972f",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "734b808f33c32f3f",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "2bbe0ada88e62d35",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "cd8e2eeeb387c6ca",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b"
    }
   },
   {
@@ -325,19 +291,18 @@
     "ud:<usagePrefix>value/changedAt/hours.ACTIVE-DEVICE (standard suite, StrapBatteryUsageTracker.persist; never cleaned up)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)": "6c87482bae1a9d59",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "f6454d20b7084cd4",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)": "16c764180c0afea4",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "6031ca4c1242972f",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "734b808f33c32f3f",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "2bbe0ada88e62d35",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "cd8e2eeeb387c6ca",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b"
    }
   },
   {
@@ -354,13 +319,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "9671a11b0247c2ba",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b"
    }
   },
   {
@@ -377,13 +341,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "9671a11b0247c2ba",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b"
    }
   },
   {
@@ -401,14 +364,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "b92655429122a2e0",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "9671a11b0247c2ba",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "d7cc82132c078fb6",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b"
    }
   },
   {
@@ -427,15 +389,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:key:value:)": "da126d2c8892851c",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "b92655429122a2e0",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:key:value:)": "247389e384458b9c",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "9671a11b0247c2ba",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "d7cc82132c078fb6",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b"
    }
   }
  ],

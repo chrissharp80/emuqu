@@ -11,19 +11,6 @@
   "TestFixtureDefaults.timeDomain: static let TimeDomainMetrics with every field 0"
  ],
  "toplevel": "TestFixtureDefaults.timeDomain is a static stored TimeDomainMetrics initialiser with all zeros.",
- "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "Fallback values (Date(timeIntervalSince1970: 0), the unchanged input date, a random UUID(), all-zero TimeDomainMetrics) keep the test running after XCTFail; later assertions in the same test then evaluate against those stand-ins and add confusing secondary failures, though the first XCTFail does mark the test red.",
-   "evidence": [
-    "EmuquTests/TestDate.swift:25",
-    "EmuquTests/TestDate.swift:75",
-    "EmuquTests/TestDate.swift:87"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TestDate.from(_:calendar:file:line:)",
@@ -40,7 +27,6 @@
      "effect": "true: XCTFail + return epoch; false: return the date"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -58,7 +44,6 @@
      "effect": "true: XCTFail + return input date; false: return result"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,7 +61,6 @@
      "effect": "true: XCTFail + return input date; false: return result"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -94,7 +78,6 @@
      "effect": "true: XCTFail + return random UUID; false: return parsed id"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

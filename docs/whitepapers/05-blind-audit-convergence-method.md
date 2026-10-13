@@ -210,7 +210,7 @@ The audit specification, first committed on 2026-04-26 21:48 CDT and used for Em
 
 Coding agents tend to fix a few findings and report the job done. The author's instructions close that gap: "make sure it's fixing everything it found. not just a few" (≤ 2026-04-26), and "i'd like to see every single fix to every single problem applied" (≤ 2026-05-07). The execution prompt adds two rules: "If a fix in the refactor doc conflicts with a fix in the audit, the refactor doc wins," and "Do NOT add scope." Each finding ends as DONE, DEFERRED or BLOCKED, with a reason for anything not DONE. A new code audit then runs from scratch. The public repository [13] shows the cycle continuing after release: audit-fix pull requests on 2026-10-02 to 2026-10-05 are titled "fix what a full audit found", "a second full audit" and "the third App Store audit".
 
-The exclusion list carries into the code phase. `docs/CI_POSTURE.md`, about the project's continuous-integration (CI) setup, begins "Read this before filing a finding about missing CI automation or branch protection," and tells reviewers that a finding of that kind "is accurate, intended, and documented above". It also lists the findings that posture does not answer, which "remain open on their own merits".
+The exclusion list carries into the code phase. `docs/CI_POSTURE.md`, about the project's continuous-integration (CI) setup, begins "Read this before filing a finding about missing CI automation or branch protection," and tells reviewers that a finding of that kind "is accurate, intended, and documented above".
 
 ### 2.13 Verification by use
 

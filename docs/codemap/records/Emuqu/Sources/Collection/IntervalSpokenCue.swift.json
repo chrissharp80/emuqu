@@ -7,17 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references IntervalSpokenCue.",
-   "evidence": [
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift:7"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func IntervalSpokenCue.step(_:number:of:)",
@@ -39,12 +28,11 @@
      "effect": "header + target only; else header + 'target for span'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)": "084a5a7adf664479",
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)": "110d5071d698c224",
-    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel": "eb4c0648c89ed45d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)": "3fe4ed0efdd31bf4",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)": "c3b60f287142f657",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel": "9d01c7943a101868",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -58,9 +46,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -96,24 +83,9 @@
      "effect": "effort(cue)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The scripted interval cue speaks a pace target as 'm:ss per kilometer' whatever the user's units preference, so an imperial user hears a metric pace when the AI path is unavailable. (Distance steps now follow the preference.) Needs a '%@ per mile' catalog key.",
-     "evidence": [
-      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:44",
-      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:45",
-      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:74",
-      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:75",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:195"
-     ],
-     "found": "second read; narrowed by b10"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.effort(_:)": "ab7b1701f8ff3143",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.effort(_:)": "d03f7f4c7bf95b5b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -153,9 +125,8 @@
      "effect": "'all-out effort'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -185,13 +156,12 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.spokenDistance(meters:units:)": "3b395568e3801b26",
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "0701f9429ce58e28",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.spokenDistance(meters:units:)": "f6f46c58b58a3bab",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "9ebbf45fcf96711c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -211,10 +181,9 @@
      "effect": "miles; else km/m by size"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   }
  ],

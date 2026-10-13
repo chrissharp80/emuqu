@@ -14,19 +14,6 @@
   "mem:RRStorageAuditDetailView.dateFormatter (static DateFormatter, en_US_POSIX yyyy-MM-dd HH:mm)"
  ],
  "toplevel": "Header comment mentions \"the export URL wrapper\" but no such type is in this file (it is not declared here). Views read untyped [String: Any] dicts whose keys (kind, summary, begin, end, received_at, exit_background, exit_foreground, peak_memory_bytes; ts, memory_bytes, memory_mb, thermal, reason, memory_warnings_total) are written by SystemDiagnosticsManager.swift:272-299, 349, 425-432.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Trace/payload schema is stringly typed and duplicated between the writer (SystemDiagnosticsManager) and two readers (these views and CrashLogManager.summarize/traceTimeline); a renamed key silently renders \"?\"/0.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:425",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:137",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift:324"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var MetricKitHistoryView.body",
@@ -40,11 +27,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadRow(_:)": "f6d7159ed791cafe",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadRow(_:)": "c68fd66556dcda4f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -71,11 +57,10 @@
      "effect": "shows \"Window: begin → end\"; otherwise the window line is omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadDetail(_:)": "227d4b464150b1df",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadHeader(_:)": "957fc620fde70fc7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadDetail(_:)": "daaabcc4199dada8",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadHeader(_:)": "fd5e1a64aa48b913"
    }
   },
   {
@@ -100,10 +85,9 @@
      "effect": "shows it; else \"—\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadKindColor(_:)": "65815779036ff246",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadKindColor(_:)": "2484913b6e1f6193",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -135,10 +119,9 @@
      "effect": "shows \"Peak memory: <bytes>\"; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdown(_:counts:)": "6501516ab9104909"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdown(_:counts:)": "d98b2d93e8c90acc"
    }
   },
   {
@@ -158,9 +141,8 @@
      "effect": "renders the column; when empty nothing is shown (a period with only normal exits shows no breakdown)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownColumn(_:rows:)": "e6b9be1d4b894919"
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownColumn(_:rows:)": "6606c6035d724a82"
    }
   },
   {
@@ -174,9 +156,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownRow(_:)": "44a4fd0669a0febd"
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownRow(_:)": "72956fb0e4494bf1"
    }
   },
   {
@@ -188,7 +169,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -216,7 +196,6 @@
      "effect": "secondary"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -232,11 +211,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.recentSamplesSection": "8e7d0c8fcd35a044",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summarySection": "e6bdec60e6694e35"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.recentSamplesSection": "fbfe3c56ce44bb81",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summarySection": "0680894075261895"
    }
   },
   {
@@ -251,11 +229,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "f025bf5b6d411e7f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "204157c05b8e4df9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -270,10 +247,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.sampleRow(_:)": "c33769643e3b1e12"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.sampleRow(_:)": "5bf5cf14071fe545"
    }
   },
   {
@@ -291,7 +267,6 @@
      "effect": "previous process's count added, running count reset"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -325,14 +300,13 @@
      "effect": "count drawn orange; else primary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)": "40832e8cc8121a00",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "ef4f60d21736cf1f",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings": "6d072468fb2f02f2",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)": "0402e4531b58bf11",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "4fd6343eba0c23f0",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings": "3a44ec620967d823",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -369,12 +343,11 @@
      "effect": "value; else \"?\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSample(_:)": "05503fcff7465478",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "ef4f60d21736cf1f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSample(_:)": "9fd8e1317273305e",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "4fd6343eba0c23f0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -407,7 +380,6 @@
      "effect": "secondary"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -421,7 +393,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -437,25 +408,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Type doc and on-screen caption say tapping a session shows beat counts and file paths; sessionRow has no NavigationLink or tap action and no path is ever shown (SessionReport has no path field), so the instruction leads nowhere.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:202",
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:217",
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:256",
-      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:49"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupsSection": "19043b8287520a5f",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.sessionsSection": "f59269ad2093993a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupsSection": "2001f29d958d200b",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.sessionsSection": "5582703891c9c2bb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -470,10 +427,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRow(_:)": "9d276f8ae8862c9a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRow(_:)": "b4bf62f9c38b0fe9"
    }
   },
   {
@@ -494,11 +450,10 @@
      "effect": "section shown; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupRows": "46b3b19df430fb0b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupRows": "828948a010f0598c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -510,7 +465,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -532,12 +486,11 @@
      "effect": "shows it; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowCounts(_:)": "6be2511e78f6f838",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowHeader(_:)": "6196e298c04fb032",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "f025bf5b6d411e7f"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowCounts(_:)": "df85186d77c110b6",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowHeader(_:)": "cdd3e70785314814",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "204157c05b8e4df9"
    }
   },
   {
@@ -554,14 +507,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "e8364f253d678fdc",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusColor(_:)": "ddd35b1f6b9fa2e4",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusIcon(_:)": "e06d9a3ba77dbae6",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::let RRStorageAuditDetailView.dateFormatter": "21e9c1eb48af79b3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "8b5828d7b86ab8ea",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusColor(_:)": "59ef0cdb1ee7739e",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusIcon(_:)": "629dfd24797613fd",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::let RRStorageAuditDetailView.dateFormatter": "7fed2ee51c3ad185",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -576,10 +528,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -617,7 +568,6 @@
      "effect": "questionmark.diamond.fill"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -645,7 +595,6 @@
      "effect": "red"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

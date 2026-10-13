@@ -11,7 +11,6 @@
   "stored lets: session, track, config, userMaxHR, userRestingHR, userLTHR, units (instance, immutable)"
  ],
  "toplevel": "Config stored-property initializers fix US Letter 612x792 pt, margin 36, UIFont system fonts (title 24 bold, hero 28 heavy, section 14 semibold, body 10, caption 8, mono 10) and colours (terracotta primary, sage, dustyRose, three text greys, divider). Two file-scope private functions hrrSentences and alphaObservations live after the class (listed as units). Class is not @MainActor; comment at :46-53 says callers run generate from Task.detached.",
- "flags": [],
  "units": [
   {
    "key": "var WorkoutPDFReport.drawing",
@@ -22,7 +21,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -34,7 +32,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -66,18 +63,17 @@
      "effect": "true: draws the EFFORT & TERRAIN page with the map; false (no track, or snapshot failed with error swallowed in renderMapSnapshot): page silently omitted, other pages unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer.swift::var WorkoutPDFRenderer.physiology": "8da03561584ade87",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.renderMapSnapshot()": "ee7e03d3ebb40063",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawSplitsAndDerivedPage(ctx:)": "d65a046848dc257e",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWhatThisMeansPage(ctx:)": "b9b9b9f8f1a2aa7e",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAutonomicHRVPage(ctx:)": "cbacf6062600571e",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawCardiopulmonaryPage(ctx:)": "d6d992d83a2d7a77",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawEffortAndTerrainPage(ctx:mapImage:)": "2201c59b4c9586d3",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawMethodologyPage(ctx:)": "7b19ae25e9bee11f",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawExecutiveSummaryPage(ctx:)": "a491c5f18c98ed29",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer.swift::var WorkoutPDFRenderer.physiology": "8f4eb06c42284960",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.renderMapSnapshot()": "f195d166bc74f8b1",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawSplitsAndDerivedPage(ctx:)": "ddacf42164bedf58",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWhatThisMeansPage(ctx:)": "3e7fa792d045db8b",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAutonomicHRVPage(ctx:)": "be4bc8af7a4ee99b",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawCardiopulmonaryPage(ctx:)": "234e7bd60a5826e6",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawEffortAndTerrainPage(ctx:mapImage:)": "c966027bac3f49b9",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawMethodologyPage(ctx:)": "b9b8d581437d739a",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawExecutiveSummaryPage(ctx:)": "0a449ec84faa910d",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a"
    }
   },
   {
@@ -117,14 +113,13 @@
      "effect": "true: appended as third paragraph; false: omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.autonomicSentences(meta:bundle:)": "22ac5c879cd6ac66",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.effortParagraph(sport:durationMin:bundle:)": "3c130e41f31f7644",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.sportNoun(_:)": "2a47c91b1ce8396d",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.trainingLoadSentences(meta:bundle:)": "30594281d9e31a9e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.autonomicSentences(meta:bundle:)": "10b87e51b3ec5b10",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.effortParagraph(sport:durationMin:bundle:)": "06a4bd3a95f03946",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.sportNoun(_:)": "569b2d53626ca448",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.trainingLoadSentences(meta:bundle:)": "f27006a7036dced2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -145,10 +140,9 @@
      "effect": "true: returns sport.localizedName as-is; false: returns it lower-cased in app locale"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "dbe667c792d47f39",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -185,11 +179,10 @@
      "effect": "true: mixed-intensity sentence with easy/threshold/hard minutes; false: threshold-exposure sentence (easy + threshold minutes; <60 s above AT2 is dropped from text)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alpha1Stats()": "5aaead8638eda673",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::var WorkoutPDFRenderer.Alpha1Stats.totalSec": "b1b9be9f14e61f6d",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1"
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alpha1Stats()": "c7cbd4932f4109f3",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::var WorkoutPDFRenderer.Alpha1Stats.totalSec": "d4128801065703ea",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a"
    }
   },
   {
@@ -228,13 +221,12 @@
      "effect": "true: EF sentence; false: omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.efficiencyFactorText(_:)": "5f4a3fb6323b8fab",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.peakHRSentences(meta:bundle:)": "4ae3d1b1daddd701",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func hrrSentences(meta:bundle:)": "449ed5c808feea02",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.efficiencyFactorText(_:)": "669fb0ab4933dac9",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.peakHRSentences(meta:bundle:)": "17f7f92181a79c2d",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func hrrSentences(meta:bundle:)": "4f2b901dc204adb7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -257,7 +249,6 @@
      "effect": "true: sentence includes ≈ pct of HRmax; false: plain 'Peak heart rate N bpm.' (avoids divide-by-zero crash)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -288,22 +279,10 @@
      "effect": "true: elevation sentence; false: omitted"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Always labels meta.luciaTRIMP as 'Banister TRIMP ... per Banister 1991', but WorkoutAnalyzer documents that this value falls back to Edwards 5-zone TRIMP when resting/max HR are not both known, so the PDF can mislabel the method.",
-     "evidence": [
-      "Emuqu/Sources/Export/WorkoutPDFReport.swift:223",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:139"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.banisterSexK()": "4c8935bb1c75e346",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.banisterSexK()": "26d65d17f3a63219",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "5bb96da9a63df0aa"
    }
   },
   {
@@ -336,13 +315,12 @@
      "effect": "true: 'Peak HR exceeds configured HRmax' flag; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func alphaObservations(meta:bundle:)": "2ec0737ff42e6edc",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func alphaObservations(meta:bundle:)": "bf88353ce1ee73bf",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -356,9 +334,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -380,17 +357,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "81a513999ebeb5e0",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawHeroVerdict(at:contentW:)": "f773f10d8159d1a4",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawClinicalInterpretationBlock(at:contentW:ctx:)": "655d7d5e6478e797",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawExecSummaryHeader(at:contentW:)": "871072c2d92fa1b8",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawKeyMetricsGrid(at:contentW:ctx:)": "1625732f8dbe93af",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawNotableObservationsBlock(at:contentW:ctx:)": "a842483e660eb74c",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawSubjectAnchors(at:contentW:)": "b8b6f7cb9bc4c633",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "1fe55bb771aafd5a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "bcd7c1c4102acaab",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawHeroVerdict(at:contentW:)": "1aecb65cee55a823",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawClinicalInterpretationBlock(at:contentW:ctx:)": "bb56d5a5a612c66e",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawExecSummaryHeader(at:contentW:)": "a4b8434194a0a31c",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawKeyMetricsGrid(at:contentW:ctx:)": "ebdf99ebd311c0fe",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawNotableObservationsBlock(at:contentW:ctx:)": "690370b65184df11",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawSubjectAnchors(at:contentW:)": "b5db957496c2771b",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a"
    }
   },
   {
@@ -412,11 +388,10 @@
      "effect": "returns; else new page"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "81a513999ebeb5e0",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "1fe55bb771aafd5a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "bcd7c1c4102acaab",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a"
    }
   },
   {
@@ -434,14 +409,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawDivider(at:width:strong:)": "2adf43a8daa5a0b3",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawExecSummaryTitle(at:)": "89616300e9d1e008",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawDivider(at:width:strong:)": "e294cc2580a72494",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "3b9318f0a80f73e1",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawExecSummaryTitle(at:)": "87922f0cd5c7649a",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -466,16 +440,15 @@
      "effect": "label falls back to localized 'Workout'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "1e12edb6a8998474",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "dbe667c792d47f39",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "3b9318f0a80f73e1",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.sport": "d44d34030adb9e58",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -499,13 +472,12 @@
      "effect": "true: 'imperial'; false: 'metric'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)": "f521e8f753add542",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "2c2f909ea46e9b90",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)": "461597f92f96fe3c",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -525,16 +497,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "0fcff693748d4802",
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "d1bbe4a5e6088c54",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.clinicalInterpretation()": "3e6bd0b6cdd58682",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.ensureExecSummaryRoom(_:y:ctx:)": "1485780ff2bdafd1",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "093e82aec62e2102",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "2c2f909ea46e9b90",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3af28d9a13c5e57e",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.clinicalInterpretation()": "3bee416ddf79556e",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.ensureExecSummaryRoom(_:y:ctx:)": "5a9448983e46f097",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -565,16 +536,15 @@
      "effect": "room check, wrapped bullet"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "0fcff693748d4802",
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "d1bbe4a5e6088c54",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.ensureExecSummaryRoom(_:y:ctx:)": "1485780ff2bdafd1",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.notableObservations()": "685989de0fe3e274",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "093e82aec62e2102",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "2c2f909ea46e9b90",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3af28d9a13c5e57e",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.ensureExecSummaryRoom(_:y:ctx:)": "5a9448983e46f097",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.notableObservations()": "157fa701571b3576",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -599,14 +569,13 @@
      "effect": "draws one cell"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawKeyMetricCell(_:index:columns:colW:rowH:topY:)": "8421e432d2c22837",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.ensureExecSummaryRoom(_:y:ctx:)": "1485780ff2bdafd1",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.execSummaryMetrics()": "06247fd0b03f7e9f",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "2c2f909ea46e9b90",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.drawKeyMetricCell(_:index:columns:colW:rowH:topY:)": "772dd27a1728eb40",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.ensureExecSummaryRoom(_:y:ctx:)": "5a9448983e46f097",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.execSummaryMetrics()": "266cf70bbbe750b4",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -627,12 +596,11 @@
      "effect": "true: caption drawn below the value; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "3b9318f0a80f73e1",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -690,23 +658,22 @@
      "effect": "'—'; else %.0f"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alphaAvgString()": "f229a12e80c2eedb",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.avgPaceString()": "82bf38c4123d5c3d",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.bestSplitString()": "6f32d2d43dbefde6",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.calorieString()": "203ad1451c4486e4",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.formatDuration(_:)": "7befcde830951bb5",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.oneMinuteHRRString()": "1b38566e2fc8b2b2",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.peakHRString()": "c12c3745dba20dd5",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "af4d244006b254f1",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alphaAvgString()": "1b796f148bdbfc0e",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.avgPaceString()": "1a26f4ad64648a65",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.bestSplitString()": "f6615b73b8f800ed",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.calorieString()": "7c063b4f171ec0ff",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.formatDuration(_:)": "933cd2cb96fd6eed",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.oneMinuteHRRString()": "7974382726d623d8",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.peakHRString()": "e5219cc1ef716b27",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing": "f7d3779a5caa920a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "5bb96da9a63df0aa",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -731,10 +698,9 @@
      "effect": "'exceeds >18 benchmark' / 'at or above 12' / 'below 12' / 'well below 12' (also used for 0 or negative drops)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -764,9 +730,8 @@
      "effect": "false: []; true: one 'unusually high' flag"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

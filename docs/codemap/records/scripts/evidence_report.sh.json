@@ -10,32 +10,6 @@
   "file:.github/workflows/*.yml (read)"
  ],
  "toplevel": "cd to repo root; JSON=1 if $1 == --json. Counts: swift files/lines under Emuqu/Sources and 'EmuquWatch Watch App'; test files; `func test...(` occurrences in EmuquTests and EmuquUITests; locales and keys from xcstrings ('?' on python failure); `swiftlint:disable`, `try!`, `as! ` lines excluding those containing `///` (plain `//` comments are counted); gates = words after `ci:` in Makefile; auto_wf = workflows with any trigger other than workflow_dispatch/workflow_call (needs PyYAML, else '?'). JSON mode passes all values to python which int()s them — any '?' raises ValueError (traceback, no JSON) yet the script still `exit 0`. JSON hard-codes coverage_floor_percent 100, strict_concurrency 'swift-6-mode, complete', and the note 'No workflow runs automatically', which contradicts gates.yml (push + pull_request triggers) and the script's own auto_wf count (comment at line 61 acknowledges gates.yml). Text mode prints a heredoc with the values; 'Warnings treated as errors yes' and 'Strict concurrency Swift 6 mode' are literal text, not measured (only 2 of 8 configurations set warnings-as-errors).",
- "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "In --json mode a '?' fallback (PyYAML missing, xcstrings unreadable) makes int('?') raise; the script prints a traceback and still exits 0 at line 92.",
-   "evidence": [
-    "scripts/evidence_report.sh:47",
-    "scripts/evidence_report.sh:64",
-    "scripts/evidence_report.sh:75",
-    "scripts/evidence_report.sh:92"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "JSON keys `shared_singleton_uses` and `try_optional_uses` (and text rows '.shared singleton uses'/'try? uses') carry the budget CEILINGS from .ci (90 and 170), not measured uses (83 and 139 by enforce_tech_debt_budgets.sh at 8d32097), so the report overstates both counts.",
-   "evidence": [
-    "scripts/evidence_report.sh:70",
-    "scripts/evidence_report.sh:82",
-    "scripts/evidence_report.sh:116",
-    "scripts/evidence_report.sh:117"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "fn budget",
@@ -54,11 +28,10 @@
      "effect": "true: tr output; false (or tr failing): echo '?'"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/evidence_report.sh::fn budget": "7b60743b6aec5438"
+  "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
  }
 }

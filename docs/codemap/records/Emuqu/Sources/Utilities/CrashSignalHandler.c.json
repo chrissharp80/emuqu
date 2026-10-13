@@ -13,18 +13,6 @@
   "file:crash_log.txt (path passed in by CrashLogManager.installSignalHandlers, CrashLogManager.swift:457)"
  ],
  "toplevel": "Static globals lines 19-30 (g_crash_path, g_frames, g_image_slide, g_code_image_*, g_handling, g_handling_thread); kFatalSignals lines 32-39 (SIGABRT,SIGSEGV,SIGBUS,SIGFPE,SIGILL,SIGTRAP) and count line 41; macro safe_write_lit writes a string literal with compile-time length.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "The sigaction installs the handler with sa_flags=0 and no alternate signal stack (no sigaltstack/SA_ONSTACK anywhere in Emuqu/). A SIGSEGV/SIGBUS from stack overflow (e.g. runaway recursion) cannot run the handler on the exhausted stack, so the process dies with no crash_log.txt written for exactly that crash class.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c:219",
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c:226"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "c safe_write",
@@ -53,7 +41,6 @@
      "effect": "retry same write; otherwise (n==0 or other error) break and abandon the remaining bytes"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -73,9 +60,8 @@
      "effect": "emit one nibble per iteration, most significant first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c"
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "7a4146675cc35ab2"
    }
   },
   {
@@ -110,9 +96,8 @@
      "effect": "prepend \"-\"; otherwise no sign"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c"
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "7a4146675cc35ab2"
    }
   },
   {
@@ -162,9 +147,8 @@
      "effect": "write \"SIGNAL\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c"
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "7a4146675cc35ab2"
    }
   },
   {
@@ -225,23 +209,11 @@
      "effect": "one hex line per frame"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Calls backtrace() from signal context; backtrace is not on the POSIX async-signal-safe list. The installer pre-warms it (line 217) to reduce, not eliminate, the risk of lazy initialisation inside the handler.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:149",
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:217"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c",
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_dec": "8bf9dc43e713ffcf",
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_hex_line": "c175f830d02981d9",
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_signal_name": "580f85db9334a023"
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "7a4146675cc35ab2",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_dec": "173c0a1df4ef2fd3",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_hex_line": "65fe65c4d74645ac",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_signal_name": "af7634f75391bfcf"
    }
   },
   {
@@ -263,7 +235,6 @@
      "effect": "sigaction(sig, &previous[i], NULL)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -329,10 +300,9 @@
      "effect": "restore_handlers for the signals already installed, return false (none left installed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler": "0e883cf168c9c6f3",
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c restore_handlers": "e4186443f26d5378"
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler": "c88a924dc72e5eff",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c restore_handlers": "006641c15db446df"
    }
   }
  ],

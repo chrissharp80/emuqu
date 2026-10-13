@@ -23,7 +23,6 @@
   "geocoder: CLGeocoder instance"
  ],
  "toplevel": "Stored-property initializers create the CLGeocoder and constants; @Observable makes current/lastLookup*/consecutiveFailures/backoff/lastNoCrossStreetRoad/tileSearchBlankActive/lastGeocoderCallAt observable.",
- "flags": [],
  "units": [
   {
    "key": "func RoadGeocodingService.backoffDelaySec()",
@@ -57,7 +56,6 @@
      "effect": "recoveryRetrySec 30 s"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,9 +75,8 @@
     "mem:RoadGeocodingService.lastGeocoderCallAt"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.respectRateFloor(honoringBackoff:)": "ecc24c0e6f6a7eb4"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.respectRateFloor(honoringBackoff:)": "1e12770201d64176"
    }
   },
   {
@@ -106,11 +103,10 @@
      "effect": "noteFailure (timeout-or-network / no placemark), return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "7d0274983e8a0bab",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5ce2613b5d0956b3",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "d7a85e38dc532d26"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7"
    }
   },
   {
@@ -137,11 +133,10 @@
      "effect": "noteFailure('forward-timeout'); else reset counters"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "7d0274983e8a0bab",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5ce2613b5d0956b3",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "d7a85e38dc532d26"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7"
    }
   },
   {
@@ -175,10 +170,9 @@
      "effect": "return at once; else sleep"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.backoffDelaySec()": "70b1ef068c03edba",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.backoffDelaySec()": "9f77e954bb699f10",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -204,10 +198,9 @@
      "effect": "set backoffStartedAt = now; else unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.backoffDelaySec()": "70b1ef068c03edba",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.backoffDelaySec()": "9f77e954bb699f10",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -235,11 +228,10 @@
      "effect": "return context; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "020b7cb9f188f804",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)": "a90df5010522669f",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "b78a64a69533ac25"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "22ab4769837321f0",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)": "be862c4fa37d4157",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "a4c3b987ae29dd27"
    }
   },
   {
@@ -251,9 +243,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0"
    }
   },
   {
@@ -265,7 +256,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -277,7 +267,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -297,9 +286,8 @@
      "effect": "false: nil; true: 'road & cross'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.isSameStreet(_:_:)": "3a4b25a69ef819c7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.isSameStreet(_:_:)": "0c90e06f6d894644"
    }
   },
   {
@@ -311,7 +299,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -355,13 +342,12 @@
      "effect": "cross-street lookup only; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.agedOut()": "73911f7772e5fba7",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.inRecoveryBackoff()": "12f616b25aa2663b",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.movedFar(from:)": "4ae563e6da6c24a6",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startCrossStreetIfIdle(at:)": "30ec3d8e544f0035",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startLookupIfIdle(at:enrichCrossStreet:)": "8f913c965a784dce"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.agedOut()": "a1c05eb94c978e34",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.inRecoveryBackoff()": "4838b26912c54d47",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.movedFar(from:)": "a503fab9df7f8da2",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startCrossStreetIfIdle(at:)": "7d5b3ea7aedbf6af",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startLookupIfIdle(at:enrichCrossStreet:)": "c26ca87d7de6d664"
    }
   },
   {
@@ -389,7 +375,6 @@
      "effect": "return true; else restamp and return false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -409,7 +394,6 @@
      "effect": "return true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -429,7 +413,6 @@
      "effect": "return true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -446,9 +429,8 @@
     "mem:RoadGeocodingService.lastLookupEnriched"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startLookupIfIdle(at:enrichCrossStreet:)": "8f913c965a784dce"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startLookupIfIdle(at:enrichCrossStreet:)": "c26ca87d7de6d664"
    }
   },
   {
@@ -463,10 +445,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "ced2046203f0a01f",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startIfIdle(enriched:_:)": "3a83ae1dadd7ce08"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f1ca30241f252cbe",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startIfIdle(enriched:_:)": "b08976374f5f6cc9"
    }
   },
   {
@@ -483,10 +464,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)": "8f331727d7838dab",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startIfIdle(enriched:_:)": "3a83ae1dadd7ce08"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)": "5a56c35a745ffd3e",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startIfIdle(enriched:_:)": "b08976374f5f6cc9"
    }
   },
   {
@@ -517,9 +497,8 @@
      "effect": "the task does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.clearInflightTask(_:)": "76e210be11dac682"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.clearInflightTask(_:)": "4c142b66b688b779"
    }
   },
   {
@@ -541,7 +520,6 @@
      "effect": "set nil; else leave the newer task"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -557,7 +535,6 @@
     "mem:RoadGeocodingService.backoffStartedAt"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -574,45 +551,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No callers: SavedRoute.roadName(at:) (SavedRoute.swift:271) reimplements it privately instead of calling it (handed off: SavedRoute should call this).",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadGeocodingService.swift:534",
-      "Emuqu/Sources/Models/SavedRoute.swift:259"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical body to SavedRoute.roadName(at:).",
-     "evidence": [
-      "Emuqu/Sources/Models/SavedRoute.swift:259",
-      "Emuqu/Sources/Services/RoadGeocodingService.swift:534"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/API_REFERENCE.md documents resolveRoadName as the one-shot used by SavedRouteStore's climb-naming pass, but nothing calls it. SavedRoute uses its own private roadName(at:).",
-     "evidence": [
-      "docs/API_REFERENCE.md:2968",
-      "docs/API_REFERENCE.md:2970",
-      "Emuqu/Sources/Services/RoadGeocodingService.swift:534",
-      "Emuqu/Sources/Models/SavedRoute.swift:259"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "a4f4ef0a8fc0a1f1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ee10887ea28ab419"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "f073a7d5a3297d38",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab"
    }
   },
   {
@@ -638,11 +581,10 @@
      "effect": "subLocality as locality fallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "020b7cb9f188f804",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forwardGeocodeQueued(_:)": "7b8134f41c6ca57a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "22ab4769837321f0",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forwardGeocodeQueued(_:)": "ad2cafb354468e99",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -670,12 +612,11 @@
      "effect": "lastLookupCoord = the address coordinate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.recordResolvedAddress(_:)": "2b85507f75b25624",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "020b7cb9f188f804",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.recordResolvedAddress(_:)": "26c5ea20b2507600",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "22ab4769837321f0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   }
  ],

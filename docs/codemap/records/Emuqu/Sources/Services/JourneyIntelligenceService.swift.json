@@ -10,17 +10,6 @@
  ],
  "state": [],
  "toplevel": "No top-level code beyond type declarations.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references JourneyIntelligenceService; shape thresholds (50 m, 0.75, 2.5, 1.3, 200 m) are unverified.",
-   "evidence": [
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:211"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func JourneyIntelligenceService.snapshot(for:)",
@@ -59,15 +48,14 @@
      "effect": "originLabel falls back to geocoded label, else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.farthestPoint(in:from:)": "f34f9d7fe2ffbbfc",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferDirection(trail:originFix:)": "2c5c0e3a47ae2cf4",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferShape(crowFly:pathLength:maxFromOrigin:direction:)": "ebdca5ce2d450012",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.project(shape:elapsed:farthest:)": "ad806e7fe67c27cb",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "f5564c3178c03d2d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.farthestPoint(in:from:)": "a04e8f49e8bfd51b",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferDirection(trail:originFix:)": "e10ea20aaef03f19",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferShape(crowFly:pathLength:maxFromOrigin:direction:)": "48387a9d30ebe8ad",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.project(shape:elapsed:farthest:)": "ca128f35ad1aabbc",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -92,10 +80,9 @@
      "effect": "true: record new max and its elapsed; false: skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -128,7 +115,6 @@
      "effect": "(nil, nil)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -163,10 +149,9 @@
      "effect": "true: .towardOrigin; false (incl. exactly 0): .awayFromOrigin"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -204,7 +189,6 @@
      "effect": "true: .pointToPoint; false: .outAndBackOutbound"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

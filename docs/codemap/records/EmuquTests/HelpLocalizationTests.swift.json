@@ -10,7 +10,6 @@
   "env:HELP_KEYS_OUT (key-export path)"
  ],
  "toplevel": "static let ages lists one age per RMSSD band plus nil.",
- "flags": [],
  "units": [
   {
    "key": "func HelpLocalizationTests.everyHelpKey()",
@@ -42,30 +41,17 @@
      "effect": "builds the localized categories so each personalised HRV variant is looked up"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Relies on the process-global HelpLocalization.recorder (an OSAllocatedUnfairLock static); any Help rendering elsewhere in the host between start and stop adds keys, and stopRecording resets it to nil for every caller.",
-     "evidence": [
-      "Emuqu/Sources/Views/HelpLocalization.swift:43",
-      "Emuqu/Sources/Views/HelpLocalization.swift:45",
-      "Emuqu/Sources/Views/HelpLocalization.swift:49"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "1e8352913895189b",
-    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "072aca18ef3f9cae",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "b5952a580dffdc0f",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404",
-    "Emuqu/Sources/Views/HelpLocalization.swift::var ArticleSection.localized": "a9c0361da38a04ab",
-    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "e651e04da0d378ed",
-    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized": "d95e816a8421e98f"
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "4a706dfe9b864747",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "559e0262137c8884",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "b47b96f12a024855",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "060c7a93cb4d35f5",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "b8e7929f1e1e8794",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "be3559e230a5fe58",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "5ee10a30f392e2ae",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var ArticleSection.localized": "d322db3c51fa3847",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "44c597504e4fb34e",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized": "e2174bb9850e0aa5"
    }
   },
   {
@@ -85,9 +71,8 @@
      "effect": "returns without writing; when set, JSON is written (throws on write failure)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -101,7 +86,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -113,7 +97,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -128,10 +111,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)": "f1b7966a7e6adb7d"
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "fcc948f1ad0e213b",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)": "3ad8bf55894a0f8e"
    }
   },
   {
@@ -151,12 +133,11 @@
     "mem:HelpLocalization.formattedTexts"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "072aca18ef3f9cae",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "b5952a580dffdc0f",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "060c7a93cb4d35f5",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "b8e7929f1e1e8794",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "be3559e230a5fe58",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "5ee10a30f392e2ae"
    }
   },
   {
@@ -178,11 +159,10 @@
      "effect": "asserts no recorded key is missing from that table"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "aebd8a489dbb50e3",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
-    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "586da01d2cae353f"
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "cfee44c6d3c0225d",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "fcc948f1ad0e213b",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "781b1042937620d0"
    }
   },
   {
@@ -204,11 +184,10 @@
      "effect": "asserts table keys minus recorded keys is empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "aebd8a489dbb50e3",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
-    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "586da01d2cae353f"
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "cfee44c6d3c0225d",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "fcc948f1ad0e213b",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "781b1042937620d0"
    }
   },
   {
@@ -234,11 +213,10 @@
      "effect": "compares placeholder token sets"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "aebd8a489dbb50e3",
-    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "586da01d2cae353f"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "cfee44c6d3c0225d",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "781b1042937620d0"
    }
   }
  ],

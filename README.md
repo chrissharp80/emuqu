@@ -142,7 +142,7 @@ register and Settings → About → "How Emuqu scores recovery" say which is whi
 - **Apple Watch**, recommended. Sleep stages and duration come from HealthKit
   when a Watch is present. On a night Apple Health has no sleep for, the app
   estimates it from the strap's RR data, then from the Watch's background heart
-  rate. Without a Watch, sleep stages are classified from the strap's own RR
+  rate. Without a Watch, sleep stages are estimated from the strap's own RR
   data.
 
 ### Software

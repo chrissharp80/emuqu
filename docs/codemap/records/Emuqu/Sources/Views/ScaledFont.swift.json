@@ -11,7 +11,6 @@
   "static Font.TextStyle.defaultPointSizes (11 styles with HIG default sizes)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
@@ -31,21 +30,9 @@
      "effect": "nil textStyle (all callers in this chunk): uses the style whose default size is closest to size."
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The relativeTo: parameter is never passed: none of the 249 .scaledFont( call sites in 69 files uses it (grep 'scaledFont(.*relativeTo' returns 0), so the explicit-style side of the ?? at line 62 is never taken and every caller gets .nearest(toPointSize:).",
-     "evidence": [
-      "Emuqu/Sources/Views/ScaledFont.swift:54",
-      "Emuqu/Sources/Views/ScaledFont.swift:62"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func Font.TextStyle.nearest(toPointSize:)": "baa80f253d4e2c93",
-    "Emuqu/Sources/Views/ScaledFont.swift::init ScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)": "f5ec8f08cd3c47fc"
+    "Emuqu/Sources/Views/ScaledFont.swift::func Font.TextStyle.nearest(toPointSize:)": "c33be1d12fb8bfcc",
+    "Emuqu/Sources/Views/ScaledFont.swift::init ScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)": "4d78550e17c7f527"
    }
   },
   {
@@ -57,7 +44,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,7 +61,6 @@
      "effect": "true: font.monospacedDigit(). false: plain font."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -93,9 +78,8 @@
      "effect": "fallback .body only when defaultPointSizes is empty, which never happens (11 constant entries)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func ScaledSystemFont.body(content:)": "cc39743dd484624c"
+    "Emuqu/Sources/Views/ScaledFont.swift::func ScaledSystemFont.body(content:)": "4c69e1da90f8693a"
    }
   }
  ],

@@ -9,18 +9,6 @@
   "mem:AcquisitionPureLogicTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>) — captured NSTimeZone.default restored in class tearDown"
  ],
  "toplevel": "Static savedDefaultTimeZone lock initialised to nil; class-level setUp/tearDown pin process-wide NSTimeZone.default to America/Chicago for the suite.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Class setUp mutates the process-global NSTimeZone.default to America/Chicago while the app host process is live; any host-app code reading Calendar.current during the suite sees the pinned zone (shared state with the app host).",
-   "evidence": [
-    "EmuquTests/AcquisitionPureLogicTests.swift:31",
-    "EmuquTests/AcquisitionPureLogicTests.swift:35"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func AcquisitionPureLogicTests.setUp()",
@@ -42,21 +30,8 @@
      "effect": "falls back to TestTimeZone.utc; the DST tests then run in UTC and no longer exercise any transition while still passing"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Fallback to UTC when America/Chicago is unavailable silently turns the spring-forward/fall-back tests into non-DST tests that still pass.",
-     "evidence": [
-      "EmuquTests/AcquisitionPureLogicTests.swift:31",
-      "EmuquTests/AcquisitionPureLogicTests.swift:244",
-      "EmuquTests/AcquisitionPureLogicTests.swift:261"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -81,7 +56,6 @@
      "effect": "restores NSTimeZone.default to it; when nil (setUp never ran) leaves the default as is"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -93,7 +67,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -113,9 +86,8 @@
      "effect": "XCTFail with the components and returns Date() (now); otherwise returns the built date"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar": "b77f31f7a41d7d66"
+    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar": "51a2d62f160a96ca"
    }
   },
   {
@@ -130,10 +102,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "90acb551af3d2c4b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "d6adcfd0bd9cc72d"
    }
   },
   {
@@ -148,10 +119,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
-    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "90acb551af3d2c4b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "d6adcfd0bd9cc72d"
    }
   },
   {
@@ -166,10 +136,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -184,10 +153,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -213,10 +181,9 @@
      "effect": "asserts gap ≤ 18h"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -242,10 +209,9 @@
      "effect": "asserts overshoot < 6h"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -267,11 +233,10 @@
      "effect": "asserts ordered window"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -293,11 +258,10 @@
      "effect": "asserts ordered daytime window"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHREnd(relativeTo:)": "b3b133e7eec9ac06",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHRStart(relativeTo:)": "93566e2a9db1e9f8",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHREnd(relativeTo:)": "4f9d0f179faa0546",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHRStart(relativeTo:)": "58bf407c469fc2a9",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -314,12 +278,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "dcf8268413b66d44",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -342,12 +305,11 @@
      "effect": "asserts exact start/end/cutoff"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "dcf8268413b66d44",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -363,11 +325,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -383,11 +344,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -403,11 +363,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -423,11 +382,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -460,24 +418,11 @@
      "effect": "falls back to day+86400s; otherwise next calendar day"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Asserts start <= session ('anchor after session'), an invariant the same file documents as false in general (testAnchorOvershootIsBoundedBySixHours and SleepSchedule's comment); it only holds because every session here is 06:30.",
-     "evidence": [
-      "EmuquTests/AcquisitionPureLogicTests.swift:294",
-      "EmuquTests/AcquisitionPureLogicTests.swift:126",
-      "Emuqu/Sources/Models/SleepSchedule.swift:45"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123",
-    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar": "b77f31f7a41d7d66"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae",
+    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar": "51a2d62f160a96ca"
    }
   },
   {
@@ -491,9 +436,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -513,9 +457,8 @@
      "effect": "asserts equal normalisation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -529,9 +472,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -545,9 +487,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -561,9 +502,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -577,9 +517,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -593,9 +532,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc"
    }
   },
   {
@@ -609,7 +547,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -624,22 +561,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The free bearingDegrees(from:to:) under test has a byte-identical twin RoadAwarenessEngine.bearingDegrees over RoadGraphService.Point; the two are tested separately (here and RoadAwarenessEngineTests) and can drift independently.",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709",
-      "EmuquTests/RoadAwarenessEngineTests.swift:262"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -654,10 +578,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -688,10 +611,9 @@
      "effect": "continue (skip identical point); else asserts range"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -706,10 +628,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -724,10 +645,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -742,10 +662,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -760,10 +679,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "742fc3ca9355c34b",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -778,10 +696,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "ed898a2e9f6f85cc",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "d49b78447c38b0d1",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   },
   {
@@ -796,11 +713,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "53a82999e2ce6eae"
    }
   }
  ],

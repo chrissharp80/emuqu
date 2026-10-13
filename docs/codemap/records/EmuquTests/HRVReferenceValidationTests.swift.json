@@ -13,7 +13,6 @@
   "mem:HRVReferenceValidationTests.tolerance (1e-6)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "let HRVReferenceValidationTests.fixtures",
@@ -26,17 +25,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "try! decode means a fixture regeneration that produces bad JSON crashes the whole test runner instead of failing these tests.",
-     "evidence": [
-      "EmuquTests/HRVReferenceValidationTests.swift:66"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -51,10 +39,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
    }
   },
   {
@@ -74,9 +61,8 @@
      "effect": "asserts SHA length and RR range"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -97,10 +83,9 @@
      "effect": "unwraps metrics and compares"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -121,10 +106,9 @@
      "effect": "compares unfiltered RMSSD"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -151,23 +135,10 @@
      "effect": "counts the record as narrowed"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The ≤ assertion is not a property of the filter: the pipeline RMSSD is the RMS of a SUBSET of the raw successive differences (pairs touching an ectopic-gated beat are skipped, TimeDomainAnalysis.swift:303-318), and the RMS of a subset exceeds the full RMS whenever the skipped differences are smaller than average. The comment \"removing outliers can only shrink a root-mean-square of differences\" (line 141) is false; the assertion holds on this corpus empirically and could fail for a correct gate change.",
-     "evidence": [
-      "EmuquTests/HRVReferenceValidationTests.swift:141",
-      "EmuquTests/HRVReferenceValidationTests.swift:153",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:309"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -194,11 +165,10 @@
      "effect": "false: record skipped (continue); true: compares pNN50"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "d622eb47a84bc6dd",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "b4cdab2ada0aaa92",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -219,10 +189,9 @@
      "effect": "asserts subset property"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "d622eb47a84bc6dd",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "b4cdab2ada0aaa92",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -243,10 +212,9 @@
      "effect": "asserts scale agreement"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -272,10 +240,9 @@
      "effect": "asserts finite and non-negative"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   },
   {
@@ -296,10 +263,9 @@
      "effect": "analyses base and shifted series"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }
   }
  ],

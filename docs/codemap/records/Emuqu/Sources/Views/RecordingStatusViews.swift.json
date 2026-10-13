@@ -11,18 +11,6 @@
  ],
  "state": [],
  "toplevel": "No globals. Default property values: OvernightStreamingStatus.strapBackup = .notRequested, sessionStartTime = nil; DeviceInfoPanelView.hoursRecordedSinceChange = 0, isBatteryReadingStale = false. A trailing doc comment at the end of DeviceInfoPanelView describes the battery provenance row but is attached to nothing.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "DeviceInfoPanelView's estimatedBatteryLifeRow renders a 'battery left' estimate (specRecordingHours * battery%) for Verity Sense, while PolarDeviceType.specRecordingHours' doc says the spec hours are only used to flag staleness, 'not to render a battery left gauge' (doc in PolarManager.swift needs updating; handoff).",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordingStatusViews.swift:345",
-    "Emuqu/Sources/Collection/PolarManager.swift:55-67"
-   ],
-   "found": "fix batch b24"
-  }
- ],
  "units": [
   {
    "key": "var DeviceInfoPanelObserving.body",
@@ -45,12 +33,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "813c1b348abb10af",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "d1e3b3d94aa50cfc",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19"
    }
   },
   {
@@ -67,27 +54,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Card tells the user to tap 'I'm Up' (the real button, RecordView+Panels.swift:314) but the User's Manual says the instruction reads \"Tap 'Get Reading'\".",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordingStatusViews.swift:50",
-      "docs/USERS_MANUAL.md:325",
-      "Emuqu/Sources/Views/RecordView+Panels.swift:314"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsOrWaiting": "aa8e81d200928484",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.recordingSection": "3172b14d52addd92",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.strapBackupLine": "817b74eba8429577",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsOrWaiting": "39b6e6c641fa0a2c",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.recordingSection": "646e0add7cc59d34",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.strapBackupLine": "3ddaaa4ed38f9018",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -102,9 +76,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "56176d78ce5cfd35"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "981597ffe5f37737"
    }
   },
   {
@@ -126,11 +99,10 @@
      "effect": "true: waiting placeholder (spinner + device-specific text); false: live stats row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsRow": "4f836aaacc8c66bc",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "69713ffbb5534649",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.waitingForFirstBeat": "5e4f9a47e861c1ab"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsRow": "1b2d58876090db6a",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "c8b57a87182ba70a",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.waitingForFirstBeat": "b22384c886d5dd76"
    }
   },
   {
@@ -160,10 +132,9 @@
      "effect": "'Strap backup: recording' caption with internaldrive.fill icon, sage colour"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -190,12 +161,11 @@
      "effect": "true: batching explanation (15-30 seconds); false: 'The strap starts sending beats a few seconds after it connects.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -213,13 +183,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "d91d9379c0db978e",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.bpmColumn": "2b2eccdf7e32339e",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.elapsedColumn": "41abc96debc929f4",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "69713ffbb5534649"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "33822e2bb1b3eca9",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.bpmColumn": "0018a83bef5c0022",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.elapsedColumn": "cc4137bf0423bdc4",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "c8b57a87182ba70a"
    }
   },
   {
@@ -242,10 +211,9 @@
      "effect": "nil heart rate (no HR sample yet) shows the em-dash placeholder; otherwise the bpm number"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "d91d9379c0db978e"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "33822e2bb1b3eca9"
    }
   },
   {
@@ -257,9 +225,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -273,11 +240,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -293,12 +259,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.formattedElapsed(now:)": "8049d154f9769733",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "d91d9379c0db978e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "33822e2bb1b3eca9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -323,20 +288,8 @@
      "effect": "false: MM:SS; true: H:MM:SS"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "User's Manual says overnight elapsed time is shown in HH:MM:SS format; code shows MM:SS until the first hour and H:MM:SS (unpadded hour) after.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:321",
-      "Emuqu/Sources/Views/RecordingStatusViews.swift:180"
-     ],
-     "found": "fix batch b24"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410"
    }
   },
   {
@@ -351,11 +304,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.deviceRecordingGuidance": "24bddab3ecec4567",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.recordingOnDeviceSection": "d789bfd794c4dee9",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.deviceRecordingGuidance": "0710e85bfdb12bb9",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.recordingOnDeviceSection": "85f1329c169c0c1b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820"
    }
   },
   {
@@ -376,10 +328,9 @@
      "effect": "true: elapsed readout + 'Tap Wake Up - Get Results'; false: 'Go to sleep... you can close the app' guidance"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.crashRecoveryGuidance": "5156de0636881eea",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.freshStartGuidance": "bea8ce1b14f81049"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.crashRecoveryGuidance": "fa0863b9a687190b",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.freshStartGuidance": "f96be4497419a8c0"
    }
   },
   {
@@ -394,11 +345,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.elapsedReadout": "e2ec71ba18855476",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.elapsedReadout": "aef6723f5367654c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313"
    }
   },
   {
@@ -421,13 +371,12 @@
      "effect": "nil device type (not connected / unknown) uses the localized word 'Device'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "b3637bf31f4792be",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -441,11 +390,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -459,9 +407,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.elapsedColumn(now:)": "802889b2e834f0ad"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.elapsedColumn(now:)": "5e3eca9a03168459"
    }
   },
   {
@@ -476,12 +423,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.formattedElapsed(now:)": "44a57edb2168cfb9",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceRecordingStatus.formattedElapsed(now:)": "dc199313d981cf84",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -507,10 +453,9 @@
      "effect": "true: LocalizedDuration.minutes; false: LocalizedDuration.hoursMinutes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -543,18 +488,17 @@
      "effect": "no device type uses heart.fill icon"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "8d5598d32ee06a05",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryRows": "3e60f4004619055c",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.connectedSection": "ac15825e75bbef4b",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.estimatedBatteryLifeRow": "593f753d25b2da05",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.firmwareRow": "5957790b8de06b8b",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.memorySessionStoredSection": "cd8c2bd11175d3b8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "b3637bf31f4792be",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "39938ab42bc972ff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "0d135728256bcf55",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryRows": "491e96aefe3b61dc",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.connectedSection": "854326490df14769",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.estimatedBatteryLifeRow": "725f3fab11b17bf9",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.firmwareRow": "2b496aaec0867a55",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.memorySessionStoredSection": "79f009d6f5f8bb7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820"
    }
   },
   {
@@ -575,10 +519,9 @@
      "effect": "true: battery row + provenance; false: no battery rows at all"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryInfoRow(level:)": "4540c938f253986d",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceRow": "651a3ab29cb6e400"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryInfoRow(level:)": "40d9638c81923431",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceRow": "6b448be14fd0d40b"
    }
   },
   {
@@ -599,10 +542,9 @@
      "effect": "true: estimated-life row; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "0d135728256bcf55"
    }
   },
   {
@@ -623,10 +565,9 @@
      "effect": "true: firmware row; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "0d135728256bcf55"
    }
   },
   {
@@ -656,10 +597,9 @@
      "effect": "true: warning colour; false: tertiary text colour"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceText": "efd06053c801c4eb",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.batteryProvenanceText": "38e43d433c902cbd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -681,12 +621,11 @@
      "effect": "true: warning colour; false: secondary colour"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.lastReportedChangeLabel": "700a68a4b0c9473b",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.recordedSinceUpdateSummary": "e2500ae8fb6b50af",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdvice": "527f8ec8259cbbb1",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.lastReportedChangeLabel": "55f9da739f8482a2",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.recordedSinceUpdateSummary": "133e993c2297af39",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdvice": "3a6b61ce41cb4f1a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -718,12 +657,11 @@
      "effect": "false: returns text without a percentage; true: appends ~Int(h/spec*100)% of strap capacity"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -743,10 +681,9 @@
      "effect": "true: caption; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -766,9 +703,8 @@
      "effect": "true: advice caption; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdviceText": "43fa16325eeb96fc"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.staleBatteryAdviceText": "966cf6e9ec3a85c1"
    }
   },
   {
@@ -788,9 +724,8 @@
      "effect": "true: charge advice; false: replace-cell advice"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -817,11 +752,10 @@
      "effect": "true: orange 'Memory: Session Stored' row; false: sage 'Empty (ready)' row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "4624cc2d1fb50b65",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionRow": "4951173f7bac3460"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)": "0d135728256bcf55",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionRow": "1e9b7d0c9e07dc87"
    }
   },
   {
@@ -836,10 +770,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionDateLabel": "83191ba11091467b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.storedSessionDateLabel": "46e342cd0563c577"
    }
   },
   {
@@ -857,9 +790,8 @@
      "effect": "true: relative date text (live-updating); false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -880,12 +812,11 @@
      "effect": "true: row; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.connectedAgoText(_:)": "cb4c8302120294db",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.connectedAgoText(_:)": "74644387c1628651",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -899,10 +830,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.relativeAgo(_:now:)": "4e89285b5bd287c8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.relativeAgo(_:now:)": "d216f21ad03218cd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -916,9 +846,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -936,11 +865,10 @@
      "effect": "nil valueColor uses textPrimary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -956,14 +884,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryColor(_:)": "27f9c72ecd236901",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.batteryColor(_:)": "7806dbcbacca978e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -986,7 +913,6 @@
      "effect": "true: AppTheme.warning; false: AppTheme.sage"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

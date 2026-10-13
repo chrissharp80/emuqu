@@ -12,22 +12,6 @@
   "static let workoutRecentPeriodDescription"
  ],
  "toplevel": "WorkoutNamespace conforms to FactNamespaceResolver; registered by AppFactResolver.swift:199. Static description string at line 287.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references workout.by_date, workout.list, workout.count, workout.recent, workout.hrr_*, or workout.power.* fact keys; only workout.by_ordinal appears in one test file.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:156",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:171",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:191",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:203",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:311",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:347"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutNamespace.workoutEntries()",
@@ -40,9 +24,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -67,11 +50,10 @@
      "effect": "false: returns nil; callers answer with noWorkout(on:), which reports the malformed date as invalidParameter"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "3d9f7e1d114a3a89",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "e741e56dfc584001",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -99,10 +81,9 @@
      "effect": "missing(notRecorded, 'no workout on <date>'); otherwise missing(internalError, '… couldn't be read')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "3d9f7e1d114a3a89",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "e741e56dfc584001"
    }
   },
   {
@@ -126,11 +107,10 @@
      "effect": "false: nil; true: retrieve session"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.entries": "7259758ce8dc7ff3",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "e741e56dfc584001",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.entries": "ebf61c8ffde44c2f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -152,10 +132,9 @@
      "effect": "false: .unavailable (schema builder hides the entry); true: Availability(range)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.entries": "7259758ce8dc7ff3"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "e741e56dfc584001",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.entries": "ebf61c8ffde44c2f"
    }
   },
   {
@@ -179,11 +158,10 @@
      "effect": "false: returns [] — every caller rejects an unknown period first with PeriodParser.invalidPeriod"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "d078f43f26bb28aa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "e741e56dfc584001",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "c3d7ca874235029f"
    }
   },
   {
@@ -202,14 +180,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.metadataFields(_:)": "797fd9a7b5fa9876",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.present(_:)": "3b94f44f8c766a14",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.snapshotFields(_:)": "cdd4a1d14f15dadd",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)": "3518f2eb24433cd0",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.metadataFields(_:)": "7f3899f2d5e4d1ba",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.present(_:)": "fd73114b253e4d34",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.snapshotFields(_:)": "ffc56fce22768447",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)": "db1390ab4aff9276",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6"
    }
   },
   {
@@ -227,7 +204,6 @@
      "effect": "nil values assign nil (key absent); non-nil stored"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -245,7 +221,6 @@
      "effect": "true: .double; false (0 or negative): nil → omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -257,9 +232,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1"
    }
   },
   {
@@ -275,11 +249,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.lookupEntries": "2754bf153df2c2b4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.detailEntries": "89b128b8c283db25",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.timelineEntries": "c7a936ddcb49db74"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.lookupEntries": "40f89036419a0997",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.detailEntries": "fa7706d2bd93153e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.timelineEntries": "cc65eba0e6a745de"
    }
   },
   {
@@ -305,21 +278,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.powerIntensityFactorByDateEntry": "b1a4379e92c8017b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByDateDateEntry": "16892abfe6b247fe",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByOrdinalOrdinalEntry": "7cd96f671c2b6fc1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutCountPeriodEntry": "161fba149f7c575c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr1minDropByDateDateEntry": "44ecdee43352f504",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr2minDropByDateDateEntry": "15071b797fae5a79",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutListPeriodEntry": "bc6f4ab4b53e72d2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerAvgByDateDateEntry": "7ef2a71026e0f7f4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerNormalizedByDateDateEntry": "d5278941d155578f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerPeakByDateDateEntry": "5bbe7962d8c9668d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerTssByDateDateEntry": "9f93a12fa20dd8c3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerVariabilityByDateDateEntry": "cbd07cfdcb80d0c0",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutRecentPeriodEntry": "4cdf228c4bcdf85b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.powerIntensityFactorByDateEntry": "f47bed4945382ce3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByDateDateEntry": "88779c6e07622a6c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByOrdinalOrdinalEntry": "c96afbc8638a81b9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutCountPeriodEntry": "c427bf9783a20134",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr1minDropByDateDateEntry": "1500359fef015b4e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr2minDropByDateDateEntry": "7964e5dae664b4c6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutListPeriodEntry": "1840ccfe23088b6c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerAvgByDateDateEntry": "1b88c101fe19217e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerNormalizedByDateDateEntry": "dd468f8da605fd3f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerPeakByDateDateEntry": "e03b1f5957ce9f62",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerTssByDateDateEntry": "fb99cba489773c71",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerVariabilityByDateDateEntry": "79884c43f156b5d1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutRecentPeriodEntry": "5f665f5721711a54"
    }
   },
   {
@@ -345,12 +317,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)": "ac9d18c0953ba021",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)": "9c29abf0141e7822",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee"
    }
   },
   {
@@ -382,13 +353,12 @@
      "effect": "true: missing(.notRecorded,'no workouts in <period>'); false: list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "96632fdb09065f19",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "ff2dc0469cff58f8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "386d043f9cac7f73",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "d673a87b3fd57fd6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -412,11 +382,10 @@
      "effect": "returns missing(invalidParameter); otherwise .integer(count)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "96632fdb09065f19",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "386d043f9cac7f73",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "d673a87b3fd57fd6"
    }
   },
   {
@@ -431,10 +400,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.resolveWorkoutRecentPeriod(_:)": "40a7fabc37c87cdf",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.resolveWorkoutRecentPeriod(_:)": "1c344abe85cce5f4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee"
    }
   },
   {
@@ -468,16 +436,15 @@
      "effect": "true: missing(.notRecorded,'no workouts in <period>'); false: builds record"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.addHardestWorkout(_:sessions:)": "bba1428adaf7814c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "96632fdb09065f19",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodPowerTotals(_:period:)": "865b3dcdbd60b4bc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodTotals(_:sessions:)": "dc1cabef1caaebea",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sportBreakdown(_:)": "97081900d7e35b6e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.addHardestWorkout(_:sessions:)": "5296e23ac9178e7c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "386d043f9cac7f73",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodPowerTotals(_:period:)": "4929e668f1df26fd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodTotals(_:sessions:)": "e1c7711edfc22d0c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sportBreakdown(_:)": "91d6dbfd2a17dde7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "d673a87b3fd57fd6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -489,7 +456,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -532,7 +498,6 @@
      "effect": "nil: missing(.notRecorded,'no peak power captured'); else .integer"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -557,9 +522,8 @@
      "effect": "nil → '(unknown)' sport label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6"
    }
   },
   {
@@ -587,12 +551,11 @@
      "effect": "hardest_workout = missing(notRecorded, 'no workout in the period has heart-rate TRIMP'); otherwise the record"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "656e05b9cdaf0e6b",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "61a92ec18d225c50",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6"
    }
   },
   {
@@ -619,13 +582,12 @@
      "effect": "returns missing(.invalidParameter, detail)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)": "ac9d18c0953ba021",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByOrdinal(_:)": "ea6e78227161bc34",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)": "9c29abf0141e7822",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByOrdinal(_:)": "4a49cb881e31049a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee"
    }
   },
   {
@@ -656,13 +618,12 @@
      "effect": "false: missing(.notRecorded,'no 1-min HRR sample captured'); true: .integer(drop)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -693,13 +654,12 @@
      "effect": "false: missing(.notRecorded,'no 2-min HRR sample captured'); true: .integer"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "7afc282d882e79cd",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -725,12 +685,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'; true: .from(averagePowerWatts) → missing 'no power data captured' if nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "656e05b9cdaf0e6b"
    }
   },
   {
@@ -756,12 +715,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'; true: .from(NP, 'no power data captured')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "656e05b9cdaf0e6b"
    }
   },
   {
@@ -787,12 +745,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'; true: .from(peak, 'no power data captured')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "7c099bb7fac73a8e"
    }
   },
   {
@@ -818,12 +775,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'; true: .powerTSS as .double, or ftpMetricMissing when nil ('no power data captured' without NP, else 'no FTP for this workout's sport')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.ftpMetricMissing(_:skipped:)": "8939b43dc17faadc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.ftpMetricMissing(_:skipped:)": "671d4ce03e984807",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee"
    }
   },
   {
@@ -849,12 +805,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'; true: .intensityFactor as .double, or ftpMetricMissing when nil ('no power data captured' without NP, else 'no FTP for this workout's sport')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.ftpMetricMissing(_:skipped:)": "8939b43dc17faadc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.ftpMetricMissing(_:skipped:)": "671d4ce03e984807",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee"
    }
   },
   {
@@ -872,7 +827,6 @@
      "effect": "'no power data captured'; otherwise the no-FTP explanation"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -898,12 +852,11 @@
      "effect": "false: returns noWorkout(on:) — invalidParameter for a malformed date, internalError when the day's workout is indexed but unreadable, else notRecorded 'no workout on X'; true: .from(VI,'no power data captured')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "8883ca1aa3c3141f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "bd5ee2458eb3a8fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "5ffaadaed1124fee",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "656e05b9cdaf0e6b"
    }
   },
   {
@@ -915,7 +868,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

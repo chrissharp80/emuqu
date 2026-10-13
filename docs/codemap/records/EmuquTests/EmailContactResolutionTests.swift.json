@@ -9,7 +9,6 @@
   "file:<tmp>/emuqu-contacts-<function>-<UUID>.json per store() call (removed by a teardown block)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func EmailContactResolutionTests.store(_:function:)",
@@ -35,27 +34,14 @@
      "effect": "adds an EmailContact (enqueues a save)"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "EmailContactStore.add enqueues the save on LatestWinsFileWriter's background queue (queue.async), and the teardown block deletes the file with try? without waiting for that queue, so the write can land after the removal and leave an emuqu-contacts-*.json file behind in the temp directory.",
-     "evidence": [
-      "EmuquTests/EmailContactResolutionTests.swift:30",
-      "EmuquTests/EmailContactResolutionTests.swift:33",
-      "Emuqu/Sources/Models/SavedRoute.swift:360"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -80,19 +66,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -117,19 +102,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -154,19 +138,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -191,19 +174,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -228,19 +210,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -265,19 +246,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -302,19 +282,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -339,19 +318,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -376,19 +354,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -413,19 +390,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   },
   {
@@ -450,19 +426,18 @@
     "file:<tmp>/emuqu-contacts-<test>-<UUID>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "b6bc198997a67109",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "905c42372e999520",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "3619f86212ab42dd",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "36883b6084ad8788",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "b67f67d98dae30dc",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "15c3140ed7b1edb6",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "0fc3e194da9b5245"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "EmuquTests/EmailContactResolutionTests.swift::func EmailContactResolutionTests.store(_:function:)": "19b61281c0d964ef"
    }
   }
  ],

@@ -70,7 +70,7 @@ jobs:
         run: make codemap-setup && CODEMAP_PYTHON=.venv-codemap/bin/python ./scripts/check_codemap.sh
 
       # Not a gate: writes what this pull request's changes can affect (callers up to
-      # their triggers, tests, docs, shared state, open findings) to the job summary,
+      # their triggers, tests, docs, shared state) to the job summary,
       # so the review can check each one.
       - name: Code map impact of this pull request
         # Runs even when the code map check above failed: that is when the list matters most.

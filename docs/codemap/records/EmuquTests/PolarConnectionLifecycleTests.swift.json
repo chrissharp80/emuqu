@@ -7,21 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "The linkedManager doc says managers are 'built without the pairing store so tests do not write to the shared App Group defaults', but PolarManager.init() calls loadKnownDevices()/loadLastConnectedTime(), which read SharedUserDefaults.appGroup and can migrate legacy keys from standard defaults into it; tests therefore start from the host's saved straps (testReconnectingWithNoKnownDeviceDoesNotEnterConnecting has to reset knownDevices by hand).",
-   "evidence": [
-    "EmuquTests/PolarConnectionLifecycleTests.swift:16",
-    "EmuquTests/PolarConnectionLifecycleTests.swift:23",
-    "Emuqu/Sources/Collection/PolarManager.swift:497",
-    "Emuqu/Sources/Collection/StrapPairingStore.swift:31",
-    "EmuquTests/PolarConnectionLifecycleTests.swift:263"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
@@ -46,16 +31,15 @@
      "effect": "prepareStreamingStateForTesting() puts the manager in session buffering; else not streaming"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "6376c4ca0be361d4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda"
    }
   },
   {
@@ -70,11 +54,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d"
    }
   },
   {
@@ -100,20 +83,19 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -139,20 +121,19 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -184,21 +165,20 @@
      "effect": "builds a manager in each mode, drops, asserts"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -230,22 +210,21 @@
      "effect": "builds a manager in each mode, drops, asserts"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "ce99aae80ced5580",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "dafe83500dad7ab1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -273,21 +252,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isH10RecordingFeatureReady": "46fd0435b4ce29ba",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isHrStreamingReady": "5069cf4670583679",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isH10RecordingFeatureReady": "4c3638122f36a768",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isHrStreamingReady": "ade16078ad857cee",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -313,19 +291,18 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -351,21 +328,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -391,20 +367,19 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -436,20 +411,19 @@
      "effect": "XCTFail and return; else asserts reconnect target nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -475,19 +449,18 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -515,21 +488,20 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "06bd1b7d86805579",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()": "664cc74a2baade67",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()": "8ca3a946f05155d7",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -568,44 +540,30 @@
     "ud:lastConnectedTime (SharedUserDefaults.appGroup; restored by defer)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The .connected event also runs loadBatteryUsageStateIfNeeded and starts the feed, health watch, readiness settle and recording-status tasks against the real (unconfigured) SDK path; only the two pairing keys are restored afterwards, and the started tasks are left running when the test ends.",
-     "evidence": [
-      "EmuquTests/PolarConnectionLifecycleTests.swift:193",
-      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:102",
-      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:105",
-      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:143"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.addKnownDevice(id:name:deviceType:)": "4bed6dca8bc38afe",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.saveLastConnectedTime()": "517d927205f23f1b",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)": "603b84e4dca60635",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.addKnownDevice(id:name:deviceType:)": "52f3f6eb3e73bfc7",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.saveLastConnectedTime()": "086e973f2f8bc6fc",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)": "a2bc43e529afa844",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearPreviousLink()": "12668b8fcdd71786",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkEstablished(deviceId:name:peripheralId:)": "d88a396dbe5fd8ef",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearPreviousLink()": "d5cf369d8f1d88ce",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkEstablished(deviceId:name:peripheralId:)": "9f81834f4f179e93",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.scheduleReadinessSettle(generation:)": "f6665ab43fb81c6d",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startHealthWatch(generation:)": "d41ec27987bbc07f",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startRecordingStatusCheck(generation:deviceId:deviceType:)": "f63ca7f2e815b614",
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)": "64f3f69a5962040d",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "d4cc3511c4681e6c",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.scheduleReadinessSettle(generation:)": "0c76e05ea22b16bf",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startHealthWatch(generation:)": "956f20401a56d717",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startRecordingStatusCheck(generation:deviceId:deviceType:)": "3c8beb3bd7bbb404",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)": "8579938e97fbcf9f",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "61c0d2a8f0696e0b",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -624,16 +582,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "79bd1724416fb0de",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "095dcaaf90c1d6ea",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -662,22 +619,21 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "79bd1724416fb0de",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "d6b984883f7177ef",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "3ee8e3adfcb791a3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "338bbd72f9c0a49d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "095dcaaf90c1d6ea",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "57c90bd6ae356186",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -696,14 +652,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "79bd1724416fb0de",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "095dcaaf90c1d6ea"
    }
   },
   {
@@ -721,12 +676,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "21a13298cbe81f01",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "27226a0338f69dfd",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "08670d337c0908ca",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -744,12 +698,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "21a13298cbe81f01"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "27226a0338f69dfd",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "08670d337c0908ca"
    }
   },
   {
@@ -767,12 +720,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "fd314598290b94f0",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connectToLastDevice()": "2e5cadca2d052366"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "d13a01cbbd155f33",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connectToLastDevice()": "d89554993bdc8d6a"
    }
   },
   {
@@ -791,13 +743,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "1589776135af0e26",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "029e05845dc60ce8",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ff00b93ca6977335",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -816,13 +767,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "1589776135af0e26",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "029e05845dc60ce8",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ff00b93ca6977335",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -845,17 +795,16 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.summaryReported(deviceId:ready:unavailable:)": "ebacd74b96cc3611",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "0b1693c797f384fb",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.summaryReported(deviceId:ready:unavailable:)": "dc38701fac330423",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "eb4a1a9fb33621a5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb"
    }
   },
   {
@@ -876,15 +825,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "84a3137fadf0dfa1",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "1589776135af0e26",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "ad034f12378b9f3a",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "029e05845dc60ce8",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5"
    }
   },
   {
@@ -901,11 +849,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "84a3137fadf0dfa1"
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "ad034f12378b9f3a"
    }
   },
   {
@@ -936,20 +883,19 @@
      "effect": "throws PolarError.featureNotReady; later attempts return 42"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)": "f00874484dcd919f",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.confirm(_:onGeneration:)": "2eabbe53ec158c27",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pauseBeforeRetrying(after:refusals:deadline:while:)": "a2e9860706470928",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "6d979db556d6e7c2",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "7675e635229c9a03",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)": "089911e485fd75dc",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.confirm(_:onGeneration:)": "4d83b1f58c8235e5",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "0b1693c797f384fb",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pauseBeforeRetrying(after:refusals:deadline:while:)": "f8685e76b577c7f3",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "5a60bfd2b75ae207",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "248bafddaa9dc573",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ff00b93ca6977335",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c"
    }
   },
   {
@@ -981,15 +927,14 @@
      "effect": "XCTFail and return; else asserts attempts == 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "0b1693c797f384fb",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "2c667c4b987e3bda"
    }
   },
   {
@@ -1007,12 +952,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -1030,12 +974,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "914f571110ca5c6d",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   },
   {
@@ -1053,13 +996,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "ce99aae80ced5580",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.evaluateFeedHealth(now:)": "3f6ce13ce782fe73",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.feedHealthInputs(now:)": "36707389ac58d215",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "dafe83500dad7ab1",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.evaluateFeedHealth(now:)": "00c466add17d99b9",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.feedHealthInputs(now:)": "c093c305639b26d6",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "288c8afbb3385278"
    }
   }
  ],

@@ -14,18 +14,6 @@
   "file:<AppGroup>/AppConfig.archiveDirectoryName and AppConfig.backupDirectoryName (deleted+recreated in UI-test reset)"
  ],
  "toplevel": "Whole UI-test reset body is inside #if DEBUG (184-197), so Release builds compile resetUITestStateIfRequested to an empty function.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "clearLaunchModalDefaults hardcodes 'debug_isPurchased' instead of StoreKitManager's private debugPurchasedKey; a rename of that constant silently stops the UI-test wipe from clearing it. (The assistant disclaimer key now uses AssistantViewModel.disclaimerKey.)",
-   "evidence": [
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:251",
-    "Emuqu/Sources/Services/StoreKitManager.swift:778"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func EmuquApp.logRebuildableWorkouts()",
@@ -48,13 +36,12 @@
      "effect": "returns silently; non-empty: logs count and summary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)": "130980037689363f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)": "ac590e98883ec1d0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "0cb31e51c3346ac7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -99,19 +86,18 @@
      "effect": "logs and returns without alert or report"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.isDismissed(_:)": "16ec228ec91d0370",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.isDismissed(_:)": "2395a54d083ac259",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.logRebuildableWorkouts()": "cbeef0bdb47b518d",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.recordTermination(sessionId:sessionStart:sessionType:)": "a3875ddc016a1204",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.logRebuildableWorkouts()": "f84284421e4e548d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.recordTermination(sessionId:sessionStart:sessionType:)": "231c82883af750f7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -133,9 +119,8 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resume(_:)": "ccb811d5e90ead39"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resume(_:)": "7fce339f9c19fa6e"
    }
   },
   {
@@ -160,12 +145,11 @@
      "effect": "sets it and returns; nil: recoverToPausedState"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverToPausedState(_:sessionType:)": "00cce4f199298012",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "abd69078361e39f9",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.showRecoveryOutcome(success:)": "ab48f673b236cc66"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverToPausedState(_:sessionType:)": "5fc0280d67756840",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "2b4fd1e12506dc15",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.showRecoveryOutcome(success:)": "8fdf2bd3311dceda"
    }
   },
   {
@@ -187,9 +171,8 @@
      "effect": "restored message; false: points to Recover Lost Sessions"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
    }
   },
   {
@@ -218,11 +201,10 @@
      "effect": "workout recovery; else RR backup recovery"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedRecording(_:)": "a426fd7a5215bcc8",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedWorkout(_:)": "9a7e775852da8223"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedRecording(_:)": "17a976d101f7836a",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedWorkout(_:)": "97a37ab88e1c120e"
    }
   },
   {
@@ -257,12 +239,11 @@
      "effect": "returns could-not-recover text (state already cleared, backup kept)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoveredWorkoutSaveNote(wasArchived:)": "06e210dce05eee88",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "abd69078361e39f9",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoveredWorkoutSaveNote(wasArchived:)": "e686841a8993464c",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "2b4fd1e12506dc15",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "86143be1b3e7f1cf"
    }
   },
   {
@@ -282,9 +263,8 @@
      "effect": "saved text; false: backup-kept text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
    }
   },
   {
@@ -311,12 +291,11 @@
      "effect": "returns nil; else clears state and returns message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.waitUntilDone(_:limit:)": "a9dc1f078d105b30",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "d4c2ed7a89afe6e4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.waitUntilDone(_:limit:)": "b49b44bbef6447f2",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "a512c5e01802946f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2"
    }
   },
   {
@@ -342,11 +321,10 @@
      "effect": "returns could-not-recover text; else saved text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "2032ea4920766602"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "1817386ae5c64a63"
    }
   },
   {
@@ -369,9 +347,8 @@
      "effect": "marks dismissed; then clears in both cases"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markDismissed(_:)": "613bfc31d6276f13"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markDismissed(_:)": "6bf512bbcef83ab1"
    }
   },
   {
@@ -408,13 +385,12 @@
      "effect": "returns; present: performs the wipe"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.removeAll()": "a0d3f27a38f3b132",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.clearLaunchModalDefaults()": "4a1a1fc15c6c43b7",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSessionData()": "dfd57598bf17ecd6",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSettingsFiles()": "c2839ebd56cea7c8",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resetForUITesting()": "92b3365fb37d96e0"
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.removeAll()": "aef84da591de3fef",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.clearLaunchModalDefaults()": "7d504a1e397465f0",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSessionData()": "c3dc0a1ba2353e9d",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSettingsFiles()": "7767be5b92761a59",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resetForUITesting()": "e30217f9fa26087e"
    }
   },
   {
@@ -437,9 +413,8 @@
      "effect": "resetSharedDirectory for each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetSharedDirectory(named:)": "e258741b46724674"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetSharedDirectory(named:)": "1ea0afa0507fd619"
    }
   },
   {
@@ -467,7 +442,6 @@
      "effect": "NSLog only; directory may remain or be missing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
    }
@@ -492,7 +466,6 @@
      "effect": "removeObject"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -516,10 +489,9 @@
      "effect": "attempts removal of legacy file; nil: skip"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }
  ],

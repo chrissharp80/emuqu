@@ -18,33 +18,6 @@
   "mem:TrailDiscoveryService.maxRadiusMeters (static 50_000)"
  ],
  "toplevel": "Header comment (6-34) states the design: Overpass only, named trails only, difficulty from sac_scale/mtb:scale, length from node great-circle distance, and that ascent/descent is not known (Overpass carries no elevation and nothing looks it up). Activity/Difficulty conformances (Codable, CaseIterable, Identifiable, Comparable) are synthesized; SearchError Equatable synthesized; Decodable synthesis for the private envelope structs is used by parse.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "No test exercises parse, relationTrail, stitchedNodeIds, wayTrails, fromSacScale, fromMtbScale, passes or buildQuery; EmuquTests only touch searchError(for:) and SearchError.errorDescription (OverpassClientTests.swift:123-146).",
-   "evidence": [
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift:331",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift:386",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift:128",
-    "EmuquTests/OverpassClientTests.swift:123"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "API_REFERENCE documents 'final class TrailDiscoveryService: @unchecked Sendable' with 'static let shared'. The code is plain Sendable with no shared, built through init(overpass:) by OverpassServices.",
-   "evidence": [
-    "docs/API_REFERENCE.md:2981",
-    "docs/API_REFERENCE.md:2982",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift:35",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift:44",
-    "Emuqu/Sources/Utilities/AppDependencies.swift:637"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "init TrailDiscoveryService(overpass:)",
@@ -55,7 +28,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -67,7 +39,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -97,9 +68,8 @@
      "effect": "returns 'Road cycling'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -122,7 +92,6 @@
      "effect": ".bike"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -134,7 +103,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -148,9 +116,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "4a7c8bc57d651661"
    }
   },
   {
@@ -188,7 +155,6 @@
      "effect": "4 (sorts above expert)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -228,9 +194,8 @@
      "effect": "'Unrated'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -268,7 +233,6 @@
      "effect": "nil, so makeTrail falls through to mtb:scale"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -306,7 +270,6 @@
      "effect": ".expert"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -327,9 +290,8 @@
      "effect": "?? centerCoord: measure to the centroid"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.nearestTrackpoint(to:)": "3e1a64525b0ce166"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.nearestTrackpoint(to:)": "0678856c70a4c9a6"
    }
   },
   {
@@ -349,9 +311,8 @@
      "effect": "min returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.squaredOffset(_:_:lonScale:)": "3243781d27b9888c"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.squaredOffset(_:_:lonScale:)": "038cc42d5a80acc6"
    }
   },
   {
@@ -369,7 +330,6 @@
      "effect": "use 360 - difference"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -409,20 +369,8 @@
      "effect": "'No trails matched. Widen the search radius or relax the filters.'"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The unused SearchError.noLocation case was removed, but its catalog key 'Need a GPS fix to search nearby trails' is still in Emuqu/Localizable.xcstrings with no requester; it should be deleted there (handed off: the catalog is outside this file).",
-     "evidence": [
-      "Emuqu/Localizable.xcstrings",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:498"
-     ],
-     "found": "fix pass"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -447,14 +395,13 @@
      "effect": "throws SearchError.noResults; otherwise returns the array"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)": "ef36614d6109a279",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.applyFilters(_:filters:)": "fb6166e42047aaf6",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.fetchOverpass(coord:filters:)": "72c0ad8e685fd8f8",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.parse(data:sport:)": "8fbab9ed26ab43a4",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "6f6ce547af89acf6",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)": "a910d192e2cbff84",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.applyFilters(_:filters:)": "482662f199cc634b",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.fetchOverpass(coord:filters:)": "372314217852bae3",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.parse(data:sport:)": "00d2fc6f8f4663c3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305"
    }
   },
   {
@@ -481,11 +428,10 @@
      "effect": "rethrows searchError(for:) result (SearchError or CancellationError); success returns Data"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "1e42ef5fe163e390",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.buildQuery(coord:filters:)": "748e6bb0efc3ce7e",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)": "e84c542933b56ec3"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "f53d4b80522a1f77",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.buildQuery(coord:filters:)": "d99e2fc4dc038c85",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)": "4982ee059e5dfde4"
    }
   },
   {
@@ -520,9 +466,8 @@
      "effect": "CancellationError() (DiscoverTrailsView then shows its localizedDescription)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -536,10 +481,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.tagSelectors(for:lat:lon:radius:)": "c7a346af11ba985e"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "6f6ce547af89acf6",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.tagSelectors(for:lat:lon:radius:)": "f0ad7a3604f49523"
    }
   },
   {
@@ -567,7 +511,6 @@
      "effect": "relation route=bicycle, way highway=cycleway"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -591,14 +534,13 @@
      "effect": "logs warning and throws SearchError.decode(description); otherwise continues"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.indexedElements(_:)": "c0e36ed3af23aa82",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.memberWayIDs(of:)": "0bec60488305278e",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrails(in:nodes:ways:sport:)": "5b4e5ed23ff40ed5",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.wayTrails(in:nodes:excluding:sport:)": "54511b1c0c286093",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.indexedElements(_:)": "0e3e1e7a95d01599",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.memberWayIDs(of:)": "990fab6768dbfa99",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrails(in:nodes:ways:sport:)": "d233878505e47116",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.wayTrails(in:nodes:excluding:sport:)": "19ca8e9ddb9a32d6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305"
    }
   },
   {
@@ -631,7 +573,6 @@
      "effect": "?? [] so the way resolves to no coordinates"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -646,10 +587,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.memberWayIDs(of:)": "0bec60488305278e",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrail(_:nodes:ways:sport:)": "ce4298625148a0e4"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.memberWayIDs(of:)": "990fab6768dbfa99",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrail(_:nodes:ways:sport:)": "94a1ffd975589df3"
    }
   },
   {
@@ -667,7 +607,6 @@
      "effect": "?? [] → no ids"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -699,11 +638,10 @@
      "effect": "makeTrail with id rel-<id>; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)": "b17c533d10279e5f",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.memberWayIDs(of:)": "0bec60488305278e",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedNodeIds(_:)": "5eb443856b03288f"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)": "4cbde3e07e845b3f",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.memberWayIDs(of:)": "990fab6768dbfa99",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedNodeIds(_:)": "a14f361b6e4afac7"
    }
   },
   {
@@ -723,10 +661,9 @@
      "effect": "?? [] → empty, relationTrail returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedPieces(_:)": "8714dbd9c45ce2aa",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedPieces(_:)": "97740d82302ce39d",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -746,9 +683,8 @@
      "effect": "skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.attach(_:to:)": "9ddd4172ee1ef3eb"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.attach(_:to:)": "b14bd5d6503f04f8"
    }
   },
   {
@@ -779,9 +715,8 @@
      "effect": "append piece as a new piece"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.joined(_:_:)": "abf8207606a94612"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.joined(_:_:)": "c1c5a3922871f5f5"
    }
   },
   {
@@ -819,7 +754,6 @@
      "effect": "reversed way + piece minus first; if none match, nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -839,9 +773,8 @@
      "effect": "kept; otherwise dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.namedWayTrails(name:ways:nodes:sport:)": "a3a078f5e048df0f"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.namedWayTrails(name:ways:nodes:sport:)": "2b58d21d704002eb"
    }
   },
   {
@@ -872,10 +805,9 @@
      "effect": "?? [:] (not reachable: the id is one of the ways)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)": "b17c533d10279e5f",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedPieces(_:)": "8714dbd9c45ce2aa"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)": "4cbde3e07e845b3f",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedPieces(_:)": "97740d82302ce39d"
    }
   },
   {
@@ -909,13 +841,12 @@
      "effect": "?? falls back to .unknown"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromMtbScale(_:)": "5177d865824258e7",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromSacScale(_:)": "65743f70f821010e",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeCentroid(_:)": "e00b185658082f1e",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeLength(_:)": "12fd29b8ebc0ea69",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.descriptor(from:)": "583fd506d6240f4b"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromMtbScale(_:)": "cb7c2c391f91c137",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromSacScale(_:)": "780ebd4e0d453e1f",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeCentroid(_:)": "048f77ec2a8b9d7f",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeLength(_:)": "dd2944d46d4a445c",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.descriptor(from:)": "470a886caec6589b"
    }
   },
   {
@@ -950,9 +881,8 @@
      "effect": "returns 'Listed distance <v>'; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -977,7 +907,6 @@
      "effect": "adds segment distance"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -995,7 +924,6 @@
      "effect": "mean; otherwise (0,0)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1009,9 +937,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.passes(_:filters:)": "66447c8c4ba5b0f5"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.passes(_:filters:)": "00dfb11733b1e04a"
    }
   },
   {
@@ -1051,10 +978,9 @@
      "effect": "false; otherwise true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)": "3f6d0f1794ed6b9d"
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "34987bd2c329631c",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)": "2c3058292aaa7ed3"
    }
   }
  ],

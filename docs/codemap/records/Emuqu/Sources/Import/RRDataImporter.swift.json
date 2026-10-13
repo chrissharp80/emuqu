@@ -18,7 +18,6 @@
   "file:<user-picked security-scoped URL> (read)"
  ],
  "toplevel": "Used by ImportDataView (+Actions); ImportDataView+Actions.parseFile routes Emuqu and Elite files before ever calling importFile, which also detects both and refuses them with a pointer to batch import.",
- "flags": [],
  "units": [
   {
    "key": "var RRDataImporter.ImportFormat.id",
@@ -29,7 +28,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,9 +70,8 @@
      "effect": "'Emuqu RR Export'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -117,9 +114,8 @@
      "effect": "Emuqu multi-session text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -137,7 +133,6 @@
      "effect": "ms; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -149,7 +144,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -161,7 +155,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -214,9 +207,8 @@
      "effect": "'...add up to more than a week...'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -228,7 +220,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -240,7 +231,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -257,22 +247,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The caller ImportDataView+Actions.parseFile already opened the same security-scoped URL and read/decoded it as UTF-8 via readTextContents (identical logic to readUTF8), then importFile reads and decodes the file a second time.",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter.swift:211",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:73",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:119"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importContent(_:fileName:)": "af6913cbcfa71156",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readFile(at:)": "a3ac7f0bb7c5300c"
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importContent(_:fileName:)": "3d7cc67de8eb5785",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readFile(at:)": "66f5f089a5e198b7"
    }
   },
   {
@@ -294,9 +271,8 @@
      "effect": "continue; otherwise throw fileNotFound"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readUTF8(at:)": "60daca1213227123"
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.readUTF8(at:)": "56a44455f32a4491"
    }
   },
   {
@@ -312,13 +288,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectFormat(content:extension:)": "872fcc5db5a1a906",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)": "2f3b6ed7febf4cf4",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.validate(_:)": "97f77f12306fe05d",
-    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectFormat(content:extension:)": "4357a1397d6d7d93",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)": "9777a4b60b9f2c1b",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.validate(_:)": "7c256c90610398e3",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "0b6f9c4d8240b7b6",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "82eed2cd6e6be7d6"
    }
   },
   {
@@ -345,20 +320,8 @@
      "effect": "return text; otherwise throw unreadableFile (UTF-16 / Latin-1 exports rejected)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same read+UTF-8 decode as ImportDataView.readTextContents.",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter.swift:211",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:73"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -400,12 +363,11 @@
      "effect": "throw invalidFormat('Emuqu multi-session format detected...'); reached when importFile/importContent is handed an Emuqu export directly"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "504ff6254cf0d106",
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "b09b77b8d266884f",
-    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "21238c5be834c4e0",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "fd78c6a9ba33ad99",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "f34fc998d77ad7c9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -438,9 +400,8 @@
      "effect": "pass; otherwise throw recordingTooLong"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -461,12 +422,11 @@
      "effect": "append RRPoint at running time"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "82eed2cd6e6be7d6"
    }
   },
   {
@@ -491,9 +451,8 @@
      "effect": "detectDelimitedFormat; otherwise .txt"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectDelimitedFormat(content:)": "c685097b46d098f5"
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectDelimitedFormat(content:)": "5f4604ca87b1075c"
    }
   },
   {
@@ -524,10 +483,9 @@
      "effect": ".kubios (parsed identically to CSV); otherwise .csv"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "96ca398e8619f984"
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "1912ebdf19d614dd",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "6317d6610d1f28bc"
    }
   },
   {
@@ -545,7 +503,6 @@
      "effect": "use it lowercased; ?? '' otherwise (returns false)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -563,7 +520,6 @@
      "effect": "use it lowercased; ?? '' otherwise (false)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

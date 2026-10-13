@@ -18,18 +18,6 @@
   "mem:LaunchCoordinator.slotWaiters"
  ],
  "toplevel": "Callers: AppLaunchTasks.scheduleLaunchHousekeeping calls begin() (AppLaunchTasks.swift:406) then run(...) for migration/training/sync jobs (AppLaunchTasks.swift:428,481,523,557); MainTabView.applyDashboardLoad calls signalDashboardReady (MainTabView+Tabs.swift:126).",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests references LaunchCoordinator; the 6 s ceiling, the housekeeping gate and the slot limiter (whose earlier task-group version is documented as having hung housekeeping forever, LaunchCoordinator.swift:63-67) have no coverage.",
-   "evidence": [
-    "Emuqu/Sources/Views/LaunchCoordinator.swift:68",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift:123"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init LaunchCoordinator()",
@@ -40,7 +28,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -66,9 +53,8 @@
      "effect": "return (idempotent); false: set it and start the gate task"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadyOrTimeout()": "bab197ba6f9ba31b"
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadyOrTimeout()": "002e21fc0de66369"
    }
   },
   {
@@ -91,7 +77,6 @@
      "effect": "return; false: set true, resume and clear dashboardReadyWaiter"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -122,11 +107,10 @@
      "effect": "return without releasing; not cancelled after 6 s: releaseDashboardWaiter()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadySignal()": "6b14cbb7340a1b4e",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseDashboardWaiter()": "8a56fa5f1a587350",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadySignal()": "53302780084f8786",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseDashboardWaiter()": "1e2407517c7384c5",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -140,7 +124,6 @@
     "mem:LaunchCoordinator.dashboardReadyWaiter"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -162,7 +145,6 @@
      "effect": "true: resume immediately; false: store continuation for signalDashboardReady/releaseDashboardWaiter"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -182,9 +164,8 @@
      "effect": "return without scheduling (job dropped for this launch); otherwise Task.detached runs it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.runCoordinated(phase:_:)": "3e4a2f13a7c11620"
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.runCoordinated(phase:_:)": "6597dc0bbf1af914"
    }
   },
   {
@@ -209,14 +190,13 @@
      "effect": "await awaitHousekeepingOpen() first; interactive: go straight to slot acquisition"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "2257379aa8cbc059",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.acquireSlot()": "98e19428a98b2a29",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitHousekeepingOpen()": "391a52a7510b3d58",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseSlot()": "a0ad561523658813"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "04778df48b6e9a44",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.acquireSlot()": "6ab12f56218eac0a",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitHousekeepingOpen()": "49d5466c56148fa8",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseSlot()": "e5e81f99a2c8e2e1"
    }
   },
   {
@@ -243,7 +223,6 @@
      "effect": "true: resume at once; false: append to housekeepingWaiters"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -266,7 +245,6 @@
      "effect": "true: inFlight += 1 and return; false: append continuation to slotWaiters and wait to be handed a slot"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -289,7 +267,6 @@
      "effect": "true: inFlight -= 1; false: remove and resume the first waiter, which now owns the slot"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

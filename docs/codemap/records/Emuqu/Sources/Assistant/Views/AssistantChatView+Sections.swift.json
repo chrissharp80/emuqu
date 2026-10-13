@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "No top-level code; members are internal so the main file can use them.",
- "flags": [],
  "units": [
   {
    "key": "var AssistantChatView.topBar",
@@ -20,22 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says the chat top bar holds the model picker chip, Stop button and the ⋯ menu; topBar renders only the Stop button (the ⋯ menu is a navigation toolbar item, the model picker lives in CoachHomeV2View per AssistantChatView.swift:6-7), and the menu also has 'Report last spoken coaching'.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:493",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:10-17",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:139",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:147"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.stopGeneratingButton": "1daf5f7de035dc82"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.stopGeneratingButton": "1b433480c1f2e98a"
    }
   },
   {
@@ -61,11 +46,10 @@
      "effect": "button shown; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "8774a51a81a12938",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "d67babaf48d886b4",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -83,13 +67,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollToLatestButton(_:)": "603ab53868f8af49",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.transcriptScroll(_:)": "422a8e52be0c4b4c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollToLatestButton(_:)": "db6efe9401eb6e2b",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.transcriptScroll(_:)": "6a11a23609c50563",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
    }
   },
   {
@@ -105,11 +88,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withAutoScroll(_:proxy:)": "3a1df4430a25b85c",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withScrollReporting(_:)": "6b57a0609d5e3459",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withAutoScroll(_:proxy:)": "7dcb2fd35de455c8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withScrollReporting(_:)": "771d202e81d86aab",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "9455b1e10f47d1be"
    }
   },
   {
@@ -125,11 +107,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.updatePinnedState(contentFrame:)": "7227bd42aec969f7",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.keyboardDismissTap": "a921b90cfd38ef4a",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.viewportHeightReporter": "6b7f94033c0abe36"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.updatePinnedState(contentFrame:)": "72d498495313ac9b",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.keyboardDismissTap": "ea51a22f907803a2",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.viewportHeightReporter": "8624437a04446f85"
    }
   },
   {
@@ -143,7 +124,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -172,15 +152,14 @@
      "effect": "scrollAfterStreamEnds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.jumpToBottom(_:)": "10369ec743169785",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollAfterStreamEnds(_:)": "c24146d2cc243a3e",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForStreamedToken(_:)": "0fbcb4874b7bda43",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForViewportResize(_:)": "1a56ee15df18fca1",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForVoiceState(_:)": "3bf34f2240becc7e",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.jumpToBottom(_:)": "d414a2dbfa789765",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollAfterStreamEnds(_:)": "ac83a654ff065163",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForStreamedToken(_:)": "f1a91d4440a097e8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForViewportResize(_:)": "6221f65a93035b91",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForVoiceState(_:)": "8a51eda8e8903997",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "4b39999a63ca2c1d"
    }
   },
   {
@@ -198,7 +177,6 @@
      "effect": "isPinnedToBottom = true; else = distance <= 150"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -221,7 +199,6 @@
      "effect": "scrolls and updates timestamp; else return (throttled)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -239,7 +216,6 @@
      "effect": "scroll; else return"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -251,7 +227,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -269,7 +244,6 @@
      "effect": "scrolls; else return"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -287,7 +261,6 @@
      "effect": "scrolls; else return"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -307,12 +280,11 @@
      "effect": "button shown; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.jumpToBottom(_:)": "10369ec743169785",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.jumpToBottom(_:)": "d414a2dbfa789765",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -338,13 +310,12 @@
      "effect": "emptyState; else bubbles + typing indicator"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyState": "49f4d91aaab5fe9f",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.scrollPositionReporter": "5f232eed81a19b2a",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.turnBubbles": "ff61a93e1c79242d",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.typingIndicator": "ce701e81cae455f3",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyState": "78a8ed294f0bb886",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.scrollPositionReporter": "124bf6365f31e99a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.turnBubbles": "cd750d876b613973",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.typingIndicator": "c788e81ea41c2a55",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49"
    }
   },
   {
@@ -356,7 +327,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -368,7 +338,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -385,11 +354,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.chatBubble(_:isLast:)": "81789b5af0a6d18b",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.chatBubble(_:isLast:)": "123aeb7970a0cb0f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -422,28 +390,15 @@
      "effect": "onRegenerate = viewModel.regenerateLast; else nil (menu item hidden)"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "'Remember this' stores the whole bubble text as one fact with no confirmation; UserFactsStore.add caps the list at 25 and silently drops the oldest facts when the cap is exceeded, so remembering a reply can evict a user-entered fact without notice.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:252",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:142-145",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:149"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "4f93eee07886188a",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.remember(_:)": "506c19f0da1fa572",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.copyToPasteboard(_:)": "8aebc966c499b0a4",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "091715524425980c",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentEmail(for:)": "9de0ec21b5de8935",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentShare(for:)": "d675619e77c9df1f",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "6800edee4be5238e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.remember(_:)": "a6c7e14e322e7ec3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.copyToPasteboard(_:)": "1a51de76aa6ec467",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "98d2827ea6a0e422",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentEmail(for:)": "2b2b010d95425acd",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentShare(for:)": "d7892ea15a753d0c",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "82c6ca81dbc1381d"
    }
   },
   {
@@ -469,12 +424,11 @@
      "effect": "debugLog + explainCaptureBlock, return without copying; else PasteboardWriter.copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "08ddad3878a88e34",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "2f4d0808edab28a1"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "454b2d4a003f8af1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "a12c9d25bbfb5cf8"
    }
   },
   {
@@ -488,9 +442,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "d09e6cb3ed78f5bb"
    }
   },
   {
@@ -513,23 +466,11 @@
      "effect": "indicator shown; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL says the typing indicator shows 'dots with the provider's avatar'; the code always shows a sparkles symbol regardless of provider.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:497",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:301"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -550,10 +491,9 @@
      "effect": "FloSetupCard with onAddKey setting floSettingsPresented; else conversationEmptyState"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.conversationEmptyState": "2fbbbb536b0b5363",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.inputMode": "c5d8f59d7156e2ea"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.conversationEmptyState": "fb0615399e432d78",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.inputMode": "bb0ccd3cfe47e948"
    }
   },
   {
@@ -571,11 +511,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)": "edd59f79557af7fb",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "66091d72f801824b",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "12ca201943e746b3"
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)": "2554dc79988e33a6",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "40e3bf52b5aec3b8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "9d37d7f86103ab60"
    }
   },
   {
@@ -595,12 +534,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.conversationEmptyStateContent(_:)": "d26483f1f0a6ed05",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "651137401d46dc0d",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.conversationEmptyStateContent(_:)": "7d82e74beecd51fb",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "85decd84bb9e108b"
    }
   },
   {
@@ -621,11 +559,10 @@
      "effect": "'figure.run' icon; else 'sparkles'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareBody(for:)": "d787d70db9b6a611",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareTitle(for:)": "8837da199cf33004",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareBody(for:)": "7ac2aa426411e0b4",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareTitle(for:)": "c001463c8e7b58a6",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   },
   {
@@ -648,10 +585,9 @@
      "effect": "'You just started a …'; else '<mins> min into your …'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -697,15 +633,14 @@
      "effect": "no parenthetical; else ' (a · b · c)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyStateBody": "b1b5a5db635644dd",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "66091d72f801824b",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyStateBody": "5aef980bd0159666",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "40e3bf52b5aec3b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -729,13 +664,12 @@
      "effect": "banner shown; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.errorText(_:)": "780d72c50e637c36",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.dismissErrorButton": "4be8c8cf82058ee8",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.errorText(_:)": "596e3ac4d080a1e5",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.dismissErrorButton": "749349cc4ecc631a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   },
   {
@@ -747,9 +681,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   },
   {
@@ -766,12 +699,11 @@
     "mem:AssistantViewModel.errorMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearError()": "e9c5cefdf12ce73c",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearError()": "a6f915ba5747bc55",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   },
   {
@@ -809,28 +741,14 @@
      "effect": "'…apart from web searches'; else '…stays on this device'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "For a cloud provider the copy promises 'Your data stays between you and <vendor>' without the web-search caveat the Apple branch gives, although with a Tavily key the assistant sends search queries to Tavily (disclosed in the consent schema history) — the user-facing privacy statement understates where data goes.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:457",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:462-463",
-      "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:51",
-      "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:72"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.consentedCloudReachable": "c415465cbbf08c50",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "12ca201943e746b3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "85fd0b0250750e1f",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.consentedCloudReachable": "23752a31a326746d",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "9d37d7f86103ab60",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337"
    }
   },
   {
@@ -854,14 +772,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "12ca201943e746b3",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "b6e12f3eff34e013"
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "d6c953953bdfc507",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "9d37d7f86103ab60",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "c3caff64d81005e4"
    }
   },
   {
@@ -877,9 +794,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "12ca201943e746b3"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "9d37d7f86103ab60"
    }
   },
   {
@@ -901,11 +817,10 @@
      "effect": "setupInputBar; else connectedInputBar"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.connectedInputBar": "180fe710d443151a",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.inputMode": "c5d8f59d7156e2ea",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.setupInputBar": "aa88759758ad1b6a"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.connectedInputBar": "e0c869c250d9db57",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.inputMode": "bb0ccd3cfe47e948",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.setupInputBar": "2e0543c42728f35a"
    }
   },
   {
@@ -927,10 +842,9 @@
      "effect": "button shown; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -947,12 +861,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "2f45fc298f1c27b1",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "66091d72f801824b",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "a5a84cd775bb04db",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "40e3bf52b5aec3b8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49"
    }
   },
   {
@@ -968,10 +881,9 @@
     "mem:AssistantViewModel.errorMessage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -993,11 +905,10 @@
      "effect": "explainCaptureBlock and return; else sets the item"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "08ddad3878a88e34",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "07b2499ca3c148a7"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "454b2d4a003f8af1",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "f3279186263346bc"
    }
   },
   {
@@ -1024,11 +935,10 @@
      "effect": "return without sharing; else share item set"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "08ddad3878a88e34",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "07b2499ca3c148a7"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "454b2d4a003f8af1",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "f3279186263346bc"
    }
   },
   {
@@ -1053,10 +963,9 @@
      "effect": "'From me (via Emuqu):'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "091715524425980c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "98d2827ea6a0e422",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

@@ -7,7 +7,6 @@
   "file:.ci/swiftlint_warning_budget.txt = 78"
  ],
  "toplevel": "Single line `78`. Read by scripts/enforce_swiftlint_budget.sh (CI + make lint-budget); .githooks/pre-commit prints it advisory only. The count is measured with the SwiftLint version ci.yml pins by version and checksum (step lint-and-budgets/Install tools, 0.65.1); the pre-commit hook's install instructions name the same version, but a local `make lint-budget` uses whatever swiftlint is on PATH. Every .ci/*.txt with a numeric value is also compared against a baseline commit by scripts/check_budget_monotonicity.sh (ceilings may only fall, min_* floors may only rise, unless a `budget-raise-ok: .ci/swiftlint_warning_budget.txt` commit trailer is present in the compared range). Changes are owned by @chrissharp80 per CODEOWNERS.",
- "flags": [],
  "units": [],
  "deps": {}
 }

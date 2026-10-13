@@ -1,14 +1,15 @@
 {
  "file": "scripts/codemap/codemap.py",
- "hash": "9b98889a4eacd130",
- "role": "Command-line front end of the code map: check (the CI gate, including the dependency re-check and the open-findings ratchet), status, sync, stamp, impact, callers and report. Run by scripts/check_codemap.sh, the codemap-* Makefile targets and the gates.yml impact step.",
+ "hash": "eb7937917ae615fc",
+ "role": "Command-line front end of the code map: check (the CI gate, including the dependency re-check and, when the local findings overlay exists, the open-findings ratchet), status, sync, stamp, impact, callers and report. Run by scripts/check_codemap.sh, the codemap-* Makefile targets and the gates.yml impact step.",
  "types": [],
  "state": [
   "ROOT: repository root (two levels above this file)",
-  "RECORDS: docs/codemap/records"
+  "RECORDS: docs/codemap/records",
+  "OVERLAY: the local, untracked findings overlay, $CODEMAP_OVERLAY or do_not_ship/codemap under ROOT",
+  "FLAGS: OVERLAY/flags, one <path>.json per record holding {\"file\": [...], \"units\": {key: [...]}}"
  ],
- "toplevel": "Module docstring (the usage text main prints), imports (collections, hashlib, json, os, subprocess, sys, Path), ROOT and RECORDS, and sys.path insertion of scripts/codemap so inventory, graph and report import. `if __name__ == \"__main__\": sys.exit(main(argv))`.",
- "flags": [],
+ "toplevel": "Module docstring (the usage text main prints, including where the findings overlay lives), imports (collections, hashlib, json, os, subprocess, sys, Path), ROOT, RECORDS, OVERLAY and FLAGS, and sys.path insertion of scripts/codemap so inventory, graph and report import. `if __name__ == \"__main__\": sys.exit(main(argv))`.",
  "units": [
   {
    "key": "def record_path",
@@ -19,19 +20,41 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def merge_flags",
+   "hash": "78b0010922ae594f",
+   "does": "Attaches the overlay's findings to a parsed record: when FLAGS/<file>.json exists, sets the record's `flags` to its `file` list and each unit's `flags` to its entry under `units` (empty list when none). With no overlay file the record is returned unchanged, without `flags`. Returns the same dict.",
+   "entry": null,
+   "calls": [
+    "ext:json.loads"
+   ],
+   "reads": [
+    "file:do_not_ship/codemap/flags/<path>.json (or $CODEMAP_OVERLAY/flags)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "overlay file for this record exists",
+     "effect": "file and unit flags attached; otherwise record unchanged"
+    }
+   ],
    "deps": {}
   },
   {
    "key": "def load",
-   "hash": "a9314f2b7af9decf",
-   "does": "Reads and parses the record for a path; None when the file does not exist.",
+   "hash": "0c49e6c27563e4d1",
+   "does": "Reads and parses the record for a path and merges the overlay's findings into it (merge_flags); None when the record file does not exist.",
    "entry": null,
    "calls": [
-    "scripts/codemap/codemap.py::def record_path"
+    "scripts/codemap/codemap.py::def record_path",
+    "scripts/codemap/codemap.py::def merge_flags"
    ],
    "reads": [
-    "file:docs/codemap/records/<path>.json"
+    "file:docs/codemap/records/<path>.json",
+    "file:do_not_ship/codemap/flags/<path>.json (or $CODEMAP_OVERLAY/flags)"
    ],
    "writes": [],
    "branches": [
@@ -41,39 +64,59 @@
      "effect": "None"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def record_path": "d147781355935458"
+    "scripts/codemap/codemap.py::def merge_flags": "da40a06e1c1e944f",
+    "scripts/codemap/codemap.py::def record_path": "debdeef539bfc896"
    }
   },
   {
    "key": "def save",
-   "hash": "ad1ce0450c24c87f",
-   "does": "Writes a record as indented UTF-8 JSON with a trailing newline, creating directories as needed.",
+   "hash": "02040d47c1be1e26",
+   "does": "Writes a record without findings: works on a deep copy, strips the file-level and unit `flags`, and writes the rest as indented UTF-8 JSON with a trailing newline to docs/codemap/records/<path>.json, creating directories as needed. Findings go only to the overlay: when any are present they are written to FLAGS/<path>.json as {\"file\": [...], \"units\": {key: [...]}} (creating the overlay directories); when none are present an existing overlay file for the record is deleted.",
    "entry": null,
    "calls": [
-    "scripts/codemap/codemap.py::def record_path"
+    "scripts/codemap/codemap.py::def record_path",
+    "ext:json.dumps",
+    "ext:json.loads"
    ],
    "reads": [],
    "writes": [
-    "file:docs/codemap/records/<path>.json"
+    "file:docs/codemap/records/<path>.json",
+    "file:do_not_ship/codemap/flags/<path>.json (or $CODEMAP_OVERLAY/flags)"
    ],
-   "branches": [],
-   "flags": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "unit has findings",
+     "effect": "collected for the overlay"
+    },
+    {
+     "at": "+15",
+     "cond": "record has findings",
+     "effect": "overlay file written"
+    },
+    {
+     "at": "+19",
+     "cond": "no findings and an overlay file exists",
+     "effect": "overlay file deleted"
+    }
+   ],
    "deps": {
-    "scripts/codemap/codemap.py::def record_path": "d147781355935458"
+    "scripts/codemap/codemap.py::def record_path": "debdeef539bfc896"
    }
   },
   {
    "key": "def all_records",
-   "hash": "c0739eae343cd2a4",
-   "does": "Walks RECORDS with os.walk (so hidden directories such as .github are included) and returns {source path: record} for every .json file, keyed by the record's own `file` field.",
+   "hash": "bdee34a38b1818f0",
+   "does": "Walks RECORDS with os.walk (so hidden directories such as .github are included) and returns {source path: record} for every .json file, keyed by the record's own `file` field, with the overlay's findings merged into each (merge_flags).",
    "entry": null,
    "calls": [
-    "ext:os.walk"
+    "ext:os.walk",
+    "scripts/codemap/codemap.py::def merge_flags"
    ],
    "reads": [
-    "file:docs/codemap/records/**"
+    "file:docs/codemap/records/**",
+    "file:do_not_ship/codemap/flags/** (or $CODEMAP_OVERLAY/flags)"
    ],
    "writes": [],
    "branches": [
@@ -83,8 +126,9 @@
      "effect": "loaded; other files ignored"
     }
    ],
-   "flags": [],
-   "deps": {}
+   "deps": {
+    "scripts/codemap/codemap.py::def merge_flags": "da40a06e1c1e944f"
+   }
   },
   {
    "key": "def problems",
@@ -141,13 +185,12 @@
      "effect": "orphaned file record"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
    "key": "def described",
-   "hash": "334a3a7f6024b4b1",
-   "does": "Hash (16 hex) of what a record says a unit does, the part callers rely on: for a unit its does, entry, reads, writes, and each branch's condition and effect; for a file record (file_level) its role, toplevel and state; in both cases the kind, severity and text of its flags. Calls, hashes and evidence are left out, so changing only how a unit is implemented, or a branch's line offset, does not alter it. None gives ''.",
+   "hash": "17cfb000583e24ed",
+   "does": "Hash (16 hex) of what a record says a unit does, the part callers rely on: for a unit its does, entry, reads, writes, and each branch's condition and effect; for a file record (file_level) its role, toplevel and state. Calls, hashes, evidence and findings (flags) are left out, so changing only how a unit is implemented, a branch's line offset, or the local findings overlay does not alter it. None gives ''.",
    "entry": null,
    "calls": [
     "ext:hashlib.sha256",
@@ -167,7 +210,6 @@
      "effect": "role, toplevel, state; otherwise the unit fields"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -181,9 +223,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def described": "01b6fb9e5dbc3393"
+    "scripts/codemap/codemap.py::def described": "472c5c3ef41ca134"
    }
   },
   {
@@ -201,7 +242,6 @@
      "effect": "that file record (or None)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -219,7 +259,6 @@
      "effect": "included; possible edges are left out"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -260,10 +299,9 @@
      "effect": "re-check: callee changed"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def current_deps": "2fd53c54b819f999",
-    "scripts/codemap/codemap.py::def descriptions": "a6c75c039d485881"
+    "scripts/codemap/codemap.py::def current_deps": "7f6f7684aeeaf6b9",
+    "scripts/codemap/codemap.py::def descriptions": "dd47fbd3de0a83ba"
    }
   },
   {
@@ -281,44 +319,47 @@
      "effect": "counted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
    "key": "def budget_problems",
-   "hash": "1e217c92f7f297e4",
-   "does": "For high and med: reads .ci/codemap_open_<sev>.txt as an integer and reports a problem (path .ci/codemap_open_<sev>.txt, key \"open-findings ratchet\") when the open count exceeds it (a change added findings) or is below it (a fix landed without lowering the budget). A missing or non-integer budget file is itself a problem, so the ratchet fails closed. Raising a budget is caught separately by check_budget_monotonicity.sh, which ratchets every .ci/*.txt ceiling.",
+   "hash": "aa8acd2dc76b50aa",
+   "does": "Returns no problems when the findings overlay directory (OVERLAY) does not exist. Otherwise, for high and med: reads OVERLAY/codemap_open_<sev>.txt as an integer and reports a problem (path given relative to the repository root, key \"open-findings ratchet\") when the open count exceeds it (a change added findings) or is below it (a fix landed without lowering the budget). A missing or non-integer budget file inside an existing overlay is itself a problem, so the ratchet fails closed there.",
    "entry": null,
    "calls": [],
    "reads": [
-    "file:.ci/codemap_open_high.txt",
-    "file:.ci/codemap_open_med.txt"
+    "file:do_not_ship/codemap/codemap_open_high.txt (or $CODEMAP_OVERLAY)",
+    "file:do_not_ship/codemap/codemap_open_med.txt (or $CODEMAP_OVERLAY)"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+13",
+     "at": "+11",
+     "cond": "no overlay directory",
+     "effect": "no problems; ratchet not run"
+    },
+    {
+     "at": "+18",
      "cond": "budget file unreadable or not an integer",
      "effect": "problem; that severity not compared"
     },
     {
-     "at": "+16",
+     "at": "+21",
      "cond": "more open findings than the budget",
      "effect": "problem: a change added findings"
     },
     {
-     "at": "+19",
+     "at": "+24",
      "cond": "fewer open findings than the budget",
      "effect": "problem: lower the budget to the new count"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
    "key": "def cmd_check",
-   "hash": "9960e329acd2d42a",
-   "does": "Loads all records, builds the inventory and the call graph. Failing problems: problems() except 'calls a unit that no longer exists', plus the open-findings ratchet (budget_problems over open_findings). Advisory (reported, never failing; a TODO(codemap-recheck) comment says to make them fail again once the backlog is worked off): those stale-call lines plus dependency_problems() re-check lines. Prints the advisory count, and for `status` lists them grouped by file. No failing problems: prints success with the open high/medium/low counts and returns 0. Otherwise prints the failing problems grouped by file with how to fix each kind, and returns 1 for `check` (strict) or 0 for `status`.",
+   "hash": "5970af880d2d6ca6",
+   "does": "Loads all records (with the overlay's findings when present), builds the inventory and the call graph. Failing problems: problems() except 'calls a unit that no longer exists', plus the open-findings ratchet (budget_problems over open_findings, which runs only when the overlay exists). Advisory (reported, never failing; a TODO(codemap-recheck) comment says to make them fail again once the outstanding re-check lines have been re-read): those stale-call lines plus dependency_problems() re-check lines. Prints the advisory count, and for `status` lists them grouped by file. No failing problems: prints success, and when the overlay exists also the open high/medium/low counts, and returns 0. Otherwise prints the failing problems grouped by file with how to fix each kind, and returns 1 for `check` (strict) or 0 for `status`.",
    "entry": null,
    "calls": [
     "scripts/codemap/inventory.py::def inventory",
@@ -334,19 +375,24 @@
    "writes": [],
    "branches": [
     {
-     "at": "+16",
+     "at": "+14",
      "cond": "records to re-check",
      "effect": "count printed"
     },
     {
-     "at": "+18",
+     "at": "+16",
      "cond": "status",
      "effect": "re-check lines listed"
     },
     {
-     "at": "+20",
+     "at": "+18",
      "cond": "no failing problems",
-     "effect": "success message with counts, 0"
+     "effect": "success message, 0"
+    },
+    {
+     "at": "+20",
+     "cond": "overlay exists",
+     "effect": "open-findings counts printed"
     },
     {
      "at": "+33",
@@ -354,16 +400,15 @@
      "effect": "1 when strict (check), 0 for status"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def _print_grouped": "2cf63dbe114b17f6",
-    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
-    "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
-    "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91",
-    "scripts/codemap/codemap.py::def open_findings": "54c6db2516fb7901",
-    "scripts/codemap/codemap.py::def problems": "8f12001d06ce503e",
-    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
-    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+    "scripts/codemap/codemap.py::def _print_grouped": "c7bc4e9705dc6ca7",
+    "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
+    "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
+    "scripts/codemap/codemap.py::def dependency_problems": "df4bf0f691649e50",
+    "scripts/codemap/codemap.py::def open_findings": "472665e842488997",
+    "scripts/codemap/codemap.py::def problems": "8d66e93ccdbc9099",
+    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
   {
@@ -375,13 +420,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
    "key": "def cmd_sync",
-   "hash": "efb27a9e6b7e648d",
-   "does": "For each given path: if it is not in scope or untracked, deletes its record if one exists (or says to git add it); otherwise loads or creates the file record, keeps unit records whose key still exists in code order, adds empty records (hash null) for new units, drops records for units no longer in the code, and saves. Never stamps a hash, so the new records fail check until written and stamped.",
+   "hash": "66bef51fa4874978",
+   "does": "For each given path: if it is not in scope or untracked, deletes its record and its overlay findings file if a record exists (or says to git add it); otherwise loads (with findings) or creates the file record, keeps unit records whose key still exists in code order, adds empty records (hash null) for new units, drops records for units no longer in the code, and saves (findings to the overlay only). Never stamps a hash, so the new records fail check until written and stamped.",
    "entry": null,
    "calls": [
     "scripts/codemap/inventory.py::def inventory",
@@ -393,7 +437,8 @@
     "file:docs/codemap/records/<path>.json"
    ],
    "writes": [
-    "file:docs/codemap/records/<path>.json"
+    "file:docs/codemap/records/<path>.json",
+    "file:do_not_ship/codemap/flags/<path>.json (or $CODEMAP_OVERLAY/flags)"
    ],
    "branches": [
     {
@@ -412,12 +457,11 @@
      "effect": "dropped and reported"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def load": "3816199a3b85d9a0",
-    "scripts/codemap/codemap.py::def record_path": "d147781355935458",
-    "scripts/codemap/codemap.py::def save": "bf7dd7510552c558",
-    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+    "scripts/codemap/codemap.py::def load": "feb28450cce553af",
+    "scripts/codemap/codemap.py::def record_path": "debdeef539bfc896",
+    "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
+    "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
   {
@@ -465,15 +509,14 @@
      "effect": "error, 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
-    "scripts/codemap/codemap.py::def current_deps": "2fd53c54b819f999",
-    "scripts/codemap/codemap.py::def descriptions": "a6c75c039d485881",
-    "scripts/codemap/codemap.py::def load": "3816199a3b85d9a0",
-    "scripts/codemap/codemap.py::def save": "bf7dd7510552c558",
-    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
-    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+    "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
+    "scripts/codemap/codemap.py::def current_deps": "7f6f7684aeeaf6b9",
+    "scripts/codemap/codemap.py::def descriptions": "dd47fbd3de0a83ba",
+    "scripts/codemap/codemap.py::def load": "feb28450cce553af",
+    "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
+    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
   {
@@ -526,13 +569,12 @@
      "effect": "changed"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
    "key": "def cmd_impact",
    "hash": "d4239d70bf193402",
-   "does": "Prints, as Markdown, what a change can affect. Targets: the named `path::key` nodes, or changed_since(base) (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name and returns 2. For each target: what its record says it does; direct callers, certain listed in full and possible up to 40; a walk up certain callers that stops at tests and doc sections (collected) and collects every caller with an `entry` as a trigger (up to 80 listed); for unit targets, each store it reads or writes (prefix up to ' (') with how many other units read and write it and up to 12 of them; and the open flags on the target and its certain direct callers. The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
+   "does": "Prints, as Markdown, what a change can affect. Targets: the named `path::key` nodes, or changed_since(base) (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name and returns 2. For each target: what its record says it does; direct callers, certain listed in full and possible up to 40; a walk up certain callers that stops at tests and doc sections (collected) and collects every caller with an `entry` as a trigger (up to 80 listed); for unit targets, each store it reads or writes (prefix up to ' (') with how many other units read and write it and up to 12 of them; and the open flags on the target and its certain direct callers (present only when the local findings overlay is merged in). The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
    "entry": null,
    "calls": [
     "scripts/codemap/codemap.py::def all_records",
@@ -610,15 +652,14 @@
      "effect": "text appended to the job summary"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
-    "scripts/codemap/codemap.py::def changed_since": "724735c954362d70",
-    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300",
-    "scripts/codemap/codemap.py::def record_of": "10002e813b5abeb9",
-    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
-    "scripts/codemap/graph.py::def callers": "6bd0e2d71c7f44cf",
-    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+    "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
+    "scripts/codemap/codemap.py::def changed_since": "590bb0d6527b8653",
+    "scripts/codemap/codemap.py::def main": "5406a0247905c1b9",
+    "scripts/codemap/codemap.py::def record_of": "5a4db3d864a7532d",
+    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def callers": "cdfd602e4806fa1e",
+    "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
   {
@@ -641,12 +682,11 @@
      "effect": "hint printed"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
-    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
-    "scripts/codemap/graph.py::def callers": "6bd0e2d71c7f44cf",
-    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+    "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
+    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def callers": "cdfd602e4806fa1e",
+    "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
   {
@@ -707,20 +747,21 @@
      "effect": "report.build; otherwise usage to stderr, 2"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
-    "scripts/codemap/codemap.py::def cmd_callers": "33ec6756939f0b9b",
-    "scripts/codemap/codemap.py::def cmd_check": "df4d0d74f79a78da",
-    "scripts/codemap/codemap.py::def cmd_impact": "c2b034f3fdf0ef75",
-    "scripts/codemap/codemap.py::def cmd_stamp": "7132e97c28406a90",
-    "scripts/codemap/codemap.py::def cmd_sync": "74a108b4c1742e10",
-    "scripts/codemap/report.py::def build": "93fb17bdef8846da"
+    "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
+    "scripts/codemap/codemap.py::def cmd_callers": "255fa2d16886ad3d",
+    "scripts/codemap/codemap.py::def cmd_check": "66a400e5a8a77a0c",
+    "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
+    "scripts/codemap/codemap.py::def cmd_stamp": "02a2425e48ed73af",
+    "scripts/codemap/codemap.py::def cmd_sync": "c5c852fbd64f8441",
+    "scripts/codemap/report.py::def build": "dae987592fd79e51"
    }
   }
  ],
  "deps": {
-  "scripts/codemap/codemap.py::def main": "6b5922b4852cf300",
-  "scripts/codemap/report.py::def build": "93fb17bdef8846da"
+  "scripts/codemap/codemap.py::def load": "feb28450cce553af",
+  "scripts/codemap/codemap.py::def main": "5406a0247905c1b9",
+  "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
+  "scripts/codemap/report.py::def build": "dae987592fd79e51"
  }
 }

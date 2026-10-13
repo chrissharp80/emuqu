@@ -15,18 +15,6 @@
   "net:api.opentopodata.org/v1/{ned10m|srtm30m}"
  ],
  "toplevel": "Global static userAgent built from Bundle.main.appVersion and AppConfig.contactEmail. No mutable state.",
- "flags": [
-  {
-   "kind": "privacy",
-   "sev": "low",
-   "text": "Workout route coordinates (rounded to 4 decimals, ~11 m; first point is often home) are sent in a GET query string to the public third-party api.opentopodata.org; the comment acknowledges this.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/TopoElevationService.swift:236",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift:249"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
@@ -54,11 +42,10 @@
      "effect": "compute result; otherwise throw badResponse(count mismatch)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchElevations(for:)": "6b9e5bfb3acb0ea1",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "c3f4018faf41d834"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "e358d88219b04c14",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchElevations(for:)": "caff7cd58cacc551",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "8f806b16e9575529"
    }
   },
   {
@@ -84,11 +71,10 @@
      "effect": "feed each delta to ClimbRun.step"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "a6c453841401fc99",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "8771725dd7919072",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521"
    }
   },
   {
@@ -123,9 +109,8 @@
      "effect": "accumulate; else (reversal) commit the run and start a new one with this delta"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "78580bee8acf3e0b"
    }
   },
   {
@@ -139,9 +124,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "78580bee8acf3e0b"
    }
   },
   {
@@ -164,7 +148,6 @@
      "effect": "add to gain; else add -runSum to loss"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -197,9 +180,8 @@
      "effect": "force it to count-1 (defensive)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "8771725dd7919072"
    }
   },
   {
@@ -228,11 +210,10 @@
      "effect": "return its values; on error wait 1 s, then srtm30m"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)": "9fa41cc35339b178",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)": "dd9067cd70f83265",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)": "61414783ab60ef32",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)": "908e5c15ed66a2c4",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -260,18 +241,6 @@
      "effect": "true; otherwise false"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Box ranges include parts of Canada/Mexico; harmless because the ned10m failure falls through to SRTM, but costs an extra request.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:217",
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:204"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -289,11 +258,10 @@
     "net:api.opentopodata.org"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.decodeOpenTopoData(_:expecting:dataset:)": "b9ba8fc19447ba79",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchJSON(from:label:)": "9bfdfa0f22f9ce7a",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "d6fedefde7c1fb29"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.decodeOpenTopoData(_:expecting:dataset:)": "29818884fd167d74",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchJSON(from:label:)": "04531d1b37c062ee",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "dd22654c446d6832"
    }
   },
   {
@@ -316,7 +284,6 @@
      "effect": "return url; otherwise throw badResponse"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -330,9 +297,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "eface46bdd3b318b"
    }
   },
   {
@@ -360,9 +326,8 @@
      "effect": "return data; otherwise throw badResponse(\"<label> HTTP error\")"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.request(for:)": "aad4851b997a9adb"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.request(for:)": "63ffe28e826d6080"
    }
   },
   {
@@ -382,7 +347,6 @@
      "effect": "return values; otherwise throw badResponse (any null elevation fails the whole lookup)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

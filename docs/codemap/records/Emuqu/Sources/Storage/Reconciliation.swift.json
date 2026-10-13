@@ -11,19 +11,6 @@
   "mem:ReconciliationManager.pendingSessions (guarded by lock)"
  ],
  "toplevel": "Stored properties: fileManager default, pendingSessions [], lock NSLock. Owned by RRCollector (RRCollector.swift:709).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "queueForSync/pending have no production caller (only EmuquTests ReconciliationManagerTests/IntegrationTests); the file comment at 3-6 says so. The only live path is sessionExists, whose pending-list half is always empty in production.",
-   "evidence": [
-    "Emuqu/Sources/Storage/Reconciliation.swift:56",
-    "Emuqu/Sources/Storage/Reconciliation.swift:73",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:46"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init ReconciliationManager(archive:)",
@@ -46,12 +33,11 @@
      "effect": "true: Documents/HRVOffline; false: tmp/HRVOffline and log WARNING"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "fc2191e2b7d8fc89",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "7e3511f4c5d567ae",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -74,9 +60,8 @@
      "effect": "true: return true; false: check pendingSessions under lock"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2"
    }
   },
   {
@@ -104,22 +89,10 @@
      "effect": "false: throw sessionAlreadyExists; true: append and save"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only tests call queueForSync.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Reconciliation.swift:56",
-      "EmuquTests/ReconciliationManagerTests.swift:29"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "0fceaeeeb86e0344"
    }
   },
   {
@@ -133,20 +106,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "`pending` is read only by EmuquTests/ReconciliationManagerTests.swift:31,65; no production caller, and nothing drains the queue (file comment 3-6).",
-     "evidence": [
-      "Emuqu/Sources/Storage/Reconciliation.swift:73",
-      "EmuquTests/ReconciliationManagerTests.swift:31"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0"
    }
   },
   {
@@ -169,9 +130,8 @@
      "effect": "true: create; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -183,7 +143,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -214,11 +173,10 @@
      "effect": "log, pendingSessions = [] (the next save would overwrite the undecodable file)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "8009bef0e99893a4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "d021c3ec9036929e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -235,9 +193,8 @@
     "file:Documents/HRVOffline/pending.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "8009bef0e99893a4"
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "d021c3ec9036929e"
    }
   },
   {
@@ -255,7 +212,6 @@
      "effect": "'A session with this ID already exists'"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

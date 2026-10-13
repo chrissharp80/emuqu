@@ -9,7 +9,6 @@
   "env:GITHUB_STEP_SUMMARY (append)"
  ],
  "toplevel": "set -euo pipefail; sources lib/preflight.sh (no cd to repo root; relies on cwd). DESTINATION defaults to select_simulator_destination.sh output. gate_mktemp log (exit on failure). Runs `xcodebuild test -enableThreadSanitizer YES -only-testing:EmuquTests` into the log with set +e; gate_require_nonempty on the log (empty -> exit 70). Counts 'WARNING: ThreadSanitizer', \"' passed\", \"' failed\" lines. races>0 -> prints 20 lines after each warning, exit 1. status != 0: if failed>0 prints first 20 failed lines; else greps build-error markers (both greps `|| true`, so no match or SIGPIPE cannot end the script) and tails 40 log lines; exits with xcodebuild's status. Else appends summary.",
- "flags": [],
  "units": [],
  "deps": {}
 }

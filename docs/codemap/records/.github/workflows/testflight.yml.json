@@ -8,7 +8,6 @@
   "permissions contents: read"
  ],
  "toplevel": "Trigger: workflow_dispatch only. Both jobs require repository_owner chrissharp80. deploy requires quality-gate result success explicitly. Build number = run_number.run_attempt. No concurrency group of its own; the called ci.yml's group (ci-Deploy TestFlight-<ref>, cancel-in-progress) means a second dispatch on the same ref cancels the first's quality gate, which then skips the first deploy.",
- "flags": [],
  "units": [
   {
    "key": "job quality-gate",
@@ -30,12 +29,11 @@
      "effect": "runs on the owner's repo; on a fork it is skipped, and deploy then does not run"
     }
    ],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
-    ".github/workflows/ci.yml::job strict-concurrency": "973e976fafe9cc2c",
+    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "a02b46f65c3a153e",
-    ".github/workflows/ci.yml::job thread-sanitizer": "4c7ffda1b575ecff"
+    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f"
    }
   },
   {
@@ -63,17 +61,16 @@
      "effect": "deploy runs; any other quality-gate result (failure, cancelled, skipped) skips deploy"
     }
    ],
-   "flags": [],
    "deps": {
-    ".github/workflows/testflight.yml::step deploy/Build archive": "8bedf20553a6138b",
-    ".github/workflows/testflight.yml::step deploy/Checkout": "712b720c9a28a3d9",
-    ".github/workflows/testflight.yml::step deploy/Export IPA": "30484b31b204748e",
-    ".github/workflows/testflight.yml::step deploy/Record the build environment": "0a9684ff5d52d431",
-    ".github/workflows/testflight.yml::step deploy/Select Xcode": "f12fb341dad1c785",
-    ".github/workflows/testflight.yml::step deploy/Set up signing certificate": "0bee8812ac630a71",
-    ".github/workflows/testflight.yml::step deploy/Upload to TestFlight": "2b084dedf0e22b12",
-    ".github/workflows/testflight.yml::step deploy/Validate required secrets": "ba868e5972b41a19",
-    ".github/workflows/testflight.yml::step deploy/Write App Store Connect API key": "8a443b1d954771ed"
+    ".github/workflows/testflight.yml::step deploy/Build archive": "b036e8dd2ba96a1f",
+    ".github/workflows/testflight.yml::step deploy/Checkout": "d342199d77b4a5df",
+    ".github/workflows/testflight.yml::step deploy/Export IPA": "5d04d37fde4ab4a6",
+    ".github/workflows/testflight.yml::step deploy/Record the build environment": "7e93a430cbbe34ab",
+    ".github/workflows/testflight.yml::step deploy/Select Xcode": "5894035fa53e2cc8",
+    ".github/workflows/testflight.yml::step deploy/Set up signing certificate": "e6878a4a43afa153",
+    ".github/workflows/testflight.yml::step deploy/Upload to TestFlight": "c4c4a540e198d67a",
+    ".github/workflows/testflight.yml::step deploy/Validate required secrets": "e17f3d1fb6c0b0f9",
+    ".github/workflows/testflight.yml::step deploy/Write App Store Connect API key": "67f030806bd3ce38"
    }
   },
   {
@@ -87,7 +84,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -101,7 +97,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -120,7 +115,6 @@
     "file:$GITHUB_STEP_SUMMARY"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -145,7 +139,6 @@
      "effect": "print names to stderr and exit 1 (deploy fails); else continue"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -166,7 +159,6 @@
     "kc:$RUNNER_TEMP/build.keychain-db"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -183,7 +175,6 @@
     "file:~/.appstoreconnect/private_keys/AuthKey_<id>.p8"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -200,7 +191,6 @@
     "net:Apple developer provisioning"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -217,7 +207,6 @@
     "file:$RUNNER_TEMP/export/*.ipa"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -239,7 +228,6 @@
      "effect": "print \"No IPA found\" and exit 1; else upload"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

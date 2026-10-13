@@ -13,20 +13,6 @@
   "notif:FlowRecoveryRescoreNeeded (Notification.Name.flowRecoveryRescoreNeeded)"
  ],
  "toplevel": "Declares Notification.Name constants used across Archive, RRCollector, caches and DataPurgeService.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "SettingsManager comments say AssistantContextSource listens for .flowRecoverySettingsChanged to drop a '60 s cache TTL', but AssistantContextSource has no cache and registers no observer. It rebuilds on every request, so those comments describe code that no longer exists.",
-   "evidence": [
-    "Emuqu/Sources/Models/SettingsManager.swift:36",
-    "Emuqu/Sources/Models/SettingsManager.swift:454",
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:5",
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:51"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "init AssistantContextSource()",
@@ -37,7 +23,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -66,16 +51,15 @@
      "effect": "liveWorkoutSamples nil; else the broker's samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "fc01ae42d73cc6b8",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "97d481c407a79d66",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)": "323361ccc78e4b92",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.liveWorkoutSamples()": "90aecfc83f2a507f",
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()": "9544923aae2a6add",
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "903bc0b6e3a3a86c",
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.liveWorkoutSamples()": "ea29d34e3a3a8a6e",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()": "9a6a297727fcf08a",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "00a266789b6bb6b5",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "651137401d46dc0d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -104,20 +88,19 @@
      "effect": "no overnight in 30 days → newest session of any type is the 'today' anchor; none at all → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.previousOvernight(after:in:)": "d1e857779d662d3d",
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.recentLightweightSessions()": "969883c6e1ada68c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "2578f55064aa0084",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "bfcbff331047ead5",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "5502e8cc0b7a6e8b",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "e0d981024d5bacb1",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.previousOvernight(after:in:)": "7be44b3a94de4379",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.recentLightweightSessions()": "da30fa9f225b5926",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f38121fb871a7d7b",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -140,11 +123,10 @@
      "effect": "cutoff = distantPast (all sessions); else now−30d"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -162,7 +144,6 @@
      "effect": "return nil; else search overnight list"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

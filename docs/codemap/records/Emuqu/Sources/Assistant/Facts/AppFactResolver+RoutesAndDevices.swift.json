@@ -11,20 +11,6 @@
   "RoutesLibraryNamespace.routesLibraryEngageDescription: private static let (model-facing description, line 321)"
  ],
  "toplevel": "Each namespace is registered by AppFactResolverFactory.registerAppNamespaces (AppFactResolver.swift:214-216). Stored lets: namespace strings and RoutesLibraryNamespace.archive.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test exercises routes.library.rename/save_workout/engage, app.now.* or app.devices.* resolvers (grep of EmuquTests for these keys/types finds none).",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:131",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:175",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:223",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:406"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func RoutesLibraryNamespace.currentRoutes()",
@@ -37,10 +23,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -62,10 +47,9 @@
      "effect": "nil; else the .missing value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "1df77cc2d154ff7b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "67d78c19651e692b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -92,10 +76,9 @@
      "effect": "returns [] → caller says 'no workout on <date>' instead of invalid parameter"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "3d9f7e1d114a3a89"
    }
   },
   {
@@ -123,10 +106,9 @@
      "effect": "continue to next candidate; returns first match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.from(session:name:)": "c814894d43ca8784",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.from(session:name:)": "31c3e70b754237c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -138,9 +120,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea"
    }
   },
   {
@@ -158,13 +139,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryCountEntry": "28885bff2469d9e0",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryEngageEntry": "24a64ce7f181cc92",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryEngageEntry": "fd3cce32e0039884",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryListEntry": "73fd2bb67098b4fb",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryRenameEntry": "1378a970fba29761",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibrarySaveWorkoutEntry": "5519e3ba83898116"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryRenameEntry": "0e1dca101aaaeb44",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibrarySaveWorkoutEntry": "8fb39494d9f27c14"
    }
   },
   {
@@ -188,11 +168,10 @@
      "effect": "returns libraryUnreadable's .missing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "3b9db459e397c16e",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -222,12 +201,11 @@
      "effect": "returns .missing notRecorded 'user has no saved routes'; otherwise list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renderRouteSummary(_:)": "9d1e8151ccfd5a1e",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "3b9db459e397c16e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renderRouteSummary(_:)": "a9057a25b73f5531",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -242,11 +220,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryRename(_:)": "c913a98e24f4d892",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
@@ -289,11 +266,10 @@
      "effect": "returns ambiguousRoute (0 → notRecorded, >1 → invalidParameter); otherwise renames"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "788ce17fc622dd82",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "6fd5aa45a6bdbdf5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "3b9db459e397c16e",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)": "6aad98759b2d3eaa"
    }
   },
@@ -318,11 +294,10 @@
      "effect": ".missing: libraryUnreadable()'s reason, else 'the rename could not be saved; nothing was changed'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)": "72ccd603eff7558c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "3b9db459e397c16e",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)": "75f870c56b90b859",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -337,11 +312,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibrarySaveWorkout(_:)": "59c68bb431102226",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
@@ -391,25 +365,12 @@
      "effect": "returns .missing invalidParameter 'no GPS polyline …'; otherwise returns addUnlessSaved's result"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/VOICE_AND_TOOL_USE.md says that without a date save_workout defaults to the most recent finished workout and errors when that workout has no GPS polyline; the code skips non-GPS workouts and saves the newest of the 20 most recent that has a polyline.",
-     "evidence": [
-      "docs/VOICE_AND_TOOL_USE.md:508",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:41",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:51"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.addUnlessSaved(_:from:)": "52bae8996403c85e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.firstSavableRoute(in:name:)": "e2fbf85fd8939a2e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.requestedDate(_:)": "57e54f2e685ad383",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.workoutCandidates(matching:)": "0cb5e42c10612459"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.addUnlessSaved(_:from:)": "22d44b96b1591be8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.firstSavableRoute(in:name:)": "1357a8eceba448be",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "3b9db459e397c16e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.requestedDate(_:)": "038e96143024010f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.workoutCandidates(matching:)": "2aaeafc44b436f1e"
    }
   },
   {
@@ -436,12 +397,11 @@
      "effect": "returns status 'already_saved' with the existing route; nothing is added"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.savedRouteRecord(_:from:)": "eefa3d6d4296b6ed",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "43b72f91d8b00638",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.savedRouteRecord(_:from:)": "b339c3000bb0a586",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "661da9c38d8c720b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -459,7 +419,6 @@
      "effect": "returns it; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -471,9 +430,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea"
    }
   },
   {
@@ -488,11 +446,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryEngage(_:)": "1c492978fba69459",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryEngage(_:)": "93263077b09a23bd",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "946dd1182951eac7",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
@@ -530,13 +487,12 @@
      "effect": "returns .missing notRecorded 'couldn't get a current location fix'; otherwise engages"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "788ce17fc622dd82",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engageSavedRoute(_:from:)": "78737f1ec6652e35",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "6fd5aa45a6bdbdf5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engageSavedRoute(_:from:)": "a780ea1cf8c9b5bf",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -566,12 +522,11 @@
      "effect": "returns .missing 'still building … OSM tile prefetch'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.buildSyntheticRoute(_:from:)": "33de3e8bfd11f7ee",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engage(_:)": "cf69ce9025864c77",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engagedRouteRecord(_:)": "01b59159f139088a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.unusableRoute(_:)": "e975838d608f0044"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.buildSyntheticRoute(_:from:)": "ddb9eeaa0175dd8e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engage(_:)": "c62f77694cb70b4d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engagedRouteRecord(_:)": "dec1f633c63cf3ec",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.unusableRoute(_:)": "cf046eb8eb626cbd"
    }
   },
   {
@@ -591,10 +546,9 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "f9797bf1cd911e58"
    }
   },
   {
@@ -610,11 +564,10 @@
     "mem:ActiveRouteSession (_steps/_destination*/_currentStepIndex)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "81a763ff06dd8038",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "423b1cb3be26f42e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -632,7 +585,6 @@
      "effect": "false: notRecorded no such route; true: invalidParameter multiple matches"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -649,9 +601,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.build(savedRoute:currentLocation:)": "b526d1a82e7c3ef2"
    }
   },
@@ -670,9 +621,8 @@
      "effect": "?? '' first_instruction"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea"
    }
   },
   {
@@ -689,12 +639,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowDayOfWeekEntry": "b0ff55fa52ecb7f1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowIsoEntry": "8e4c0d883df98b97",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowLocalDateEntry": "0dad5dfe2994ffa5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowTimezoneEntry": "4c0b7d7334642101"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowDayOfWeekEntry": "20bc75e02768c588",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowIsoEntry": "7fe1540f5f1b9bc1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowLocalDateEntry": "8945bc67f941239b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowTimezoneEntry": "da0434494fa3727f"
    }
   },
   {
@@ -708,9 +657,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -725,10 +673,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "3d9f7e1d114a3a89",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -742,9 +689,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -758,9 +704,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -774,7 +719,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -795,9 +739,8 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245"
    }
   },
   {
@@ -824,22 +767,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodConnectedEntry": "9e175701ee5e8948",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodKnownCountEntry": "197fca9f927e5db8",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodSnapshotEntry": "10c81745dc76d65d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5ConnectedEntry": "3ca2588794df13f1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5KnownCountEntry": "c87cceeeba9e6201",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarBatteryPercentEntry": "dd9edb598ef6af6a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarConnectedEntry": "0dc5e6ddbb36a918",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarDeviceTypeEntry": "c720f3a562bfed5f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarFirmwareEntry": "90a6ffa2ecfae452",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarKnownCountEntry": "8b2fe2553b8397f6",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarSpecCapacityHoursEntry": "d1f95e146c815ffb",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesZwiftBroadcastAdvertisingEntry": "7e98e09bf1710396",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.polarHoursSinceChargeEntry": "bf1ff139cfba2b10",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.zwiftSubscriberCountEntry": "b62a64f250f760e3"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodConnectedEntry": "88159696c8edba26",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodKnownCountEntry": "1112cca66cee7461",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodSnapshotEntry": "0127f09b85d6869f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5ConnectedEntry": "9c293ae481f318d5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5KnownCountEntry": "b4c9406148f8e4c3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarBatteryPercentEntry": "4ed51a78c4105bac",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarConnectedEntry": "16c16db0d1490491",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarDeviceTypeEntry": "cb89e56a2e988572",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarFirmwareEntry": "5cccca5774ff4966",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarKnownCountEntry": "fb87c7df963d5a3e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarSpecCapacityHoursEntry": "b2b8ca5aade8e09c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesZwiftBroadcastAdvertisingEntry": "583c0f183f56fed5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.polarHoursSinceChargeEntry": "08637aacc1a49ddf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.zwiftSubscriberCountEntry": "d1dc06315d176005"
    }
   },
   {
@@ -863,11 +805,10 @@
      "effect": "returns false; otherwise connection-state comparison"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.polar()": "1651e9473a080388",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.polar()": "d746e92f5c5cfb6c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245"
    }
   },
   {
@@ -893,12 +834,11 @@
      "effect": "returns .missing 'no Polar connected'; otherwise .from(batteryLevel)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "3047ddfc04eb389d",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "27c7abac0fc10d4d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "7c099bb7fac73a8e",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b"
    }
   },
   {
@@ -923,10 +863,9 @@
      "effect": "returns .missing 'no Polar connected'; otherwise the double"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "3047ddfc04eb389d",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "27c7abac0fc10d4d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -952,12 +891,11 @@
      "effect": "returns .missing 'no Polar connected'; otherwise double"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "3047ddfc04eb389d",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "813c1b348abb10af",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "27c7abac0fc10d4d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "d1e3b3d94aa50cfc",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
    }
   },
   {
@@ -983,12 +921,11 @@
      "effect": "returns .missing 'no Polar connected'; otherwise displayName"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "3047ddfc04eb389d",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "27c7abac0fc10d4d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "b3637bf31f4792be",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
    }
   },
   {
@@ -1014,11 +951,10 @@
      "effect": "returns .missing 'no Polar connected'; otherwise .from(firmwareVersion)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "3047ddfc04eb389d",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()": "27c7abac0fc10d4d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0"
    }
   },
   {
@@ -1042,10 +978,9 @@
      "effect": "returns 0 (not missing); otherwise count"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.polar()": "1651e9473a080388",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.polar()": "d746e92f5c5cfb6c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1061,12 +996,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1082,11 +1016,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1101,10 +1034,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.resolveAppDevicesFootPodSnapshot()": "3e28f31224d721e0",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.resolveAppDevicesFootPodSnapshot()": "11548e277f167d40",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -1121,14 +1053,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "656e05b9cdaf0e6b",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "7c099bb7fac73a8e",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1144,12 +1075,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1165,11 +1095,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1185,11 +1114,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1205,11 +1133,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   }
  ],

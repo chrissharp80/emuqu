@@ -26,19 +26,6 @@
   "file:<settings dir>/user_settings.unreadable.json (copy of a settings file that existed but could not be read; SettingsManager.unreadableBackupName)"
  ],
  "toplevel": "`nonisolated static let shared = SettingsManager()` creates the singleton lazily on first touch from any thread; settingsWriteQueue and writeState are created as stored-property initializers. Notification.Name.flowRecoverySettingsChanged = \"FlowRecoverySettingsChanged\".",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "The protection-aware load path (blockedByProtection, retryLoadAfterUnlock, the didSet don't-clobber guard) has no test in EmuquTests (grep for blockedByProtection/retryLoadAfterUnlock finds none).",
-   "evidence": [
-    "Emuqu/Sources/Models/SettingsManager.swift:30",
-    "Emuqu/Sources/Models/SettingsManager.swift:153",
-    "Emuqu/Sources/Models/SettingsManager.swift:192"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var SettingsManager.settings",
@@ -61,9 +48,8 @@
     "notif:FlowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "8dbee5f9f1a0e56e"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "283c4e18315b31e4"
    }
   },
   {
@@ -77,7 +63,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -118,13 +103,12 @@
      "effect": "true: a MainActor Task installs the protectedDataDidBecomeAvailable observer; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()": "270b1a0fbcea35cf",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()": "f3688cbb39a90c32",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4f496081d9a90c6a",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)": "c528108e4d2f5c1c",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()": "6c864b9f9b21911f",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()": "e551dda90491514e",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "027dbe3690b80c33",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)": "3449e5fb571d7289",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6"
    }
   },
   {
@@ -156,10 +140,9 @@
      "effect": "log a warning and return the legacy Documents URL (migration retried on the next launch, since the App Group file still does not exist)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -177,9 +160,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "0bd333b6cc926976"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "149ba723b6b084e5"
    }
   },
   {
@@ -217,12 +199,11 @@
      "effect": "true: return (nil,.blockedByProtection); false: log, keep a copy of the file, return (nil,.unreadableOther) — defaults may later be saved over the file, the copy survives"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "889a027d8dbe6650",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "909f806c83f70e42",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -253,9 +234,8 @@
      "effect": "log at .error; no copy kept"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -280,9 +260,8 @@
      "effect": "return; otherwise register one"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "9b40cc1d0f02354b"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "2d750b3b8d969ca4"
    }
   },
   {
@@ -326,14 +305,13 @@
      "effect": "merge; otherwise take the loaded settings as they are"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4f496081d9a90c6a",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.merging(changesFrom:to:onto:)": "2a1057db7327422b",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "f615f129454b105b",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "2b2393e8376b4c26",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "027dbe3690b80c33",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.merging(changesFrom:to:onto:)": "bf5d0c37191938e3",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "10eb0c1450d8976a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "73361178a8326f07",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -357,7 +335,6 @@
      "effect": "return"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -386,11 +363,10 @@
      "effect": "log warning, return disk"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.jsonFields(_:)": "4d902ffde6c955d7",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.jsonFields(_:)": "9a53c274505f0297",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -412,10 +388,9 @@
      "effect": "throw"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "be658e8b23826e73"
    }
   },
   {
@@ -449,13 +424,12 @@
      "effect": "delete the locked file, outcome .fileNotPresent, clear starting point, remove observer; otherwise straight to the reset"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeFile(at:what:)": "08e39540981c56bc",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "f615f129454b105b",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeFile(at:what:)": "db8be3494de563a0",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "10eb0c1450d8976a",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "6137b39fe90ea00e",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6"
    }
   },
   {
@@ -484,9 +458,8 @@
      "effect": "log at .error"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -514,10 +487,9 @@
      "effect": "log warning and return without saving; otherwise save()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "2b2393e8376b4c26",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "73361178a8326f07",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -536,10 +508,9 @@
     "file:user_settings.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.enqueueDiskWrite(_:)": "6da822623dde7323",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.enqueueDiskWrite(_:)": "2a63d19ae774802a",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -561,9 +532,8 @@
      "effect": "return (the running drain picks up the new pending snapshot); false: async-dispatch a drain"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()": "a3ee71a5a45689d2"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()": "12fbe807956630c3"
    }
   },
   {
@@ -586,10 +556,9 @@
      "effect": "write it; loop ends when none (scheduled cleared)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.takePendingWrite()": "55abc85e769e8af6",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.writeSettingsToDisk(_:)": "f947da937799b53d"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.takePendingWrite()": "c63d7100c08d98b3",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.writeSettingsToDisk(_:)": "88d4c2a8a565df9d"
    }
   },
   {
@@ -611,7 +580,6 @@
      "effect": "scheduled=false, return nil; else clear pending and return it"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -637,10 +605,9 @@
      "effect": "logged at .error and dropped; no retry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "be658e8b23826e73",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -656,9 +623,8 @@
     "file:user_settings.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()": "a3ee71a5a45689d2"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()": "12fbe807956630c3"
    }
   },
   {
@@ -682,11 +648,10 @@
      "effect": "true: encode; false: return nil (push skipped)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "be658e8b23826e73",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -716,11 +681,10 @@
      "effect": "adoptTrialStart(it); otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "d8ef07680d3672b4",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "4958df5d94f11e8d",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b"
    }
   },
   {
@@ -742,9 +706,8 @@
      "effect": "return without change; otherwise append (didSet saves)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -760,9 +723,8 @@
     "notif:FlowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -780,7 +742,6 @@
     "mem:SettingsManager.disclaimerRevision"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -807,9 +768,8 @@
      "effect": "assign baselineHR; else skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -823,18 +783,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only EntitlementAnchorTests references SettingsManager.trialDurationDays; no production code calls it.",
-     "evidence": [
-      "Emuqu/Sources/Models/SettingsManager.swift:394",
-      "EmuquTests/EntitlementAnchorTests.swift:247"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -859,12 +807,11 @@
      "effect": "falls back to settings.trialStartDate (CloudKit-synced mirror)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "e2967a01fdcec822",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "ba3691d361e804bd"
    }
   },
   {
@@ -880,9 +827,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining": "42d686db341dd612"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining": "fd984626ec2901c5"
    }
   },
   {
@@ -912,9 +858,8 @@
      "effect": "mirror the anchor's start and return (always the case for StoreKitManager, which records the App Store start first); else adopt the given start into the anchor and mirror the anchor's result (a CloudKit-restored start from restoreFromJSON)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.mirrorTrialStart(_:)": "1123a381ac54551c",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.mirrorTrialStart(_:)": "0f76d4a1e5758b93",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adoptTrialStart(_:wallClock:)": "f3f98f46bf9dd55c",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd"
    }
@@ -938,9 +883,8 @@
      "effect": "return without change; else assign (didSet saves)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -954,7 +898,6 @@
     "ud:lastTrialReminderDate"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -974,7 +917,6 @@
      "effect": "return false; else isDateInToday(last)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

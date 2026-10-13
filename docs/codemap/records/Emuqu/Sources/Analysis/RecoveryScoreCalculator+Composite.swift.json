@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func RecoveryScoreCalculator.displayScore(_:)",
@@ -20,19 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The clamp now lives only in ScoreVerdict.safeDisplayScore (displayScore delegates), but DeterministicIntent still renders factor scores with a raw Int(factor.score.rounded()), which traps on a non-finite value.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:265"
-     ],
-     "found": "second read; narrowed when displayScore was made to delegate"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15"
    }
   },
   {
@@ -44,7 +32,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -9,21 +9,6 @@
   "CauseDetectorTests.detector: CauseDetector() instance property, rebuilt per test instance"
  ],
  "toplevel": "Stored property `detector = CauseDetector()` builds the six default strategies for every test method instance.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "createContext always uses a bare HRVSession() (no analysisResult) and sleepTrend nil, so CauseDetectionContext.currentHR is nil and sleepTrend-based causes never fire: SevereCauseDetector's 'Elevated HR + Low HRV' rule, MetricBased elevated-RHR paths and all positive sleep-trend causes are unreachable from every test in this file.",
-   "evidence": [
-    "EmuquTests/CauseDetectorTests.swift:55",
-    "EmuquTests/CauseDetectorTests.swift:68",
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:83",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:49",
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CauseDetectorTests.setUp()",
@@ -40,9 +25,8 @@
     "notif:LanguageManagerDidChangeLanguage"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
@@ -57,10 +41,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "98dbcb140294897f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
    }
   },
   {
@@ -76,9 +59,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "89c7d079d2f69b65",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -101,9 +83,8 @@
      "effect": "asserts higher.rankingWeight >= lower.rankingWeight; no pairs (and no trap) for 0 or 1 causes, which the count assertion already fails"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "89c7d079d2f69b65",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -121,21 +102,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Assertion accepts an empty result, so the test passes even if the custom strategy list were ignored and nothing was detected; with rmssd 15 vs avgRMSSD 45 a 'Sharp HRV Drop' is deterministic and could be asserted.",
-     "evidence": [
-      "EmuquTests/CauseDetectorTests.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector(strategies:)": "19a4181cc0156d34",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "89c7d079d2f69b65",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector(strategies:)": "531770c5554ab438",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "bbcb01cc67d20c2f",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -151,19 +121,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The good-context result is discarded (`_ =`), so the 'only triggers for good readings' half of the name is never asserted.",
-     "evidence": [
-      "EmuquTests/CauseDetectorTests.swift:117"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "549103e439806222",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -179,9 +138,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "549103e439806222",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -197,9 +155,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "bbcb01cc67d20c2f",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -215,21 +172,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Comment says it only verifies the detector runs without crashing; the disjunction with isEmpty means the HRV-crash rule (66% below the fixture avg of 45, which always yields 'Sharp HRV Drop') is never actually required.",
-     "evidence": [
-      "EmuquTests/CauseDetectorTests.swift:158",
-      "EmuquTests/CauseDetectorTests.swift:160",
-      "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:27"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "bbcb01cc67d20c2f",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -246,10 +190,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "9a808b45adfb4f81",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "0492dffbf1c19f77",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -266,10 +209,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "9a808b45adfb4f81",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "0492dffbf1c19f77",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -286,10 +228,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "9a808b45adfb4f81",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "0492dffbf1c19f77",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -306,10 +247,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "9a808b45adfb4f81",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "0492dffbf1c19f77",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -326,10 +266,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "9a808b45adfb4f81",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "0492dffbf1c19f77",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -345,9 +284,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "e4c7b24fea722421",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "f8c6e006df2143ed",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -363,9 +301,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "e4c7b24fea722421",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "f8c6e006df2143ed",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -381,20 +318,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "For good readings SleepCauseDetector returns detectPositiveSleepCauses, which returns [] whenever sleepTrend is nil; createContext always passes nil, so the assertion cannot fail regardless of how short sleep is handled.",
-     "evidence": [
-      "EmuquTests/CauseDetectorTests.swift:68",
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "e4c7b24fea722421",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "f8c6e006df2143ed",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -410,9 +335,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "c95b297268e2b088",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -428,9 +352,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "c95b297268e2b088",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -447,10 +370,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "c95b297268e2b088",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -467,11 +389,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)": "cfd96a14928f5c22",
-    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "eafc110510de9577"
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "c95b297268e2b088",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)": "d62bd3d74d609368",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "81f9175e0bde9d8c"
    }
   },
   {
@@ -486,9 +407,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "7901f149aed57126",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "d28a709e631fc0fb",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -504,9 +424,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "7901f149aed57126",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "d28a709e631fc0fb",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -521,9 +440,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()": "94d41e0150b4c95c"
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()": "561309bd99bf9ced"
    }
   },
   {
@@ -546,7 +464,6 @@
      "effect": "asserts the lowercased raw value does not contain the word"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -573,10 +490,9 @@
      "effect": "asserts the text does not contain it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "c95b297268e2b088",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "bbcb01cc67d20c2f",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -598,9 +514,8 @@
      "effect": "asserts its explanation contains neither 'blood sugar' nor 'glucose'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "c95b297268e2b088",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -618,10 +533,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "89c7d079d2f69b65",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   },
@@ -646,25 +560,11 @@
      "effect": "asserts its confidence is in the allowed positive set"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The 'only positive causes' allow-list includes .high and .moderateHigh, which negative rules also emit (Insufficient Sleep .high, Fragmented Sleep .high/.moderateHigh, Unidentified Stress .moderateHigh), so a negative cause leaking into a good reading with one of those levels would pass.",
-     "evidence": [
-      "EmuquTests/CauseDetectorTests.swift:478",
-      "EmuquTests/CauseDetectorTests.swift:479",
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:74",
-      "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:187"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)": "21de0eeadfe1ad1f",
-    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "e4c7b24fea722421",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "89c7d079d2f69b65",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)": "aec95103f7612471",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "549103e439806222",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "f8c6e006df2143ed",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
    }
   }

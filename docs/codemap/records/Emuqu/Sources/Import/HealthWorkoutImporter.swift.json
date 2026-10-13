@@ -12,7 +12,6 @@
   "mem:HealthWorkoutImporter.duplicateStartToleranceSec (static 300 s)"
  ],
  "toplevel": "Header comment (7-36) documents that imports carry no RR/RMSSD/SDNN/alpha1, no mean HR/TRIMP/hrTSS, and elevation gain only on rebuild. Instances are constructed by FitnessTabView+DataMenu.swift:77 and AppLaunchRecovery.swift:17 with the dependency HealthKitManager.",
- "flags": [],
  "units": [
   {
    "key": "var HealthWorkoutImporter.Candidate.duration",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -71,7 +69,6 @@
      "effect": "nil — workout dropped from the candidate list; .trailRun and .airBike are never produced"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -83,7 +80,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -108,9 +104,8 @@
      "effect": "emit the pair; otherwise drop the window"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b"
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "a8b4425a80968509"
    }
   },
   {
@@ -136,10 +131,9 @@
      "effect": "emit one pair per second from the overlap start through its whole-second length; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)": "4f3257d471dc1475"
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "4bbf571d1ac41fbf",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)": "e2b5e1d081bf2304"
    }
   },
   {
@@ -159,10 +153,9 @@
      "effect": "longer first; otherwise earlier start first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb"
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "a8b4425a80968509",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "7232d84147894d0b"
    }
   }
  ],

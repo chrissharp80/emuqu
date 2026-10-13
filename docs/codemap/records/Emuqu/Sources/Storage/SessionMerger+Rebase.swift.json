@@ -9,7 +9,6 @@
   "mem:SessionMerger.copiedSessionFieldCount = 39 (asserted against HRVSession's Mirror child count in SessionMergeClockTests)"
  ],
  "toplevel": "copiedSessionFieldCount static constant (103).",
- "flags": [],
  "units": [
   {
    "key": "func SessionMerger.onClock(_:startingAt:)",
@@ -37,14 +36,13 @@
      "effect": "beat offset = session offset"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.isOnClock(_:_:)": "d49529f354fcaf64",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "7b9af85ecd99f554",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "45eb331f656e5c49",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.isOnClock(_:_:)": "bc736bf41915918c",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "ad095043162759a1",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "5072ead99fbd8db0",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -62,7 +60,6 @@
      "effect": "only the session start is compared"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -80,9 +77,8 @@
      "effect": "return result unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -103,9 +99,8 @@
      "effect": "true: withWindow copy; false: return original"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.mergedIndex(of:in:onto:)": "1074e172afb55f36",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.mergedIndex(of:in:onto:)": "3526afd4aa522190",
     "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)": "7047e557a7b4fab0"
    }
   },
@@ -142,9 +137,8 @@
      "effect": "low = mid+1; else high = mid"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -165,9 +159,8 @@
      "effect": "return result unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.firstIndex(atOrAfter:in:)": "b9e69d771f26aec8",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.firstIndex(atOrAfter:in:)": "f85dcfde2c014288",
     "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)": "7047e557a7b4fab0"
    }
   },
@@ -191,7 +184,6 @@
      "effect": "low = mid+1; else high = mid"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -205,25 +197,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Hand-copies ~29 fields through the initializer; unlike copy(of:) there is no field-count test, so a field added to HRVAnalysisResult is silently dropped from every re-pointed merge result unless the initializer forces it.",
-     "evidence": [
-      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:79",
-      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "61532c95347760ef",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
    }
   },
   {
@@ -238,13 +218,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)": "9eaac86c75ed552d"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyDerivedFields(from:to:)": "453b79bdb0a9d372"
    }
   },
   {
@@ -258,14 +237,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)": "a675809f922ff668"
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "45eb331f656e5c49",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copyUserFields(from:to:)": "19f39e5791baf2b1"
    }
   },
   {
@@ -277,10 +255,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "ae7b7e75db3bda85",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71"
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99"
    }
   }
  ],

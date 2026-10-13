@@ -7,30 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "The 'nothing writes to the pasteboard directly' scan only looks for the literal 'UIPasteboard.general'. Views that enable system text selection let the user's Copy menu write to the Universal Clipboard without .localOnly or expiry, which the scan cannot see — e.g. the LLM prompt audit bodies (LLMPromptAuditView.swift:231) and the archive index diagnostics (ExportAndArchiveViews.swift:546).",
-   "evidence": [
-    "EmuquTests/PrivacyControlsTests.swift:69",
-    "Emuqu/Sources/Views/LLMPromptAuditView.swift:231",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift:546"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "testTheStreamBufferFlushIsDeferred is a text match on 'buffer.flush(force: true' in one hard-coded file path; renaming the variable, moving the call, or wrapping the defer over two lines fails or bypasses it without any behaviour change.",
-   "evidence": [
-    "EmuquTests/PrivacyControlsTests.swift:93",
-    "EmuquTests/PrivacyControlsTests.swift:97",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:204"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func PrivacyControlsTests.testPasteboardWritesAreLocalOnly()",
@@ -45,7 +21,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()": "002f7b5599f34702"
    }
@@ -71,7 +46,6 @@
      "effect": "asserts 50 < seconds ≤ 60; when nil only the NotNil assertion fails"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()": "002f7b5599f34702"
    }
@@ -111,10 +85,9 @@
      "effect": "file name added to offenders; test fails when offenders non-empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()": "1a7ae0fb7da16999",
-    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.swiftFiles(under:)": "87b549bdf1bac14d"
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()": "4c9815840cc64e0b",
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.swiftFiles(under:)": "e6b26df11afbdac6"
    }
   },
   {
@@ -136,9 +109,8 @@
      "effect": "asserts it begins with 'defer {'"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()": "1a7ae0fb7da16999"
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()": "4c9815840cc64e0b"
    }
   },
   {
@@ -156,7 +128,6 @@
      "effect": "XCTFail and throw CocoaError(.fileNoSuchFile); else returns the URL"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -172,18 +143,6 @@
      "at": "+1",
      "cond": "enumerator is nil",
      "effect": "returns [] (the scan then passes vacuously); else filters by .swift extension"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "If the enumerator cannot be created, swiftFiles returns [] and testNothingWritesToThePasteboardDirectly passes having scanned nothing, the outcome the sourceRoot doc comment says it guards against.",
-     "evidence": [
-      "EmuquTests/PrivacyControlsTests.swift:130",
-      "EmuquTests/PrivacyControlsTests.swift:113"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}

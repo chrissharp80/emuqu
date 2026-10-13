@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
@@ -37,9 +36,8 @@
      "effect": "false: returns AbsoluteRMSSDFallback.neutralScore (50); true: returns clamped absoluteRMSSDScore(rmssd)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "fdc70796780caa95",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "0f962dbde1e887ac",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "4c8862ede6aff1de"
    }
   },
@@ -75,14 +73,13 @@
      "effect": "subtracts 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "6bb7dd4dfee2a639",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "c899bcb95ef56bcd",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "a898d83cb5d82909",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "9155c5e12d684ece",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "e34789c72a9a2ca8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2faffce2ec1bb292"
    }
   },
   {
@@ -100,7 +97,6 @@
      "effect": "returns 0; else computes clamped zHR*-5"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -125,9 +121,8 @@
      "effect": "returns nil; else returns (daysSince, capped penalty)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "f60f77faa1c0ef81"
    }
   },
   {
@@ -160,7 +155,6 @@
      "effect": "returns score4; else returns scoreBelow"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -186,24 +180,10 @@
      "effect": "returns analysis.enhancedScore; otherwise zeroMinuteNightScore"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md describes the Tier-2 sleep sub-score as duration 35%/efficiency 25%/deep 25%/REM 15% (the weighted formula), but any night with sleep minutes is scored by SleepScienceAnalyzer.enhancedScore; the weighted formula (now zeroMinuteNightScore) only runs for zero-minute nights. The code's own doc comment now says so; the doc page still needs correcting.",
-     "evidence": [
-      "docs/FLOWCHART.md:355",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:121",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:126",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:80"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)": "5c61a6ae4d0ea566",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "61d4d4775e117e68",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)": "4004a92c63956c36",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "23c89fed3f3a35fe",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "e39de52cb4050595"
    }
   },
   {
@@ -221,10 +201,9 @@
      "effect": "efficiency term uses neutral 0.5"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097"
    }
   },
   {
@@ -257,7 +236,6 @@
      "effect": "returns (.alphaReduced, -3); otherwise (0.60-0.75 or 1.0-1.2) returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -285,7 +263,6 @@
      "effect": "returns (.variabilityErratic, -3); else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -318,7 +295,6 @@
      "effect": "returns +2; else 0"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

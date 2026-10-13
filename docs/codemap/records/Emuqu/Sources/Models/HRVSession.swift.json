@@ -14,18 +14,6 @@
   "mem:ReadingTag.morning…menstrual (14 static lets built from the table, ids 00000000-0000-0000-0000-00000000000{1..E})"
  ],
  "toplevel": "Static let skipRRSeries = decodeFlag(\"skipRRSeries\"); 14 static let system tags each initialised via definedTag(suffix) at first access. ReadingTag synthesized Codable/Hashable/Identifiable/Sendable.",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "File named HRVSession.swift contains no HRVSession; HRVSession lives in SessionMetadata.swift — the name misleads lookups.",
-   "evidence": [
-    "Emuqu/Sources/Models/HRVSession.swift:1",
-    "Emuqu/Sources/Models/SessionMetadata.swift:113"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CodingUserInfoKey.decodeFlag(_:)",
@@ -42,7 +30,6 @@
      "effect": "preconditionFailure crash; otherwise returns key. Unreachable for the single non-empty caller literal"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -54,7 +41,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -74,9 +60,8 @@
      "effect": "hex not scannable → gray"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)": "802233adc33ed1a4"
+    "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)": "795e9c3cce6ec8d3"
    }
   },
   {
@@ -102,10 +87,9 @@
      "effect": "unknown suffix → stored English name"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.localizedSystemName(suffix:)": "cf43d87e74379dce",
-    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemSuffix(of:)": "df1eea337a2afb83"
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.localizedSystemName(suffix:)": "a773f40aadfe0096",
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemSuffix(of:)": "a1f8323dd9754830"
    }
   },
   {
@@ -123,7 +107,6 @@
      "effect": "false → nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -143,9 +126,8 @@
      "effect": "its localized name; otherwise nil (caller falls back to stored name)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -157,7 +139,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -177,9 +158,8 @@
      "effect": "debug: assertionFailure; release: tag with random UUID (isSystem true) whose displayName then falls back to English name. Unreachable for the 14 single-hex suffixes in the table"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928"
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a"
    }
   },
   {
@@ -199,9 +179,8 @@
      "effect": "preconditionFailure crash at static-let init; unreachable for the 14 literals used"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e"
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "51bb46e3e94c6a07"
    }
   },
   {
@@ -215,9 +194,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e"
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "51bb46e3e94c6a07"
    }
   },
   {
@@ -240,7 +218,6 @@
      "effect": "return nil; otherwise RGB from the 24 bits"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -258,7 +235,6 @@
      "effect": "true → formatted hex; false → '#000000' (color silently becomes black)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],
