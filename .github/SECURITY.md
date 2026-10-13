@@ -424,8 +424,8 @@ This project does not use:
   remaining risk (an accidental paste of a real key into a commit) is
   mitigated by single-developer review of every diff before push.
 - **Dependency updates are pulled, not pushed.** Dependabot *version* PRs are
-  disabled (`open-pull-requests-limit: 0`) because CI is manual-only and the
-  PRs accumulated unvalidated — see [`docs/CI_POSTURE.md`](../docs/CI_POSTURE.md).
+  disabled (`open-pull-requests-limit: 0`) because, while CI was manual-only,
+  the PRs accumulated unvalidated — see [`docs/CI_POSTURE.md`](../docs/CI_POSTURE.md).
   Dependabot **security** updates and repository alerts remain enabled, which is
   the part worth an interruption. A deliberate sweep means raising the limit,
   running `make ci` against each bump, then setting it back.

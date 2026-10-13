@@ -230,21 +230,21 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
 - **`gates.yml`** runs on every push, on a Linux runner, in about a minute:
   every gate in `make ci` that needs only bash and python, plus the two
   meta-gates that prove the others are wired and fail closed.
-- **`ci.yml`** is manual, and is also called by `testflight.yml` before a
-  release. It runs lint and budgets, the test suite with coverage, the
+- **`ci.yml`** runs on every pull request and push to `main` at scope `unit`,
+  on demand at any scope, and is called by `testflight.yml` at scope `full`
+  before a release. It runs lint and budgets, the test suite with coverage, the
   strict-concurrency check and Thread Sanitizer. Coverage is enforced against
   three ratcheted floors (overall, logic and views) read from `.ci/` at run time.
 - **`performance.yml`** runs the analysis performance tests on demand.
 - **`security.yml`** runs CodeQL for Swift and dependency review on demand.
 - **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
 
-Nothing that needs macOS runs automatically. macOS minutes bill at ten times
-the Linux rate, and a full run of this suite costs about 1,080 billable minutes,
-so on a push trigger a 3,000-minute plan is exhausted in under three runs. The same
-scripts and budgets run locally with `make ci` for free; Actions minutes are
-spent on the clean-room run before a release. The arithmetic is in
-[`docs/CI_POSTURE.md`](docs/CI_POSTURE.md), and `./scripts/evidence_report.sh`
-prints what is enforced right now.
+The macOS build, the unit suite and Thread Sanitizer run on every pull request
+on GitHub's standard macOS runner, which costs a public repository no Actions
+minutes. The UI target and the full coverage floors run on demand and before a
+release. The same scripts and budgets run locally with `make ci`.
+[`docs/CI_POSTURE.md`](docs/CI_POSTURE.md) has the details, and
+`./scripts/evidence_report.sh` prints what is enforced right now.
 
 Third-party Actions are pinned to commit SHAs. Dependabot raises security
 alerts; version bumps are pulled in by hand. [`.github/SECURITY.md`](.github/SECURITY.md) has the full posture.
@@ -268,7 +268,7 @@ Everything is under [`docs/`](docs/). Start with the maintainers guide.
 | [`docs/REVIEW.md`](docs/REVIEW.md) | App Review notes and the pre-release flow-walk |
 | [`docs/runbooks/`](docs/runbooks/) | Playbooks for a rejection, a hotfix, an incident or a deletion request |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |
-| [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md) | Why the macOS suite does not run automatically, with the costing |
+| [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md) | What CI runs on each pull request, what runs only before a release, and why |
 
 Root-level docs: [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md),
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and [`.github/SECURITY.md`](.github/SECURITY.md).

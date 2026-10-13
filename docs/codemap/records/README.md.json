@@ -250,8 +250,8 @@
   },
   {
    "key": "§ Emuqu > Working on it > CI",
-   "hash": "b94b7d99e72093b6",
-   "does": "Five workflows: gates.yml on push (also pull_request) runs bash/python gates plus gates-wired-guard and gate-preflight; ci.yml manual and workflow_call from testflight.yml (default scope full when called); performance.yml, security.yml (CodeQL + dependency review) manual; testflight.yml deploy needs quality-gate success. ~1,080 billable minutes per full run (ci.yml comment: 1083). scripts/evidence_report.sh exists.",
+   "hash": "7ff2654d7cc3b817",
+   "does": "Five workflows: gates.yml on push (also pull_request) runs bash/python gates plus gates-wired-guard and gate-preflight; ci.yml on every pull request and push to main at scope unit, on demand at any scope, and via workflow_call from testflight.yml at scope full; performance.yml, security.yml (CodeQL + dependency review) on demand; testflight.yml deploy needs quality-gate success. Claims the macOS build, unit suite and Thread Sanitizer run per pull request on the standard macOS runner at no minutes cost to a public repository, and the UI target and full coverage floors run on demand and before a release. scripts/evidence_report.sh exists.",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates",
@@ -271,19 +271,19 @@
    "deps": {
     ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
-    ".github/workflows/ci.yml::job tests": "a02b46f65c3a153e",
+    ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/performance.yml::job performance-tests": "330868dd344a0c70",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
-    ".github/workflows/security.yml::job dependency-review": "4665797cb224b382",
+    ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
     ".github/workflows/testflight.yml::job deploy": "e646693de510f6b6",
     ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
    }
   },
   {
    "key": "§ Emuqu > Documentation",
-   "hash": "2fef5a8f9b360da0",
+   "hash": "8a978b1822604eae",
    "does": "Documentation index; every linked file/directory exists (MAINTAINERS, FEATURES, USERS_MANUAL, ARCHITECTURE, API_REFERENCE, FLOWCHART, TRAINING_LOAD, VOICE_AND_TOOL_USE, LOCALIZATION, REFACTOR_SPEC, REVIEW, runbooks/, adr/, CI_POSTURE). `make doc-links` checks relative links (Makefile:177).",
    "entry": null,
    "calls": [
