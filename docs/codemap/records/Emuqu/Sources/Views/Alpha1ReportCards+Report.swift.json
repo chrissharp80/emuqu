@@ -20,21 +20,6 @@
   "mem:Alpha1ReportCards.effortHeartRateRise = 10 bpm (static let)"
  ],
  "toplevel": "File-scope private helper functions (alpha1Points, alpha1StatsRow, alpha1Line, ectopicShadowFooter, alpha1StatBlock, alpha1CacheKey, logAlpha1MinProvenance (#if DEBUG body), collectCleanAlpha1Values, cleanMinMaxAvg, bandLegend). No globals.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "WorkoutPDFReport re-implements the band accumulation (Alpha1Accumulator) and the warmup/armed/180 s AT1 crossing state machine (AT1CrossingRun) instead of calling Alpha1ReportCards.alpha1BandTotals / AT1CrossDetector; the comments say they 'must match', so a rule change in one place silently diverges the PDF from the card and stored snapshot.",
-   "evidence": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:389",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:432",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:383",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:446",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:477"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var Alpha1ReportCards.alpha1ReportCard",
@@ -59,10 +44,9 @@
      "effect": "renders alpha1ReportBody; else empty view"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1ReportBody(samples:alphaPoints:)": "02973f43d26b2282",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1Points(_:)": "2df736deab94e678"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1ReportBody(samples:alphaPoints:)": "8c02fda3cc555097",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1Points(_:)": "4dabc5508425db7c"
    }
   },
   {
@@ -83,18 +67,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Chart(alphaPoints:ectopicShadows:)": "797f55916fbde62e",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Hero(stats:)": "4159d9666d1d6652",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "22f7724246320d5c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatsRow(stats:sampleCount:)": "d038d63afaca99bf",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func ectopicShadowFooter(_:)": "010c2f6dbd5db4cc",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel": "21c6d81a7662648a",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1Explainer": "6e5957309aab1180",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Chart(alphaPoints:ectopicShadows:)": "4355e75cc161153e",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Hero(stats:)": "de5240a854e5912c",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "59975878cd5d95a7",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatsRow(stats:sampleCount:)": "aeaff67619e9b4ce",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func ectopicShadowFooter(_:)": "f27b4c13d00a4498",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel": "4c3d0bcd00ff2964",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1Explainer": "3107559229c53c9a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -109,12 +92,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1PlainEnglishSummary(stats:)": "77bbc8a34ece9c5c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1PlainEnglishSummary(stats:)": "f2b1641542280b1c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -146,12 +128,11 @@
      "effect": "x upper bound 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadowMarks(_:)": "17c48da01a7c8e1d",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1Line(_:)": "2d17a037c11e3906",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.thresholdRules": "05f8fac27b4fcc5c"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadowMarks(_:)": "4b24aa9e5bdb16b0",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1Line(_:)": "138f4235506ff2ce",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.thresholdRules": "469249a5a5c94c41"
    }
   },
   {
@@ -165,10 +146,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313"
    }
   },
   {
@@ -182,11 +162,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.ectopicTag": "a1687c7ce9d4a188",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.ectopicTag": "41af89a96c37f6bf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -200,12 +179,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -219,10 +197,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -234,7 +211,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -271,11 +247,10 @@
      "effect": "candidate dropped (kept as physiology); otherwise returned"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.closeDip(_:recoveredAt:into:)": "1ce0c50a1657a76c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.extendDip(_:offsetSec:alpha1:)": "4bb255b7c19beecd",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.heartRateRose(into:in:)": "5bf492645993324e"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.closeDip(_:recoveredAt:into:)": "0d093420af41d5c1",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.extendDip(_:offsetSec:alpha1:)": "106c80d4b67751d3",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.heartRateRose(into:in:)": "01721feb38629ad9"
    }
   },
   {
@@ -308,9 +283,8 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.shadow(recoveredAt:)": "943912fea8ab5cbe"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.shadow(recoveredAt:)": "4db14fb0fe6fa934"
    }
   },
   {
@@ -330,9 +304,8 @@
      "effect": "appends shadow; otherwise nothing appended"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.shadow(recoveredAt:)": "943912fea8ab5cbe"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.shadow(recoveredAt:)": "4db14fb0fe6fa934"
    }
   },
   {
@@ -352,9 +325,8 @@
      "effect": "creates Alpha1Dip(start=deepest=offset) and returns; otherwise deepen"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.deepen(offsetSec:alpha1:)": "5629082d05ccb7db"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.deepen(offsetSec:alpha1:)": "cee68def3bb578b6"
    }
   },
   {
@@ -372,7 +344,6 @@
      "effect": "no change; otherwise records new deepest"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -390,7 +361,6 @@
      "effect": "returns nil; otherwise padded shadow"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -402,7 +372,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -424,11 +393,10 @@
      "effect": "returns ''"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.totalSec": "b1b9be9f14e61f6d",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.totalSec": "d4128801065703ea",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -462,19 +430,18 @@
      "effect": "returns cached stats without recomputing; else computes and stores"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache": "5c68863d9d76b498",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "10a49c142b438673",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "a6c985a24e5b8c8a",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func cleanMinMaxAvg(values:)": "afa15a26d74d1af2",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func collectCleanAlpha1Values(samples:shadows:)": "d4c78351ccc01e72",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)": "9453f409993062ab",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func Alpha1StatsCache.lookup(key:)": "9d5110a7833cd5bc",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func Alpha1StatsCache.store(key:value:)": "08b5952efb33ae00"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache": "f1b54711087a1c5b",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "5a6901efb47d64c5",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "2ccd96fe02154610",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func cleanMinMaxAvg(values:)": "36271bd753530c3e",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func collectCleanAlpha1Values(samples:shadows:)": "f8437a1e19b42775",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)": "6af2170b272fe733",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func Alpha1StatsCache.lookup(key:)": "49a1052f0b3d875b",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func Alpha1StatsCache.store(key:value:)": "c42818558141efff"
    }
   },
   {
@@ -497,7 +464,6 @@
      "effect": "between += dt; otherwise aboveAT2 += dt"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -530,18 +496,6 @@
      "effect": "returns nil; else returns (pendingOffset, pendingHR)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same state machine as WorkoutPDFReport AT1CrossingRun.observe (warmup 120, sustain 180, armed flag, pending offset/HR) duplicated rather than shared.",
-     "evidence": [
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:400",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:477"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -568,23 +522,10 @@
      "effect": "steps the detector and stores its result (stays nil until mature)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The timed/shadow-filtered α1 walk is re-implemented in WorkoutPDFReport.alpha1Stats and FitnessPostSummaryView.alpha1Readings with the same sampleSeconds + shadow-skip loop.",
-     "evidence": [
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:432",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:383",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:545"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)": "b34973e204f28fd0",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Bands.add(alpha1:dt:)": "2129bab42439ae6c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "36a3c2fe1f0be971"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)": "d80dda2e34c22a1d",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Bands.add(alpha1:dt:)": "61d03ade51e22aca",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "32f6ca3a38a52d09"
    }
   },
   {
@@ -615,10 +556,9 @@
      "effect": "skipped after advancing prevOffset; otherwise appended"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "b3336f522bf914fd",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "32683f70583886cf",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "47f684bf3c8b4c47"
    }
   },
   {
@@ -636,7 +576,6 @@
      "effect": "returns 1; otherwise clamped gap"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -673,11 +612,10 @@
      "effect": "returns crossing sentence; otherwise band-minutes summary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1CrossingSentence(cross:easyMin:threshMin:hardMin:)": "4cff9b51f756f6cf",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.totalSec": "b1b9be9f14e61f6d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1CrossingSentence(cross:easyMin:threshMin:hardMin:)": "4128dc719fb08570",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.totalSec": "d4128801065703ea"
    }
   },
   {
@@ -702,9 +640,8 @@
      "effect": "mixed-intensity sentence; else easy+threshold sentence (sub-minute hard time is omitted)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -732,14 +669,13 @@
      "effect": "renders card; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)": "d6f3a928ea069441",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)": "a53c93b1a61fc5a7",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend": "39a8f0e1a480b43a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)": "e53488f2a888744e",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)": "4458ef57b885a7d1",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend": "76961cc9f19c3309",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -765,11 +701,10 @@
      "effect": "adds End marker"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RegionForTrack(_:)": "e7c92225e2810ff4"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RegionForTrack(_:)": "df2dd639a583251a"
    }
   },
   {
@@ -784,11 +719,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func bandLegend(color:label:)": "ea38d00f5e8fec3d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func bandLegend(color:label:)": "8c971fa16dbcff30",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -821,12 +755,11 @@
      "effect": "iterates track"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.add(_:color:)": "9df40dcd535022df",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.finish()": "08ecf73cd0e83fc4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:readings:)": "7c5a7fad01985e41",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.cleanAlpha1Readings(_:)": "5d1c004bc5774b7a"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.add(_:color:)": "d1d53b022153c32d",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.finish()": "7640649e8a4b6a26",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:readings:)": "d1fce85691ad7f2d",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.cleanAlpha1Readings(_:)": "56b4383a634a12f0"
    }
   },
   {
@@ -847,10 +780,9 @@
      "effect": "sample left out"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "b3336f522bf914fd",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "32683f70583886cf",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065"
    }
   },
   {
@@ -883,9 +815,8 @@
      "effect": "yellow; else orange"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -908,7 +839,6 @@
      "effect": "closes run with boundary fix and starts new colour"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -926,7 +856,6 @@
      "effect": "appends final segment"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -940,7 +869,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe"
    }
@@ -960,7 +888,6 @@
      "effect": "dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -992,11 +919,10 @@
      "effect": "'—'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatBlock(label:value:)": "cf7b85b1e1a16f22"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatBlock(label:value:)": "7fcc26c9c907f31b"
    }
   },
   {
@@ -1008,7 +934,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1038,11 +963,10 @@
      "effect": "times listed as-is; else with '…'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1054,10 +978,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1069,7 +992,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1099,9 +1021,8 @@
      "effect": "offset -1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1115,9 +1036,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "36a3c2fe1f0be971"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "32f6ca3a38a52d09"
    }
   },
   {
@@ -1135,7 +1055,6 @@
      "effect": "returns (nil,nil,nil)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1147,9 +1066,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   }
  ],

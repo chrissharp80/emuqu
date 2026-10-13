@@ -8,7 +8,6 @@
   "file:Emuqu/Sources/Views/PrivacyPolicyView.swift (read)"
  ],
  "toplevel": "cd to repo root; exit 2 if Package.resolved or PrivacyPolicyView.swift missing. Embedded python: loads pins (exit 2 on OSError/JSONDecodeError), maps identity.lower() -> state.version (pins with empty identity skipped; branch/revision pins get version ''). Regex `Pkg\\(\\s*name:\\s*\"..\"\\s*,\\s*version:\\s*\"..\"` over the Swift source, keys lowercased; zero matches -> exit 2 ('view shape changed'). Computes missing (resolved-declared), extra (declared-resolved), mismatched (both present and resolved version non-empty and differs; a revision-only pin is never version-checked). Prints a FAIL block per non-empty set and exits 1; else prints 'clean' with pin count and exits 0. Verified at 8d32097: 11 pins, 11 Pkg entries, all versions equal. Only the iOS project's Package.resolved is read; the regex scans the whole file so a Pkg(...) literal anywhere else in PrivacyPolicyView.swift would also count. The units listed for lines 93/100/107 are `print()` calls inside the heredoc, not functions.",
- "flags": [],
  "units": [
   {
    "key": "fn print",
@@ -19,7 +18,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -31,7 +29,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,11 +40,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/check_sbom_drift.sh::fn print #3": "84fa9d5921d27fbf"
+  "scripts/check_sbom_drift.sh::fn print #3": "7876c5e60caa2126"
  }
 }

@@ -19,7 +19,6 @@
   "mem:SleepDetailV2View.sleepScore (private let Double, computed once in init)"
  ],
  "toplevel": "Declares ten @ScaledMetric font sizes bound to text styles (20-29), the stored inputs (session, sleepData, recoveryVitals, recentSessions, temperatureUnit, typicalSleepHours, userAge, optional onAdjust closure), the sleepAnalysis/sleepScore lets set by the explicit init, @Environment(RRCollector) and the @State properties. SleepDataIdentified.id is a fresh UUID() per wrapper. No #if blocks.",
- "flags": [],
  "units": [
   {
    "key": "var SleepDetailV2View.SleepStageKind.displayLabel",
@@ -55,9 +54,8 @@
      "effect": "returns localized \"Awake\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -86,11 +84,10 @@
      "effect": "score from calculateSleepScore (nil → 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "61d4d4775e117e68",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "df732f4d66d187be",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "23c89fed3f3a35fe",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "e39de52cb4050595"
    }
   },
   {
@@ -147,20 +144,8 @@
      "effect": "falls back to stored temperature baseline"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same merge as VitalsDetailV2View.effectiveVitals (fresh-first for every field, strap > stored > fresh for RHR); two copies of the rule.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:83",
-      "Emuqu/Sources/Views/VitalsDetailV2View.swift:46"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.heartRateOnlyVitals(_:)": "94c0d5a73f1a6832"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.heartRateOnlyVitals(_:)": "2dc3218d3b22d5ea"
    }
   },
   {
@@ -172,18 +157,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same builder as VitalsDetailV2View.heartRateOnlyVitals.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:102",
-      "Emuqu/Sources/Views/VitalsDetailV2View.swift:71"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -197,9 +170,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52"
    }
   },
   {
@@ -214,10 +186,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.withSleepEditor(_:)": "69ecf08c160eefe7",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepStack": "b52bad69e82989cb"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.withSleepEditor(_:)": "ab480026fba5a747",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepStack": "a63051c6f1335127"
    }
   },
   {
@@ -236,13 +207,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshVitals()": "7d71e80389d44331",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.menuButton": "ebb36ebf447d5a02",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepCards": "64666d779a2d9c8f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshVitals()": "f297064a07d7efbc",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.menuButton": "63119514b5f4a631",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepCards": "098806a5b6877ee5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -266,19 +236,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.ageGroupCard": "a297d6572648fa49",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.recentTrendsSection": "efaa7a2a4fb294ea",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.scoreBreakdownSection": "5054c836785d83f2",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.sleepInsightsSection": "93d9c0e63b318983",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.sleepStructureCard": "527e6ae8dd24754d",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.stageBreakdownSection": "04de09603ec7f3d6",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.ageGroupCard": "a4e7b2c236929415",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.recentTrendsSection": "321273c336af9d40",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.scoreBreakdownSection": "18fa2f701f00df2a",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.sleepInsightsSection": "9b76dcb4fa54b2da",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.sleepStructureCard": "b88f452f3c83a8fa",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.stageBreakdownSection": "631be1b9163ca04f",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.heroSection": "587a40db694de93c",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramCard": "0732170b68cc57a4",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.quickStatsRow": "5da96f49545937a4",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepWindowCard": "27f4b352aa43532c",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.vitalsRow": "1e1e56f9e1758abd"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramCard": "3b8a1bc4f545840b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.quickStatsRow": "a3a39ce89fbf5356",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepWindowCard": "d54d45774d036225",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.vitalsRow": "c7b09dd896a3214f"
    }
   },
   {
@@ -304,12 +273,11 @@
      "effect": "drops the result; else assigns trendNights"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.buildTrend(recentSessions:typicalSleepHours:userAge:)": "0f0e654e038f7411",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "c74adadcd83053d4",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendInputsKey": "42d56835a0be2f7c",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions": "ce371e7b0dce933c"
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.buildTrend(recentSessions:typicalSleepHours:userAge:)": "62af539541f4f80c",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "70379d6ef276e865",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendInputsKey": "4a491957d67b8d80",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions": "22d0856288e87bdc"
    }
   },
   {
@@ -327,7 +295,6 @@
      "effect": "as is; else [session] + recentSessions"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -358,25 +325,10 @@
      "effect": "nothing stored; editor still closes"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md says SleepDetailV2View presents SleepTimelineEditorView(session, sleepData) and that Done calls collector.updateSessionSleepBoundaries; the editor takes sleepData/onSave/onRefreshFromHealthKit only and saving goes through the caller's onAdjust, which from MorningResultsView sets vm.healthKitSleep and calls the optional onAdjustSleep instead.",
-     "evidence": [
-      "docs/FLOWCHART.md:824",
-      "docs/FLOWCHART.md:845-846",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:200-215",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:47-51",
-      "Emuqu/Sources/Views/MorningResultsView.swift:331-335"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)": "db0defaca7037a9b",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refetchSleep(for:from:)": "321f778a471c5d1e"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)": "7c7037dfebb8c9a8",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refetchSleep(for:from:)": "30bded7e3360ed96"
    }
   },
   {
@@ -404,11 +356,10 @@
      "effect": "logged, returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {
@@ -429,10 +380,9 @@
      "effect": "rendered as -1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.trendKeyPart(_:)": "21f0843cc6a7364b",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions": "ce371e7b0dce933c"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.trendKeyPart(_:)": "a14b1c0f043ef968",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions": "22d0856288e87bdc"
    }
   },
   {
@@ -450,13 +400,12 @@
      "effect": "returns the id string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -490,12 +439,11 @@
      "effect": "refreshedVitals = nil; else the fresh vitals"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "075679cbd0c44195",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "af7cbc8f5a445eda",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {
@@ -518,10 +466,9 @@
      "effect": "renders the menu; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)": "10a6e53d48552c04"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)": "583dc46da9527c3f"
    }
   },
   {
@@ -537,9 +484,8 @@
     "mem:SleepDetailV2View.editorSleepData"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -561,13 +507,12 @@
      "effect": "ring state .noData; else .default(score, verdict)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.noSleepDataSection": "d71b8b5320fe2333",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.verdict": "fb0f79a94efa67c0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "58eeaa5a8b3ecdce",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.noSleepDataSection": "d0c687afe19d7170",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.verdict": "f7211e7b314587bc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -594,16 +539,15 @@
      "effect": "verdict word + totalSleepFormatted + goalProgressBar; else \"No sleep data\" text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepFormatted": "851aa3ba1cbf506c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.goalProgressBar(sleep:)": "b952b84a3728f34a",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.verdict": "fb0f79a94efa67c0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "cf23a785bbffc060",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "ffaae07ef57a3805",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepFormatted": "ea978f18e3430dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.goalProgressBar(sleep:)": "961aae78643dc52d",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.verdict": "f7211e7b314587bc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -623,11 +567,10 @@
      "effect": "wongOptimal when ≥1.0, wongGood when ≥0.85, else wongCaution"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -648,10 +591,9 @@
      "effect": "renders the row; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.latencyHint(_:)": "485922e38f986d6d",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.quickStatCells(_:)": "fc3abb02549c3df4"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.latencyHint(_:)": "c64abb929c4f300d",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.quickStatCells(_:)": "9679b258b2b45dd8"
    }
   },
   {
@@ -674,11 +616,10 @@
      "effect": "shows \"Latency needs Sleep Schedule wind-down…\" caption; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "7048e5b4587e15b2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -702,12 +643,11 @@
      "effect": "returns \"Not measured\"; else hours/minutes of awakeMinutes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatMinutes(_:)": "5148184704ab9c87"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatMinutes(_:)": "e2f2dd9edd791189"
    }
   },
   {
@@ -741,16 +681,15 @@
      "effect": "Latency tile shows \"—\"; else localized minutes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.napSleepFormatted": "530585b2709d4e17",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.efficiencyText(_:)": "7c48f40f2b1faeb1",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.awakeText(_:)": "98c8d627855a064d",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatMinutes(_:)": "5148184704ab9c87",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stat(label:value:unit:)": "4802e71916dcf81b"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.napSleepFormatted": "f23a5ea45885e4dd",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "7048e5b4587e15b2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.efficiencyText(_:)": "d996ae57149e550e",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.awakeText(_:)": "945a70a666bd0b70",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatMinutes(_:)": "e2f2dd9edd791189",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stat(label:value:unit:)": "678a25218559982b"
    }
   },
   {
@@ -772,11 +711,10 @@
      "effect": "renders vitals tiles; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.vitalCells(_:)": "8cd894fbc88d76f7",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.effectiveVitals": "3e6c1fd660992c54"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.vitalCells(_:)": "0328d9e34f0f62b9",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.effectiveVitals": "28ed3b1b00b2eeac"
    }
   },
   {
@@ -812,13 +750,12 @@
      "effect": "shows \"—\"; else rounded integer"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stat(label:value:unit:)": "4802e71916dcf81b",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.tempDisplay(_:)": "e8759d14bd23faaf"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "42464c66774b99f3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stat(label:value:unit:)": "678a25218559982b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.tempDisplay(_:)": "20f1857f44abf5dc"
    }
   },
   {
@@ -848,20 +785,8 @@
      "effect": "\"%+.1f°F\" of c*9/5"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same formatting as VitalsDetailV2View.tempValue.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:410",
-      "Emuqu/Sources/Views/VitalsDetailV2View.swift:299"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -875,12 +800,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.statValue(value:unit:)": "811040ee1cde4351",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.statValue(value:unit:)": "785caca48f53e08d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -898,10 +822,9 @@
      "effect": "appends unit text; else value only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -915,9 +838,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -938,13 +860,12 @@
      "effect": "renders the card; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.adjustSleepButton(_:)": "73385b7e28f226a8",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepWindowText(_:start:end:)": "f96de853c3b7e641",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.adjustSleepButton(_:)": "92bcc4ee7f344fd3",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepWindowText(_:start:end:)": "4a2154d1d4150479",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -968,12 +889,11 @@
      "effect": "renders button; else nothing (snapshot tests)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText": "5fe81441a0858ebb",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -992,15 +912,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatTime(_:)": "479957757f33edd8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatTime(_:)": "067b747045b74939",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1014,9 +933,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -1041,13 +959,12 @@
      "effect": "renders the chart; else EmptyState"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.body": "978e8dd7c28844cd",
-    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.body": "8705ed93c438c991",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramChart(intervals:)": "dac486b81a68bab1",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.body": "cd84c8272f946a7a",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramChart(intervals:)": "a3ed308e7f235808",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -1067,13 +984,12 @@
     "mem:SleepDetailV2View.hypnogramScrubbedAt"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubMarks(intervals:)": "918721259b5d69a0",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubPill(intervals:)": "24b68aedd481f5ad",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageBarMarks(intervals:)": "9b13428699afef35",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramStageAxis": "8802d90c4f73e5f1",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramTimeAxis": "cae161bfababc0d5"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubMarks(intervals:)": "9455dcaccefe90eb",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubPill(intervals:)": "e905179bd72452dc",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageBarMarks(intervals:)": "e5e5fd15192fe05b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramStageAxis": "e090bcec58757b3a",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramTimeAxis": "44b75d3bfa1702fc"
    }
   },
   {
@@ -1085,9 +1001,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab"
    }
   },
   {
@@ -1101,9 +1016,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramStageLabel(_:)": "863f8c18a3e58231"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramStageLabel(_:)": "d0b0f4473b4f2b64"
    }
   },
   {
@@ -1123,9 +1037,8 @@
      "effect": "shows the stage label; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageLabel(numeric:)": "93718c981b980e85"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageLabel(numeric:)": "40cc3fea75ece47b"
    }
   },
   {
@@ -1140,10 +1053,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageColor(_:)": "046f14a648d1aa99",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageNumeric(_:)": "ff642584aa91780b"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageColor(_:)": "02a4f182c67971a4",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageNumeric(_:)": "92d444a7f3f8c875"
    }
   },
   {
@@ -1167,12 +1079,11 @@
      "effect": "draws rule+point; else no marks (gap or no scrub)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageAt(_:in:)": "7a5030ff35e3a145",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageColor(_:)": "046f14a648d1aa99",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageNumeric(_:)": "ff642584aa91780b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageAt(_:in:)": "fc9a0be6a093d9c2",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageColor(_:)": "02a4f182c67971a4",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageNumeric(_:)": "92d444a7f3f8c875",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -1196,17 +1107,16 @@
      "effect": "renders pill; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.scrubStageLabel(_:)": "aa835f5b61a8edfd",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageAt(_:in:)": "7a5030ff35e3a145",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageColor(_:)": "046f14a648d1aa99",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.scrubStageLabel(_:)": "bfd00e996a6f7367",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageAt(_:in:)": "fc9a0be6a093d9c2",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageColor(_:)": "02a4f182c67971a4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -1218,7 +1128,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1242,11 +1151,10 @@
      "effect": "returns \"Asleep\"; else stageLabel of its numeric row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageLabel(numeric:)": "93718c981b980e85",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageNumeric(_:)": "ff642584aa91780b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageLabel(numeric:)": "40cc3fea75ece47b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageNumeric(_:)": "92d444a7f3f8c875"
    }
   },
   {
@@ -1284,7 +1192,6 @@
      "effect": "1 (shares the Light row)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1326,9 +1233,8 @@
      "effect": "empty string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1366,11 +1272,10 @@
      "effect": "AppTheme.textTertiary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   }
  ],

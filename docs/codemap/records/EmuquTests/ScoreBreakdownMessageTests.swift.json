@@ -8,19 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Asserts English substrings ('Go hard', 'Normal training is fine', 'sleep is holding you back') but never pins the language; ScoreBreakdownCopy localizes via NarrativeLanguage.bundle and switches name/list formatting on NarrativeLanguage.locale, so the tests fail on a non-English host.",
-   "evidence": [
-    "EmuquTests/ScoreBreakdownMessageTests.swift:28",
-    "EmuquTests/ScoreBreakdownMessageTests.swift:72",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:248"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
@@ -40,10 +27,9 @@
      "effect": "HRV factor impact .positive; else .negative"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a"
    }
   },
   {
@@ -67,19 +53,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "aa22c33a053d378c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "ec4c21bdd9ab2e62",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "f3bfc0ae9e970dab",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "5004bf5643ca38b4",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "56fc1640bdbe3553",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "e8600f1a0f236bb7",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "7a3cc98036fc3eac",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "72cf40e5c3556a27",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "9a21e5c353e9887f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "98fcc33606cdfd79",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -106,22 +91,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "aa22c33a053d378c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "ec4c21bdd9ab2e62",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "f3bfc0ae9e970dab",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "5004bf5643ca38b4"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "221ceb8874eede06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "f095427b34b57411",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "56fc1640bdbe3553",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "e8600f1a0f236bb7",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "7a3cc98036fc3eac",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "72cf40e5c3556a27",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "9a21e5c353e9887f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "98fcc33606cdfd79"
    }
   },
   {
@@ -144,18 +128,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -180,20 +163,19 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "c15c37d0cbfeee12",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "d8250d40992f0f6e",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -216,18 +198,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -255,17 +236,16 @@
      "effect": "asserts the .easier message on each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -290,32 +270,19 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Vacuous for the 90 threshold it names: b.message passes loadLevel nil, so 'Go hard' is never produced at any composite (ScoreBreakdownCopy.swift:196 requires goHardAllowed); the assertion would pass even if the >=90 check were deleted.",
-     "evidence": [
-      "EmuquTests/ScoreBreakdownMessageTests.swift:66",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:80",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:196"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "c15c37d0cbfeee12",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "d8250d40992f0f6e",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -339,19 +306,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "c15c37d0cbfeee12",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "c1be71de4dbb6aa8",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "d8250d40992f0f6e",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "31445f22b51ac3f4",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
-    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "16fbc52fd10bfeea"
    }
   },
   {
@@ -372,14 +338,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "221ceb8874eede06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "c15c37d0cbfeee12",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "f095427b34b57411",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "d8250d40992f0f6e",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9"
    }
@@ -396,10 +361,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "428e292bedebf3f1",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "3c05a01a02ab05c3"
    }
   },
   {
@@ -417,11 +381,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "428e292bedebf3f1",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "3c05a01a02ab05c3"
    }
   },
   {
@@ -443,16 +406,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "c15c37d0cbfeee12",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "7c1e163c4f46a666",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "d8250d40992f0f6e",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "14eb63923a26790f",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9"
    }
   }

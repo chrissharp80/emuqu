@@ -12,7 +12,6 @@
   "static capacity = 60"
  ],
  "toplevel": "No code outside units.",
- "flags": [],
  "units": [
   {
    "key": "var StrapRecording.endedAt",
@@ -25,21 +24,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "endedAt has no production reader; its only use is a test assertion (grep '\\.endedAt' finds only EmuquTests/StrapTransferTests.swift:154 among strap recordings).",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecording.swift:19",
-      "EmuquTests/StrapTransferTests.swift:154"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.endOffsetMs(of:)": "f49d3350d830fbd5",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.endOffsetMs(of:)": "daf49ca73e68fc04",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463"
    }
   },
   {
@@ -62,10 +49,9 @@
      "effect": "uses t_ms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463"
    }
   },
   {
@@ -91,9 +77,8 @@
      "effect": "false: unshifted (recording began at/before the session, or offset fallback 0); true: every point shifted by offsetMs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "6bd9e605fb3d11ea",
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "41049d0fd69c07c3",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
    }
   },
@@ -116,7 +101,6 @@
      "effect": "true: set to now; false: kept"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -136,7 +120,6 @@
      "effect": "→ .distantPast"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -165,9 +148,8 @@
      "effect": "true: return; false: append and save suffix(60)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)": "706587635007c449"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)": "33a0e7fbd917fcf8"
    }
   },
   {
@@ -189,9 +171,8 @@
      "effect": "→ [] so false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)": "706587635007c449"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)": "33a0e7fbd917fcf8"
    }
   },
   {
@@ -207,9 +188,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecording.swift::var StrapDownloadLedger.since": "0553ed932450dc16"
+    "Emuqu/Sources/Collection/StrapRecording.swift::var StrapDownloadLedger.since": "61218123508b7473"
    }
   },
   {
@@ -221,7 +201,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

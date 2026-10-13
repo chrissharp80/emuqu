@@ -23,12 +23,11 @@ import subprocess
 from pathlib import Path
 
 # Files that carry records. Everything git tracks, minus binaries, the two large string catalogs
-# (audited key by key, not line by line), the map itself, and the two open-findings budgets (a
-# number that changes with every fix; codemap.py checks it against the records directly).
+# (audited key by key, not line by line) and the map itself.
 EXCLUDE = (
     "*.raw", "*.png", "*.pdf", "LICENSE",
     "Emuqu/Localizable.xcstrings", "Emuqu/Help.xcstrings",
-    "docs/codemap/*", ".ci/codemap_open_*.txt",
+    "docs/codemap/*",
 )
 
 NS_CODE = re.compile(r"\.(sh|py|c|m|h)$|^Makefile$|^\.githooks/|^\.github/workflows/")

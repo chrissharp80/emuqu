@@ -8,32 +8,6 @@
  ],
  "state": [],
  "toplevel": "Type declarations only; no stored constants.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "statusMessage is set by every StrapFetchProgress construction but never read (only DeviceRecoveryView reads stage/progress/attempt/maxAttempts). (The unused `idle` constant was removed by b10.)",
-   "evidence": [
-    "Emuqu/Sources/Collection/PolarFetchProgress.swift:31",
-    "Emuqu/Sources/Collection/PolarFetchProgress.swift:29",
-    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:112"
-   ],
-   "found": "first read; narrowed by b10"
-  },
-  {
-   "kind": "unreachable-branch",
-   "sev": "low",
-   "text": "Stages .listingExercises, .retrying and .failed are never assigned by production code (every updateProgress call in StrapRecordingCoordinator+Transfer.swift uses .complete/.stopping/.finalizing/.reconnecting/.fetchingData), so DeviceRecoveryView's 'Data is safe on <device>' row for .retrying/.failed never shows.",
-   "evidence": [
-    "Emuqu/Sources/Collection/PolarFetchProgress.swift:17",
-    "Emuqu/Sources/Collection/PolarFetchProgress.swift:20",
-    "Emuqu/Sources/Collection/PolarFetchProgress.swift:22",
-    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:173",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:428"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [],
  "deps": {}
 }

@@ -11,17 +11,6 @@
   "notif:NSProcessInfoPowerStateDidChange (observed)"
  ],
  "toplevel": "static let shared; observers token bag (ObservationIgnored).",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references PowerStatePolicy.",
-   "evidence": [
-    "Emuqu/Sources/Services/PowerStatePolicy.swift:64"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init PowerStatePolicy()",
@@ -40,10 +29,9 @@
     "mem:PowerStatePolicy.isLowPowerMode"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/PowerStatePolicy.swift::func PowerStatePolicy.syncLowPowerMode()": "7bfeb63e5e5922ba",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+    "Emuqu/Sources/Services/PowerStatePolicy.swift::func PowerStatePolicy.syncLowPowerMode()": "d4579d7f46dda1a7",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
   },
   {
@@ -65,7 +53,6 @@
      "effect": "returns; changed: assigns (fires Observation)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -79,9 +66,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "dd504bad520a4d13"
    }
   },
   {
@@ -101,7 +87,6 @@
      "effect": "4.0; else 1.0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -115,7 +100,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

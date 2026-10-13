@@ -7,31 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "The harness renders with ImageRenderer, which does not run .onAppear/.task; ReportsListView loads its list in .onAppear(perform: load) and PaywallView loads products in .task, so 'screen-reports-list' and 'screen-paywall' only pin the pre-load placeholder states, not any report rows or product prices.",
-   "evidence": [
-    "EmuquTests/SnapshotTesting.swift:67",
-    "Emuqu/Sources/Views/ReportsListView.swift:51",
-    "Emuqu/Sources/Views/PaywallView.swift:88",
-    "EmuquTests/ChartScreenSnapshotTests.swift:153",
-    "EmuquTests/ChartScreenSnapshotTests.swift:157"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "hosted() injects StoreKitManager.shared and SettingsManager.shared plus an RRCollector built from AppDependencies.current singletons, so paywall/dashboard snapshots depend on whatever entitlement/settings state the host app process holds.",
-   "evidence": [
-    "EmuquTests/ChartScreenSnapshotTests.swift:17",
-    "EmuquTests/ChartScreenSnapshotTests.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ChartScreenSnapshotTests.hosted(_:)",
@@ -49,11 +24,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -76,7 +50,6 @@
      "effect": "true: trimp 0 (rest day); false: 60 + 30·cos(i/2)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -94,7 +67,6 @@
      "effect": "falls back to a random UUID() (never happens for indices with <=12 digits)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -114,9 +86,8 @@
      "effect": "appends one RecentWorkout"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.workoutId(_:)": "04b0a10c03aa8584"
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.workoutId(_:)": "97fbebae0006e53a"
    }
   },
   {
@@ -134,13 +105,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body": "15421ecf02b1afdd",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()": "cf4613c7731f7227",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)": "8c810fb5ebcd92b8",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body": "8273a0ad7bf5ce74",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()": "d70f7bc9c71c48fe",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)": "32380df2738f027b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -158,13 +128,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body": "15421ecf02b1afdd",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()": "cf4613c7731f7227",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)": "8c810fb5ebcd92b8",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body": "8273a0ad7bf5ce74",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()": "d70f7bc9c71c48fe",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)": "32380df2738f027b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -181,12 +150,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.body": "775f940c958a68c5",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -202,11 +170,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.body": "775f940c958a68c5",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -222,11 +189,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.body": "bcab6725109ea321",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -244,11 +210,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body": "2fb7c7ea6f946bfd",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body": "e8d3735a0feb2a50",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -264,11 +229,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.body": "aac5c42610d5917d",
-    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.body": "234ceab4ea56aec4",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "6e734eb2e414bb2a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   }
  ],

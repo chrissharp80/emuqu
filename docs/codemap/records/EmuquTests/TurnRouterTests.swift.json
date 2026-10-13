@@ -10,18 +10,6 @@
   "mem:TurnRouterTests.registryOrder — hard-coded [.apple,.anthropic,.openai,.gemini,.grok,.deepseek] mirroring ProviderRegistry.allProviders (ProviderRegistry.swift:26-28)"
  ],
  "toplevel": "registryOrder is a stored fixture constant copied by hand from ProviderRegistry.allProviders; the router itself never reads the registry in these tests.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Provider order fixture is a hand copy of ProviderRegistry.allProviders; the order-sensitive 'first consented cloud' tests keep passing if the registry order changes because the shell's real providerOrder is never exercised.",
-   "evidence": [
-    "EmuquTests/TurnRouterTests.swift:23",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift:26"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TurnRouterTests.model(_:_:)",
@@ -32,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -46,9 +33,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c"
    }
   },
   {
@@ -60,7 +46,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -74,9 +59,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -91,10 +75,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "2a85621b0af11657",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "cdc59395e657cfd7",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c"
    }
   },
   {
@@ -106,7 +89,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -127,16 +109,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "3c910f18e7cd80e0",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "562886c768b94834",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c"
    }
   },
   {
@@ -156,15 +137,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c"
    }
   },
   {
@@ -186,17 +166,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "fa441d7a58690ed6",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -219,18 +198,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "2a85621b0af11657",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78",
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "fa441d7a58690ed6",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "cdc59395e657cfd7",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -251,16 +229,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "3c910f18e7cd80e0",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "562886c768b94834",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "132412c6d01e241a",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -284,19 +261,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.Inputs.with(tierStage:)": "11bf072b0ba67810",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "3c910f18e7cd80e0",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78",
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.Inputs.with(tierStage:)": "83f35c0319d09537",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "a8869f9eabad73ec",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.needsTierProposal(inputs:)": "562886c768b94834",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "128477d8abbe56ab",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "66ce2d2d3e7f3a2d",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -325,18 +301,17 @@
      "effect": "nil last line makes the assertion fail (false); otherwise the contains() result is asserted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "2a85621b0af11657",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78",
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "a8869f9eabad73ec",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "66ce2d2d3e7f3a2d",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.defaultAPIID(_:)": "cdc59395e657cfd7",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -357,16 +332,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "1a21840297af0f24",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "98899b18996c70cf",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "2ee5e7134325679f",
-    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "6c8780dfcd1535e0"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "a8869f9eabad73ec",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "66ce2d2d3e7f3a2d",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.appleState(available:)": "80c9b280bf4aa00e",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.cloudState(_:available:consented:)": "5019e98cfe0733cb",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.makeInputs(mode:selected:selectedAvailable:selectedModel:voice:providers:tierStage:)": "09e025e2b84a2c36",
+    "EmuquTests/TurnRouterTests.swift::var TurnRouterTests.appleModel": "2c40db82a4a88f03"
    }
   },
   {
@@ -386,9 +360,8 @@
      "effect": "one assertion per provider"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42"
    }
   },
   {
@@ -408,9 +381,8 @@
      "effect": "one assertion per mode"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42"
    }
   },
   {
@@ -424,9 +396,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42"
    }
   },
   {
@@ -441,10 +412,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "abaefd31f56e61c4",
-    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "106ac48cad33a9e9",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "8da687e507293a3c"
    }
   },
   {
@@ -471,10 +441,9 @@
      "effect": "falls back to '?'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "0276a09075301d19",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "d978f16e726671bf",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::var PickedModelFailure.errorDescription": "633d254b05f808c5"
    }
   }

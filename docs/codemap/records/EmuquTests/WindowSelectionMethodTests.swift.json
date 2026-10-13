@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func WindowSelectionMethodTests.testRawValuesAreStable()",
@@ -18,20 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Header and inline comment justify pinning the raw values because they are 'written into archived sessions' and a change 're-labels every historical reading', but no session/result model stores a WindowSelectionMethod (grep of Emuqu/Sources/Models finds only UserSettings.defaultWindowSelectionMethod); the only persisted use is the settings default, which decodes an unknown raw back to .consolidatedRecovery.",
-     "evidence": [
-      "EmuquTests/WindowSelectionMethodTests.swift:7",
-      "EmuquTests/WindowSelectionMethodTests.swift:13",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:46",
-      "Emuqu/Sources/Models/UserSettings+Codable.swift:73"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -49,7 +34,6 @@
      "effect": "asserts round trip"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -61,19 +45,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says an unknown method is better rejected than silently falling back, but the only persisted decode (UserSettings.defaultWindowSelectionMethod) falls back to .consolidatedRecovery on an unknown value; the test checks only init(rawValue:).",
-     "evidence": [
-      "EmuquTests/WindowSelectionMethodTests.swift:30",
-      "EmuquTests/WindowSelectionMethodTests.swift:32",
-      "Emuqu/Sources/Models/UserSettings+Codable.swift:73"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -87,9 +58,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "ff1a53c77beb6126"
    }
   },
   {
@@ -103,9 +73,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "ff1a53c77beb6126"
    }
   },
   {
@@ -120,10 +89,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391",
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "3bbcfe53c32067a7"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "ff1a53c77beb6126",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "ee0ca9f99a864942"
    }
   },
   {
@@ -137,9 +105,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "3bbcfe53c32067a7"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "ee0ca9f99a864942"
    }
   },
   {
@@ -162,12 +129,11 @@
      "effect": "four non-empty assertions"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "921e5727692ec43d",
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon": "1e1001bbb0161e08",
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41",
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.tooltip": "2c80c74e7f63b116"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "faab647035dd2bf8",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon": "ab0c899a4489e316",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "0f8621057464208b",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.tooltip": "3c94cc28c13a483d"
    }
   },
   {
@@ -181,9 +147,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "921e5727692ec43d"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "faab647035dd2bf8"
    }
   },
   {
@@ -197,9 +162,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41"
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "0f8621057464208b"
    }
   }
  ],

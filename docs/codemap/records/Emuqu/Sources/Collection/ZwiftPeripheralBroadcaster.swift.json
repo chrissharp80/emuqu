@@ -20,22 +20,6 @@
   "static CBUUID constants heartRateService, heartRateMeasurementChar_UUID, cyclingPowerService, cyclingPowerMeasurementChar_UUID, cyclingPowerFeatureChar_UUID, sensorLocationChar_UUID"
  ],
  "toplevel": "static let shared = ZwiftPeripheralBroadcaster() lazily constructs the singleton; stored properties default isAdvertising=false, subscriberCount=0, isBroadcastBlocked=false, wantsBroadcast=false, all CB objects nil; CBUUID statics are nonisolated constants. Advertised local name is the literal \"Emuqu\".",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/FLOWCHART.md names ZwiftPeripheralBroadcaster.shared.start()/stop() (no such methods; they are startBroadcasting/stopBroadcasting) and says update(heartRate:powerWatts:) runs 'only when enableZwiftBroadcast', but the ticker calls update every tick unconditionally and it is a no-op only because isAdvertising is false.",
-   "evidence": [
-    "docs/FLOWCHART.md:1041",
-    "docs/FLOWCHART.md:1097",
-    "docs/FLOWCHART.md:1098",
-    "docs/FLOWCHART.md:1176",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:802",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:122"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "init ZwiftPeripheralBroadcaster()",
@@ -46,7 +30,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -84,24 +67,13 @@
      "effect": "returns without re-adding services (idempotent); otherwise services are reset, advertising starts and isBroadcastBlocked is cleared"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "With Bluetooth denied/unsupported/off, startBroadcasting now sets isBroadcastBlocked and logs at warning level (Troubleshooting > Recent Problems), but no screen reads isBroadcastBlocked yet, so the rider is not told the Zwift broadcast is not running while enableZwiftBroadcast is on.",
-     "evidence": [
-      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:86"
-     ],
-     "found": "fix batch b13"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "fa1c990636cde1b9",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "cb04e9f162dc620b",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()": "278f113fbeaca779",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ebc9dde67e0b4e81",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "ac938cad4d67149c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "bcee43bd3aefbfa0",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "ef15547ae1ec005b",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()": "6288c5e9baeb3bbb",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ed610baf6d09794b",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "6ec63cb788b6753d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -125,7 +97,6 @@
      "effect": "true: returns it; false: creates, stores and returns a new one"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -147,9 +118,8 @@
     "mem:ZwiftPeripheralBroadcaster.subscriberCount"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "38598107866c10aa"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "d595d1b3373c4a2e"
    }
   },
   {
@@ -164,7 +134,6 @@
     "mem:ZwiftPeripheralBroadcaster.subscriberCount"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -204,21 +173,9 @@
      "effect": "true: sends the 4-byte power packet (0 W is sent); false: no power notification this tick"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "The HR (uint8) and Cycling Power (flags u16 + int16 LE, clamped 0..2000 W) packet encodings have no test; they are now pure static functions (heartRateMeasurementPacket / cyclingPowerMeasurementPacket) that a test can call directly, but grep finds no reference to ZwiftPeripheralBroadcaster in EmuquTests.",
-     "evidence": [
-      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:142",
-      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:151"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)": "0627d2a21200bdcb",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)": "a878199020531c72"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)": "53119a99de0d02f3",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)": "8046bf3798ca66bc"
    }
   },
   {
@@ -236,7 +193,6 @@
      "effect": "returns nil (caller sends nothing); otherwise the 2-byte packet"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -254,7 +210,6 @@
      "effect": "returns nil (caller sends nothing); otherwise the 4-byte packet"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -272,10 +227,9 @@
     "ble:GATT services 180D,1818"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "cb04e9f162dc620b",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ebc9dde67e0b4e81"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "ef15547ae1ec005b",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ed610baf6d09794b"
    }
   },
   {
@@ -292,7 +246,6 @@
     "mem:ZwiftPeripheralBroadcaster.hrMeasurementChar"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -310,9 +263,8 @@
     "mem:ZwiftPeripheralBroadcaster.cpMeasurementChar"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)": "b23dfd2dbf4b6a24"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)": "cf876d2388e2ffa1"
    }
   },
   {
@@ -330,7 +282,6 @@
      "effect": "poweredOff/unauthorized/unsupported -> true; poweredOn/unknown/resetting -> false; @unknown default -> false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -344,7 +295,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -358,9 +308,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.radioStateChanged(_:)": "735af91f6fbaf847"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.radioStateChanged(_:)": "36c956c5e5abef75"
    }
   },
   {
@@ -395,11 +344,10 @@
      "effect": "true: calls startBroadcasting (re-registers services and advertises); false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "38598107866c10aa",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "ac938cad4d67149c",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "67fb28ca120fceb8"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "d595d1b3373c4a2e",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "6ec63cb788b6753d",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "962d535849c8d225"
    }
   },
   {
@@ -422,7 +370,6 @@
      "effect": "returns without recording the subscriber; otherwise inserts and recounts"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -437,7 +384,6 @@
     "mem:ZwiftPeripheralBroadcaster.subscriberCount"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -462,20 +408,8 @@
      "effect": "true: warning log + isAdvertising=false + isBroadcastBlocked=wantsBroadcast (update() then becomes a no-op for the rest of the workout unless the radio state cycles); false: nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed startAdvertising logs, clears isAdvertising and sets isBroadcastBlocked, but no retry is scheduled and no UI reads isBroadcastBlocked yet, so Zwift never sees the sensor for that workout and the user only sees the warning under Troubleshooting.",
-     "evidence": [
-      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:252",
-      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:254"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

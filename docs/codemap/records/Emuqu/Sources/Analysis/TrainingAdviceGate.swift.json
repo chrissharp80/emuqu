@@ -16,7 +16,6 @@
   "mem:TrainingAdviceGate.Assessment.clear (static let)"
  ],
  "toplevel": "Static constants heavyFatigueTSB (the trajectory's deep-fatigue line, -15) and Assessment.clear; Load/Assessment synthesized Equatable.",
- "flags": [],
  "units": [
   {
    "key": "func TrainingAdviceGate.assess(_:)",
@@ -47,12 +46,11 @@
      "effect": "true → .clear; false → .holdPush"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "fd9f76808fe380e7",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "eab33e291bf4124e",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "51e3888003ca8600"
    }
   },
   {
@@ -66,9 +64,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "728106e00d9ef476"
    }
   },
   {
@@ -82,19 +79,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "allowsPush is only called from EmuquTests/TrainingAdviceGateTests.swift:144-145; no production surface uses it (they combine level() with their own score checks).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08"
    }
   },
   {
@@ -134,9 +120,8 @@
      "effect": "→ []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc"
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "5edbd44d3d44c8b7"
    }
   },
   {
@@ -154,7 +139,6 @@
      "effect": "false → []; true → [.heavyFatigue]"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -174,9 +158,8 @@
      "effect": "false → []; true → [.monotonous]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d"
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "74895ca444d7dd74"
    }
   },
   {
@@ -188,7 +171,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -200,19 +182,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Frozen-context loads never carry monotony/strain, so surfaces assessing from TrainingContext (RecoveryScoreDetailView+Sections:512, TrainingReadinessCard:22, PDF via preferring(live:nil)) can never raise the .monotonous holdPush that live surfaces raise for the same week.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:123",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:512",
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:67"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -226,9 +195,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "e21365c728439fb3"
    }
   },
   {
@@ -249,10 +217,9 @@
      "effect": "true → Load(live:); false → frozen.map(Load(context:))"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "d6e23bfcd5da4f5d",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)": "ecd339d63b5be913"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "467718c6aa0a8f6b",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)": "f1e7db5fd4f4ab33"
    }
   },
   {
@@ -282,9 +249,8 @@
      "effect": "returns monotony copy; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08"
    }
   }
  ],

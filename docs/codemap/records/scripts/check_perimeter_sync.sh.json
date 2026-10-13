@@ -8,19 +8,6 @@
   "file:Emuqu/Sources/Assistant/MedicalTermLexicon*.swift"
  ],
  "toplevel": "cd to repo root. CONFIG missing -> 2; no lexicon file -> 2. Python: parse JSON (error -> 2); bracket-walk latin:/unbounded: arrays; unescape; latin wrapped in \\b(?:...)\\b; compile errors or empty-matching alternatives -> 2; fewer than 100 alternatives -> 2. For each user_facing_prohibited pattern probes_for() expands every spelling (each alternation branch, optional part present/absent, class member; * and {m,n} at minimum, \\w as a placeholder word; lookarounds/\\b dropped; >5000 spellings, unparsable or empty -> 2); a spelling not matching its own pattern -> 2; a spelling matched by no lexicon alternative -> missing -> exit 1. Else clean. coach_response_prohibited is still not checked. Red until MedicalTermLexicon covers the 8 spellings in the handoff.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says none of the three lists may grow past the others, but only user_facing_prohibited -> lexicon is checked; coach_response_prohibited and lexicon -> build-time are not. A pattern whose synthesised probe is empty is skipped silently (`if not probe: continue`).",
-   "evidence": [
-    "scripts/check_perimeter_sync.sh:4",
-    "scripts/check_perimeter_sync.sh:185",
-    "scripts/check_perimeter_sync.sh:188"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

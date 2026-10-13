@@ -9,32 +9,6 @@
   "mem:WorkoutExportersTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)"
  ],
  "toplevel": "Class-level setUp/tearDown pin NSTimeZone.default to UTC for the class.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Class doc says the assertions focus on escaping, but no test passes XML-significant characters into an emitted field: the only such input is notes, which the exporters omit, and the sport names are fixed strings, so GPXExporter.escape and the TCX escaping are never exercised.",
-   "evidence": [
-    "EmuquTests/WorkoutExportersTests.swift:18",
-    "EmuquTests/WorkoutExportersTests.swift:87",
-    "Emuqu/Sources/Analysis/GPXExporter.swift:223"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "The exporters read UnitsPreferenceStore.current (app-group UserDefaults key fitness.unitsPreference, with a legacy standard-suite fallback the getter migrates by writing the app-group key) for the summary text and CSV units; the tests neither set nor restore it, so GPX/TCX/CSV output varies with the host's stored units preference (no assertion depends on the value).",
-   "evidence": [
-    "Emuqu/Sources/Analysis/GPXExporter.swift:46",
-    "Emuqu/Sources/Analysis/TCXExporter.swift:52",
-    "Emuqu/Sources/Analysis/CSVExporter.swift:38",
-    "Emuqu/Sources/Models/UnitsPreference.swift:128",
-    "EmuquTests/WorkoutExportersTests.swift:131"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutExportersTests.setUp()",
@@ -50,9 +24,8 @@
     "mem:WorkoutExportersTests.savedDefaultTimeZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -74,7 +47,6 @@
      "effect": "true: restored; false: default left unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -94,11 +66,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -118,11 +89,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -148,11 +118,10 @@
      "effect": "each count exported and counted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -171,10 +140,9 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543"
    }
   },
   {
@@ -193,10 +161,9 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543"
    }
   },
   {
@@ -216,11 +183,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -240,11 +206,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -264,11 +229,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -287,10 +251,9 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543"
    }
   },
   {
@@ -310,11 +273,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -334,11 +296,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -364,11 +325,10 @@
      "effect": "asserts its column count equals the header's"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -388,11 +348,10 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -411,10 +370,9 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "a2d378e63377f543"
    }
   },
   {
@@ -436,13 +394,12 @@
     "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "4e3753cd8fc4d03e"
    }
   },
   {
@@ -456,12 +413,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -477,14 +433,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "a650112243a7f912",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)": "53897c25e93d0729",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "f33db81e1f47f34a",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)": "9d949a0008061255",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "6b320e30aeb20b67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -499,11 +454,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "bcdd2b66dec0008d",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "275752e584c9eee3",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "6b320e30aeb20b67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   },
   {
@@ -515,7 +469,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -538,13 +491,12 @@
      "effect": "true: sport .run; false: sport .hike"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   }
  ],

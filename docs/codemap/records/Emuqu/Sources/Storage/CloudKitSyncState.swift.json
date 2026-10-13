@@ -17,7 +17,6 @@
   "mem:CloudKitSyncState.uploadedRemovedBeforeLoad / pendingRemovedBeforeLoad (ids removed before loadAll; kept out of the load's merge, cleared by loadAll/resetAll)"
  ],
  "toplevel": "All sets default empty; isLoaded false until loadAll or resetAll. The four sibling file URLs are derived from syncStateURL's directory. uploadFailureCounts is in memory only (documented): backoff restarts at each launch.",
- "flags": [],
  "units": [
   {
    "key": "var CloudKitSyncState.pendingQueueURL",
@@ -28,7 +27,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -40,7 +38,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -52,7 +49,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -64,7 +60,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,7 +71,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -108,16 +102,15 @@
     "mem:CloudKitSyncState.recordVersions"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "69043922bc15fde6",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "2527c714fcbd8a99",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readVersions(at:)": "f1e780875d8ffd1d",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "77c0577af97ac7b5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "8ea05a996862a6dc",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "b6c1f70ea52b2f3b",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "2ac2ae3e935cc5c3",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "f89e9c9a14dec73f",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readVersions(at:)": "d460ac303b5ed345",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "b8a57aeea90ce3d0",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "5199f1d780b0e8e7"
    }
   },
   {
@@ -146,9 +139,8 @@
      "effect": "debug-log; uploadedSessionIds stays as-is (a corrupt file means every session is re-pushed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -178,10 +170,9 @@
      "effect": "debug-log, keep current set"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "5e7dc9fc09cde187",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "b730d3ac0418199f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -215,10 +206,9 @@
      "effect": "debug-log, keep current set"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "8f75fafa223c7b8a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "c866c5be7fb5dc63",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -244,12 +234,11 @@
      "effect": "log 'held' and skip; ids stay in memory"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "1dbdcc813b688990",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "0e55bf58de2875bb",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "5199f1d780b0e8e7"
    }
   },
   {
@@ -275,12 +264,11 @@
      "effect": "log and skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "1dbdcc813b688990",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "0e55bf58de2875bb",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "5199f1d780b0e8e7"
    }
   },
   {
@@ -304,11 +292,10 @@
      "effect": "log and skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "5e7dc9fc09cde187"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "b730d3ac0418199f"
    }
   },
   {
@@ -332,11 +319,10 @@
      "effect": "log and skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "5e7dc9fc09cde187"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "b730d3ac0418199f"
    }
   },
   {
@@ -360,11 +346,10 @@
      "effect": "log and skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "8f75fafa223c7b8a"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "c866c5be7fb5dc63"
    }
   },
   {
@@ -388,11 +373,10 @@
      "effect": "log and skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "8f75fafa223c7b8a"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "c866c5be7fb5dc63"
    }
   },
   {
@@ -416,11 +400,10 @@
      "effect": "log and skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "77c0577af97ac7b5"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "b8a57aeea90ce3d0"
    }
   },
   {
@@ -448,9 +431,8 @@
      "effect": "log and return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -478,10 +460,9 @@
      "effect": "logged; [:]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.keyedByUUID(_:)": "10aaeb3ffa1fafb7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.keyedByUUID(_:)": "6b6b241eee0b8a37",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -504,7 +485,6 @@
      "effect": "first kept"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -526,9 +506,8 @@
      "effect": "logged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -542,9 +521,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -567,9 +545,8 @@
      "effect": "debug-log and return; in-memory state and disk diverge silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -588,9 +565,8 @@
     "mem:CloudKitSyncState.pendingRemovedBeforeLoad"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "36db2ea521460fe6"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "9d3f7673467becc5"
    }
   },
   {
@@ -613,7 +589,6 @@
      "effect": "record in uploadedRemovedBeforeLoad"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -636,7 +611,6 @@
      "effect": "record in pendingRemovedBeforeLoad"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -656,7 +630,6 @@
      "effect": "no change"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -671,7 +644,6 @@
     "mem:CloudKitSyncState.uploadFailureCounts"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -685,7 +657,6 @@
     "mem:CloudKitSyncState.uploadFailureCounts"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -704,9 +675,8 @@
     "mem:CloudKitSyncState.pendingRemovedBeforeLoad"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "36db2ea521460fe6"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "9d3f7673467becc5"
    }
   },
   {
@@ -726,7 +696,6 @@
      "effect": "remove that id; else removeAll"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -744,9 +713,8 @@
     "mem:CloudKitSyncState.uploadedRemovedBeforeLoad"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)": "21e5505b06a7dfb3"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)": "813f21b513fbd744"
    }
   },
   {
@@ -768,10 +736,9 @@
     "mem:CloudKitSyncState.pendingRemovedBeforeLoad"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "36db2ea521460fe6",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)": "21e5505b06a7dfb3"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "9d3f7673467becc5",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)": "813f21b513fbd744"
    }
   },
   {
@@ -793,10 +760,9 @@
     "mem:CloudKitSyncState.recordVersions"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "36db2ea521460fe6",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)": "21e5505b06a7dfb3"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removePending(_:)": "9d3f7673467becc5",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)": "813f21b513fbd744"
    }
   },
   {
@@ -826,13 +792,12 @@
     "file:record_versions.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "77c0577af97ac7b5",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "5e7dc9fc09cde187",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "8f75fafa223c7b8a",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "b8a57aeea90ce3d0",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "b730d3ac0418199f",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "c866c5be7fb5dc63",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "5199f1d780b0e8e7",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }
  ],

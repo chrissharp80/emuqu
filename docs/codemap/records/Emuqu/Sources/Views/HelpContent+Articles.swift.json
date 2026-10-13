@@ -13,19 +13,6 @@
   "static let HelpContent.appNavigation (4 articles)"
  ],
  "toplevel": "All content is stored-property initializers: user-facing claims about the app, including numeric facts (25 remembered facts, 8 tool calls per question, 4,096-token Apple context trimmed at 70%, 600 ms/300 ms/2-word voice interrupt gates, 25 m/60 s address refresh and 5-minute freshness, GPS arrow tiers 10/30/100 m, 50 archived trails, 90-day Trash, 5-attempt strap retry, 10/30-minute sync throttle, 14 system tags, 12 custom-tag colors, 60 RR minimum and 300–2000 ms import bounds, 17 languages, 6 themes, 30-day trial, 14 nights before a score, score bands 90/75/60/45/30, 60-day baseline, 60/25/15 and 70/30 weights, 10-session pagination, 5.5 breaths/min) and AI model names per provider. Spot checks: maxFacts = 25 (Assistant/Chat/UserFactsStore.swift:149), maxToolCallsPerTurn = 8 (Assistant/ViewModel/AssistantViewModel+Tools.swift:30), trial durationDays = 30 (Services/EntitlementAnchor.swift:460), model display names match the provider files (e.g. OpenAIProvider.swift:20 'GPT-6 Luna', GeminiProvider.swift:54 '3.8 Flash'), Settings → Biometrics has homeAddressSection (BiometricsSettingsPage+Sections.swift:28). Other numbers were not verified in this chunk. appNavigation (line 657) lacks the @MainActor annotation the other four carry, but the enclosing enum is @MainActor so isolation is the same.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "AI provider model names and tiers are hard-coded in help text (lines 64-68) as a second copy of the provider catalogs' displayName values (AnthropicProvider.swift:57,67; OpenAIProvider.swift:20; GeminiProvider.swift:54; GrokProvider.swift:26; DeepSeekProvider.swift:22); a model change in a provider file leaves Help showing the old model list unless the text is edited too.",
-   "evidence": [
-    "Emuqu/Sources/Views/HelpContent+Articles.swift:64-68",
-    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift:20",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift:54"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

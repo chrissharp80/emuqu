@@ -12,7 +12,6 @@
   "mem:TurnMarkerState held as WorkoutVoiceCoach.turnMarkerState"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func TurnMarkerEngine.evaluate(step:context:state:)",
@@ -47,10 +46,9 @@
      "effect": "false: (nil, working); true: payload + fresh leg"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb"
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "2d3bc17bb3c72900",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "133eff4e879ff760"
    }
   },
   {
@@ -78,10 +76,9 @@
      "effect": "legHRCount 1 else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -109,10 +106,9 @@
      "effect": "gain reported; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -150,35 +146,11 @@
      "effect": "climb label appended"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test references TurnMarkerFormatter (RouteNavigationEnginesTests covers only the engines and TurnAlertFormatter).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:153",
-      "EmuquTests/RouteNavigationEnginesTests.swift:19"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "FLOWCHART.md gives the turn-marker line as 'You turned onto Elm. Last leg: 2:14, pace 8:45, HR 142.'; the formatter produces 'Done: turn right onto Elm, last leg 2:14, pace 8:45 min/mi, HR 142.'",
-     "evidence": [
-      "docs/FLOWCHART.md:1123",
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:160",
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:162",
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:177"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "7ae2fa39646325c4",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)": "8ac182e0006e8873",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)": "c2984cebaca8b548",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "0faf83b553bdb304",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)": "9f03c9a834bc2078",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)": "3db4270726a2c07d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -203,9 +175,8 @@
      "effect": "'min/mi' string; else 'min/km'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -225,9 +196,8 @@
      "effect": "feet string; else meters"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

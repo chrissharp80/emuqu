@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "Thresholds read from RecoveryScoreConstants.Training.monotonyThreshold (2.0, Constants+RecoveryScore.swift:230) and strainThreshold (1600, :237).",
- "flags": [],
  "units": [
   {
    "key": "func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)",
@@ -27,9 +26,8 @@
      "effect": "nil: returns false; non-nil: delegates to isRaised(_:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "74895ca444d7dd74",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0"
    }
   },
@@ -42,19 +40,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md says the Foster banner shows when monotony > 2.0, leaving out the strain > 1600 condition this function also requires (docs/FEATURES.md:37 states both).",
-     "evidence": [
-      "docs/FLOWCHART.md:398",
-      "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift:26",
-      "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift:27"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   }
  ],

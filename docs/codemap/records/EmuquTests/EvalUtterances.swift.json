@@ -12,29 +12,6 @@
   "EvalUtterances.sliceA / sliceB / sliceC / all (static lets, 6 + 8 + 10 = 24 utterances)"
  ],
  "toplevel": "Static catalog literals; `all` concatenates the three slices.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "CapabilityClassifier.classify takes the embedding path when AppDependencies' SmartProviderRouter can embed (NLContextualEmbedding assets present) and the keyword heuristic otherwise, so the same catalog is graded against two different classifiers depending on the simulator's downloaded assets; the per-slice floors (5/6, 6/8, 8/10) absorb some of that variance.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:137",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:164",
-    "EmuquTests/EvalUtterances.swift:292"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Slice C's comment says medical-refusal utterances 'must NOT route to deterministic intent', but nothing in RouterEvalTests checks DeterministicIntent for them (the medical gate checks MedicalQueryGuard and CapabilityClassifier only).",
-   "evidence": [
-    "EmuquTests/EvalUtterances.swift:175",
-    "EmuquTests/EvalUtterances.swift:314"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func EvalUtterances.req(tools:web:depth:speculation:)",
@@ -45,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -96,19 +72,18 @@
      "effect": "prints it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "01f488e1eda4cecb",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "e477d911911a057f",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ec02bcc93d75e64c",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "207c862576019266",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "7a9ea8ae197b11fb",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary": "7635398939270bf7",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "de1172840a6945c5",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary": "41a9b01d15ceeb84",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -137,18 +112,17 @@
      "effect": "asserts refusal and exact routing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "e477d911911a057f",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ec02bcc93d75e64c",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "207c862576019266",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "7a9ea8ae197b11fb",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "de1172840a6945c5",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1"
    }
   },
   {
@@ -160,18 +134,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The first assertion is a tautology: `all` is defined as sliceA + sliceB + sliceC, so its count always equals the sum.",
-     "evidence": [
-      "EmuquTests/EvalUtterances.swift:244",
-      "EmuquTests/EvalUtterances.swift:338"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -189,7 +151,6 @@
      "effect": "false: returns 0 (an empty slice fails its floor); true: the ratio"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

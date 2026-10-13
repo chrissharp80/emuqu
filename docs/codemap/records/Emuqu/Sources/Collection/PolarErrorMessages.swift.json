@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "`#if canImport(PolarBleSdk)` gates the SDK import and both private mappers; without the SDK humanize/humanizeStartFailure always return localizedDescription.",
- "flags": [],
  "units": [
   {
    "key": "func PolarErrorMessages.humanize(_:)",
@@ -26,23 +25,8 @@
      "effect": "returns humanizePolar text; otherwise falls through to localizedDescription"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "humanize is used for any lastError shown on the record screen, but its .deviceNotFound/.deviceNotConnected/.timeout/default texts all assert the recording is still on the device; connect/disconnect failures stored raw into PolarManager.lastError (StrapDiscoveryCoordinator.swift:152,173) would show that transfer-only promise when no recording exists.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarErrorMessages.swift:61",
-      "Emuqu/Sources/Collection/PolarErrorMessages.swift:63",
-      "Emuqu/Sources/Collection/PolarErrorMessages.swift:97",
-      "Emuqu/Sources/Views/RecordView.swift:196",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:152"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolar(_:)": "a39a468d7171dedc"
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolar(_:)": "960b3ff423187ddc"
    }
   },
   {
@@ -72,10 +56,9 @@
      "effect": "breaks out and returns humanize(error)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "7c6011f8bc4ab70b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "cf98c7ff58f9e5ea",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -125,10 +108,9 @@
      "effect": "delegates to humanizePolarProtocol"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolarProtocol(_:)": "4b938363fe91adcb",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolarProtocol(_:)": "9d7cd52da7ad6347",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -181,9 +163,8 @@
      "effect": "returns generic 'recording is still on the device' text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

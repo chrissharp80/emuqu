@@ -10,7 +10,6 @@
   "mem:HRVAnalysisPipeline.nadirWindowMs = 30_000"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func HRVAnalysisPipeline.nocturnalMedianHR(from:)",
@@ -29,9 +28,8 @@
      "effect": "non-positive RR dropped; empty → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)": "90b90f779a840a26"
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)": "14968ca88f7686d5"
    }
   },
   {
@@ -49,7 +47,6 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -67,9 +64,8 @@
      "effect": "appends RR"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "dbe151bb9e688f54"
    }
   },
   {
@@ -83,7 +79,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab"
    }
@@ -99,9 +94,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "06cef575141d8463"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "ddb723904f5b5a39"
    }
   },
   {
@@ -115,7 +109,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40"
    }
@@ -146,10 +139,9 @@
      "effect": "error logged at warning level, returns nil — ANS metrics proceed without a dip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "b1201ba34ba37cf2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -170,16 +162,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)": "ca85a19034299ab3",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "f6c9619a31b926ae",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "7219e5e06dd95935",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "114358ad4d451629"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "f80dc2891d57d84b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)": "3c778830b66b9a88",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "e8b3695acf042272",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "bc17c9a723c713f4",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "9ea3043650467420",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "f347839814e54106"
    }
   },
   {
@@ -199,9 +190,8 @@
      "effect": "no baseline / VO2max, load adjustment 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "a3386b11d7b81c53"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "e93c7230b0f6e980"
    }
   },
   {
@@ -221,9 +211,8 @@
      "effect": "false: nil; true: nocturnalHRDip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "68172f4e1ca2b927"
    }
   },
   {
@@ -238,9 +227,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription": "8705d307c25baebe"
    }
   },
@@ -266,9 +254,8 @@
      "effect": "nil: returns unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.overnightHRStats(points:flags:)": "6d82ac4491404cf8"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.overnightHRStats(points:flags:)": "242fb4259ba6563f"
    }
   },
   {
@@ -299,10 +286,9 @@
      "effect": "nil smoothed nadir: uses the single slowest beat"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.plausibleHR(of:)": "3c157b4f140af9fd",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedNadir(_:)": "760724051b5fb33c"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.plausibleHR(of:)": "63176150e0b23a6e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedNadir(_:)": "171863825d2e7f21"
    }
   },
   {
@@ -335,7 +321,6 @@
      "effect": "no best yet: any qualifying window wins"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -363,7 +348,6 @@
      "effect": "false: nil; true: returns"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

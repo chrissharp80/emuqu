@@ -7,7 +7,6 @@
   "mem:FRSafeAudioEngineErrorDomain = @\"FlowRecovery.SafeAudioEngine\" (global NSString, not declared in the header; no Swift code matches on it)"
  ],
  "toplevel": "Defines FRSafeAudioEngineErrorDomain (line 7) and, right after it, the static _FRSafeErrorFromException helper every @catch uses. Error codes: -1/-2 start, -10/-11 installTap, -20/-21 prepare, -30/-31 removeTap, -40/-41 voice processing, -50/-51 stop, -60/-61 reset, -70/-71 speak, -72/-73 stopSpeaking.",
- "flags": [],
  "units": [
   {
    "key": "c _FRSafeErrorFromException",
@@ -34,7 +33,6 @@
      "effect": "add NSExceptionReason key; else omit"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -70,20 +68,8 @@
      "effect": "code -2 error from the exception if outError; return NO"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "SafeObjC.m is compiled with ARC (CLANG_ENABLE_OBJC_ARC = YES) and without -fobjc-arc-exceptions, so strong objects inside each @try are not released when an NSException is caught; and the Pipeline caller retries start on the same engine after an exception, which Apple frameworks do not guarantee to recover from.",
-     "evidence": [
-      "Emuqu.xcodeproj/project.pbxproj:4712",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:209"
-     ],
-     "found": "second read; the YES-with-error case was fixed"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -109,9 +95,8 @@
      "effect": "code -11 error from the exception if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -137,9 +122,8 @@
      "effect": "code -21 error from the exception if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -165,9 +149,8 @@
      "effect": "code -31 via _FRSafeErrorFromException if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -198,9 +181,8 @@
      "effect": "code -41 if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -226,9 +208,8 @@
      "effect": "code -51 if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -254,9 +235,8 @@
      "effect": "code -61 if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -282,9 +262,8 @@
      "effect": "code -71 if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   },
   {
@@ -310,9 +289,8 @@
      "effect": "code -73 if outError; NO"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "c7b2533fcc284f3b"
    }
   }
  ],

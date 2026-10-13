@@ -9,7 +9,6 @@
  ],
  "state": [],
  "toplevel": "No global state. MergeOutcome default values: rrChange nil, clockStart nil, flags false, tagsToAppend [].",
- "flags": [],
  "units": [
   {
    "key": "var SessionMerger.MergeOutcome.hasChanges",
@@ -20,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -36,11 +34,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
-    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "b7d8523490fd29bc"
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "bd9b8c978716fd49",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "24a52b7317cd200e",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "4636950f508e9d69"
    }
   },
   {
@@ -65,14 +62,13 @@
      "effect": "true: set clockStart and spansBothSleeps = !overlaps(spans); false: clockStart stays nil so apply keeps existing's own clock"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "bbdaca9d74ac1387",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)": "71a47181c6f0e83d",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)": "ed84ed5b604c4027",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)": "51f070aafd4d878b",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.decideMetadataFills(imported:existing:into:)": "4fa97c9c3e52b63a",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)": "4570d63a9b01003c"
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "aabde2aab444d99f",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)": "042972c65208ff9e",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)": "542814b1283d011d",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)": "687d6e8cb9836715",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.decideMetadataFills(imported:existing:into:)": "e225a97802ad4947",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)": "1845df19bf391f7e"
    }
   },
   {
@@ -100,7 +96,6 @@
      "effect": "adoptImportedMetrics = true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -128,9 +123,8 @@
      "effect": "adoptRecoveryScore"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26"
    }
   },
   {
@@ -151,10 +145,9 @@
      "effect": "false: singleSeriesOutcome; true: composite"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)": "175a68abacbbd8dc",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.singleSeriesOutcome(imported:existing:)": "96ed0a385b4fb7da"
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)": "4709f6fbc224312f",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.singleSeriesOutcome(imported:existing:)": "b296305e4d406c60"
    }
   },
   {
@@ -172,17 +165,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "33ed020a39a522fe",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "5e68c2e6d80093c7",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "ced093429a75da98",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.beatSources(_:count:streamed:)": "0e08d0be34b3ec46",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeSummary(imported:existing:existingPoints:mergedPoints:beats:)": "7266b7f8e0e7da28",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.isStreamed(_:)": "2529163efb491dcf",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)": "f8013ded4f91b271",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.shouldAdoptImportedAnalysis(imported:existing:importedPoints:existingPoints:)": "cc3dc2e9a47fdd18"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "75333fdfabc78b0c",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "5d6dddf4b5651eb1",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.beatSources(_:count:streamed:)": "2edbf35bfd651543",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeSummary(imported:existing:existingPoints:mergedPoints:beats:)": "e2a92f85d60646e2",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.isStreamed(_:)": "851c3f0afa1ef92a",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)": "199cc80f453ac6e4",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.shouldAdoptImportedAnalysis(imported:existing:importedPoints:existingPoints:)": "9a158f1c44f62b0e"
    }
   },
   {
@@ -213,10 +205,9 @@
      "effect": "mergePoints(internal: imported, streaming: existing); else internal: existing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)": "49093decb9c879fc",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43"
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "c1e198aaa2e0604d"
    }
   },
   {
@@ -249,7 +240,6 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -272,7 +262,6 @@
      "effect": "(count, 0); else (0, count)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -295,11 +284,10 @@
      "effect": "diffPct computed; else base's"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "33ed020a39a522fe",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "5e68c2e6d80093c7",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "75333fdfabc78b0c",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222"
    }
   },
   {
@@ -311,7 +299,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -342,10 +329,9 @@
      "effect": "existing.importedMetrics = imported.importedMetrics"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "bbdaca9d74ac1387",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)": "2f0076417612e369"
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "aabde2aab444d99f",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)": "ae3ebcd515aea532"
    }
   },
   {
@@ -378,12 +364,11 @@
      "effect": "applyFills"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)": "34cdf9f3ac2a2831",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyFills(_:from:to:)": "6aed5cb6aba85add",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)": "5ce8554f1440b652",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)": "5b85acaa3eeb3192"
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)": "421396f7d6c2b7b8",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyFills(_:from:to:)": "a3e2c1aab2dbc790",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)": "0ae609e5a3a5d498",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)": "6b1541d4b13f688c"
    }
   },
   {
@@ -411,12 +396,11 @@
      "effect": "adoptFrozenScore"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.repointed(_:onto:)": "e645338d9069cc10",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)": "b703d6e106cdb4d4",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.repointed(_:onto:)": "33268cd391dfabdc",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "ad095043162759a1",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)": "c1967ae7d731a7fe",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -430,10 +414,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "ced093429a75da98"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "5d6dddf4b5651eb1"
    }
   },
   {
@@ -466,7 +449,6 @@
      "effect": "?? keeps existing.sleepEndMs"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -497,11 +479,10 @@
      "effect": "index source = imported points; else existing points"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.reindexed(_:from:onto:)": "d03a6aa9ee2a5b06",
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "ced093429a75da98"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.reindexed(_:from:onto:)": "a27c343d661087b7",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "5d6dddf4b5651eb1"
    }
   },
   {
@@ -521,9 +502,8 @@
      "effect": "return without change"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)": "b703d6e106cdb4d4"
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)": "c1967ae7d731a7fe"
    }
   },
   {
@@ -535,9 +515,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
    }
   }

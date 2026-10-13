@@ -11,7 +11,6 @@
   "env:GATES_PUSH_WORKFLOW_FILE"
  ],
  "toplevel": "set -euo pipefail; cd to repo root. WORKFLOW (GATES_WORKFLOW_FILE or ci.yml), PUSH_WORKFLOW (GATES_PUSH_WORKFLOW_FILE or gates.yml) and Makefile; any missing -> exit 2. Python: run_text() collects only `run:` command text (inline or block scalar) of steps not disabled by a literal `if: false` (step or job level), YAML/shell comments stripped; expand_make() appends the recipes of every make target named (and their prerequisites, recursively). A gate runs if its name appears as a token in that text. No gates -> 2. Gates not run in ci.yml, or (outside NOT_ON_PUSH) not run in gates.yml -> exit 1. An exemption naming a missing script -> exit 1. Else clean. Red until gates.yml runs coremotion-isolation-guard, hr-feed-link-guard and check_privacy_manifest_vocabulary.sh (handoff). Wired: gates.yml, ci.yml, Makefile gates-wired-guard.",
- "flags": [],
  "units": [],
  "deps": {}
 }

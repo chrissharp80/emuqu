@@ -17,7 +17,6 @@
   "static let prefixOvershootMeters = 200"
  ],
  "toplevel": "Only static constants; no stored mutable state.",
- "flags": [],
  "units": [
   {
    "key": "func RouteLibrary.findMatch(currentTrack:sport:store:)",
@@ -68,25 +67,13 @@
      "effect": "?? uses +infinity when no best yet so the first candidate always wins; ties keep the earlier (newer route, forward before reverse)"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "med",
-     "text": "No test calls RouteLibrary.findMatch, scoreDirection, candidates, location(of:), evenSample or thinned (RouteLibraryGeometryTests covers only trackPrefix/meanNearestDistance/nearestDistance), so the reverse-direction climb queue and the start gate are unverified.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RouteLibrary.swift:65",
-      "EmuquTests/RouteLibraryGeometryTests.swift:41"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)": "29e4e418d4aebd10",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "984316b98ce9cac9"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)": "1877ca7da03fcb95",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "058b3dca3f8937e8"
    }
   },
   {
@@ -109,13 +96,12 @@
      "effect": "score both directions; otherwise return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.location(of:)": "6a51044ce4dd5bb2",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)": "3cf43ac9e169d575",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "f86b9993b7802976",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.location(of:)": "36e938981ee6a727",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)": "e5b713f3edc198bd",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "e226df4b619cd0ca",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "f9797bf1cd911e58"
    }
   },
   {
@@ -129,7 +115,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -162,12 +147,11 @@
      "effect": "return Match; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.evenSample(_:count:)": "9ef79a4e10fc1022",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.thinned(_:spacing:)": "ee7cc85023668301",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "838009e02228aff7"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.evenSample(_:count:)": "d8a4d3ab8c7c63dc",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "bc194380ea75dbec",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.thinned(_:spacing:)": "57cd9ac7b9e44835",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "cce5fb6714146ad1"
    }
   },
   {
@@ -185,7 +169,6 @@
      "effect": "subsample by index step track.count/count; otherwise return track as-is"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -213,7 +196,6 @@
      "effect": "append the end point; otherwise already present"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -227,9 +209,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746"
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "2eda8f0134d3bc59"
    }
   },
   {
@@ -257,7 +238,6 @@
      "effect": "stop; otherwise keep walking (whole track if never reached)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -277,9 +257,8 @@
      "effect": "compute mean; otherwise return .infinity (never matches)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "71122270ab6b0170"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "6319436930088d64"
    }
   },
   {
@@ -297,7 +276,6 @@
      "effect": "keep the minimum distance"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

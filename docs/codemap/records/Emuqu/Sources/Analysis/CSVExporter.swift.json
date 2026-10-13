@@ -10,19 +10,6 @@
   "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.csv (written by writeToTempFile)"
  ],
  "toplevel": "Units has no stored-property initializers beyond its init; the default argument of Units.init reads UnitsPreferenceStore.current.resolved. The file header comment describes the sections as export builds them: per-fix rows with values from the nearest 1 Hz WorkoutSample (no RR beats), and for a track-less session an empty trackpoint section followed by the per-second sample table when samples exist.",
- "flags": [
-  {
-   "kind": "privacy",
-   "sev": "low",
-   "text": "Export files containing the GPS track and per-second HR are written to the app temp directory every time FitnessPostSummaryView builds its exports (buildExports runs eagerly, not on share) and no code in that view removes them.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/CSVExporter.swift:266",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:450",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:472"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init CSVExporter.Units(imperial:)",
@@ -79,10 +66,9 @@
      "effect": "'mi' else 'km'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -102,9 +88,8 @@
      "effect": "writes '# Units preference: imperial' else 'metric'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.optionalFieldLines(session:units:iso:)": "0eae4b7f9e6bcc15"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.optionalFieldLines(session:units:iso:)": "89f53a24828b0a64"
    }
   },
   {
@@ -122,15 +107,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.add(_:_:)": "d37f458a03335482",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.add(_:_:)": "f550c19f0b409d4d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "52bc71a25da47070",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -148,7 +132,6 @@
      "effect": "returns without appending; otherwise appends the line"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -190,14 +173,13 @@
      "effect": "appends splitsBlock; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)": "3ba7bb557cde97a1",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)": "53897c25e93d0729",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)": "ee00f769477b3961",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)": "f89461773dded7ad",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)": "679b9e97f80aebce",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)": "e6f06e21627b27c8",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)": "9d949a0008061255",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)": "12100efac3deb8b8",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)": "02258535cb488297",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)": "78a120a762ef4622",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6"
    }
   },
   {
@@ -227,7 +209,6 @@
      "effect": "adds great-circle distance from previous kept fix to cumulative; first fix stays 0"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)": "60c18842be1e3e08"
    }
@@ -250,10 +231,9 @@
      "effect": "Int(wall seconds)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "dce7b3646a6968af",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "bcdd2b66dec0008d"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "029a5a5a1ce9f674",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "275752e584c9eee3"
    }
   },
   {
@@ -298,12 +278,11 @@
      "effect": "α1 %.3f else '' (most rows empty since α1 is ~20 s cadence)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.sample(at:of:in:)": "7ec6cfd7260990e0",
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.sample(at:of:in:)": "4d59cc5e51c15ba2",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -358,12 +337,11 @@
      "effect": "empty cell"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54"
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "6b320e30aeb20b67"
    }
   },
   {
@@ -401,12 +379,11 @@
      "effect": "empty cell"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)": "8c410993eceaae95",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)": "72d2856dacc3f521",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "651b546e1fa68836",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -439,7 +416,6 @@
      "effect": "returns it; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -470,12 +446,11 @@
      "effect": "throws NSError 'Couldn't create the CSV file.' (cannot happen for a Swift String); otherwise writes"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   }
  ],

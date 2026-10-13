@@ -13,7 +13,6 @@
   "mem:Availability.unavailable (static let)"
  ],
  "toplevel": "Static lets Availability.alwaysAvailable (hasData true, nil range) and Availability.unavailable (hasData false). FactValue and Availability are Sendable; MissingReason is Codable with raw string values used on the wire.",
- "flags": [],
  "units": [
   {
    "key": "func Availability.workouts(in:)",
@@ -32,9 +31,8 @@
      "effect": "false: returns .unavailable; true: Availability(hasData: true, validRange: earliest...latest, lastUpdated: latest)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -52,7 +50,6 @@
      "effect": "true: String(format: \"%.0f\"); false: two-decimal string with trailing zeros/point removed by regex \\.?0+$"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -120,11 +117,10 @@
      "effect": "'{' + sorted key: value pairs joined ', ' + '}'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.formatDuration(_:)": "ea85140350616782",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.trimmed(_:)": "7c963de064cf6f69"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.formatDuration(_:)": "c059878fc2f1b343",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "61a92ec18d225c50",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.trimmed(_:)": "e6dc34cc1c930e9e"
    }
   },
   {
@@ -172,22 +168,10 @@
      "effect": "pad + humanReadable"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "prettyMultiline (and its helpers nestedRendering / isScalar) has no production caller; grep finds uses only in EmuquTests/FactValueTests.swift. The doc says it serves 'the catalog dump', which no app code calls.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:175",
-      "EmuquTests/FactValueTests.swift:274"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.nestedRendering(of:indent:)": "5f4c3d5d7d613afc",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isScalar": "4ff9e01db7c521f9"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.nestedRendering(of:indent:)": "4b906ff21202785a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "3d2124b7f4fb4d10",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isScalar": "4e4e0dc86b97eafe"
    }
   },
   {
@@ -213,10 +197,9 @@
      "effect": "humanReadable + '\\n'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "57215d97e7d82240",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "b9943722d6d6c2b3",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "3d2124b7f4fb4d10"
    }
   },
   {
@@ -239,7 +222,6 @@
      "effect": "true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -257,7 +239,6 @@
      "effect": "returns true; otherwise false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -275,7 +256,6 @@
      "effect": "value non-nil -> .integer(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -293,7 +273,6 @@
      "effect": "value non-nil -> .double(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -311,7 +290,6 @@
      "effect": "value non-nil -> .string(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -329,7 +307,6 @@
      "effect": "value non-nil -> .date(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -347,7 +324,6 @@
      "effect": "value non-nil -> .boolean(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -370,12 +346,11 @@
      "effect": "true: returns the JSON string; false: returns the internalError envelope literal (attempt() logs the thrown error)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func AnyFactJSON.encode(to:)": "1f64c918453d58e4",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)": "edeaea80b1d7c934",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func AnyFactJSON.encode(to:)": "3af158bf19546921",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "7b1d87d371ef9578",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)": "49f4f055efb408cf",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -389,9 +364,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON": "7dc478c8b77ccf50"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON": "25f774dac4e0f6fa"
    }
   },
   {
@@ -422,10 +396,9 @@
      "effect": "value = toAnyJSON(); missingReason omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()": "d302e6f6601daddf"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "61a92ec18d225c50",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()": "813385d61cc614ae"
    }
   },
   {
@@ -492,10 +465,9 @@
      "effect": "mapValues recursively"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "7b1d87d371ef9578",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "61a92ec18d225c50"
    }
   },
   {
@@ -509,9 +481,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "f55dbd73868f2e3a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "d502ecffccb8a34c"
    }
   },
   {
@@ -534,7 +505,6 @@
      "effect": "returns '%dm %02ds'; else falls to '\\(s)s'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -546,7 +516,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -602,9 +571,8 @@
      "effect": "encodeNil — silently emits null for any unhandled type"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)": "edeaea80b1d7c934"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)": "49f4f055efb408cf"
    }
   }
  ],

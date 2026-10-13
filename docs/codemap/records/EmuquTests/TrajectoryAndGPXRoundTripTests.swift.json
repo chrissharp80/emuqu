@@ -9,20 +9,6 @@
   "savedDefaultTimeZone: nonisolated static OSAllocatedUnfairLock<TimeZone?> holding the process NSTimeZone.default during the class run"
  ],
  "toplevel": "The class-level setUp/tearDown swap the process-global NSTimeZone.default to UTC for the whole class and restore it afterwards.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The TrajectoryVerdict half of this file re-tests the same precedence, baseline gate, deep-fatigue, rising/rapid and rampRate==0 fallback cases that EmuquTests/TrajectoryVerdictTests.swift table-drives, with a second private inputs() builder.",
-   "evidence": [
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:39",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:270",
-    "EmuquTests/TrajectoryVerdictTests.swift:12",
-    "EmuquTests/TrajectoryVerdictTests.swift:36"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TrajectoryAndGPXRoundTripTests.setUp()",
@@ -35,9 +21,8 @@
     "mem:NSTimeZone.default"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -57,17 +42,6 @@
      "effect": "true: restores it; false: leaves NSTimeZone.default as is"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Mutates the process-global NSTimeZone.default for the duration of the class; any concurrently running test (parallel testing in-process) or app-host code reading TimeZone.current sees UTC.",
-     "evidence": [
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:27"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -84,12 +58,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -106,12 +79,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -128,12 +100,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -150,12 +121,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -172,12 +142,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -194,12 +163,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -216,12 +184,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -238,12 +205,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -260,35 +226,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Pins a sentinel the test's own doc calls 'a genuine trap': compute treats rampRate == 0 as 'not supplied' (TrajectoryVerdict.swift:204), so a measured ramp of exactly zero with a +2 CTL delta reads Building; the test asserts that behaviour instead of requiring an explicit optional.",
-     "evidence": [
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:109",
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:117",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:204"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "In the rampRate == 0 fallback the rapid-increase check still reads inputs.rampRate > 8 (TrajectoryVerdict.swift:206), so a fallback CTL delta above 8 can only ever yield .building, never .rapidIncrease; the test pins the fallback but does not cover this branch.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:204",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:206",
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:116"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -305,12 +247,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -327,12 +268,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "007fee7fed3c84f8"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comeback:overreach:peaking:rampRate:tsb:)": "d9a4ed00bc64e920"
    }
   },
   {
@@ -354,32 +294,10 @@
      "effect": "asserts three non-empty strings"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The 9 cases are a hand-written list, not allCases; a newly added verdict case would not be checked for display copy.",
-     "evidence": [
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:144"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Checks chipLabel, the English glyph label the assistant fact uses, not localizedChipLabel, which the views render (TrajectoryVerdict.swift:25-27,44); a missing or empty localized chip string would not be caught.",
-     "evidence": [
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:149",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:28",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:44"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel": "f67fc74dabbf06cf",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "93152eabbe94cb38",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative": "e8cb5b70455ae7fe"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel": "45ef32e16e402589",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "66c7cfa65239b016",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative": "3c45ce0257c89c74"
    }
   },
   {
@@ -405,21 +323,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "86b17673bbc40733",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "07bd97064b03202c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "c5cad882adee5e5b",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "1058dac66ed1c26a",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "e764d7d3708c3125"
    }
   },
   {
@@ -451,21 +368,20 @@
      "effect": "asserts both coordinates; zip stops at the shorter track"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "86b17673bbc40733",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "07bd97064b03202c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "c5cad882adee5e5b",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "1058dac66ed1c26a",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "e764d7d3708c3125"
    }
   },
   {
@@ -497,21 +413,20 @@
      "effect": "asserts timestamp equality ±1 s"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "86b17673bbc40733",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "07bd97064b03202c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "c5cad882adee5e5b",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "1058dac66ed1c26a",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "e764d7d3708c3125"
    }
   },
   {
@@ -538,22 +453,21 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "86b17673bbc40733",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "07bd97064b03202c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)": "302160a296752777",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)": "31ae70bf6c254fb6",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "43167fa3fab29275",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "64701d6eb47a668f",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "02e63e04ec04fd42",
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "3e783c4947044a23"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parser(_:foundCharacters:)": "c5cad882adee5e5b",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "7a7fd6d3f190ba61",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeTrack(count:)": "1058dac66ed1c26a",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.makeWorkoutSession()": "e764d7d3708c3125"
    }
   },
   {
@@ -568,9 +482,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619"
    }
   },
@@ -593,9 +506,8 @@
      "effect": "true: passes; false: XCTFail with the actual error"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d"
    }
@@ -622,21 +534,8 @@
      "effect": "nil description counts as empty and fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Iterates only [.invalidXML, .noTrackpoints]; ImportError has a third case .noTimestamps (GPXImporter.swift:32, thrown by parseWorkout at :58) whose description is not checked, despite the doc saying every import error must carry copy.",
-     "evidence": [
-      "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:237",
-      "Emuqu/Sources/Analysis/GPXImporter.swift:32",
-      "Emuqu/Sources/Analysis/GPXImporter.swift:58"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXImporter.ImportError.errorDescription": "5f5618ae260e17e5"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXImporter.ImportError.errorDescription": "8c6736362ad9cf6e"
    }
   },
   {
@@ -661,13 +560,12 @@
      "effect": "asserts the error is ImportError.invalidXML; success path asserts sport .run and 2 points"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)": "e08e0acfd6166078",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -681,9 +579,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "f9c584d809073959"
    }
   },
   {
@@ -697,9 +594,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.location(at:from:)": "782823b4a12ef1fd"
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift::func TrajectoryAndGPXRoundTripTests.location(at:from:)": "8a773c51ae7d892a"
    }
   },
   {
@@ -711,7 +607,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -726,11 +621,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   }
  ],

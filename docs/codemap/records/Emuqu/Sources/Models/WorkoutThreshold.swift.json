@@ -17,7 +17,6 @@
   "mem:WorkoutThreshold.oneShotCooldownSec = 999_999 (static; the cooldown that makes milestone cues fire once per workout)"
  ],
  "toplevel": "Encodable and Hashable/Equatable are synthesized over CodingKeys (id, metric, condition, value, debounceSec, cooldownSec, userCue, naturalLanguageText). Static lexicon tables are built lazily on first parse.",
- "flags": [],
  "units": [
   {
    "key": "init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
@@ -28,10 +27,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -62,25 +60,12 @@
      "effect": "falls back to userCue"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The tolerant decoder is unreachable in production: WorkoutThreshold is never persisted or decoded outside the test round-trip, whose comment ('thresholds are persisted with the session') is false.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutThreshold.swift:101",
-      "EmuquTests/WorkoutAnalyzerMathTests.swift:316",
-      "EmuquTests/WorkoutAnalyzerMathTests.swift:322"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801",
-    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)": "d6f846fc85f556dc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)": "c1706081605becc3",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "0cf3e1c2452dfd34",
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)": "84ac2daea8077aca",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)": "fdfcc73e61e543d0",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -100,20 +85,8 @@
      "effect": "cue = text; else the given userCue"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "WorkoutThreshold.naturalLanguage(text:) has no production caller (grep finds only EmuquTests/WorkoutAnalyzerMathTests.swift:310); WorkoutPreflightView.addThreshold now rejects unparsed text instead of creating natural-language cues.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutThreshold.swift:122",
-      "Emuqu/Sources/Views/WorkoutPreflightView.swift:933"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192"
    }
   },
   {
@@ -127,10 +100,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192"
    }
   },
   {
@@ -150,10 +122,9 @@
      "effect": "returns []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "03b6bca2b8f4224c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.allCaptures(_:in:)": "658db60705166e1f"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "4754ad71f1e50b0b",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.allCaptures(_:in:)": "271dfd7f3a8a1d7e"
    }
   },
   {
@@ -175,11 +146,10 @@
      "effect": "catch: logs '[WorkoutThreshold] cue pattern did not compile' at .error and returns [] (the parser then simply finds no match)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "03b6bca2b8f4224c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.groups(of:in:)": "22043f1ffa2acc35",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "4754ad71f1e50b0b",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.groups(of:in:)": "1830ebb13eabf6a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -191,7 +161,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -205,9 +174,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "03b6bca2b8f4224c"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "4754ad71f1e50b0b"
    }
   },
   {
@@ -222,10 +190,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931"
    }
   },
   {
@@ -245,9 +212,8 @@
      "effect": "true: .lessThan; false: .greaterThan"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "4fbf1dec37a46309"
    }
   },
   {
@@ -259,7 +225,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -300,16 +265,15 @@
      "effect": "returns a one-shot milestone; else repeating cue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "03b6bca2b8f4224c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.allCaptures(_:in:)": "658db60705166e1f",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.pattern(_:languageCode:leading:)": "4754ad71f1e50b0b",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "4fbf1dec37a46309",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.allCaptures(_:in:)": "271dfd7f3a8a1d7e",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "f32de5c197aff788",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192"
    }
   },
   {
@@ -343,13 +307,12 @@
      "effect": "scale ?? 1 (metres)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "4fbf1dec37a46309",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "f32de5c197aff788",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd"
    }
   },
   {
@@ -376,11 +339,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "4fbf1dec37a46309",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "f32de5c197aff788"
    }
   },
   {
@@ -414,13 +376,12 @@
      "effect": "value × 0.3048; else metres as-is"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "4fbf1dec37a46309",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "f32de5c197aff788",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd"
    }
   },
   {
@@ -449,13 +410,12 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -485,14 +445,13 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "4fbf1dec37a46309",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -520,12 +479,11 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "c0e333dd3cc89f8f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "b2a95b221277d931",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -554,16 +512,15 @@
      "effect": "nil; else runs the parser chain (nil when none match)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseDistance(_:)": "2bf7e99c1fa2c937",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseElapsed(_:)": "60e225df6f88b775",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseElevation(_:)": "ab6f808aa0df3a1d",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseGrade(_:)": "ea48b87a9f8eba1a",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseHeartRate(_:)": "9d6d377985f26009",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseKShorthand(_:)": "7693daec8001bcc4",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePowerFTP(_:)": "c97e2d3b53f8ee42",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseDistance(_:)": "9f2146d3259ceda1",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseElapsed(_:)": "57e8074d9356e622",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseElevation(_:)": "a7371fa7d5ad6e7f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseGrade(_:)": "81f5eeb8dd57b109",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseHeartRate(_:)": "7ccec58bf47dc6ca",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseKShorthand(_:)": "1a29715cdcf51cdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePowerFTP(_:)": "d3a4b9f194224942",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -641,10 +598,9 @@
      "effect": "nil (never evaluated)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -674,11 +630,10 @@
      "effect": "observed < value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.observedValue(from:)": "b4d5b77bea292d0c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.observedValue(from:)": "ed708d8e78ce323d",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
   },
   {
@@ -718,25 +673,11 @@
      "effect": "'Cue fired'"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "In production every threshold comes from parsePlainText, which always sets userCue to the typed text; userThresholdBreachMessage and WorkoutPreflightView.summary return a non-empty userCue first, so defaultCue and its metric-specific phrasing ('HR drifted to 142, ease up') are never spoken or shown; only tests reach it.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutThreshold.swift:416",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:540",
-      "Emuqu/Sources/Views/WorkoutPreflightView.swift:947",
-      "Emuqu/Sources/Models/WorkoutThreshold.swift:323"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.heartRateCue(currentValue:)": "93e794f6a3cf0599",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.intensityCue()": "f0916888f833ced2",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.progressCue()": "40b1e0840f47c3eb",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.heartRateCue(currentValue:)": "06a7f300184bfc52",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.intensityCue()": "6fe0ade5bbfa77f1",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.progressCue()": "83ff3d7616d881f6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -778,10 +719,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -853,11 +793,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -919,11 +858,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -946,7 +884,6 @@
      "effect": "[] (never happens: every concept has English words)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -973,10 +910,9 @@
      "effect": "prepends (?<![\\p{L}\\p{N}]); always appends (?![\\p{L}])"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.isCJK(_:)": "f42082e2a16dea9c",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.words(_:languageCode:)": "1e2797af70bb9962"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.isCJK(_:)": "a90df768ded04fa3",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func CueLexicon.words(_:languageCode:)": "a1ed0601fad83832"
    }
   },
   {
@@ -994,7 +930,6 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

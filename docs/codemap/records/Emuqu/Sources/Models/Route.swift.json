@@ -15,7 +15,6 @@
   "RouteProgress.tieToleranceMeters = 25"
  ],
  "toplevel": "Route and Route.Point use synthesized Codable; Climb has custom CodingKeys and decoder for old saved routes lacking roadName.",
- "flags": [],
  "units": [
   {
    "key": "var Route.Climb.lengthMeters",
@@ -26,7 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -38,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -50,7 +47,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,11 +73,10 @@
      "effect": "total distance = last cumulative; ?? 0 fallback (unreachable since cumulative starts [0])"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::func Route.detectClimbs(track:cumulative:)": "d5e07dd5ed59be9d",
-    "Emuqu/Sources/Models/Route.swift::func Route.elevationProfile(track:)": "3cf3184ca459b874",
-    "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "419d55931ca63cde"
+    "Emuqu/Sources/Models/Route.swift::func Route.detectClimbs(track:cumulative:)": "230d5798a44fa73f",
+    "Emuqu/Sources/Models/Route.swift::func Route.elevationProfile(track:)": "0a1bd8f0c744ae98",
+    "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "f6a3d39f940cb565"
    }
   },
   {
@@ -93,7 +88,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -123,9 +117,8 @@
      "effect": "add to ascent; else add |dh| to descent (zero adds 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "ec67229ee86ac9a4"
    }
   },
   {
@@ -147,11 +140,10 @@
      "effect": "detect; otherwise []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::func Route.qualifyingClimb(fromIdx:toIdx:startAlt:smoothed:cumulative:)": "c12830d6826640b6",
-    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03",
-    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+    "Emuqu/Sources/Models/Route.swift::func Route.qualifyingClimb(fromIdx:toIdx:startAlt:smoothed:cumulative:)": "aa7adc2aa4541874",
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "0a0e264601ce4460",
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "ec67229ee86ac9a4"
    }
   },
   {
@@ -194,7 +186,6 @@
      "effect": "close it at last index"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -219,9 +210,8 @@
      "effect": "return Climb; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)": "76d979bdb467aea7"
+    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)": "7e7ef844786ae484"
    }
   },
   {
@@ -249,7 +239,6 @@
      "effect": "sum values"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -274,22 +263,10 @@
      "effect": "percent = min(1, along/total); otherwise 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "RouteProgress.compute / nearestPointIndex / continuityWindow (loop start-vs-finish and out-and-back continuity logic) have no tests: grep 'RouteProgress' in EmuquTests finds nothing.",
-     "evidence": [
-      "Emuqu/Sources/Models/Route.swift:252",
-      "Emuqu/Sources/Models/Route.swift:283"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Models/Route.swift::func RouteProgress.nearestPointIndex(to:in:after:)": "1c19fc31d9261e01"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
+    "Emuqu/Sources/Models/Route.swift::func RouteProgress.nearestPointIndex(to:in:after:)": "b9e35e832cea9ff1"
    }
   },
   {
@@ -319,10 +296,9 @@
      "effect": "return it; ?? 0 fallback unreachable since best itself qualifies"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Models/Route.swift::func RouteProgress.continuityWindow(after:in:count:)": "a183864446817773"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
+    "Emuqu/Sources/Models/Route.swift::func RouteProgress.continuityWindow(after:in:count:)": "adc1eda085f6b2e1"
    }
   },
   {
@@ -350,7 +326,6 @@
      "effect": "hi; ?? count when the lookahead runs past the route end"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -10,18 +10,6 @@
   "net:api.anthropic.com headers: anthropic-version 2023-06-01, anthropic-beta extended-cache-ttl-2025-04-11"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "No test exercises AnthropicProvider's request assembly or SSE parsing (grep of EmuquTests finds no call to handle/consumeSSE/spliceLiveState/toolDeclarations/statusError/cacheAwareSystemBlocks; JSONOrderingTests claims to guard provider encoders but only encodes its own Payload struct).",
-   "evidence": [
-    "EmuquTests/JSONOrderingTests.swift:14",
-    "EmuquTests/JSONOrderingTests.swift:26"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func AnthropicProvider.cacheAwareSystemBlocks(_:)",
@@ -35,10 +23,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "29eb0d71383239cf",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "9bf824779ebf7909"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "c484c39a3bf962e3",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "25247d69db0f4dd4"
    }
   },
   {
@@ -79,13 +66,12 @@
      "effect": "returns nil — unreachable: tools is non-empty, and when the app web_search is filtered out the server tool is appended; else last element replaced with cacheTagged copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)": "1a9605f184933b33",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)": "2cd22fbdf6472de7",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -110,9 +96,8 @@
      "effect": "rebuilds server web search with cache"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "5749510a6d10807f"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "ef94418fb8544c61"
    }
   },
   {
@@ -128,7 +113,6 @@
     "net:api.anthropic.com (request built, sent by caller)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -177,9 +161,8 @@
      "effect": "throws URLError(.networkConnectionLost)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "ecfe7969a0c2f2bd"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "9cf14f6e92438cca"
    }
   }
  ],

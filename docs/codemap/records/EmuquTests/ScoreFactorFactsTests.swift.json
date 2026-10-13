@@ -10,19 +10,6 @@
   "ud:AppleLanguages (via LanguageManager.setLanguage)"
  ],
  "toplevel": "Stored var pinnedLanguage defaults to .system and is overwritten in setUp.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Language switching goes through LanguageManager.shared.setLanguage, which persists to UserDefaults.standard 'AppleLanguages' and posts languageDidChangeNotification in the app host; if a test crashes before tearDown the host's persisted language stays changed.",
-   "evidence": [
-    "EmuquTests/ScoreFactorFactsTests.swift:17",
-    "Emuqu/Sources/Services/LanguageManager.swift:130",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift:302"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ScoreFactorFactsTests.setUp()",
@@ -43,11 +30,10 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d"
    }
   },
   {
@@ -66,10 +52,9 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930"
    }
   },
   {
@@ -81,7 +66,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -93,7 +77,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -109,12 +92,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "3d1a132ab2d018b6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1",
-    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "5e9c0b579813f95a"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "2703c1e06a8d8b5c",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "6c7b3f2843c9db36",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "001a07ce5948dfc4"
    }
   },
   {
@@ -131,12 +113,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "4923fa3d00ee27f9",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1:detail:weight:)": "779791d1067e426b",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "5e9c0b579813f95a"
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "66428e2a8eef0a0b",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1:detail:weight:)": "c3dce4079f92094a",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "001a07ce5948dfc4"
    }
   },
   {
@@ -151,7 +132,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -175,15 +155,14 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)": "f487f1c8fa4b20a4",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "dfdcd9a49c35133f",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1",
-    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "5e9c0b579813f95a"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)": "03ef636b080972ab",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "84df0c867161e3c6",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "fb1a6f958cdb7ec2",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "6c7b3f2843c9db36",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "001a07ce5948dfc4"
    }
   },
   {
@@ -204,12 +183,11 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()": "34df17839bca99d1",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()": "3d554e1b5b0abeb1",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "fb1a6f958cdb7ec2"
    }
   },
   {
@@ -231,13 +209,12 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)": "b17865feb70556d5",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16"
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)": "ccb2617b37c55513",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "fb1a6f958cdb7ec2"
    }
   },
   {
@@ -260,14 +237,13 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "dfdcd9a49c35133f",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "84df0c867161e3c6",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "fb1a6f958cdb7ec2",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "6c7b3f2843c9db36"
    }
   },
   {
@@ -282,10 +258,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3"
    }
   },
   {
@@ -301,10 +276,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()": "34df17839bca99d1"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()": "3d554e1b5b0abeb1"
    }
   },
   {
@@ -319,9 +293,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3"
    }
   },
   {
@@ -338,12 +311,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "dfdcd9a49c35133f",
-    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "9577b1db60613ea3",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "84df0c867161e3c6",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "6c7b3f2843c9db36"
    }
   },
   {
@@ -367,28 +339,14 @@
     "notif:LanguageManager.languageDidChangeNotification"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Never asserts the captured 'german' lines are actually German (differ from the English lines); if setLanguage(.de) did not reach NarrativeLanguage.bundle, both arrays would be the English strings and the equality plus the 'Low blood oxygen' prefix check would still pass, so the cross-language re-wording path is not proven.",
-     "evidence": [
-      "EmuquTests/ScoreFactorFactsTests.swift:152",
-      "EmuquTests/ScoreFactorFactsTests.swift:153",
-      "EmuquTests/ScoreFactorFactsTests.swift:158",
-      "EmuquTests/ScoreFactorFactsTests.swift:162"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties": "b00211681964aa8b",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "a885486a54084f3d",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "d746e1b81f630a98",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty": "5411e32d99bdb002",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "141ea928a73ae35b"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties": "34c5b7816dba19db",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "658c46609c4e6757",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "37d90e9153f9e3f9",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty": "af6e9659470007ed",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "01e1f4dc67163696",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf"
    }
   },
   {
@@ -403,10 +361,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "a885486a54084f3d",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "d746e1b81f630a98"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "658c46609c4e6757",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "37d90e9153f9e3f9"
    }
   }
  ],

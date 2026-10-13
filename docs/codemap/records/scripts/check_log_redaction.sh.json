@@ -8,7 +8,6 @@
   "dir:EmuquWatch Watch App"
  ],
  "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app; a missing root -> exit 2. tmp via gate_mktemp (|| exit). Python writes one line per log call (LOG_CALL not preceded by a word character; the whole call found by string/interpolation-aware paren matching and joined onto one line) as file:line:call, skipping // lines and calls with `log-redaction-ok` on any of their lines or the line above; a Python failure -> exit 2. report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN (bare or member-path rr/rrValues/rrSeries/beats/rrIntervals, bare samples); any -> remediation text + exit 1; else clean with scanned count.",
- "flags": [],
  "units": [
   {
    "key": "fn report",
@@ -21,12 +20,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
-  "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea"
+  "Tools/copy_linter/lint.py::": "5373b51ca6189fff",
+  "scripts/check_log_redaction.sh::fn report": "7c45ae04a5ea39b6"
  }
 }

@@ -7,7 +7,6 @@
   "file:Emuqu.xcodeproj/project.pbxproj (read/write)"
  ],
  "toplevel": "Module constant PROJECT path (relative to cwd). `if __name__ == '__main__': raise SystemExit(main())`.",
- "flags": [],
  "units": [
   {
    "key": "def remove_file",
@@ -22,20 +21,6 @@
      "at": "+45",
      "cond": "any PBXBuildFile ids were found for the basename",
      "effect": "append '(build file ids: ...)' note; otherwise no extra note. All four re.subn removals run unconditionally and report their counts (0 when nothing matched)."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Matching is by basename only: if two different files share a name in different groups/directories, every entry for that name is removed, not just the one at the given path (no duplicate basenames exist in project.pbxproj at 8d32097).",
-     "evidence": [
-      "scripts/remove_swift_file.py:38",
-      "scripts/remove_swift_file.py:52",
-      "scripts/remove_swift_file.py:61",
-      "scripts/remove_swift_file.py:97"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -76,13 +61,12 @@
      "effect": "os.remove(path) and print; otherwise file left on disk. After the loop pbxproj is rewritten unconditionally."
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/remove_swift_file.py::def remove_file": "4e2dbdd7ddd1390c"
+    "scripts/remove_swift_file.py::def remove_file": "5702a9f39b8e35f3"
    }
   }
  ],
  "deps": {
-  "scripts/remove_swift_file.py::def main": "2c24f98a8082aa60"
+  "scripts/remove_swift_file.py::def main": "c170f11433247931"
  }
 }

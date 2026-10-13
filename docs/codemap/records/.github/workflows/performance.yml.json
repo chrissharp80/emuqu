@@ -7,7 +7,6 @@
   "permissions contents: read"
  ],
  "toplevel": "Trigger: workflow_dispatch only. One job.",
- "flags": [],
  "units": [
   {
    "key": "job performance-tests",
@@ -24,14 +23,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/performance.yml::step performance-tests/Checkout": "1d1ce710209c8758",
-    ".github/workflows/performance.yml::step performance-tests/Resolve simulator destination": "fff3bcb9140c715c",
-    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "1990c882a1546ea1",
-    ".github/workflows/performance.yml::step performance-tests/Select Xcode": "79db03f927158b4f",
-    ".github/workflows/performance.yml::step performance-tests/Upload performance test results": "0f0f2e367e5fde5a",
-    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+    ".github/workflows/performance.yml::step performance-tests/Checkout": "387c70c86bec7ca8",
+    ".github/workflows/performance.yml::step performance-tests/Resolve simulator destination": "87faf49ccf9d5be4",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "b6c290cb6bff71cf",
+    ".github/workflows/performance.yml::step performance-tests/Select Xcode": "6fc36261bc07857c",
+    ".github/workflows/performance.yml::step performance-tests/Upload performance test results": "400fcd0bc3ead46f",
+    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
    }
   },
   {
@@ -45,7 +43,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,7 +56,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -73,9 +69,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
    }
   },
   {
@@ -90,20 +85,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "No performance baseline (.xcbaselines) exists anywhere in the repo, so measure(metrics:[XCTClockMetric()]) records timings but can never fail; this workflow cannot detect a performance regression, only a crash or nil result.",
-     "evidence": [
-      ".github/workflows/performance.yml:26-34",
-      "EmuquTests/AnalysisPerformanceTests.swift:49-51"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquTests/AnalysisPerformanceTests.swift::func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()": "0607b8b3c5346b90"
+    "EmuquTests/AnalysisPerformanceTests.swift::func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()": "b48a43ca8287c414"
    }
   },
   {
@@ -123,7 +106,6 @@
      "effect": "runs even after the test step fails"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

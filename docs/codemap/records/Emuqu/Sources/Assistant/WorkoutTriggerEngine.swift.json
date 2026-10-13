@@ -15,29 +15,6 @@
   "private(set) var rules: [Rule]"
  ],
  "toplevel": "Header comment states contracts (real data only, always optional phrasing, silence via cooldown/tier); notes .haptic has no Watch handler and .silent is history-only. The Urgency comment says only user.threshold.breach can be heard; strap-drop is urgent but .haptic.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "`history` is written on every fired event but nothing in the repo reads it. 14 of the 15 default rules are .silent/.haptic (only user.threshold.breach is .spoken), so their condition/message work (including the AI-prompt messages) produces output that no code ever consumes. Whether to delete those rules, surface their history (post-workout report, Watch haptics, AI context) or make some audible again is a product decision; the user docs still describe several as spoken.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:106",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:158",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "No file in EmuquTests references WorkoutTriggerEngine; cooldown handling, canSpeak gating, didFire, history cap, reset hooks and all 15 rule conditions (including the only spoken rule, user.threshold.breach) are untested.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:134",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:502"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)",
@@ -48,9 +25,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.id": "af8eee8fca66724e"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.id": "2ece0a7bf6dbb4c3"
    }
   },
   {
@@ -70,11 +46,10 @@
      "effect": "nil: uses the 15-rule default catalogue reading settings through settingsProvider; non-nil: uses the injected list (only WorkoutVoiceCoach.init builds an engine, with the defaults)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.defaultRules(settings:)": "8f9459548839c939",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.defaultRules(settings:)": "54311bed6b4a9373",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -102,10 +77,9 @@
      "effect": "every rule is checked (condition evaluated) in catalogue order; only those shouldFire accepts are fired; empty list returns []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.record(_:)": "608c182d5cf28f32",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.shouldFire(_:context:now:canSpeak:)": "7d88a741aa14a62b"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.record(_:)": "19f972b51a363d7c",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.shouldFire(_:context:now:canSpeak:)": "0dae83a6530d4635"
    }
   },
   {
@@ -134,10 +108,9 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "bf4d071f64efd31b",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "2b7a6b079b4b909e"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "1c79076fbebb9a8f"
    }
   },
   {
@@ -157,7 +130,6 @@
      "effect": "true: removeFirst(count-200) keeps last 200; false: nothing trimmed"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -184,12 +156,11 @@
      "effect": "calls each rule's reset hook; stateless rules run the default no-op"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.StrapLinkState.reset()": "b12b5405ea8994a7",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)": "b630e778840f39da",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)": "48f9735492650661",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)": "d74bab6e7f80b8b7"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.StrapLinkState.reset()": "deec8d7be5a26d67",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)": "bd69b3afb57a575d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)": "61eee0183504c57d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)": "59f9ed9b48dbe109"
    }
   },
   {
@@ -206,28 +177,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "User docs say the voice coach SPEAKS rule-engine observations (alpha1 crossing, HR drift, zone drift, climb ahead incl. the quoted 'Climb in 200 yards ... First of 3' line, strap dropped) and that the target-zone nudge fires after >=30 s; in code every one of those rules is .silent or .haptic (a deliberate demotion per the user spec quoted in +Rules.swift) and WorkoutVoiceCoach.dispatch drops both tiers, so the only audible rule in the default catalogue is user.threshold.breach. FLOWCHART also claims '>= 10-min cooldowns' while threshold/strap/zone rules use 30 s/60 s/150 s. The docs need correcting.",
-     "evidence": [
-      "docs/FEATURES.md:64",
-      "docs/USERS_MANUAL.md:1045",
-      "docs/USERS_MANUAL.md:1170",
-      "docs/USERS_MANUAL.md:1130",
-      "docs/FLOWCHART.md:1112",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:56",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.effortRules()": "c6d5bd13d6a52750",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentAndProgressRules()": "7c01fb5492bcf67a",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.sessionNarrativeRules(settings:)": "dd2957160db9ed9d",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainAndZoneRules()": "b0d68020daf28fb6"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.effortRules()": "af88b14f9a07bc3c",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentAndProgressRules()": "60f92b5932fd6ca5",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.sessionNarrativeRules(settings:)": "b31722639c7568f0",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainAndZoneRules()": "e90326ea68c27916"
    }
   }
  ],

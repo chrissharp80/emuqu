@@ -10,18 +10,6 @@
   "mem:ObservationHandle.isCancelled (per-handle, private(set))"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests references ObservationLoop or ObservationHandle, although it drives bindings in RRCollector, WorkoutTicker, AssistantViewModel, HistoryViewModel and WatchConnectivityBridge.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/ObservationLoop.swift:32",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ObservationHandle.cancel()",
@@ -32,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -53,11 +40,10 @@
      "effect": "schedules deliverInitial (deferred Task on main actor) before arming; when false only arms, so the first callback happens on the first change (replaces .dropFirst())"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)": "04d6a8c9f34782d8",
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.deliverInitial(_:handle:read:onChange:)": "e67e68bf9f0c1c96"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)": "d38fadee84e555cf",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.deliverInitial(_:handle:read:onChange:)": "191b893f970ff2de"
    }
   },
   {
@@ -77,9 +63,8 @@
      "effect": "delivers current value; otherwise returns silently without delivering"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3"
    }
   },
   {
@@ -94,10 +79,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.fire(_:handle:read:onChange:)": "736f2f32563bd11d"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.fire(_:handle:read:onChange:)": "14fdf74042296798"
    }
   },
   {
@@ -118,10 +102,9 @@
      "effect": "returns without delivering and without re-arming, ending the loop permanently; when false delivers and re-arms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)": "04d6a8c9f34782d8"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)": "d38fadee84e555cf"
    }
   }
  ],

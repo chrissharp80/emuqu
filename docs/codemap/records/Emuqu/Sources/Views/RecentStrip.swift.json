@@ -10,22 +10,6 @@
   "days, showVerdicts, onTapDay, onViewAll (inputs from DashboardV2View+Chips.swift:281-286)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Docs disagree with code on the Recent strip: USERS_MANUAL says verdict words show 'once you have 30 nights of baseline' but the host gates showVerdicts on ScoreAppearancePolicy.fullBaselineNights = 28; FLOWCHART says 'Recent strip = 30 days' and ARCHITECTURE says '8 are visible at a time', but DashboardSessionPolicy.recentDays always builds exactly 7 days (offsets 6...0).",
-   "evidence": [
-    "docs/USERS_MANUAL.md:99",
-    "docs/FLOWCHART.md:719",
-    "docs/ARCHITECTURE.md:658",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:283",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:338",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:303"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var RecentStrip.body",
@@ -39,10 +23,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripHeader": "b29f8b345417a62e",
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripScroll": "ad64d2d376106ca9"
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripHeader": "257370a180a97e6e",
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripScroll": "d1047bc04e18e5c4"
    }
   },
   {
@@ -58,12 +41,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.viewAllButton": "1fcf231a24e87e93",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.viewAllButton": "803b80a1c5022385",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -77,9 +59,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow": "5f54f277d6a30a6a"
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow": "bf330120dafdb0ba"
    }
   },
   {
@@ -94,9 +75,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.card(for:)": "f13c63bb35a01e46"
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.card(for:)": "9bd5dff8a2dd8105"
    }
   },
   {
@@ -110,9 +90,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.dayCards": "60b74f170b3b0bb2"
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.dayCards": "7507753b0d4d82ff"
    }
   },
   {
@@ -126,9 +105,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayCard(_:)": "0a06a7e04d561f4e"
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayCard(_:)": "0d1aca497a3fcf0c"
    }
   },
   {
@@ -144,11 +122,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -165,15 +142,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.accessibilityLabel(for:)": "9191ba174815c47c",
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayMarker(for:)": "a860a28c235b03b7",
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.weekdayLabel(_:)": "a5adef2d8760eb26",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.accessibilityLabel(for:)": "3e59ea26d12a966a",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.dayMarker(for:)": "438649b1cf07cb3d",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.weekdayLabel(_:)": "e0c94deb4dbf2214",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -202,15 +178,14 @@
      "effect": "true: filledDot(wongGood) + \"Logged\". false: stroked empty circle + \"—\"."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.filledDot(_:)": "6931f7062b6dcf25",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "a0f14cd5e49b9046",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "cf23a785bbffc060",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.filledDot(_:)": "41e9dc96dfdc3097",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -222,9 +197,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -239,10 +213,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d"
    }
   },
   {
@@ -269,11 +242,10 @@
      "effect": "return localized \"reading logged\"; else localized \"no reading\"."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "cf23a785bbffc060",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d"
    }
   }
  ],

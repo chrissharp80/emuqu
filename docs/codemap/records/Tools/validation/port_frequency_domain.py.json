@@ -7,7 +7,6 @@
   "FS=4.0, VLF=[0.003,0.04), LF=[0.04,0.15), HF=[0.15,0.4], VLF_MIN_DURATION_MIN=10, WELCH_SEG=256, VLF_SEG=1024, OVERLAP=0.5 (lines 16-23)"
  ],
  "toplevel": "Constants only; maps vDSP Hann/DFT to numpy (docstring).",
- "flags": [],
  "units": [
   {
    "key": "def hann_denorm",
@@ -18,7 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -41,7 +39,6 @@
      "effect": "slope = sxy/sxx else 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -55,7 +52,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,11 +73,10 @@
      "effect": "accumulate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def _accumulate": "32b2853c90950223",
-    "Tools/validation/port_frequency_domain.py::def hann_denorm": "646a0ef74e1fa52b",
-    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "fc013a933a38b25a"
+    "Tools/validation/port_frequency_domain.py::def _accumulate": "be09cf8d65b49cd1",
+    "Tools/validation/port_frequency_domain.py::def hann_denorm": "b916f333c5bbac3a",
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "55b1d7a81b7b6c15"
    }
   },
   {
@@ -114,7 +109,6 @@
      "effect": "add to hf; else ignored"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -126,7 +120,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -147,10 +140,9 @@
      "effect": "None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def _band_powers": "81cc0278f91fff18",
-    "Tools/validation/port_frequency_domain.py::def _welch_psd": "19a2feadb7f92e89"
+    "Tools/validation/port_frequency_domain.py::def _band_powers": "8fabdeca12df0d26",
+    "Tools/validation/port_frequency_domain.py::def _welch_psd": "5e75acd460749fbe"
    }
   },
   {
@@ -188,12 +180,11 @@
      "effect": "lfHfRatio; else None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def _accumulate": "32b2853c90950223",
-    "Tools/validation/port_frequency_domain.py::def _band_powers": "81cc0278f91fff18",
-    "Tools/validation/port_frequency_domain.py::def hann_denorm": "646a0ef74e1fa52b",
-    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "fc013a933a38b25a"
+    "Tools/validation/port_frequency_domain.py::def _accumulate": "be09cf8d65b49cd1",
+    "Tools/validation/port_frequency_domain.py::def _band_powers": "8fabdeca12df0d26",
+    "Tools/validation/port_frequency_domain.py::def hann_denorm": "b916f333c5bbac3a",
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "55b1d7a81b7b6c15"
    }
   },
   {
@@ -232,13 +223,12 @@
      "effect": "compute VLF; else None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def _band_powers": "81cc0278f91fff18",
-    "Tools/validation/port_frequency_domain.py::def _metrics": "ff086f70d939e00a",
-    "Tools/validation/port_frequency_domain.py::def _single_window": "386ee567b98294c2",
-    "Tools/validation/port_frequency_domain.py::def _vlf_power": "c666a92204430f6a",
-    "Tools/validation/port_frequency_domain.py::def _welch_psd": "19a2feadb7f92e89"
+    "Tools/validation/port_frequency_domain.py::def _band_powers": "8fabdeca12df0d26",
+    "Tools/validation/port_frequency_domain.py::def _metrics": "3f430e27c61fa5b6",
+    "Tools/validation/port_frequency_domain.py::def _single_window": "d8c426d38fddfc15",
+    "Tools/validation/port_frequency_domain.py::def _vlf_power": "e192f7e248cddc91",
+    "Tools/validation/port_frequency_domain.py::def _welch_psd": "5e75acd460749fbe"
    }
   },
   {
@@ -306,7 +296,6 @@
      "effect": "cubic evaluation; else v[s]"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -337,10 +326,9 @@
      "effect": "None"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/port_frequency_domain.py::def _spline_resample": "b453392449545525",
-    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be"
+    "Tools/validation/port_frequency_domain.py::def _spline_resample": "52b00fddd4a07c3f",
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "807e3117ed3a55ba"
    }
   }
  ],

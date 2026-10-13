@@ -628,7 +628,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 ## 6. Verification
 
-The cross-implementation report, with scripts and per-record results, is `Tools/validation/RESULTS.md`.
+The cross-implementation scripts are in `Tools/validation/`.
 
 **Time-domain arithmetic.** On every build, RMSSD, SDNN and the percentage of successive differences greater than 50 ms (pNN50) are compared, on 6,000 intervals from 20 records of the PhysioNet Normal Sinus Rhythm RR Interval Database (nsr2db) [40], with a separate reference implementation of the Task Force definitions (register label `validated`). A separate Python reimplementation reproduced the stored references for mean RR and SDNN to within 4.9 × 10⁻⁷ ms. This covers the arithmetic, not the strap's beat detection.
 

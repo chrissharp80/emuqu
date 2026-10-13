@@ -9,40 +9,6 @@
   "file:temp *.ghout (+ .env/.summary siblings)"
  ],
  "toplevel": "set -uo pipefail. Args: --scope X (default gates; no validation), --list; unknown -> exit 2. Exit 2 if ci.yml absent (must be run from repo root). Sources preflight and calls gate_require_unmutated_tree. Python (needs PyYAML): collects steps of every job except: scope 'gates' skips tests/thread-sanitizer/strict-concurrency jobs; scope 'unit' skips thread-sanitizer; any other scope string runs every job. Steps with `uses:` or no `run:` are dropped silently; job-level and step-level `if:` conditions are ignored. expand() resolves ${{ steps.X.outputs.Y }}, ${{ inputs.X }} (scope / baseline-ref ''), and the `inputs.X == 'v' && 'a' || 'b'` ternary; any other expression becomes ''. --list prints RUN/SKIP per step and exits 0. Otherwise warns when `git status --porcelain` is non-empty, then for each step: CANNOT_RUN_LOCALLY regex (sudo xcode-select, brew install/update/tap, actions/...) -> SKIP; else `bash -lc <expanded run>` with merged env and temp GITHUB_OUTPUT/ENV/STEP_SUMMARY; step outputs parsed when the step has an id; temp .ghout unlinked (the .env and .summary files are never removed). Prints failures with last 12 output lines; exit 1 if any failed. Only ci.yml is simulated; gates.yml (the push-triggered workflow) is not. Units at 196/205 are Python `print()` calls misidentified as shell functions.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header promises 'A step this script does not know how to run locally is a hard error, never a silent skip', but every `uses:` step is dropped without mention (line 120) and job/step `if:` conditions are ignored, so the run is not the same set of steps CI executes.",
-   "evidence": [
-    "scripts/simulate_ci.sh:13",
-    "scripts/simulate_ci.sh:120"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "`--scope` given as the last argument with no value: `shift 2` fails with fewer than 2 positional args and shifts nothing, and without set -e the while loop re-reads `--scope` forever (reproduced with the same loop).",
-   "evidence": [
-    "scripts/simulate_ci.sh:29",
-    "scripts/simulate_ci.sh:31"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Default `gates` scope skips the strict-concurrency job as 'expensive', claiming to mirror the workflow, but in ci.yml that job has no `if:` (it runs on every scope, Ubuntu, 5-minute timeout); a local gates run therefore omits a step CI always executes.",
-   "evidence": [
-    "scripts/simulate_ci.sh:79",
-    "scripts/simulate_ci.sh:81",
-    ".github/workflows/ci.yml:399",
-    ".github/workflows/ci.yml:401"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "fn print",
@@ -53,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -65,11 +30,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/simulate_ci.sh::fn print #2": "ce5d230e2427f622"
+  "scripts/simulate_ci.sh::fn print #2": "b3fe2b74876c096a"
  }
 }

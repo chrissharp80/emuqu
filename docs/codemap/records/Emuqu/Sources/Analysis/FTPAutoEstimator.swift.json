@@ -16,7 +16,6 @@
   "static rescanInterval = 7 days"
  ],
  "toplevel": "Static constants only.",
- "flags": [],
  "units": [
   {
    "key": "var FTPAutoEstimator.cachedRunningFTP",
@@ -35,7 +34,6 @@
      "effect": "returns it; else nil (integer(forKey:) gives 0 for a missing key)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,7 +47,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -69,7 +66,6 @@
      "effect": "false: nil; true: UUID(uuidString:) (nil if malformed)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -92,23 +88,9 @@
      "effect": "returns without scanning; else launches Task.detached recompute"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "recomputeIfNeeded returns immediately after launching a detached task, and the launch housekeeping then awaits trainingMetricsCache.refresh() at once, so on a launch that recomputes the FTP the training-load refresh reads the previous cachedRunningFTP; the next refresh rebuilds only because LoadSettings.ftp changed.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:89",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:489",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:492",
-      "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift:22"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "1573afbe067a5006",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "976dc961cc0d3ba3"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "7a7c27d37cb8f9d6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "35ad10888cd2579e"
    }
   },
   {
@@ -136,10 +118,9 @@
      "effect": "returns; else awaits the detached recompute"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "1573afbe067a5006",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "976dc961cc0d3ba3"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "7a7c27d37cb8f9d6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "35ad10888cd2579e"
    }
   },
   {
@@ -179,11 +160,10 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt": "07775f853b5eb37f",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.sourceSessionId": "ead15d0317858c1c",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt": "6123e2c371add6a6",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.sourceSessionId": "80e1b4f48b67f642",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -203,11 +183,10 @@
     "ud:FlowRecovery.ftpAutoEstimate.*"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "6966d0f5ca0e5a0d",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)": "d321852096406b4d",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)": "317a4d0fc13005bd"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "e2ed365e1c33b305",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)": "91feb3171a54d5b2",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)": "ae79ca6fa33b9bda"
    }
   },
   {
@@ -219,7 +198,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -239,9 +217,8 @@
      "effect": "false: session skipped; true: Effort(mean, session.id)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "c6f512c8a305819e"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "ecb922ed2e16cf31"
    }
   },
   {
@@ -283,12 +260,11 @@
      "effect": "0 used as the seed when no window has qualified yet"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "5cd28b3328c5acce",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "c402751b2f9ac913",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "3a514f81762fb1e6",
-    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "d3bffcf37198a334",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "41a8ad1eb1f3f528",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "6ae1a0177c5b6085",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "fe66d4d5805fe044"
    }
   },
   {
@@ -316,9 +292,8 @@
      "effect": "stores watts; else slot stays nil (zero-watt seconds count as missing, not as 0 W)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -336,7 +311,6 @@
      "effect": "sum/readings; else 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -354,7 +328,6 @@
      "effect": "returns without change; else accumulates"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -372,7 +345,6 @@
      "effect": "returns without change; else subtracts"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -391,12 +363,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.isRunningFamily(_:)": "2999eff7c8a09f5b",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.isRunningFamily(_:)": "2c9e75586bf6cfca",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -424,7 +395,6 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -455,10 +425,9 @@
      "effect": "removeObject"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)": "178e97421afdd645",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)": "e6bf37c5db76b858",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

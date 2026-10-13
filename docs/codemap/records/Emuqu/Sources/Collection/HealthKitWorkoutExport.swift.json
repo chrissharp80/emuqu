@@ -14,7 +14,6 @@
   "mem:HealthKitWorkoutExport.minimumKcalPerSample = 0.01 (private static let)"
  ],
  "toplevel": "Constants for the ACSM kcal formula (lines 219-224). After the enum, the file-scope struct WorkoutWallClock (stored startDate and sorted pauseSpans, no other top-level code).",
- "flags": [],
  "units": [
   {
    "key": "func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)",
@@ -61,16 +60,15 @@
      "effect": "log prints duration 0s"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:store:)": "c5dd84269d56d8b4",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "38ac7c08de4b893a",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:store:)": "10b094bddb39f129",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:store:)": "d5a37a56d57bebe6",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate": "a1a4825c3ae93cdd",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate": "2605e0e80c4a21af",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -87,11 +85,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -103,7 +100,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -118,11 +114,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -154,12 +149,11 @@
      "effect": "throws ExportError.workoutNotSaved; otherwise returns the workout"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)": "96de4db245e255a2",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "36d488b202403d5a",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)": "23d5a2ecca8cc3af",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "0178746b65427069"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)": "90f48435dae8819a",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "05d5c0c59b30c3f5",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)": "176909391b03bf94",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "d21ee09d30eb856c"
    }
   },
   {
@@ -182,10 +176,9 @@
      "effect": "error is logged ('saved without its route') and swallowed; workout stays saved without route"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:store:)": "ec705d4697156228",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:store:)": "e987d9b9ecaf01b6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -206,10 +199,9 @@
      "effect": "locationType .outdoor; otherwise .indoor"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.hkActivity(for:)": "875ef58485d80d26",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.hkActivity(for:)": "b5a618222b7df1cb",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a"
    }
   },
   {
@@ -263,15 +255,14 @@
      "effect": "debug log listing skipped types; otherwise no log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:)": "3f103baa7632d736",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "38ac7c08de4b893a",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:)": "1fa6304e4f6a3ffd",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -285,7 +276,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -311,10 +301,9 @@
      "effect": "emits .pause then .resume; otherwise only .pause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutEvent(_:at:)": "fc08f799bf7aee5a",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.pauses()": "8ca537ade9d27d9f"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutEvent(_:at:)": "9759df3bd708625b",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.pauses()": "6e44b53d62e627a5"
    }
   },
   {
@@ -328,9 +317,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "4c4f33a82d84ec45"
    }
   },
   {
@@ -350,9 +338,8 @@
      "effect": "uses [] samples / empty skip set"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d"
    }
   },
   {
@@ -378,10 +365,9 @@
      "effect": "sample dropped (nil); otherwise sample built"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "4c4f33a82d84ec45",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678"
    }
   },
   {
@@ -424,12 +410,11 @@
      "effect": "appended; nil (invalid interval/value) dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "ccbfff2ab170f70f",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "0d0cf2bc44fe4080",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678"
    }
   },
   {
@@ -457,7 +442,6 @@
      "effect": "nil — no distance written"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -504,26 +488,11 @@
      "effect": "appended; nil dropped"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Active energy written to Health is computed per tick interval (ticks with nil/<=0 METs add nothing), while the in-app calories card computes avg METs x activeDuration in WorkoutStatsCards+Cards.estimatedCaloriesDisplay, so the two totals differ whenever ticks lack METs or have gaps. The file header now says so; making them agree means changing the card (outside this file).",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:19",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:316",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:319",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:125",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:134"
-     ],
-     "found": "second read; header corrected by b10"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "ccbfff2ab170f70f",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "0d0cf2bc44fe4080",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97"
    }
   },
   {
@@ -535,7 +504,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -571,12 +539,11 @@
      "effect": "returns; otherwise inserts and finishes the route (throws propagate to caller)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "38ac7c08de4b893a",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -634,7 +601,6 @@
      "effect": ".crossTraining"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -664,9 +630,8 @@
      "effect": "'Apple Health finished the workout without saving it' message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -684,7 +649,6 @@
      "effect": "no pauses: the clock is start + active offset"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -696,7 +660,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -716,9 +679,8 @@
      "effect": "returns (date(start), date(end)); otherwise starts at the last such pause's resume"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "4c4f33a82d84ec45"
    }
   },
   {
@@ -730,7 +692,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

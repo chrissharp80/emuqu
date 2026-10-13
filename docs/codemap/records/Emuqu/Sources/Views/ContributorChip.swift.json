@@ -11,22 +11,6 @@
  ],
  "state": [],
  "toplevel": "Stored properties: variant, state (default .default), compact (default true), recordedAgo (optional age caption, default nil), onTap (default no-op). No globals.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "In production the only constructor is DashboardV2View+Chips (hrvChip/sleepChip/vitalsChip/loadChip): HRV trend is always nil, sleep efficiency always nil, and states .loading and .locked are never passed. Trend glyph/subline/phrase, sleep \"Eff\" subline, the loading placeholder and the whole locked/blur/lock-overlay path are reached only from EmuquTests/DashboardChipSnapshotTests.swift.",
-   "evidence": [
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:71",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:76",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:107",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:274",
-    "EmuquTests/DashboardChipSnapshotTests.swift:100",
-    "EmuquTests/DashboardChipSnapshotTests.swift:124"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var ContributorChip.Trend.glyph",
@@ -53,7 +37,6 @@
      "effect": "\"arrow.down.right\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -83,9 +66,8 @@
      "effect": "\"Elevated\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -113,7 +95,6 @@
      "effect": "AppTheme.wongAttention"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -141,7 +122,6 @@
      "effect": "exclamationmark.triangle.fill"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -157,10 +137,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "746a7a8b6eeb3a60",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "83be730ff78ddd04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "3e7cb1f34df4d775"
    }
   },
   {
@@ -199,28 +178,12 @@
      "effect": "opacity 0.85, else 1.0"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "compact is never false anywhere: default is true and every construction (4 production builders, snapshot tests) passes compact: true or omits it, so the non-compact sizes (spacing 6, idealWidth 104, height 86) are never used.",
-     "evidence": [
-      "Emuqu/Sources/Views/ContributorChip.swift:71",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:20",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:27",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:34",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:50",
-      "EmuquTests/DashboardChipSnapshotTests.swift:131"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "0c70ff31d3312c4e",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "9d1481f380da8479",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "b507aadaf564dd58",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "efc410bd941567c5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "d6b6641ce16e0ff4"
    }
   },
   {
@@ -236,12 +199,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyphImage": "c226b828d1e48261",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "6f9f5ee54b3b14a2",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyphImage": "3d8daf0672f22087",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -262,11 +224,10 @@
      "effect": "renders 11pt image; else nothing (always nothing in production since trend is nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyph": "f00e1e1bdf2d5cf0",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyph": "143f9f9a17e39332",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -287,11 +248,10 @@
      "effect": "renders text; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "05931e2386c6ccfa",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "5e9404bf0af61a01",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -305,11 +265,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "4e2f95ef405541d6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -323,9 +282,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "c7ffb1e2ed67d3bf"
    }
   },
   {
@@ -362,11 +320,10 @@
      "effect": "blurred lockedValue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.placeholderValue(size:)": "2f2e7ed46e7dd219",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.defaultValue": "5deffe391df9bd50",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockedValue": "134adae5288487de"
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.placeholderValue(size:)": "7e8aec931c6ebcc5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.defaultValue": "242e1a5871f2e0b7",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockedValue": "648f02180a219588"
    }
   },
   {
@@ -394,13 +351,12 @@
      "effect": "verdict.localizedChipLabel 14pt; else numericValue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "ea430bb87835689d",
-    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.vitalsValue(_:)": "60924962a44f8f62",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.numericValue": "362633a48849524c",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "3d98b31ab71efe68",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.vitalsValue(_:)": "c449313c669a97be",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.numericValue": "6c97b3af893f7792",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -417,13 +373,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color": "07aeebb2ee1ae3d2",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.glyph": "7d0097be35038930",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "779d1f5994357440",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color": "97e3219d72fa23c9",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.glyph": "bae23a327aae5f14",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "eb9919dd27f3365b",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -438,11 +393,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "c7d7a585d188ef98",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -456,10 +410,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -474,11 +427,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "c7d7a585d188ef98",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -498,12 +450,11 @@
      "effect": "renders lock overlay; else nothing (never in production)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated": "d8e990dc733dd00d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated": "417460b02b9aa6fc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -538,9 +489,8 @@
      "effect": "\"Load\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -576,10 +526,9 @@
      "effect": "verdict.localizedChipLabel"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "ea430bb87835689d",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "779d1f5994357440"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "3d98b31ab71efe68",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "eb9919dd27f3365b"
    }
   },
   {
@@ -620,10 +569,9 @@
      "effect": "variantSubline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantSubline": "44a0fb6e9cf013f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantSubline": "5d87f7dfb0626e60"
    }
   },
   {
@@ -659,10 +607,9 @@
      "effect": "the provided subline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendSubline(_:)": "71eba849617c34e6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendSubline(_:)": "b2df666276a0d3a7"
    }
   },
   {
@@ -692,9 +639,8 @@
      "effect": "\"Below baseline\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -714,9 +660,8 @@
      "effect": "returns trend.glyph; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.Trend.glyph": "17de22385cbc81f6"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.Trend.glyph": "6808e394b0c91336"
    }
   },
   {
@@ -751,12 +696,11 @@
      "effect": "AppTheme.textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color": "07aeebb2ee1ae3d2",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color": "97e3219d72fa23c9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "ec0aeab80e909cde",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -798,11 +742,10 @@
      "effect": "\"<label>, Locked\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantAccessibilityLabel": "857797167dfcd302"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "6f9f5ee54b3b14a2",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantAccessibilityLabel": "c6e47b6bd0f40240"
    }
   },
   {
@@ -841,13 +784,12 @@
      "effect": "label, verdict accessibility label, subline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "93152eabbe94cb38",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendPhrase(_:)": "653b7dd7af28c124",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "779d1f5994357440",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "66c7cfa65239b016",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendPhrase(_:)": "7399478f0498b343",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "eb9919dd27f3365b",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "6f9f5ee54b3b14a2"
    }
   },
   {
@@ -877,9 +819,8 @@
      "effect": "\"below baseline\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

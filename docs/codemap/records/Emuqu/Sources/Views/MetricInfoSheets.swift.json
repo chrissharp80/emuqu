@@ -14,18 +14,6 @@
   "mem:MetricCompareToHistorySheet.pts (@State [Point])"
  ],
  "toplevel": "entryFactories maps Engine Room labels (with aliases 'Total Power'/'Total power', 'Stress'/'Stress index'/'Stress Index'/'Baevsky SI', 'Readiness'/'Readiness score') to static Entry factories so localized strings resolve at read time. Labels not in the table (SDSD, HR range, SD HR, HRV TI, LF/HF n.u., SD1/SD2, DFA α2, α1 R², SampEn, ApEn, PNS, SNS, Resp rate, Window beats) fall through to MetricExplanationPopover.info.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Labels present in both this table and the Morning Results popover (MetricExplanationPopover) still carry separately written copy, e.g. RMSSD's typical range here is 'Adults: 20–80 ms … Athletes often 60–120 ms' against the popover's age bands; only SDNN's range is shared, so users can read different ranges for the same metric on two screens.",
-   "evidence": [
-    "Emuqu/Sources/Views/MetricInfoSheets.swift:146",
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift:113"
-   ],
-   "found": "fix batch b22"
-  }
- ],
  "units": [
   {
    "key": "var MetricInfoSheet.body",
@@ -39,11 +27,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.doneToolbarItem": "a4400778754f7bb8",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricInfoStack": "b9018ce0bff295e5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.doneToolbarItem": "3de75b0434529ca9",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricInfoStack": "fc6c78df05a7755d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -57,9 +44,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -75,11 +61,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricHeadline": "3d3ec9169ecf614e",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.typicalRangeCallout": "b2bc5499e542312a",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.whatItMeansSection": "75552fbfc60c6b35"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricHeadline": "3ac6da11d72465ce",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.typicalRangeCallout": "4990de09b7474cf2",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.whatItMeansSection": "0c8a9ab90bc403e7"
    }
   },
   {
@@ -95,12 +80,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)": "8f1b585b12efa77d",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)": "3c2d7b8eacc06d66",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "ba539d3d364a915c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -115,13 +99,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "ba539d3d364a915c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -142,13 +125,12 @@
      "effect": "true: renders callout; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "ba539d3d364a915c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -175,10 +157,9 @@
      "effect": "true: maps popover Info to Entry; false: unknownEntry()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.unknownEntry()": "43659de9180ce0ac",
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.info(forKey:)": "567132a5a9dd2a12"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.unknownEntry()": "8ab3e7c73111f06e",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.info(forKey:)": "e14c4510272a8008"
    }
   },
   {
@@ -192,9 +173,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -208,9 +188,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -224,9 +203,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -240,9 +218,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -256,9 +233,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -272,9 +248,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -288,9 +263,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -304,9 +278,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -320,9 +293,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -336,9 +308,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -352,9 +323,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -368,9 +338,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -384,9 +353,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -400,9 +368,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -416,9 +383,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -432,9 +398,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -448,9 +413,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -464,9 +428,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -482,13 +445,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.loadPoints()": "d656627c94e35a04",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyDoneToolbarItem": "a4400778754f7bb8",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyStack": "73cc611726b5c648",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.loadPoints()": "1921ba103588d06b",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyDoneToolbarItem": "3de75b0434529ca9",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyStack": "bbec55e0c422e29f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -504,14 +466,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)": "8f1b585b12efa77d",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyChartSection": "75dec71ed5919ea1",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)": "3c2d7b8eacc06d66",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyChartSection": "b83813ea4b86346e",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -546,14 +507,13 @@
      "effect": "always true when reached (count >= 4); renders chart + caption. The implicit else is unreachable; it exists only to avoid force-unwraps"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.historyChart(firstPt:lastPt:)": "f899c1aa2fc1eff7",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyLoadingRow": "02a341b70556ecbb",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.historyChart(firstPt:lastPt:)": "8d575f55cd3f35b2",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyLoadingRow": "08e77a46b7819aa4",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -567,11 +527,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -588,11 +547,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.readingMarks(mean:sd:)": "e607c4ee8c71567a",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.spreadBand(firstPt:lastPt:mean:sd:)": "a122e7cf636d8429",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.readingMarks(mean:sd:)": "570cced833acb7f1",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.spreadBand(firstPt:lastPt:mean:sd:)": "1eb4fce3850e1a15",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -606,9 +564,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -630,9 +587,8 @@
      "effect": "true: wongCaution; false: AppTheme.primary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -644,7 +600,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -658,9 +613,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -686,9 +640,8 @@
      "effect": "true: returns without updating state (spinner stays if the sheet is still alive with a new label, the new task will load); false: stores pts, sets completed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "2be1de1fe7a808d3"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "9f6ab792ec65cd9d"
    }
   },
   {
@@ -715,10 +668,9 @@
      "effect": "stop walking"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)": "c6dda1e48a5d0b00",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)": "6321770ad62661a9",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "ba539d3d364a915c"
    }
   },
   {
@@ -753,14 +705,13 @@
      "effect": "false: nil — decode errors swallowed by try? and the night silently omitted; true: Point"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "2be5455112ec9732",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)": "088dcfa438c1acf2",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)": "6c56cc38c1c7617a",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)": "ad8b7b2d564ea237",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)": "3d1cf75d10c245bd",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "ba539d3d364a915c"
    }
   },
   {
@@ -793,10 +744,9 @@
      "effect": "nil → slow path"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "ba539d3d364a915c"
    }
   },
   {
@@ -835,10 +785,9 @@
      "effect": "use it; else ?? qualityValue (may be nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.ansValue(for:result:)": "8178ea82e2a253d9",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.frequencyValue(for:result:)": "8a9e5ef1dbb7a987",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.ansValue(for:result:)": "e7f2b4fddeeda815",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.frequencyValue(for:result:)": "2675de74ce64f2de",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.nonlinearValue(for:result:)": "9a6cdb8f5767d49e",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.qualityValue(for:result:)": "5323e4d6f5117276",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.timeDomainValue(for:result:)": "696b21cfb7065212"
@@ -918,11 +867,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "0b6a666af20d7f59",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "afa703aacc2a5146",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554"
    }
   },
   {
@@ -975,10 +923,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
-    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f"
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "3838a473853de9ce",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "bf397d8a50aecfd6"
    }
   },
   {
@@ -1038,9 +985,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "0b6a666af20d7f59"
    }
   },
   {
@@ -1088,11 +1034,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "68172f4e1ca2b927",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -1122,10 +1067,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "ee4a2ef206d35aab"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "1f4fe82c56acffe9"
    }
   }
  ],

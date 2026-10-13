@@ -10,19 +10,6 @@
   "@State expanded"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "memoryKey is per session UUID at both call sites, so a new UserDefaults key is written for every session ever expanded and none is removed (not on session delete or after the 30 days lapse); the \"remember expansion\" also never carries to the next day's session.",
-   "evidence": [
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:454",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:138",
-    "Emuqu/Sources/Views/EngineRoomDisclosure.swift:15"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init EngineRoomDisclosure(title:memoryKey:content:)",
@@ -35,7 +22,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -61,11 +47,10 @@
      "effect": "render content; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::func EngineRoomDisclosure.toggle()": "cfa1adb88461efab",
-    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::var EngineRoomDisclosure.bodyLabel": "c2af8b0acb23f7e3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::func EngineRoomDisclosure.toggle()": "3d7e90a7400ff193",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::var EngineRoomDisclosure.bodyLabel": "96da0044b1046056"
    }
   },
   {
@@ -85,7 +70,6 @@
      "effect": "write timestamp; collapsing writes nothing, so a collapse is not remembered"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -105,13 +89,12 @@
      "effect": "chevron 0°; else -90°"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "4cbb412c96e74820",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   }
  ],

@@ -22,7 +22,6 @@
   "mem:AppleReplyTrimmer.terminators/wideTerminators/closers"
  ],
  "toplevel": "All Foundation Models code is under #if canImport(FoundationModels) and @available(iOS 26, *); without it send() fails with unsupportedOS and isAvailable is false. id is a stored let .apple. Only chat turns (a prompt composed by AssistantSystemPrompt, recognised by its cache marker) lease the shared SessionCache and touch the AppleToolDispatcher; the summarizer, fact extraction and voice interjections run on a one-off session with no tools.",
- "flags": [],
  "units": [
   {
    "key": "var AppleFoundationProvider.availableModels",
@@ -33,7 +32,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -45,7 +43,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -69,13 +66,12 @@
      "effect": "returns model availability; otherwise falls through to false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.interval(_:_:)": "ea03554b743c72aa"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "c969891a95b4545d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.interval(_:_:)": "e37b2314190fa76f"
    }
   },
   {
@@ -101,9 +97,8 @@
      "effect": "returns without prewarming"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "c969891a95b4545d"
    }
   },
   {
@@ -135,13 +130,12 @@
      "effect": "logs that the window is full; then falls through to fresh session"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.adopt(_:)": "16ffc597e9545386",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "fbf5b10083bbede1",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "26137a2b53b98bbf",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.adopt(_:)": "5dea2f617b6ed29b",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "a5a21a29423ea673",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -163,9 +157,8 @@
      "effect": "ignored; else ledger charged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)": "e16cbeb9f376ab0f"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)": "8c3dacd75290a38d"
    }
   },
   {
@@ -181,10 +174,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "444b2e3cbffc46ea",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "954900871b58cf9a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0"
    }
   },
   {
@@ -208,12 +200,11 @@
      "effect": "toolless session; else session with tools"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "98fc30fb36b31a15",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "444b2e3cbffc46ea",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "522b04451108276d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "954900871b58cf9a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da"
    }
   },
   {
@@ -227,7 +218,6 @@
     "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -239,7 +229,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -260,10 +249,9 @@
      "effect": "returns the ProviderStream; else a stream failing with unsupportedOS"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runTranslatingFailures(messages:systemPrompt:tools:continuation:)": "db7253535600f087",
-    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runTranslatingFailures(messages:systemPrompt:tools:continuation:)": "00b54d02ebb337eb",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e"
    }
   },
   {
@@ -292,11 +280,10 @@
      "effect": "invalidates the cache and throws translate(error)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "1dabdf0b25252e58",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempts(messages:systemPrompt:tools:continuation:)": "795cc4ac0584dee6",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.translate(_:)": "69df0b45b699a533"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "30fd33df9de8c1c3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempts(messages:systemPrompt:tools:continuation:)": "913ea5a3521d20e0",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.translate(_:)": "03bb21a99baf9fa0"
    }
   },
   {
@@ -316,10 +303,9 @@
      "effect": "loops with it; nil ends; a throw propagates"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempt(_:messages:systemPrompt:tools:continuation:)": "0d7a537e5dc69780",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempt(_:messages:systemPrompt:tools:continuation:)": "ebaa02d238da67c5",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -351,15 +337,14 @@
      "effect": "rethrows overflow; else logs, invalidates, returns .trimmed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow": "1a868559a982796b",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "1dabdf0b25252e58",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.isContextOverflow(_:)": "7af6f09069285d3c",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)": "131422315cb60002",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "6c738cab6d72c92e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow": "caa7d80c3b41f6fd",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "30fd33df9de8c1c3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.isContextOverflow(_:)": "c775e77acaf23756",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)": "381f7b6168aa6ab4",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "174171b8f70c2ff6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -395,21 +380,20 @@
      "effect": "compactedPromptInput of all messages; else only the last message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "5367c29f83a3b52a",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)": "ac8ab1b87398fbba",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "5e73c6b8d113c2ac",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.instructionTokenCap": "539eb686ddc474be",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.keepsHistory": "714aa9adbfee0c49",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "cc950938e63dbc68",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget": "b3338836b20cfc6a",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "f62a55f4264ee6bf",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.withLengthRule(_:cap:)": "8d28927b6e454728",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "8ade4d95cc21038f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)": "0de8c760d2b3e5be",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "c20b747b25d7fa32",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "61a120b7b67ce74c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.instructionTokenCap": "a50a5e53a59d32a2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.keepsHistory": "87657d9406728805",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "7a33c21249265072",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget": "9d70187bc9162f54",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "a9293788382bb14c",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "ac49c1fa9aadd12b",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.withLengthRule(_:cap:)": "182886717bb98600",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -430,10 +414,9 @@
      "effect": "room unlimited; else cap minus the rule's estimated tokens minus 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "a1fd0137e71dcb2f"
    }
   },
   {
@@ -479,21 +462,20 @@
      "effect": "tool tokens counted as 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)": "4487834e71760736",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.lease(for:followUp:)": "6ea6348338541b2c",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prompt(from:isFresh:now:)": "921043779c45fa2b",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relay(_:to:)": "132d13b974195c5a",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.toolDispatcher(for:allowance:)": "cda486639125ec60",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions": "e0818b10778c2fb8",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::var AppleToolDispatcher.toolTokensSpent": "e6f943df9fa096f6",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "26137a2b53b98bbf",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "61a120b7b67ce74c",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)": "2645eaa9564d4e4d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.lease(for:followUp:)": "33027705c07fe52f",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prompt(from:isFresh:now:)": "c27c83f2decebdf1",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relay(_:to:)": "0f7d0feb0d187c53",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.toolDispatcher(for:allowance:)": "6a3fd03c6bd01c43",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions": "444bdb2713645eee",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::var AppleToolDispatcher.toolTokensSpent": "8d45dbddbf2cedc7",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "9455b1e10f47d1be",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -519,10 +501,9 @@
      "effect": "one-off session, not cached"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)": "3fa99c5054ae2269",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)": "1978b7374040f1a9",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0"
    }
   },
   {
@@ -547,12 +528,11 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setToolOutputAllowance(_:)": "a53442ced9dceb1a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher": "3fb424c7d7d2c0d1"
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setToolOutputAllowance(_:)": "985e6d6ed6f1d3b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher": "fb3ebe5f5d81d3bc"
    }
   },
   {
@@ -568,13 +548,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)": "de0124d3e2ed2723",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.hashToolCatalog(_:)": "b0256648b366e3d3",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)": "e16cf8f1147271b7",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.hashToolCatalog(_:)": "da5fb972bf02d70f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "9455b1e10f47d1be"
    }
   },
   {
@@ -588,7 +567,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -605,12 +583,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)": "50bf36aa302a1f5f",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "e799060c3c4e6da6",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relevanceQuery(from:)": "30578f9db57411da",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)": "2ba3edb0ca807e9e"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)": "4197e9bfa08e0bee",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "0bd75129e67a18aa",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relevanceQuery(from:)": "896014ebdca8e39a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)": "03a78b894cd2187f"
    }
   },
   {
@@ -622,7 +599,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -640,7 +616,6 @@
      "effect": "false; else true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -658,13 +633,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "075e79e94137f110",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "dd65e131a7601d37",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher": "3fb424c7d7d2c0d1"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "67acbf75cc7deb62",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "7bb03bb593437ace",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher": "fb3ebe5f5d81d3bc"
    }
   },
   {
@@ -690,9 +664,8 @@
      "effect": "latest = \"\" (sends only the clock line)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.buildPrompt(from:)": "8485e3a5d0ffe83c"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.buildPrompt(from:)": "c0505d4f35475d2b"
    }
   },
   {
@@ -727,13 +700,12 @@
      "effect": "rethrows raw (overflow can then be retried); else throws FailedAfterOutput"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.extractText(from:)": "4fbfbef379365310",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()": "a34ed89a01fd5b9d",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)": "e2dd33e357dd9b18",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)": "cd689fbf81ee2594",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleReplyRelay.generated": "7486babec43c89df"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.extractText(from:)": "356d38aeee60a4bf",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()": "4833fd7b36740305",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)": "8b20b663ab99b28b",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)": "80a172aa8460441f",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleReplyRelay.generated": "b7d5c3fa88c2cfc6"
    }
   },
   {
@@ -754,17 +726,6 @@
      "at": "+7",
      "cond": "snapshot is a String",
      "effect": "returns it; else throws UnreadableSnapshot"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Still reads the snapshot through reflection on a field labelled content; an SDK change to that shape now fails the turn loudly (UnreadableSnapshot) rather than showing garbage, but every Apple reply would fail until the label is updated.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:567"
-     ],
-     "found": "fix batch b07"
     }
    ],
    "deps": {}
@@ -794,7 +755,6 @@
      "effect": "\"Assistant: <text>\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -821,10 +781,9 @@
      "effect": "\"unknown\" (logged by attempt)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)": "105d314353244c89",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)": "a2293d4034a6584a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -876,11 +835,10 @@
      "effect": "logs, couldNotAnswer (.unknown, fallbackable)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.couldNotAnswer": "ced85f238892386c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.couldNotAnswer": "107ff6b312c29422",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -894,9 +852,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -910,9 +867,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c"
    }
   },
   {
@@ -939,11 +895,10 @@
      "effect": "returns whole reply; else the trimmed prefix"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "dcddb2c3420e3ede",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.endsSentence(_:)": "328021d3e86e23f8",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.mayHaveReachedCap(_:)": "52d47c071a28e714"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "56b0f5e2bfdc5ca6",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.endsSentence(_:)": "b3e8782af9a02897",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.mayHaveReachedCap(_:)": "0233cf7916a0e66c"
    }
   },
   {
@@ -961,7 +916,6 @@
      "effect": "false; else terminator test"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -986,9 +940,8 @@
      "effect": "end moves to it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.sentenceEnd(after:at:in:)": "b0c58a9d9b79ea7c"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.sentenceEnd(after:at:in:)": "19ce7069e5861d88"
    }
   },
   {
@@ -1018,9 +971,8 @@
      "effect": "returns index after closers; else nil (e.g. \"3.5\" or text-final \".\")"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.afterClosers(in:from:)": "f8d40f8fd019f67f"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.afterClosers(in:from:)": "a2a4036c63d34ae2"
    }
   },
   {
@@ -1038,7 +990,6 @@
      "effect": "advance; else stop"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1050,7 +1001,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1065,10 +1015,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)": "4b15f91148b2729d",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "dcddb2c3420e3ede"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)": "050c19f60d951c1a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "56b0f5e2bfdc5ca6"
    }
   },
   {
@@ -1080,7 +1029,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1095,10 +1043,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)": "4b15f91148b2729d",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)": "4ea55ff5c65a36da"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)": "050c19f60d951c1a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)": "e31a90497b7226c2"
    }
   },
   {
@@ -1116,7 +1063,6 @@
      "effect": "nothing emitted"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

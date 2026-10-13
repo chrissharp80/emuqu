@@ -29,7 +29,6 @@
   "mem:WatchStrapConnector.savedStrapIdentifier (@Published mirror of ud:WatchStrapConnector.savedPeripheralIdentifier)"
  ],
  "toplevel": "Stored-property initializers: shared singleton built via private init (which loads savedStrapIdentifier from UserDefaults); central is lazy so CBCentralManager (and the Bluetooth permission prompt) is only created on first access; connectionState starts .waitingForBluetooth; autoReconnectEnabled starts false. Conformances to CBCentralManagerDelegate/CBPeripheralDelegate in extensions. @preconcurrency import CoreBluetooth.",
- "flags": [],
  "units": [
   {
    "key": "var WatchStrapConnector.heartRateServiceUUID",
@@ -42,7 +41,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -56,7 +54,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -70,7 +67,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -84,7 +80,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -98,7 +93,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -122,7 +116,6 @@
      "effect": "touch central (creates the manager)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -165,13 +158,12 @@
      "effect": "true: connect(to:), return; false: .scanning + beginDiscovery()"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()": "878c0987240ff21b",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "fe5ab72d722074ec",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.deferScan()": "9b55611d09670591",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "563906a517532234",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()": "b03626a05bfcb452"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()": "81f2c7e8d7418362",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "997b89ed3e578918",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.deferScan()": "6dda915ee0b47698",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "0e79df3b2fe1c067",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()": "9aae01a257968b38"
    }
   },
   {
@@ -189,10 +181,9 @@
     "mem:WatchStrapConnector.pendingScanRequest"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "89bf69f0a7f3118f",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)": "ab845a2c33f5db15"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "551d35123ae1c3b4",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)": "62352e076f1d5de6"
    }
   },
   {
@@ -214,7 +205,6 @@
      "effect": "false: returns nil; true: returns retrievePeripherals(...).first (nil if system forgot the peripheral)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -239,9 +229,8 @@
      "effect": "connected → .connected; connecting → .connecting; else .idle"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "b029d8681217bdd6"
    }
   },
   {
@@ -255,7 +244,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -287,22 +275,8 @@
      "effect": "true: connectionState = restingState()"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/USERS_MANUAL.md says the app 'stops scanning aggressively when the Watch app backgrounds', but the connector has no scenePhase/background hook: discovery stops only when the pairing view disappears (stopScanning) and a deferred pendingScanRequest can still start a scan later with no screen open.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1421",
-      "EmuquWatch Watch App/WatchStrapPairingView.swift:37",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:221",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:433"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "563906a517532234"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "0e79df3b2fe1c067"
    }
   },
   {
@@ -326,9 +300,8 @@
      "effect": "false: return; true: stopScanning()"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "bfd5547360a73e27"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "e4483b62bd5e0eb6"
    }
   },
   {
@@ -372,9 +345,8 @@
      "effect": "true: connectedPeripheral=nil then cancelPeripheralConnection(other) so its later disconnect callback is ignored by handleDisconnect; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "b029d8681217bdd6"
    }
   },
   {
@@ -388,7 +360,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -403,7 +374,6 @@
     "mem:WatchStrapConnector.savedStrapIdentifier"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -418,7 +388,6 @@
     "mem:WatchStrapConnector.savedStrapIdentifier"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -454,10 +423,9 @@
      "effect": "true: connectedPeripheral=nil and cancelPeripheralConnection(pending) (strap stays saved); false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()": "878c0987240ff21b",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "89bf69f0a7f3118f"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()": "81f2c7e8d7418362",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "551d35123ae1c3b4"
    }
   },
   {
@@ -494,24 +462,10 @@
      "effect": "true: radioCameUp(central); false: nothing (centralManagerDidUpdateState will run radioCameUp later if the manager exists)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/USERS_MANUAL.md says the last-paired strap 'reconnect is automatic on Watch app launch', but autoReconnectEnabled starts false and is only turned on when displayOnlyMode is false; displayOnlyMode defaults to true, so in the default mode a saved strap is never reconnected automatically.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1418",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:137",
-      "EmuquWatch Watch App/WatchApp.swift:34",
-      "EmuquWatch Watch App/WatchSessionManager.swift:112"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnect()": "7140759c7879b0ed",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()": "2b1760f9ea2e2f67",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "fbad0ed2294343c8"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnect()": "bb87bf3c5b5ac95c",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()": "a5f8034b0a2e2068",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "8f0a6ad6bccd96ca"
    }
   },
   {
@@ -532,9 +486,8 @@
      "effect": "false: log warning, return (no UI state change — the tap does nothing visible); true: connect(to:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "fe5ab72d722074ec"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "997b89ed3e578918"
    }
   },
   {
@@ -569,10 +522,9 @@
      "effect": ".idle; scanning: left"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()": "705d5365c5504363",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()": "22edd46590e4eefa"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()": "c40dcc0148a307be",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()": "bebb4c9379ea97d1"
    }
   },
   {
@@ -588,7 +540,6 @@
     "mem:WatchStrapConnector.batteryPercent"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -612,7 +563,6 @@
      "effect": "true: cancelPeripheralConnection; false: no-op"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -655,7 +605,6 @@
      "effect": ".waitingForBluetooth"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -703,7 +652,6 @@
      "effect": "\"default\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -728,12 +676,11 @@
      "effect": "false: return after mapping state; true: radioCameUp(central)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "89bf69f0a7f3118f",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()": "2b1760f9ea2e2f67",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "563906a517532234",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)": "ab845a2c33f5db15"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "551d35123ae1c3b4",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()": "a5f8034b0a2e2068",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "0e79df3b2fe1c067",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)": "62352e076f1d5de6"
    }
   },
   {
@@ -764,11 +711,10 @@
      "effect": "false: return; true: startScanning()"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "fe5ab72d722074ec",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()": "b03626a05bfcb452",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "6cd8f0145b6c5b55"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "997b89ed3e578918",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()": "9aae01a257968b38",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "d92403cbde32a71a"
    }
   },
   {
@@ -805,12 +751,11 @@
      "effect": "true: name = genericSensorName; false: rawName"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.looksLikeHeartRateSensor(advertisementData:name:)": "75eddb41b3c636cc",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteDiscovered(_:carriesName:)": "2a337c627456aaac",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "23293795c6e81a26",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.looksLikeHeartRateSensor(advertisementData:name:)": "c7e3cbfb8af9305f",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteDiscovered(_:carriesName:)": "02caf79381e7a11e",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "b029d8681217bdd6"
    }
   },
   {
@@ -835,19 +780,8 @@
      "effect": "true: return true; false: test name substrings"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Name-substring allow-list (\"h9\", \"hrm\", \"heart\" etc.) is a heuristic: any BLE device whose name contains e.g. \"h9\" is listed as a strap, and an HR strap from another brand that neither advertises 180D nor matches a listed substring never appears in the picker.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchStrapConnector.swift:482"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "69bb0aeeb59197c8"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "ffbd0169381562d1"
    }
   },
   {
@@ -876,9 +810,8 @@
      "effect": "true: replace row with the named device; false: keep existing name"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "b029d8681217bdd6"
    }
   },
   {
@@ -899,10 +832,9 @@
      "effect": "uses genericSensorName"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.didConnect(_:id:name:central:)": "28bc568ee8ac54a1",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.didConnect(_:id:name:central:)": "16276a6ff0b0d87a",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "b029d8681217bdd6"
    }
   },
   {
@@ -930,11 +862,10 @@
      "effect": "false: cancelPeripheralConnection(peripheral) and return (stale connect dropped); true: persist + discover"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rememberStrap(_:)": "3463e73872a12df6",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryServiceUUID": "31f985f660a859fb",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "69bb0aeeb59197c8"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rememberStrap(_:)": "4fbc943369ca26b1",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryServiceUUID": "b68000e11e474466",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "ffbd0169381562d1"
    }
   },
   {
@@ -962,7 +893,6 @@
      "effect": "false: return (stale failure ignored); true: clear and set .disconnected(reason:)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -976,9 +906,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.handleDisconnect(_:central:detail:)": "5b2462b214199843"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.handleDisconnect(_:central:detail:)": "e6932d8f0ba9d61e"
    }
   },
   {
@@ -1031,11 +960,10 @@
      "effect": "generic name in .connecting state"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()": "705d5365c5504363",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "fbad0ed2294343c8"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()": "c40dcc0148a307be",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "b029d8681217bdd6",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "8f0a6ad6bccd96ca"
    }
   },
   {
@@ -1061,14 +989,13 @@
      "effect": "discover 2A19"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noHeartRateService(_:reason:)": "3e397b8f587a5382",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "ef11e5ac80ea1560",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryServiceUUID": "31f985f660a859fb",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "3af73660317c769f",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "69bb0aeeb59197c8"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noHeartRateService(_:reason:)": "66d4ba6cbf76728b",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "73b134fbbca34f11",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryServiceUUID": "b68000e11e474466",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "33be7a815e12a590",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "ffbd0169381562d1"
    }
   },
   {
@@ -1102,9 +1029,8 @@
      "effect": "forgetSavedStrap()"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()": "22edd46590e4eefa"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()": "bebb4c9379ea97d1"
    }
   },
   {
@@ -1129,9 +1055,8 @@
      "effect": "subscribe(peripheral, to:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.subscribe(_:to:)": "5ca81fe2e2ccf497"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.subscribe(_:to:)": "f59669efa3d6cc9f"
    }
   },
   {
@@ -1164,10 +1089,9 @@
      "effect": "break"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "ef11e5ac80ea1560",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "3af73660317c769f"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "73b134fbbca34f11",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "33be7a815e12a590"
    }
   },
   {
@@ -1214,13 +1138,12 @@
      "effect": "false: return; true: batteryPercent = Int(byte)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.strapMeasurement(_:)": "019084dd262af147",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteBattery(_:from:)": "ee3d55baeca3c947",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishBeat(_:from:)": "ac25d877d7ae8f7f",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "ef11e5ac80ea1560",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "3af73660317c769f"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.strapMeasurement(_:)": "5818f6cef632e796",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteBattery(_:from:)": "3b939e7f1bd105dc",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishBeat(_:from:)": "5b5497c93430cc88",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "73b134fbbca34f11",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "33be7a815e12a590"
    }
   },
   {
@@ -1242,7 +1165,6 @@
      "effect": "false: dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1259,9 +1181,8 @@
     "mem:WatchSessionManager.directStrapHeartRateAt"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyDirectStrapHR(_:)": "dd45468389758dd1"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyDirectStrapHR(_:)": "2b085ec8030c5812"
    }
   },
   {
@@ -1275,7 +1196,6 @@
     "mem:WatchStrapConnector.sessionManager"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1306,10 +1226,9 @@
      "effect": "publishToWatchSession"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forwardSampleToiPhone(hr:rrMillis:)": "964d5974a9459bea",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishToWatchSession(hr:rrMillis:)": "d290a51a44093cc9"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forwardSampleToiPhone(hr:rrMillis:)": "597969cb07d5c8ef",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishToWatchSession(hr:rrMillis:)": "a51c31cb576ec45f"
    }
   },
   {
@@ -1345,20 +1264,8 @@
      "effect": "include hr"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "RR intervals produced while the iPhone is unreachable (or after a failed send) are dropped by design, so a phone-side recorder that relies on the Watch strap path has gaps in its RR series for those periods; documented in the comment at :658-662.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchStrapConnector.swift:667",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:677"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.logDroppedSample(_:)": "1abe90207c880839"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.logDroppedSample(_:)": "cde1f08a347aad53"
    }
   },
   {
@@ -1372,7 +1279,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

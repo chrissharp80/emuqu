@@ -13,29 +13,6 @@
   "_SENTENCE_END = r\"[.!?\\n]\""
  ],
  "toplevel": "Module docstring; imports; Violation dataclass (40-46); INTERPOLATION_RE (190); _SENTENCE_END (277); MissingScanPath (409); LEXICON_PATH (413); `if __name__ == \"__main__\": sys.exit(main())` (586-587). Running it on main @ 8d32097 prints \"copy_linter: clean. FDA perimeter holds.\" (exit 0) and all 12 neverInStaticCopy concepts parse.",
- "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "med",
-   "text": "scan_xcstrings only reads loc[\"stringUnit\"]; localizations stored under \"variations\" (plural/device) are skipped (`unit = loc.get(\"stringUnit\") or {}` → value None → continue). Emuqu/Localizable.xcstrings has 1,902 such localization units (e.g. key \"Your resting heart rate this morning was %lld beats per minute.\" in zh-Hans), none of which the perimeter ever checks; a prohibited claim in a plural form passes clean.",
-   "evidence": [
-    "Tools/copy_linter/lint.py:394",
-    "Tools/copy_linter/lint.py:395",
-    "Tools/copy_linter/lint.py:397"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "Emuqu/InfoPlist.xcstrings (9 user-visible permission/Info.plist strings) is not under any scan_path (scan_paths are Emuqu/Sources/, EmuquWatch Watch App/, and the two named catalogues), so the iOS permission prompts are never linted while the Watch InfoPlist.xcstrings is.",
-   "evidence": [
-    "Tools/copy_linter/prohibited_terms.json:317",
-    "Tools/copy_linter/lint.py:507"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "def load_config",
@@ -62,21 +39,6 @@
      "effect": "write error, sys.exit(2)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Only FileNotFoundError and JSONDecodeError are caught; a config that is not valid UTF-8 (UnicodeDecodeError) or a directory path (IsADirectoryError) escapes as a traceback with exit 1, the code the module docstring reserves for 'at least one violation' (config errors are documented as exit 2).",
-     "evidence": [
-      "Tools/copy_linter/lint.py:21",
-      "Tools/copy_linter/lint.py:23",
-      "Tools/copy_linter/lint.py:51",
-      "Tools/copy_linter/lint.py:52",
-      "Tools/copy_linter/lint.py:55"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -94,20 +56,8 @@
      "effect": "True → main skips the file entirely; else False"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Prefix matching on a full filename entry without a separator also exempts any file whose name merely extends it (e.g. allowlist \"Emuqu/Sources/Assistant/Providers/AIProvider.swift\" is exact, but \"Emuqu/Sources/Assistant/MedicalTermLexicon\" exempts every file beginning with that string). Two allowlist entries name paths that do not exist (Emuqu/Sources/Views/Onboarding/OnboardingDisclaimerPage.swift, CHANGELOG.md) and several (EmuquTests/, docs/, README.md, Tools/copy_linter/) are outside every scan_path, so they are inert and nothing reports staleness.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:77",
-      "Tools/copy_linter/prohibited_terms.json:297"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def is_prohibition_context": "88330c702ee73d96"
+    "Tools/copy_linter/lint.py::def is_prohibition_context": "cfe17d648c57f065"
    }
   },
   {
@@ -121,20 +71,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The // regex is not string-aware, so it blanks everything after \"//\" inside string literals (e.g. \"https://...\") in the comment-stripped lines that is_prohibition_context uses; a prohibition sentence containing a URL or \"//\" is truncated there. iter_swift_strings documents this exact problem (lines 119-120) but this pre-pass still has it.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:91",
-      "Tools/copy_linter/lint.py:304"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def strip_swift_comments._block": "e922d12092a33945"
+    "Tools/copy_linter/lint.py::def strip_swift_comments._block": "01cf632d9d44949d"
    }
   },
   {
@@ -146,7 +84,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -231,22 +168,8 @@
      "effect": "advance past it; else stop at newline (unterminated)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "A string literal nested inside an interpolation is never scanned: the scanner consumes only the two characters `\\(` and then treats the inner `\"` as the outer literal's closing quote, so the inner literal's text is treated as code. Verified: for `\"\\(x ? \"Injury risk is high\" : \"ok\") today\"` it yields only `\\(x ? `, ` : `, `) today`. 52 lines in Emuqu/Sources and the Watch app contain such nested literals, including user-visible copy (e.g. SleepTimelineEditModel.swift:177 `\"\\(side == .start ? \"Start\" : \"End\") moved to ...\"`); a prohibited claim written in a ternary inside an interpolation passes the perimeter clean.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:175",
-      "Tools/copy_linter/lint.py:176",
-      "Tools/copy_linter/lint.py:179",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:177"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def iter_swift_strings.line_of": "87d217b4d14d22ac"
+    "Tools/copy_linter/lint.py::def iter_swift_strings.line_of": "a5a65de12bc06261"
    }
   },
   {
@@ -260,7 +183,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -272,7 +194,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -303,24 +224,9 @@
      "effect": "return True (string excused from every pattern); else continue; after all guards return False"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The window is four lines (two above, the literal's line, one below), not the 'three-line window' stated in the code comment and in prohibited_terms.json _negation_guards_note, nor 'two lines either side' as the comment in scan_swift_file says.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:232",
-      "Tools/copy_linter/lint.py:249",
-      "Tools/copy_linter/lint.py:250",
-      "Tools/copy_linter/lint.py:320",
-      "Tools/copy_linter/prohibited_terms.json:327"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def _sentence_around": "df1398814d57f0a8",
-    "Tools/copy_linter/lint.py::def _snippet_in_sentence": "7854db9a532e0761"
+    "Tools/copy_linter/lint.py::def _sentence_around": "0fd6ef35f882a399",
+    "Tools/copy_linter/lint.py::def _snippet_in_sentence": "4c569fc6ec181f97"
    }
   },
   {
@@ -343,7 +249,6 @@
      "effect": "True/False"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -366,7 +271,6 @@
      "effect": "end at it; else len(text)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -424,27 +328,13 @@
      "effect": "skip this match; else append Violation with line offset of the match inside a multi-line literal"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "med",
-     "text": "Any Swift string whose sentence contains a negation guard is excused, in all source files, not only the system prompt the docstring describes. Guard 2 is \"(do not|don't|never) (tell|say|use|describe|call|label|refer|frame|claim|imply)\", which is ordinary user-copy phrasing: a user-facing literal such as \"Don't use this as an early warning system\" or \"Never call this a diagnosis tool…\" (or a claim joined by a comma to such a clause in the same sentence) is skipped. The config note claims guards are only for phrases that \"cannot appear in user-facing copy\".",
-     "evidence": [
-      "Tools/copy_linter/lint.py:313",
-      "Tools/copy_linter/lint.py:326",
-      "Tools/copy_linter/lint.py:350",
-      "Tools/copy_linter/prohibited_terms.json:327"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def _forbidden_in_place": "b290e7ec8c4aba70",
-    "Tools/copy_linter/lint.py::def _snippet_around": "8a061932fb014e25",
-    "Tools/copy_linter/lint.py::def is_prohibition_context": "88330c702ee73d96",
-    "Tools/copy_linter/lint.py::def iter_swift_strings": "f90bdec3a7efbb5c",
-    "Tools/copy_linter/lint.py::def strip_interpolations": "30cc738a92e3b909",
-    "Tools/copy_linter/lint.py::def strip_swift_comments": "3273dffb9acac793"
+    "Tools/copy_linter/lint.py::def _forbidden_in_place": "d4c0b2ca033b514e",
+    "Tools/copy_linter/lint.py::def _snippet_around": "f097c15ec7f1331f",
+    "Tools/copy_linter/lint.py::def is_prohibition_context": "cfe17d648c57f065",
+    "Tools/copy_linter/lint.py::def iter_swift_strings": "31b5889d18a55095",
+    "Tools/copy_linter/lint.py::def strip_interpolations": "08bf9be1a557a718",
+    "Tools/copy_linter/lint.py::def strip_swift_comments": "9dd7956905e546c5"
    }
   },
   {
@@ -464,10 +354,9 @@
      "effect": "True → match excused; else False"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/copy_linter/lint.py::def _sentence_around": "df1398814d57f0a8",
-    "Tools/copy_linter/lint.py::def is_prohibition_context": "88330c702ee73d96"
+    "Tools/copy_linter/lint.py::def _sentence_around": "0fd6ef35f882a399",
+    "Tools/copy_linter/lint.py::def is_prohibition_context": "cfe17d648c57f065"
    }
   },
   {
@@ -479,7 +368,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -538,7 +426,6 @@
      "effect": "append Violation"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -596,35 +483,8 @@
      "effect": "raise MissingScanPath"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Concepts whose definition is not literally in MedicalTermLexicon.swift with the exact `Concept(\\n id: \"...\",...\\n    )\\n` layout, or whose regex fails to compile, are skipped with `continue` and no message; only the all-missing case fails. The lexicon is already being split into siblings (MedicalTermLexicon+MetricVerdict.swift per prohibited_terms.json _lexicon_family_note_2026_09_02), so moving any neverInStaticCopy concept to a sibling silently removes its translated-catalogue check. This contradicts the file's own fail-loudly rule (collect_targets comment, lines 495-497). All 12 concepts currently parse.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:441",
-      "Tools/copy_linter/lint.py:446",
-      "Tools/copy_linter/lint.py:482",
-      "Tools/copy_linter/lint.py:495"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "read_text of MedicalTermLexicon.swift is not guarded; if the file is moved/renamed the FileNotFoundError escapes main (only MissingScanPath is caught) and the script exits 1 with a traceback, the code documented for 'violations', instead of the config-error exit 2 the function uses for a missing neverInStaticCopy.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:431",
-      "Tools/copy_linter/lint.py:436",
-      "Tools/copy_linter/lint.py:529",
-      "Tools/copy_linter/lint.py:531",
-      "Tools/copy_linter/lint.py:21"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def translated_claim_patterns.alternatives": "5b3628c2cb629004"
+    "Tools/copy_linter/lint.py::def translated_claim_patterns.alternatives": "296f2bf3d78c2041"
    }
   },
   {
@@ -657,7 +517,6 @@
      "effect": "depth-1; at 0 stop"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -687,23 +546,8 @@
      "effect": "append and continue (any extension; main ignores non-.swift/.xcstrings)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says 'No scan_path names a catalog file, so without this scan_xcstrings is unreachable', but scan_paths names Emuqu/Localizable.xcstrings and Emuqu/Help.xcstrings directly; the directory rglob('*.xcstrings') now only adds EmuquWatch Watch App/InfoPlist.xcstrings.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:503",
-      "Tools/copy_linter/lint.py:504",
-      "Tools/copy_linter/lint.py:507",
-      "Tools/copy_linter/prohibited_terms.json:320",
-      "Tools/copy_linter/prohibited_terms.json:321"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3"
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "510e769a5e51b415"
    }
   },
   {
@@ -780,31 +624,18 @@
      "effect": "print location (path:line, or path only when line 0), pattern, reason, snippet; return 1"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A user_facing_prohibited entry without a \"pattern\" key raises KeyError, which is not caught (only re.error is), so the run dies with a traceback and exit 1 rather than the documented config-error exit 2.",
-     "evidence": [
-      "Tools/copy_linter/lint.py:524",
-      "Tools/copy_linter/lint.py:525",
-      "Tools/copy_linter/lint.py:23"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Tools/copy_linter/lint.py::def collect_targets": "ae28deef98c39a37",
-    "Tools/copy_linter/lint.py::def is_allowlisted": "02d22168ca2edf90",
-    "Tools/copy_linter/lint.py::def load_config": "838e319c60b328d5",
-    "Tools/copy_linter/lint.py::def scan_swift_file": "2119d1a831202458",
-    "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3",
-    "Tools/copy_linter/lint.py::def translated_claim_patterns": "ff4c71db88aa20f1"
+    "Tools/copy_linter/lint.py::def collect_targets": "6fdc08d36c856544",
+    "Tools/copy_linter/lint.py::def is_allowlisted": "81fd1440736456f1",
+    "Tools/copy_linter/lint.py::def load_config": "ad5ddfe266e6c94d",
+    "Tools/copy_linter/lint.py::def scan_swift_file": "813f3e2ea367e72e",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "510e769a5e51b415",
+    "Tools/copy_linter/lint.py::def translated_claim_patterns": "2fc1fcdec5ea0a60"
    }
   }
  ],
  "deps": {
-  "Tools/copy_linter/lint.py::def iter_swift_strings": "f90bdec3a7efbb5c",
-  "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc"
+  "Tools/copy_linter/lint.py::def iter_swift_strings": "31b5889d18a55095",
+  "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
  }
 }

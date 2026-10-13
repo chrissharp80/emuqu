@@ -13,20 +13,6 @@
   "mem:SleepResolver.iphoneSleepFilterToleranceMinutes = 15"
  ],
  "toplevel": "Static constant; Resolution has a hand-written == comparing every SleepData total and boundary, and each stage interval and segment by content (not by interval id).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "ARCHITECTURE says the two-path HRV staging lives in SleepMergingPipeline and that augmentation reclassifies deep<->core and REM<->awake; the paths are in SleepResolver (maybeAugment/inferStagesFromRR) and the rules never move core from deep or REM to awake (only core->deep/REM, awake->REM, deep<->REM).",
-   "evidence": [
-    "docs/ARCHITECTURE.md:530",
-    "docs/ARCHITECTURE.md:535",
-    "Emuqu/Sources/Analysis/SleepResolver.swift:594",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:217"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "func SleepResolver.Resolution.==(lhs:rhs:)",
@@ -41,13 +27,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.SegmentContent(_:)": "7be30d2b155898de",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.StageContent(_:)": "e5d10e5299887276",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.Summary(_:)": "080c21d7e9a8596b",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.SegmentContent(_:)": "7292ce19dd191f66",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.StageContent(_:)": "ad661205d7d44add",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.Summary(_:)": "24feb8fcb928a020",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -61,11 +46,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "462c31feab84c606",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb"
    }
   },
   {
@@ -77,9 +61,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.provenance(for:)": "54d2d3054d882399"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.provenance(for:)": "c87a01bae9495efa"
    }
   },
   {
@@ -91,11 +74,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e05b80b17e575703",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0"
    }
   },
   {
@@ -138,12 +120,11 @@
      "effect": "row 4"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveEmpty(_:)": "771d15b062b7e2c7",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveEmpty(_:)": "e304338cb41a92b7",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionAndWatch(_:)": "b25a09f8b1fec4c9",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionOnly(_:)": "f31455c090aa3be8",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveWatchOnly(_:)": "902d31c61dc31968"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveWatchOnly(_:)": "a46b75c6cb6f3298"
    }
   },
   {
@@ -174,38 +155,15 @@
      "effect": "true: .hrValidated; false: .healthKit"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "A night with an AutoSleep extension is labelled boundarySource .hrValidated although no HR validation happens on this path; the label only marks 'extension present'.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepResolver.swift:116"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "No production code constructs SleepResolver.AutoSleepExtension (only SleepResolverTests:146,385,503; every production call passes nil, as FLOWCHART.md:601 states), so the extension append at line 112 and the .hrValidated source at line 116 never run in the app.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepResolver.swift:112",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:116",
-      "EmuquTests/SleepResolverTests.swift:146",
-      "docs/FLOWCHART.md:601"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "d75eb40a355d4714",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)": "b7b583eb4e09f18e",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipRescuingWatchSleep(_:envelope:)": "5400b49793715088",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)": "640d55f58cc9543b",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipRescuingWatchSleep(_:envelope:)": "cf4262102bcd03db",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "41000b4bbb73f12e",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "1d889b52439dc5b3",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.row1Envelope(_:)": "4fb6e80cc98675ca",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "e74a9747b831a4e1",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.row1Envelope(_:)": "1030ab15087edbe6",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -226,10 +184,9 @@
      "effect": "true: rescue with the Watch span; false: plain clip + original envelope"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b12b82fbc744750f"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "5216895e6311928d",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b24775b510e3554f"
    }
   },
   {
@@ -244,7 +201,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "d75eb40a355d4714",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "fb2c212d49d82013"
@@ -265,13 +221,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "d75eb40a355d4714",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)": "b7b583eb4e09f18e",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)": "640d55f58cc9543b",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "5216895e6311928d",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "41000b4bbb73f12e",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "e74a9747b831a4e1"
    }
   },
   {
@@ -285,9 +240,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -307,20 +261,8 @@
      "effect": "append its bounds"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "autoSleepExtension is always nil in production (no non-test constructor of AutoSleepExtension), so the append branch never runs.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepResolver.swift:211",
-      "docs/FLOWCHART.md:601"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b12b82fbc744750f"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b24775b510e3554f"
    }
   },
   {
@@ -343,7 +285,6 @@
      "effect": "merge; else append"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -363,9 +304,8 @@
      "effect": "return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.intersect(_:with:)": "1943eea28ed02d54"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.intersect(_:with:)": "9715b5c96c8c4e56"
    }
   },
   {
@@ -385,9 +325,8 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -401,9 +340,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e"
    }
   },
   {
@@ -417,9 +355,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e"
    }
   },
   {
@@ -439,9 +376,8 @@
      "effect": "false: return all intervals unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.keptIphoneGuess(_:firstDetailed:lastDetailed:)": "ccad46fc3d5a1ead"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.keptIphoneGuess(_:firstDetailed:lastDetailed:)": "f37fccc2061877bc"
    }
   },
   {
@@ -481,9 +417,8 @@
      "effect": "true: keep tail from last detailed; false: drop"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -498,10 +433,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeOverlapping(_:stage:)": "23b672bccde46e8d",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveCrossStageOverlaps(_:)": "5e41a0cda03851f8"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeOverlapping(_:stage:)": "d50615bdac252bbf",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveCrossStageOverlaps(_:)": "342f9776d6f23e10"
    }
   },
   {
@@ -517,11 +451,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.joinAdjacent(_:)": "d98cc321b3a36ad7",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningInterval(from:to:in:)": "9865e129fc4cf4a2",
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.joinAdjacent(_:)": "49dc5b7508f8c5fb",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningInterval(from:to:in:)": "b8f7c892cb384a84",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -535,9 +468,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.overlapRank(_:)": "5a2266522563a47f"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.overlapRank(_:)": "b01acbca9a3cd810"
    }
   },
   {
@@ -565,7 +497,6 @@
      "effect": "2"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -590,9 +521,8 @@
      "effect": "merge; else append"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -619,32 +549,10 @@
      "effect": "return original; else trimmed copy"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Second overlap resolver with different precedence (provenance first, deep>REM>core) than resolveCrossStageOverlaps (provenance ignored, earlier start wins between detailed stages). Production no longer calls it (rows 1 and 3 rely on mergeStagesAcrossSources alone), but it and winningPieces/hasOverlap/precedence remain for SleepResolverTests, which test rules the app does not apply.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepResolver.swift:493",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:436",
-      "EmuquTests/SleepResolverTests.swift:634"
-     ],
-     "found": "first read, upheld on second; production calls removed in fix pass b03"
-    },
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The overlap branch (winningPieces/precedence) runs only from SleepResolverTests; no production caller remains.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepResolver.swift:497"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.hasOverlap(_:)": "e8b41126c973f6da",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningPieces(_:)": "37120c35943d563e",
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.hasOverlap(_:)": "beb83b5b4cc2d7b0",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningPieces(_:)": "bd99be4ba2f2aed9",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -674,9 +582,8 @@
      "effect": "extend; else append"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.precedence(_:)": "db48b91deafb1655"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.precedence(_:)": "3057c3f2414dca38"
    }
   },
   {
@@ -699,7 +606,6 @@
      "effect": "return true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -742,7 +648,6 @@
      "effect": "0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -772,9 +677,8 @@
      "effect": "false: swallowed; true: extend"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -801,11 +705,10 @@
      "effect": "false: drop"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mapHKValueToStage(_:)": "2923de55b8d8550f",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.provenance(for:)": "54d2d3054d882399",
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mapHKValueToStage(_:)": "c2ab55fb0fd155a3",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.provenance(for:)": "c87a01bae9495efa",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -838,7 +741,6 @@
      "effect": ".iphone; else .watch"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -881,7 +783,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -922,11 +823,10 @@
      "effect": "false: unchanged; true: augmented"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "af1b9795453e0ab3",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "c166da0bf0496e60",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -968,12 +868,11 @@
      "effect": "provenance set to .hrvDerived"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "1db284c5abaa3a6e",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "574a0263e53dfb77",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -993,15 +892,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.buildSegments(stages:splitGapMinutes:)": "b67f56bc040a5697",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)": "36bd41e6b3c60dab",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.buildSegments(stages:splitGapMinutes:)": "715a243ac1dc9bf7",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "462c31feab84c606",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)": "96ef59c125c3337c",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "65fbfa0850ac9426",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "2d061fa425f61f22",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -1019,7 +917,6 @@
      "effect": "rows 1-2: recording start; rows 3-4: earliest sleep stage (no latency)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1059,9 +956,8 @@
      "effect": "ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e"
    }
   },
   {
@@ -1083,11 +979,10 @@
      "effect": "return []"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervals(_:gap:)": "bce265cee4d70355",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "2ed6f8998ac10205"
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervals(_:gap:)": "16457d7c7a254bde",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "9637915119e4cfec"
    }
   }
  ],

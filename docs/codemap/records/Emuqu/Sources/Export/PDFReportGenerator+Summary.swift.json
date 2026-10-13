@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "File-scope private helper summarySleepTrendInput.",
- "flags": [],
  "units": [
   {
    "key": "func PDFReportGenerator.drawAnalysisSummarySection(_:yPosition:pageNumber:in:pageRect:)",
@@ -30,18 +29,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.analysisSummary(_:)": "df4bc37c19a44ec8",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryActionableSteps(_:y:contentWidth:pager:)": "8bfbe38ddaca24d1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDiagnosticCard(_:y:contentWidth:)": "1797c9bfe6eb01da",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDisclaimer(_:height:y:contentWidth:)": "a5595855699afd41",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryKeyFindings(_:y:contentWidth:pager:)": "2d24ffc422b80e79",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryProbableCauses(_:y:contentWidth:pager:)": "8d48db3880e0948a",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryTitle(y:)": "29c9b74c80b4c8fe",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summaryDisclaimerText()": "65e76c1e35daca47",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d"
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "70af189b371877de",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.analysisSummary(_:)": "81c02c1d26d060e0",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryActionableSteps(_:y:contentWidth:pager:)": "1e9c1efc3de9752d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDiagnosticCard(_:y:contentWidth:)": "4eef2208d0f76f54",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDisclaimer(_:height:y:contentWidth:)": "9a612e4c24df0c6c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryKeyFindings(_:y:contentWidth:pager:)": "0843a882123f88f3",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryProbableCauses(_:y:contentWidth:pager:)": "06ea601402dd5188",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryTitle(y:)": "b9c0735d0c31910e",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summaryDisclaimerText()": "f70471f7201dd533",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "7c29fedbf5088388"
    }
   },
   {
@@ -55,9 +53,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7"
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "76aca921cbdb4866"
    }
   },
   {
@@ -69,7 +66,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -89,27 +85,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The PDF summary now takes MorningResultsViewModel's frozen training context (trainingSnapshot ?? result context) and today's live load snapshot, but still not its live readiness (currentReadiness/todayTrimp): no report input carries it and generateReportURL's callers do not compute it, so for today's overnight session after a hard workout the app's steps switch to post-workout advice and the PDF's do not.",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:80",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:390",
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:258"
-     ],
-     "found": "second read; narrowed by fix batch b13"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summarySleepInput(sleepData:)": "72ad08b516a4b44b",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func summarySleepTrendInput(_:)": "eff419bba01cbc88",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.adviceLiveLoad": "9f431de25d8c23b6",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "7129f4e36883222a",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "d0e8e799aa6d05f1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summarySleepInput(sleepData:)": "0c58a9a90a339a73",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func summarySleepTrendInput(_:)": "9bb87f24634e5527",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.adviceLiveLoad": "41f7179d4717242f",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "de2201cf5d984288"
    }
   },
   {
@@ -129,11 +112,10 @@
      "effect": "true: real input; false: .empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "98dbcb140294897f",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0"
    }
   },
   {
@@ -148,10 +130,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -170,15 +151,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "10743c82fc14b619",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
-    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.diagnosticColorForScore(_:)": "a6a8e69befdf368f",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardCopy(_:color:y:contentWidth:)": "1e37ce9ed9dc796d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardFrame(color:y:contentWidth:cardHeight:)": "832371aef375d9fc",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summaryExplanationText(_:)": "28ec9d576d19efc8",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "8e2d8fe668e71121",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "6d0e3a4b017f8745",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.diagnosticColorForScore(_:)": "2ae478a7ed7fd684",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardCopy(_:color:y:contentWidth:)": "1730f20422a4970e",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardFrame(color:y:contentWidth:cardHeight:)": "11149a6b41b45331",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summaryExplanationText(_:)": "d34fa9e4fc4c746f",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "7c29fedbf5088388"
    }
   },
   {
@@ -190,7 +170,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -205,11 +184,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "8c0620f2c1dbb1a3",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -223,10 +201,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "c689fc8d106d17b9",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "027dc7150a41077a"
    }
   },
   {
@@ -240,9 +217,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "45821cbefd6b8940"
    }
   },
   {
@@ -273,17 +249,16 @@
      "effect": "measures, paginates and draws one card"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel": "8d42c57265c06cf9",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)": "2b01e444fd094a17",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawProbableCauseRow(rank:cause:confidence:explanation:explanationHeight:yPosition:contentWidth:)": "e04e7eca464fb033",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "30b2563ae878de80",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel": "9d4f290fe4f418a1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "adb9564257127b16",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "70af189b371877de",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)": "8780e893661b9bd3",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawProbableCauseRow(rank:cause:confidence:explanation:explanationHeight:yPosition:contentWidth:)": "ba19a39a09e42149",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "7c29fedbf5088388",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "027dc7150a41077a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -313,15 +288,14 @@
      "effect": "measures, paginates, draws a bullet row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "68644d42d3324f63",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryFindingRow(_:y:height:contentWidth:)": "eee32b8804160cd2",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "d0624c4d221f0535",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "adb9564257127b16",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "70af189b371877de",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryFindingRow(_:y:height:contentWidth:)": "0c9340cf50e2eb5c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "7c29fedbf5088388",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "027dc7150a41077a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -335,9 +309,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "6d0e3a4b017f8745"
    }
   },
   {
@@ -362,15 +335,14 @@
      "effect": "measures, paginates, draws an arrow row"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryStepRow(_:y:height:contentWidth:)": "f98b42470dee9112",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "adb9564257127b16",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "70af189b371877de",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryStepRow(_:y:height:contentWidth:)": "9f8f0571eb4441dc",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "7c29fedbf5088388",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "027dc7150a41077a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -386,11 +358,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "dc3518292cfe2e31"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "6d0e3a4b017f8745",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "ba4bff5eded41994"
    }
   },
   {
@@ -405,10 +376,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "45821cbefd6b8940",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -422,9 +392,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "6d0e3a4b017f8745"
    }
   },
   {
@@ -436,7 +405,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -452,11 +420,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)": "2b01e444fd094a17",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawCauseRankAndTitle(rank:cause:confidence:y:contentWidth:)": "4955719c9a14440f"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "6d0e3a4b017f8745",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)": "8780e893661b9bd3",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawCauseRankAndTitle(rank:cause:confidence:y:contentWidth:)": "c8353f011c0d6b75"
    }
   },
   {
@@ -471,10 +438,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawCauseTitle(_:y:contentWidth:)": "f8a23c6c7e186330"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawCauseTitle(_:y:contentWidth:)": "8f4ac1157e3ec59d"
    }
   },
   {
@@ -489,10 +455,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "45821cbefd6b8940",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "9b92aab62463da41"
    }
   },
   {
@@ -510,7 +475,6 @@
      "effect": "true: the trend; false: nil"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

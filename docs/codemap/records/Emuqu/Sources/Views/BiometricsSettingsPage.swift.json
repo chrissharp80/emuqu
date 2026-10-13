@@ -19,21 +19,6 @@
   "lb/kg factor 2.20462 literal (lines 167, 223, 230)"
  ],
  "toplevel": "Static range constants (67-73) are read by BiometricsSettingsPage+Sections.swift when building the clamped bindings. No #if blocks.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Every keystroke in a numeric field assigns SettingsManager.settings, which posts flowRecoverySettingsChanged per keystroke and makes intermediate values (e.g. 1 and 18 while typing 180) the live settings that AssistantContextSource and other observers see; disk writes are coalesced so only the final value is normally persisted.",
-   "evidence": [
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift:107",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift:123",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift:235",
-    "Emuqu/Sources/Models/SettingsManager.swift:34-40",
-    "Emuqu/Sources/Models/SettingsManager.swift:241-248"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var BiometricsSettingsPage.settingsBinding",
@@ -52,23 +37,6 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same get/set Binding<UserSettings> over SettingsManager.settings is re-declared as a private settingsBinding in at least six other views instead of one shared helper.",
-     "evidence": [
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:19",
-      "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift:10",
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:9",
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:431",
-      "Emuqu/Sources/Views/TrainingSettingsPage.swift:14",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:93",
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:18"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
    }
@@ -98,12 +66,11 @@
      "effect": "dropValuesBelowMinimum() runs; when focus becomes true nothing happens. Moving focus directly from one numeric field to another keeps the shared Bool true so no cleanup runs until all fields are left or the page closes."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm": "8941a3b63899f4d1",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "9136009cf6371cb3",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.keyboardDismissOverlay": "bf1fa34dcc587e3f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm": "91e819290aad0e69",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "46b342c36821b10d",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.keyboardDismissOverlay": "0913da01ae1d051e"
    }
   },
   {
@@ -121,7 +88,6 @@
      "effect": "true: clear tappable overlay above the form (taps anywhere dismiss focus and are swallowed by the overlay); false: empty view"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -158,12 +124,11 @@
      "effect": "early return with no write; otherwise assigns settingsManager.settings (save + notification)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.atLeast(_:_:)": "fda9c4f976363d05"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.atLeast(_:_:)": "64657e31d6f187c6"
    }
   },
   {
@@ -181,7 +146,6 @@
      "effect": "returns value; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -207,7 +171,6 @@
      "effect": "stores nil and returns; otherwise stores min(v, upperBound)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
@@ -236,7 +199,6 @@
      "effect": "stores nil and returns; otherwise stores min(v, upperBound)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
@@ -275,13 +237,12 @@
      "effect": "fillFeedback = 'Nothing to fill — Apple Health had nothing new.' (also shown when HealthKit read was denied/failed, since denials come back nil); otherwise 'Filled: a, b.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "f57858abc4c464e9",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "0455a9e9d10244f7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "d45cddae14f6daae"
    }
   },
   {
@@ -297,11 +258,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "c99215f1b465dff1",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "46be4c833141a632",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "2dbc9074828ec5aa"
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "35c55aa2c1dfe028",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "afb72b633b3295e9",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "119889dcb8b8ca64"
    }
   },
   {
@@ -332,12 +292,11 @@
      "effect": "label in pounds (kg*2.20462 rounded); otherwise kg rounded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -372,11 +331,10 @@
      "effect": "returns 'biological sex (other)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "8df60a4ed262a060",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -394,11 +352,10 @@
      "effect": "fills; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -420,10 +377,9 @@
      "effect": "'Manual'; otherwise 'Auto'"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -442,13 +398,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -489,10 +444,9 @@
      "effect": "set converts v/2.20462 to kg; otherwise v used as kg"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0"
    }
   }
  ],

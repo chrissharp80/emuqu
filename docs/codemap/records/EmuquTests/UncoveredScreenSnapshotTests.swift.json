@@ -7,32 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Renders depend on shared singletons with no injectable instance (StoreKitManager.shared, CloudKitSyncManager.shared, LanguageManager.shared, VoiceConversationController.shared), so the host app's state at run time can change the pixels compared against the reference.",
-   "evidence": [
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:21",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:38",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:40",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:137",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:147"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "setUp's useDefaultSettings assigns SettingsManager.shared.settings, whose didSet saves to the app's real settings file and posts flowRecoverySettingsChanged, then restores in teardown — the suite writes the test host's persisted settings.",
-   "evidence": [
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:30",
-    "EmuquTests/SnapshotFixtures.swift:184",
-    "Emuqu/Sources/Models/SettingsManager.swift:20"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func UncoveredScreenSnapshotTests.setUp()",
@@ -49,9 +23,8 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()": "757ca3e9f00039f6"
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()": "371f3e2a78334471"
    }
   },
   {
@@ -72,11 +45,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc"
    }
   },
   {
@@ -96,11 +68,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.body": "ec765facf367f62f",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.body": "cdf829d51790a98d",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -120,11 +91,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.body": "2f8651198c2c315b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.body": "d6202eb195e393a6",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -144,11 +114,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.body": "1244b787a78c4362",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.body": "138cecb0b1f4e0af",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -168,11 +137,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.body": "75d0715b50f4ed88",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.body": "36d4578d9759ba90",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -192,11 +160,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body": "1b69909cb8084fd8",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body": "51df882ab3e929a3",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -216,11 +183,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body": "895513f4d8cefb3d",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body": "5192cc87d8390c2d",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -240,11 +206,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "5f196c1466c5c7b8",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "29788e8ebfaf0c70",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -264,11 +229,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -288,11 +252,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5996792ab39be46d",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5e8a84be919a5be5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -314,24 +277,11 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "PolarManager() loads knownDevices from the host's StrapPairingStore (UserDefaults) in init, and SensorManagementSheet renders knownDevicesList when it is non-empty, so the 'uncovered-sensor-management' pixels depend on whatever straps the test host has paired.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager.swift:497",
-      "Emuqu/Sources/Collection/PolarManager.swift:413",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:98"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.body": "a081035033de21c8",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.body": "d24a8f3767e2bf79",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -351,11 +301,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.body": "be311ac350a6879b",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.body": "c607b5b055ad5e8d",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -376,12 +325,11 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.body": "00e0d85f740fa9cf",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingDeviceStatus()": "98ce8dc4af8404f5"
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.body": "6edf05cd3d1e4749",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingDeviceStatus()": "df987a628d59b6f0"
    }
   },
   {
@@ -402,14 +350,13 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.body": "8c81702253a929d5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.body": "d7c90b30178309d3",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -430,12 +377,11 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelObserving.body": "e624807491e5b422",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelObserving.body": "3eab261f1613c6b5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -459,14 +405,13 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body": "3e04f732b3d0e8d4",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body": "cd40e86fced6ab09",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -490,14 +435,13 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.body": "128437c3c48e6e80",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.body": "2f8cc97d9855dc4c",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -520,14 +464,13 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "c6edb2ba34b25dab",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "7b44e54e8cb657d9",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "759b5fb9c65a102a",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -547,11 +490,10 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "44bc1195e604c1ba",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "63cbc781550d46a8",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -573,13 +515,12 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.body": "f07a88502d4240d1",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingRecorder()": "8f64a4b5b5148039"
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.body": "00d872d6db8cb829",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingRecorder()": "ac9443a49eeed302"
    }
   },
   {
@@ -601,13 +542,12 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "eb096de5ac3ed547",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.body": "9a38593bbe7d09f0",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingRecorder()": "8f64a4b5b5148039"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.body": "880459556554a2ca",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingRecorder()": "ac9443a49eeed302"
    }
   },
   {
@@ -628,12 +568,11 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightRecordingSection": "5d5d0a63308fcab3",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.panels()": "1dd5c3b2c45dede2"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightRecordingSection": "12ea2e55eece5c3b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.panels()": "5717f3c61a71ee4a"
    }
   },
   {
@@ -654,12 +593,11 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingSection": "9549eeac3f28465f",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.panels()": "1dd5c3b2c45dede2"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingSection": "c3762e186bcb94b9",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.panels()": "5717f3c61a71ee4a"
    }
   },
   {
@@ -683,15 +621,14 @@
     "file:EmuquTests/__Snapshots__/<name>.raw (only when SNAPSHOT_RECORD=1 or reference missing; that run fails)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "ad0f0854abe74aef",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection": "040d850a03f875f2",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "3328bd556097b83d",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection": "a9f2b613e2953a07",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "7421b9981118f8ec"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }
   },
   {
@@ -708,23 +645,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc comment says the panels are 'wired to idle state: what the user sees before anything is recording', but deviceStatus is recordingDeviceStatus() which sets isRecordingOnDevice=true and recordingState=.recording; the two panel snapshots therefore pin a mixed state (strap recording, isActivelyRecording false) rather than the idle screen the comment claims.",
-     "evidence": [
-      "EmuquTests/UncoveredScreenSnapshotTests.swift:230",
-      "EmuquTests/UncoveredScreenSnapshotTests.swift:235",
-      "EmuquTests/UncoveredScreenSnapshotTests.swift:240",
-      "EmuquTests/UncoveredScreenSnapshotTests.swift:268"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingDeviceStatus()": "98ce8dc4af8404f5"
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc",
+    "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.recordingDeviceStatus()": "df987a628d59b6f0"
    }
   },
   {
@@ -742,10 +665,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)": "2283c317b2fb1315",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "9e3358a3b0a650a6"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)": "896a364be22825e0",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc"
    }
   },
   {
@@ -757,13 +679,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isDeviceConnected": "b8e9e09f9e7eea2a",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isDeviceConnected": "c34a24bd3d44803c",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98"
    }
   }
  ],

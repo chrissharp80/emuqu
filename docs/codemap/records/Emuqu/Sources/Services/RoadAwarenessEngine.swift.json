@@ -15,7 +15,6 @@
   "static minSpeedForCourseTrust 0.7 m/s, maxCourseAccuracyDegrees 30, maxSnapDistanceMeters 40, maxLookaheadMeters 600, maxLookaheadIntersections 3 (RoadAwarenessEngine.swift:131-144)"
  ],
  "toplevel": "No top-level code beyond type declarations and static constants.",
- "flags": [],
  "units": [
   {
    "key": "var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds",
@@ -32,7 +31,6 @@
      "effect": "true: return true; false: false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -58,13 +56,12 @@
      "effect": "false: return nil; true: compute awareness"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
-    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "fd87f5d717cc65f4",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService": "b5844c996cbb2b5d"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "e3dffc30dd6694f2",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "e14784c036620493",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService": "c9bad7fe4212e357"
    }
   },
   {
@@ -99,14 +96,13 @@
      "effect": "currentRoadName falls back to ref, else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "d250aa644ae177c3",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "7678165287274e81",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "8ddf45d1a8d99b3a",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds": "2717045fa4fdd405"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "39e3ee9ce02477d3",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "c370934153286874",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "e4e6ba4290bf5c66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "76ed94d66d902efd",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "f637c6eda1d9c9b0",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds": "7c7c61e5982c2c8e"
    }
   },
   {
@@ -120,9 +116,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "68062f3d9cb4d060"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.phraseFromFallback(_:)": "05de25469bf13bc7"
    }
   },
   {
@@ -150,20 +145,8 @@
      "effect": "true: untrusted; false (incl. -1 unavailable): trusted \"ok\""
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md (~1257) describes the gates as 'course accuracy >= 30 deg, speed >= 0.7 m/s ... refuse to snap rather than mis-snap', while the code distrusts a valid courseAccuracy > 30 (trusting -1), trusts an invalid speed of -1, and an untrusted bearing still snaps (without bearing bias). The docstring now describes the code; FLOWCHART is outside this file (handed off).",
-     "evidence": [
-      "docs/FLOWCHART.md:1257-1258",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:204"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf"
    }
   },
   {
@@ -199,10 +182,9 @@
      "effect": "bearingScore 1.0 vs 0.5"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "d0b0a1efc45337b0",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.Tile, userCourse: Double?)": "a4b9f83f0cc157f7",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "3dbf94f530b433d0"
    }
   },
   {
@@ -227,9 +209,8 @@
      "effect": "true: new best; false: continue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "3bfdd656d97a6a27"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bestCandidate(for: RoadGraphService.Point, in: RoadGraphService.RoadSegment, userCourse: Double?)": "6e7155963a9f056b"
    }
   },
   {
@@ -259,9 +240,8 @@
      "effect": "true: new best; ?? means first candidate always wins"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "8a6d3767dfbfec01"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.candidate(for:in:atIndex:userCourse:)": "32decc409d96285c"
    }
   },
   {
@@ -288,11 +268,10 @@
      "effect": "true: add bearing penalty; false: 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "47aa61e638769461",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "88c2acfd3a47d820"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "0dc9b62f40fa39ca",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "45c2e4d81d9b0ea4",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "727dafd9eb27fee6"
    }
   },
   {
@@ -315,7 +294,6 @@
      "effect": "true: use 360−delta; result <= 90 → true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -360,10 +338,9 @@
      "effect": "false: break after appending"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "3068977d38c8f4dd",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.nextEvent(_:tile:)": "edebbb7a69a6c99b",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "f637c6eda1d9c9b0"
    }
   },
   {
@@ -406,14 +383,13 @@
      "effect": "false: (event, stop); true: (event, advanceIntoContinuation result)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "3dc3ad3ccca2c5fb",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceIntoContinuation(_:continuation:hit:)": "838f699e65885344",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "cc6ff8ba90742e6a",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "1e5ae8b4e480850f",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "510e2995946114a2",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "3dbf94f530b433d0",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -427,11 +403,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
-    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isRoundabout": "7c0b33b96f3da549",
-    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "a15cfe8ecf3c4eda",
+    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isRoundabout": "6dd82211b4e4a9d2",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "f884ca6db6af699a"
    }
   },
   {
@@ -451,10 +426,9 @@
      "effect": "false: nil; true: (node,id,coord)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "d0488a5608b5e1c0",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advance(along:from:forward:startingAt:distanceSoFar:tile:)": "122cf1d4d235375a",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "3dbf94f530b433d0"
    }
   },
   {
@@ -484,11 +458,10 @@
      "effect": "false: roadEnds(names of all branches, names only, no refs), nil continuation; true: intersection event with cross names excluding the continuation (refs allowed) + continuation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "d2cbbb57dfab1dbd",
-    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isRoundabout": "7c0b33b96f3da549",
-    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "c6bc571c8424479a"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.namesOf(_:excluding:includingRefs:)": "a15cfe8ecf3c4eda",
+    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isRoundabout": "6dd82211b4e4a9d2",
+    "EmuquTests/RoadAwarenessEngineTests.swift::func RoadFixture.node(id:at:ways:tags:onRoundaboutWay:)": "f884ca6db6af699a"
    }
   },
   {
@@ -516,10 +489,9 @@
      "effect": "next index entry+1 vs entry−1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
-    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "3dbf94f530b433d0",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "13c9cde74bd48b63"
    }
   },
   {
@@ -554,10 +526,9 @@
      "effect": "false: continue; true: return hit"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
-    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isIntersection": "509c908fa7fdab9a"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "45c2e4d81d9b0ea4",
+    "Emuqu/Sources/Services/RoadGraphService.swift::var RoadGraphService.GraphNode.isIntersection": "b9575a36ade0ed3c"
    }
   },
   {
@@ -585,7 +556,6 @@
      "effect": "append ref"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -626,15 +596,14 @@
      "effect": "true: append clause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "6d7f402c3fec45a7",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.firstUsefulEvent(in:)": "b19ed841dbb87324",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "5037704612816b25",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "1e5ae8b4e480850f",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.firstUsefulEvent(in:)": "eef00800449bab36",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "f637c6eda1d9c9b0"
    }
   },
   {
@@ -662,19 +631,8 @@
      "effect": "?? events.first"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Crossings with no named street still count toward the 3-event lookahead budget (lookahead appends every event), so a run of OSM way splits can push a named cross street past the third event, where it is never reached.",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:378"
-     ],
-     "found": "fix pass"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "1e5ae8b4e480850f"
    }
   },
   {
@@ -715,10 +673,9 @@
      "effect": "false: \"ends in D\"; true: \"ends at N in D\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c40e19579d680e50"
    }
   },
   {
@@ -738,9 +695,8 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -779,11 +735,10 @@
      "effect": "0 fraction digits, else 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -801,7 +756,6 @@
      "effect": "true: (a, 0)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -813,7 +767,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -827,9 +780,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "1880b57b7020c663"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "f95a14580c002772"
    }
   }
  ],

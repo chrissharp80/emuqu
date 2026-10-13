@@ -16,18 +16,6 @@
   "file:tmp/keyboard-perf-<iso>.jsonl"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references KeyboardPerfSignpost; capture/stop/export state transitions are unverified.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:172",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:233"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init KeyboardPerfSignpost()",
@@ -40,9 +28,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installNotificationObservers()": "59a9884d0774dd05"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installNotificationObservers()": "3d22a23bc16a3bc5"
    }
   },
   {
@@ -59,9 +46,8 @@
     "mem:KeyboardPerfSignpost.events"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "a6c8bf708d696712"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "cfc034828b4b3b8c"
    }
   },
   {
@@ -78,9 +64,8 @@
     "mem:KeyboardPerfSignpost.events"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "a6c8bf708d696712"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "cfc034828b4b3b8c"
    }
   },
   {
@@ -97,9 +82,8 @@
     "mem:KeyboardPerfSignpost.events"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "a6c8bf708d696712"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "cfc034828b4b3b8c"
    }
   },
   {
@@ -113,7 +97,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -137,10 +120,9 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.beginCaptureLocked()": "59108762504d9cb3",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installHeartbeat()": "789c0b58c08e9444"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.beginCaptureLocked()": "e90c2665bbf887cd",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installHeartbeat()": "ee8aef2a7a83e431"
    }
   },
   {
@@ -165,9 +147,8 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.autoStop()": "15a8092599c50abf"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.autoStop()": "33ec1143bb590c2e"
    }
   },
   {
@@ -188,9 +169,8 @@
      "effect": "handler returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
    }
   },
   {
@@ -202,7 +182,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -216,9 +195,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()": "c49631d2d9443394"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()": "d2ae8857e04245e6"
    }
   },
   {
@@ -252,9 +230,8 @@
      "effect": "schedules main-actor reset of isCapturing and heartbeat"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.tearDownHeartbeat()": "3849b72756fbe7f2"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.tearDownHeartbeat()": "2be72273aabfe18d"
    }
   },
   {
@@ -284,10 +261,9 @@
      "effect": "publishes URL and count on main"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()": "c49631d2d9443394",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:startedAt:)": "46cc8a238e59d8da"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()": "d2ae8857e04245e6",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:startedAt:)": "be6b8a214313fbdf"
    }
   },
   {
@@ -301,9 +277,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "aced2f9b418ba80a"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "b223e95bdbfa8a4d"
    }
   },
   {
@@ -330,7 +305,6 @@
      "effect": "removes oldest overflow"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -355,12 +329,11 @@
      "effect": "returns nil, error discarded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.jsonLine(_:)": "b1d69e959af68af6",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceHeader(entryCount:startedAt:formatter:)": "259b975e4179c1a7",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceLine(_:)": "c896906a105aca7f",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.jsonLine(_:)": "01df072abea5cffe",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceHeader(entryCount:startedAt:formatter:)": "bea2c25b64e46c7d",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceLine(_:)": "73ddd4ae0859a8ef",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -375,10 +348,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "76f45a25c424e560",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9"
    }
   },
   {
@@ -401,7 +373,6 @@
      "effect": "adds detail"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -421,7 +392,6 @@
      "effect": "nil (line dropped by compactMap)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -451,9 +421,8 @@
      "effect": "adds an observer"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.marker(_:)": "fbd2f93849d01ea5"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.marker(_:)": "37e3a695f2bc2304"
    }
   },
   {
@@ -470,9 +439,8 @@
     "mem:KeyboardPerfSignpost.events"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "a6c8bf708d696712"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)": "cfc034828b4b3b8c"
    }
   }
  ],

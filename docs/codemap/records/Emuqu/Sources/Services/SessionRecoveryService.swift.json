@@ -14,7 +14,6 @@
   "ud:sessionRecovery.forgottenBackupIds (standard suite; last 500 session ids deleted forever, so their cloud backups are not pulled back)"
  ],
  "toplevel": "Dependencies stored as lets set by init. One instance is cached on RRCollector._recoveryService by SessionRecoveryCoordinator.recoveryService (RRCollector+Recovery.swift:9-20).",
- "flags": [],
  "units": [
   {
    "key": "init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)",
@@ -25,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -42,11 +40,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "5502e8cc0b7a6e8b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -81,21 +78,8 @@
      "effect": "returns .reanalyzeNoFlags; else throws dataAlreadyExists"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "patchAction (and the CollectorError.dataAlreadyExists it throws) has no production caller; only SessionRecoveryPatchActionTests call it.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:74",
-      "EmuquTests/SessionRecoveryPatchActionTests.swift:33",
-      "Emuqu/Sources/Collection/RRCollector.swift:869"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "96d5743bb873723b"
    }
   },
   {
@@ -133,7 +117,6 @@
      "effect": "uses 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -165,25 +148,13 @@
      "effect": "logs the count; returns the list either way"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "Orphan backups below 120 beats (not linked from an archived session) are deleted permanently, locally and from iCloud, on every scan with no user confirmation: the documented design (a backup that short can never be analysed), kept as a note.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:142",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:136"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.discardUnrecoverable(_:)": "1e3535438555467f",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocalIfDue(excluding:)": "d6711df144e46675",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "35facf94f9a03191",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.discardUnrecoverable(_:)": "19acf2e7779577c8",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocalIfDue(excluding:)": "159d80bfcf505d82",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "9bd7cb5f2c0e9281",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -218,11 +189,10 @@
      "effect": "logged; continue without deleting the cloud copy"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "2bcb457e0fd17448",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "6b93b9c581d7f854",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "5d3f8470abd2a4ff",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -246,9 +216,8 @@
      "effect": "return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)": "96e456c606d38504"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)": "409fada02a19c4b9"
    }
   },
   {
@@ -262,19 +231,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Called by the coordinator (RRCollector+BackupRecovery.swift:33) with no live ids, so a pull it starts during a recording retires that recording's iCloud live backup until the next upload; the coordinator should call pullCloudBackupsToLocal(excluding: liveRecordingIds()) (handed off).",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:33"
-     ],
-     "found": "fix pass"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)": "96e456c606d38504"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)": "409fada02a19c4b9"
    }
   },
   {
@@ -319,15 +277,14 @@
      "effect": "retire the cloud copy; else save locally"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.forgottenIds()": "855583e263a45194",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retireCloudBackup(_:)": "6f1100993b1e1449",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.savePulledBackup(_:)": "fb584bbd06e47f6c",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.fetchLiveBackups()": "fb9e6c9d36298db5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "35facf94f9a03191"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.forgottenIds()": "0ce462e5fd744fe1",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retireCloudBackup(_:)": "ff9fe02f712dd9f8",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.savePulledBackup(_:)": "051486829105b6c8",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.fetchLiveBackups()": "a5e2a8edc26ce92e",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "9bd7cb5f2c0e9281"
    }
   },
   {
@@ -341,7 +298,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -357,7 +313,6 @@
     "ud:sessionRecovery.forgottenBackupIds"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -373,9 +328,8 @@
     "ck:live backup delete"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "6b93b9c581d7f854"
    }
   },
   {
@@ -398,10 +352,9 @@
      "effect": "logged; the cloud copy is kept and retried next pull"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e15f84c94869d1a4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -426,11 +379,10 @@
      "effect": "appended to the list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.keptWithoutBackup(deletedIds:listed:)": "06a41dcc8ba91b49",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "35facf94f9a03191"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.keptWithoutBackup(deletedIds:listed:)": "387d86e1b86e1fe6",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "9bd7cb5f2c0e9281"
    }
   },
   {
@@ -454,10 +406,9 @@
      "effect": "beatCount 0; a trashed file that fails to load is dropped by compactMap"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "d12811237cedc16d",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds": "be096437722537b4"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "ea6c25378b23ce0c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds": "fe38e8bf34e55bbc"
    }
   },
   {
@@ -482,12 +433,11 @@
      "effect": "logged; the caller (SessionReanalysis/Recovery coordinator restoreFromTrash) checks deletedIds next and abandons the restore"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "64feb753f919f66a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.noteRestored(_:)": "8363c07e7c55191a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "cb64d5b6258c5088",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.noteRestored(_:)": "4bdf4fa00c128c28",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -513,12 +463,11 @@
      "effect": "logs an error; the id stays unmarked locally"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "7ec0bd27a434f46b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.abandon(_:)": "1c57a109826eca89",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "a58f4705e0507267",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.abandon(_:)": "cce91043f341bb30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -554,14 +503,13 @@
      "effect": "logged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.rememberForgotten(_:)": "4e1cab3531b4aadb",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)": "74eba6b6f57ef1dc",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "2bcb457e0fd17448",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.rememberForgotten(_:)": "af48ff663d58be3a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)": "a68e35519de79b28",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "6b93b9c581d7f854",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "5d3f8470abd2a4ff",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -589,10 +537,9 @@
      "effect": "logged; the summary log still counts it as marked"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "7ec0bd27a434f46b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "a58f4705e0507267",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -626,26 +573,13 @@
      "effect": "merge parent+child, start = parent.startDate; else backup alone, start = captureDate"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The merged series (parent beats + child beats) is archived under the child id while the parent entry stays archived with its own beats, so the parent's beats exist in two archived sessions; only supersedeSameNight linking (overnight only) separates them.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:295",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:302",
-      "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift:54"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.backupEndDate(_:)": "607ec0373a6ce2ab",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentMergedPoints(parentSeries:parentStart:childPoints:childStart:)": "543cbd93f5ef5735",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentSession(of:)": "de5862f1ed4e15d3",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.storedBackup(_:)": "b1977b7b16efc30d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.backupEndDate(_:)": "51087c38ca56a9e8",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentMergedPoints(parentSeries:parentStart:childPoints:childStart:)": "b5cc6fdad549429b",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentSession(of:)": "edcc4e4218a47e09",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.storedBackup(_:)": "b6ac4026c3b8483f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -667,10 +601,9 @@
      "effect": "parent duration 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "6bd9e605fb3d11ea",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "41049d0fd69c07c3",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
    }
   },
@@ -699,10 +632,9 @@
      "effect": "logs and returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "91d7a1453b421595",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -732,11 +664,10 @@
      "effect": "logs and returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -748,7 +679,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -775,11 +705,10 @@
      "effect": "windowed analyze; else analyzeWithCapacity"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.windowBaselineStats(for:)": "d52e709422b81ebf"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.windowBaselineStats(for:)": "0e771b1026792e97"
    }
   }
  ],

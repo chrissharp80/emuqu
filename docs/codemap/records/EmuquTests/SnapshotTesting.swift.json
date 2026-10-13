@@ -18,7 +18,6 @@
   "env:SNAPSHOT_RECORD"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func SnapshotTesting.render(_:size:)",
@@ -58,10 +57,9 @@
      "effect": "returns nil; else returns the pixel tuple"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "65922f80a2b0ebd5",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "d1fb65a6e5fd71ef",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "4caaf479994c1c63"
    }
   },
   {
@@ -89,7 +87,6 @@
      "effect": "returns false immediately; else continues; after the loop returns true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -105,19 +102,6 @@
      "at": "+1",
      "cond": "drawnPixels == 0",
      "effect": "true: 0 (any change passes); false: changed/drawn"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When the reference is a single flat colour drawnPixels is 0 so fraction is 0 and any rendered change passes; blank references are prevented only at record time by isBlank on the new shot, not checked on a stored reference.",
-     "evidence": [
-      "EmuquTests/SnapshotTesting.swift:130",
-      "EmuquTests/SnapshotTesting.swift:168",
-      "EmuquTests/SnapshotTesting.swift:200"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -142,7 +126,6 @@
      "effect": "fallback total used only for an empty buffer, giving 0 drawn"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -172,9 +155,8 @@
      "effect": "true: increments changed; false: unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25"
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "adf9eaa1efd51462"
    }
   },
   {
@@ -264,14 +246,13 @@
      "effect": "true: XCTFail with changed count and percent; false: passes silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
-    "EmuquTests/SnapshotTesting.swift::var SnapshotTesting.Difference.fraction": "5865e29d3a9351b4"
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::var SnapshotTesting.Difference.fraction": "05794d5bc257953a"
    }
   }
  ],

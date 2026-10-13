@@ -19,7 +19,6 @@
   "notif:AVAudioSession.interruptionNotification (observed)"
  ],
  "toplevel": "`static let shared` is created lazily on first access with SystemCueAudioSession and interruption observation on.",
- "flags": [],
  "units": [
   {
    "key": "func BackgroundAudioManager.State.holdNewCue()",
@@ -36,9 +35,8 @@
      "effect": "clears wasInterrupted (a fresh cue after an interruption resets the flag); otherwise leaves it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "33ebb070395b6b6d"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "03da59b8fbd3c97b"
    }
   },
   {
@@ -50,7 +48,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -68,9 +65,8 @@
      "effect": "sets wasInterrupted = true; else leaves it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "33ebb070395b6b6d"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "03da59b8fbd3c97b"
    }
   },
   {
@@ -82,7 +78,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -94,18 +89,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only read by tests (BackgroundOperationsTests.swift:85, RRCollectorStateMachineTests.swift:414); no production reader, so the interrupted state is never surfaced to the user.",
-     "evidence": [
-      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:82",
-      "EmuquTests/BackgroundOperationsTests.swift:85"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -125,9 +108,8 @@
      "effect": "installs observer; tests pass false and skip it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.setupInterruptionObserver()": "2f297af19cbf2015"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.setupInterruptionObserver()": "b89f513d1fc7955c"
    }
   },
   {
@@ -141,9 +123,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "dd504bad520a4d13"
    }
   },
   {
@@ -166,10 +147,9 @@
      "effect": "calls activateForCues (claim + setActive(true)); otherwise session already up, nothing done"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.holdNewCue()": "762a8174754e86db",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForCues()": "722e40aafc25042c"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.holdNewCue()": "dbb059c66ce43e33",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForCues()": "d7b81867ffb9b364"
    }
   },
   {
@@ -192,10 +172,9 @@
      "effect": "calls releaseWhenIdle; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endHold(_:)": "11d505c21c4590f7",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endHold(_:)": "b60af986c7af9623",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "36b65598928d202c"
    }
   },
   {
@@ -217,10 +196,9 @@
      "effect": "releaseWhenIdle; if a cue is still speaking, its finish callback will release later"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "33ebb070395b6b6d"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "36b65598928d202c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "03da59b8fbd3c97b"
    }
   },
   {
@@ -246,7 +224,6 @@
      "effect": "completion(error); success path completion(nil)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -258,7 +235,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -280,9 +256,8 @@
      "effect": "logs and continues; cue remains held so its finish callback still releases the claim"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -310,9 +285,8 @@
      "effect": "error logged at .info and swallowed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -336,10 +310,9 @@
      "effect": "calls interruptionBegan; .ended or missing type returns without action (nothing is resumed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.interruptionBegan()": "d55ecf3208909170",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.interruptionBegan()": "a3209898213d66a1",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
   },
   {
@@ -362,10 +335,9 @@
      "effect": "releaseWhenIdle; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endAllHoldsForInterruption()": "db189674be6511c4",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endAllHoldsForInterruption()": "9ca2179b85f979fd",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "36b65598928d202c"
    }
   },
   {
@@ -377,11 +349,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.claimCuePlayback()": "144dce4190f28369",
-    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.claimCuePlayback()": "9303a4a51cf91270",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()": "63f3fa35011b423a"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.claimCuePlayback()": "7ea6a900219fdbcd",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.claimCuePlayback()": "5cbdbe8a15e172ee",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()": "fcfb246592bcbf10"
    }
   },
   {
@@ -393,11 +364,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.releaseCuePlayback()": "9d566c963df29444",
-    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.releaseCuePlayback()": "a5758f6c73f80826",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()": "88e1121f6d6d3ae0"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.releaseCuePlayback()": "93bfff9937929f74",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.releaseCuePlayback()": "f0b36d3bd72e86d4",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()": "4f052fec0ae9c565"
    }
   },
   {
@@ -409,11 +379,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.activate()": "6f6299036e8ae128",
-    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.activate()": "1aa20341c1c37a1d",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()": "4a6774a9d46d3c08"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.activate()": "087cdc83fc70f669",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.activate()": "92a6614011fe8d44",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()": "b0424119af3d2c96"
    }
   },
   {
@@ -425,11 +394,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.deactivate()": "e6502476480213cb",
-    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.deactivate()": "4dd8c4f67edb8458",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "9a2d95bd7c944abb"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.deactivate()": "85356fbea95a9f33",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.deactivate()": "7fd8147b17949af5",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "b70296fd11c4c8f9"
    }
   },
   {
@@ -443,10 +411,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
   {
@@ -463,10 +430,9 @@
     "mem:AudioSessionCoordinator.claims"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "b4bb0aa451fb6168",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d"
    }
   },
   {
@@ -483,10 +449,9 @@
     "mem:AudioSessionCoordinator.claims"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "b4bb0aa451fb6168",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "37f8c4633bbb78c6"
    }
   },
   {
@@ -503,10 +468,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "2b1ef60dc554e6ae"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "b4bb0aa451fb6168",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "b8c5445601085093"
    }
   },
   {
@@ -520,7 +484,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -534,7 +497,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -546,7 +508,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -558,7 +519,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -578,9 +538,8 @@
      "effect": "returns; else calls manager.endCue(token)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "416d3a125402698c"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "e99460b9df40b117"
    }
   },
   {
@@ -594,9 +553,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "5638c6846b7c2360"
    }
   },
   {
@@ -610,9 +568,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "5638c6846b7c2360"
    }
   }
  ],

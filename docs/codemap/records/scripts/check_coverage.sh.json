@@ -15,30 +15,6 @@
   "env:GITHUB_STEP_SUMMARY"
  ],
  "toplevel": "Sources lib/preflight.sh. Usage <xcresult> [min_overall]; wrong argc -> exit 64. Floors via floor(): .ci/min_coverage.txt (overridable upward by arg2 or MIN_COVERAGE), .ci/min_coverage_logic.txt (MIN_LOGIC_COVERAGE), .ci/min_coverage_views.txt (MIN_VIEWS_COVERAGE); a missing/non-numeric floor file exits 66, a non-numeric override 64, an override below the committed floor is ignored (max taken). Missing bundle -> exit 66. Temp file via gate_mktemp; xccov errors ignored; empty report -> exit 65. Python sums covered/total for rows matching `/path.swift N pct% (c/t)`; no rows -> 65; logic excludes paths containing /Sources/Views/ (Assistant/Views counts as logic, documented in the header); SKIP_OVERALL_COVERAGE=1 / SKIP_LOGIC_COVERAGE=1 turn those floor failures into SKIP lines; views floor always enforced. Summary echoed and appended to GITHUB_STEP_SUMMARY; non-zero Python status -> exit 1. Invoked only by run_tests_with_coverage.sh (check_gates_wired exempts it).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "run_tests_with_coverage.sh says a unit-only run's coverage is 'REPORTED but not GATED', but check_coverage.sh still enforces the views floor (43.5) on that run; only overall and logic are skipped.",
-   "evidence": [
-    "scripts/run_tests_with_coverage.sh:29",
-    "scripts/run_tests_with_coverage.sh:41",
-    "scripts/check_coverage.sh:134",
-    "scripts/check_coverage.sh:137"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The 'logic' bucket excludes only paths containing /Sources/Views/, so SwiftUI views under Emuqu/Sources/Assistant/Views/ count as logic, which the header defines as code unit tests can reach.",
-   "evidence": [
-    "scripts/check_coverage.sh:23",
-    "scripts/check_coverage.sh:108"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "fn is_number",
@@ -49,7 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -92,13 +67,12 @@
      "effect": "print max(override, committed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "scripts/check_coverage.sh::fn is_number": "c6afb9cac17a3f42"
+    "scripts/check_coverage.sh::fn is_number": "71364d15e146b595"
    }
   }
  ],
  "deps": {
-  "scripts/check_coverage.sh::fn floor": "5a5a7621cf34da0f"
+  "scripts/check_coverage.sh::fn floor": "d25ead01b9c56fad"
  }
 }

@@ -13,7 +13,6 @@
   "mem:OrganizedZonesCache.state (lock-protected cache/order)"
  ],
  "toplevel": "state initialized with an empty State inside OSAllocatedUnfairLock.",
- "flags": [],
  "units": [
   {
    "key": "func OrganizedZonesCache.State.touch(_:)",
@@ -30,7 +29,6 @@
      "effect": "remove its old position first; else just append"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -44,9 +42,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "d2f3b88904350889"
    }
   },
   {
@@ -58,7 +55,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -82,21 +78,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The unkeyed get(_:) and set(_:zones:) have no caller left: RecoveryScoreDetailView and OvernightStatsComputer both use the sleep-window-keyed overloads (OvernightStatsComputer.computeOrganizedZonesOnDemand).",
-     "evidence": [
-      "Emuqu/Sources/Views/OrganizedZonesCache.swift:51",
-      "Emuqu/Sources/Views/OrganizedZonesCache.swift:71",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:472"
-     ],
-     "found": "handoff pass h_src1"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "d2f3b88904350889"
    }
   },
   {
@@ -120,9 +103,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "d2f3b88904350889"
    }
   },
   {
@@ -144,9 +126,8 @@
      "effect": "evict oldest repeatedly"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)": "fa874519c63e2113"
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)": "bc6c133b525706c4"
    }
   },
   {
@@ -162,9 +143,8 @@
     "mem:OrganizedZonesCache.state"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)": "fa874519c63e2113"
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)": "bc6c133b525706c4"
    }
   },
   {
@@ -178,9 +158,8 @@
     "mem:OrganizedZonesCache.state"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "4a7c8bc57d651661"
    }
   }
  ],

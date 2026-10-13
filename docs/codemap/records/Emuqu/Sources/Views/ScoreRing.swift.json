@@ -15,22 +15,6 @@
   "env:accessibilityReduceMotion read"
  ],
  "toplevel": "Stored props state/size/snappy (default false)/metric (default .recovery). Header doc lines 3-23 describe states, 600ms easeOutQuart reveal, 200ms digit roll, breathing at score>67 disabled under Reduce Motion, 400ms snappy reveal.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "DisplayState.error and Size.inline are constructed only by snapshot tests (StateSnapshotTests); no production caller passes them, so errorView and every .inline arm run only under test.",
-   "evidence": [
-    "Emuqu/Sources/Views/ScoreRing.swift:30",
-    "Emuqu/Sources/Views/ScoreRing.swift:36",
-    "EmuquTests/StateSnapshotTests.swift:50",
-    "EmuquTests/StateSnapshotTests.swift:110",
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift:302",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift:287"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var ScoreRing.Size.diameter",
@@ -55,18 +39,6 @@
      "at": "+4",
      "cond": "case .inline",
      "effect": "44 (never used by callers)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The .inline arm is reached only from the snapshot test; no production ScoreRing caller passes .inline.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:42",
-      "EmuquTests/StateSnapshotTests.swift:110"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -96,7 +68,6 @@
      "effect": "4 (unreachable in practice)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -124,7 +95,6 @@
      "effect": "16 (unreachable in practice)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -152,7 +122,6 @@
      "effect": "0; inline callers hide the word anyway"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,7 +139,6 @@
      "effect": "0.4 s; false → 0.6 s"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -188,7 +156,6 @@
      "effect": "returns score; otherwise falls through to return nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -207,27 +174,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "body pins the ring to size.diameter (90pt for .card), so callers that wrap a .card ring in a 140pt or 120pt frame only get padding around a 90pt ring; the outer frame never sizes the ring.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:95",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:22",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:342",
-      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:26"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateOnAppear()": "e07d2b0c19ad1d02",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateScoreChange(to:)": "ba9e2e19a0ab5fcc",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.diameter": "daebab3f90b5c02c",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateOnAppear()": "fa91b04f0817c32e",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateScoreChange(to:)": "5b6e83929711c282",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.diameter": "f7023197da128b0c",
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.accessibilityLabel": "d271759f6eb17cda",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.scoreFromState": "be26c42c50b4c77a",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.stateView": "b59e6ebfd246144f"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.scoreFromState": "0d88e2c607460e37",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.stateView": "1e30ab2f76e670da"
    }
   },
   {
@@ -273,26 +226,14 @@
      "effect": "errorView(message); never constructed by callers"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The .error arm runs only in StateSnapshotTests; no production caller constructs DisplayState.error.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:131",
-      "EmuquTests/StateSnapshotTests.swift:50"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.buildingBaselineView(day:target:)": "2e8d1fa4c890a618",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.centerLabel(score:verdict:)": "0248e4bf25b07e3b",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.errorView(message:)": "064eef5519b9b60e",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)": "1c4c1f14c726b0f3",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.loadingRing": "86f1823af02aa065",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.noDataView": "e2b1aceb270c0aa9"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "a0f14cd5e49b9046",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.buildingBaselineView(day:target:)": "02515396fe3d1835",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.centerLabel(score:verdict:)": "4bab8291b06cc452",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.errorView(message:)": "4f8b6ff9f1fce3be",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)": "dfda40867bd3c7d3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.loadingRing": "db86856e6bb99ad3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.noDataView": "ac3e8e38f5cd3f7c"
    }
   },
   {
@@ -308,11 +249,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)": "1c4c1f14c726b0f3",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)": "dfda40867bd3c7d3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "cd6b68f30338b113",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -327,10 +267,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "119d9c17d64c8b25",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -360,14 +299,13 @@
      "effect": "show verdict word; inline hides it (never reached)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "cf23a785bbffc060",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "ffaae07ef57a3805",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "cd6b68f30338b113",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "0c854e2920afd1b2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -382,10 +320,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineCaption(day:target:)": "6824bb5bc0af0ee3",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineDots(day:target:)": "fdb3d363ea211e9e"
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineCaption(day:target:)": "6e0cc812530fee30",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineDots(day:target:)": "5a11f0d877f067e8"
    }
   },
   {
@@ -408,10 +345,9 @@
      "effect": "8pt dots; else 4pt"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -435,13 +371,12 @@
      "effect": "render both captions; inline renders nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "0c854e2920afd1b2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -466,14 +401,13 @@
      "effect": "show caption; inline glyph only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "cd6b68f30338b113",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "0c854e2920afd1b2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -496,23 +430,11 @@
      "effect": "show message; inline glyph only"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only reached from the .error arm, which only StateSnapshotTests constructs; dead in production.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:225",
-      "EmuquTests/StateSnapshotTests.swift:50"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "cd6b68f30338b113",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "0c854e2920afd1b2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -543,10 +465,9 @@
      "effect": "revealScore(score); non-default states only reveal the ring fraction"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:)": "59a994dbc71b74e8",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:)": "9987e6dbbc6d89f9",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "b816bdce8ade9c2d"
    }
   },
   {
@@ -560,9 +481,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "b816bdce8ade9c2d"
    }
   },
   {
@@ -574,7 +494,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -596,11 +515,10 @@
      "effect": "no breathing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "33e47bac2a823b01",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "a90eaf578557f4c8",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "826d828fe0d571c0",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "7b5f8100a613a156",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "b816bdce8ade9c2d"
    }
   },
   {
@@ -627,11 +545,10 @@
      "effect": "animate; Reduce Motion → snap values and return (breathingScale untouched)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.resetForNonDefaultState()": "2ee8bcf3f088a271",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.rollScore(to:)": "afca40b29df66185",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.updateBreathing(for:)": "1c9890d80127a3d0"
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.resetForNonDefaultState()": "eb5a6f6ac5a0879e",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.rollScore(to:)": "1108ec7d13f1632f",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.updateBreathing(for:)": "4d7a2044f36fe6dd"
    }
   },
   {
@@ -643,7 +560,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -664,10 +580,9 @@
      "effect": "full reveal + delayed roll; else 0.25 s digit roll only and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "a90eaf578557f4c8",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "7b5f8100a613a156",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "b816bdce8ade9c2d"
    }
   },
   {
@@ -697,9 +612,8 @@
      "effect": "animate back to 1.0; already 1.0 → nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "33e47bac2a823b01"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "826d828fe0d571c0"
    }
   },
   {
@@ -741,11 +655,10 @@
      "effect": "'Error: message' (never constructed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)": "05917d7a648872c6"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "cf23a785bbffc060",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)": "d90353bde9f376d8"
    }
   },
   {
@@ -763,7 +676,6 @@
      "effect": "recovery / readiness / sleep sentence"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

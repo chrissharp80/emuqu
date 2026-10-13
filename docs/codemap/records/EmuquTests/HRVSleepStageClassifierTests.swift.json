@@ -11,7 +11,6 @@
   "mem:HRVSleepStageClassifierTests.fixedRecordingStart (Date 1_700_000_000)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func HRVSleepStageClassifierTests.setUp()",
@@ -27,9 +26,8 @@
     "mem:HRVSleepStageClassifierTests.savedDefaultTimeZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -50,7 +48,6 @@
      "effect": "true: restores it; false: leaves NSTimeZone.default as is"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -62,7 +59,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -113,32 +109,9 @@
      "effect": "REM RR ~923 ms; else light RR ~1000 ms"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "deepPercent/remPercent/awakePercent parameters are declared but ignored (underscored), so the signature advertises control over stage proportions that the generator does not provide.",
-     "evidence": [
-      "EmuquTests/HRVSleepStageClassifierTests.swift:52",
-      "EmuquTests/HRVSleepStageClassifierTests.swift:54"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "durationHours is floored to whole 90-minute cycles: cycleCount = Int(durationMs / cycleMs) (line 63) and the loop only generates cycles 0..<cycleCount, so the remainder is never generated. generateSleepNight() \"7 h\" yields 6 h of beats and 8 h yields 7.5 h; testClassifyProducesAllStages' message \"7h of data\" (line 132) is wrong. Tests compute durations from rrPoints.last, so assertions stay self-consistent.",
-     "evidence": [
-      "EmuquTests/HRVSleepStageClassifierTests.swift:63",
-      "EmuquTests/HRVSleepStageClassifierTests.swift:65",
-      "EmuquTests/HRVSleepStageClassifierTests.swift:132"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "80bb01ba2101f6ef"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "ea9de4af34a0889c"
    }
   },
   {
@@ -158,9 +131,8 @@
      "effect": "appends a beat and advances"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c"
    }
   },
   {
@@ -181,12 +153,11 @@
      "effect": "false: returns after the XCTAssertNotNil failure"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e05b80b17e575703",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "66319a992cfe53f4"
    }
   },
   {
@@ -212,11 +183,10 @@
      "effect": "false: XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e05b80b17e575703",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "66319a992cfe53f4"
    }
   },
   {
@@ -237,11 +207,10 @@
      "effect": "false: XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "66319a992cfe53f4",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -256,10 +225,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)": "8862fde1bf53c328"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)": "ac2583b15a7864ff"
    }
   },
   {
@@ -273,9 +241,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90"
    }
   },
   {
@@ -290,10 +257,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)": "8862fde1bf53c328"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateUniformRR(hr:durationMinutes:startMs:)": "ac2583b15a7864ff"
    }
   },
   {
@@ -319,21 +285,10 @@
      "effect": "asserts continuity"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "`for i in 1 ..< r.stageIntervals.count` traps (invalid range) if the classifier ever returns zero intervals, crashing the runner instead of failing the test.",
-     "evidence": [
-      "EmuquTests/HRVSleepStageClassifierTests.swift:252"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "66319a992cfe53f4",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -359,21 +314,10 @@
      "effect": "asserts stage differs"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "`for i in 1 ..< r.stageIntervals.count` traps (invalid range) if the classifier ever returns zero intervals, crashing the runner instead of failing the test.",
-     "evidence": [
-      "EmuquTests/HRVSleepStageClassifierTests.swift:281"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "66319a992cfe53f4",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -387,9 +331,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "7bb8a75158d805d1"
    }
   },
   {
@@ -403,9 +346,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "7bb8a75158d805d1"
    }
   },
   {
@@ -419,9 +361,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "7bb8a75158d805d1"
    }
   },
   {
@@ -435,9 +376,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "7bb8a75158d805d1"
    }
   },
   {
@@ -451,9 +391,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "93e65d10ff3d08f9"
    }
   },
   {
@@ -467,9 +406,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "93e65d10ff3d08f9"
    }
   },
   {
@@ -483,9 +421,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "93e65d10ff3d08f9"
    }
   },
   {
@@ -499,19 +436,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Only re-tests computeRanks ordering on another array; it does not touch how the classifier uses the DFA rank, so the 'low α1 is deep-like' direction it is named for is not verified.",
-     "evidence": [
-      "EmuquTests/HRVSleepStageClassifierTests.swift:350"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "93e65d10ff3d08f9"
    }
   },
   {
@@ -543,24 +469,11 @@
      "effect": "false: XCTFail"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "With physiologically uniform input the rank-based scorer still assigns deep/REM/core from noise ranks plus temporal priors (computeRanks/remTemporalBonus); the test accepts any split with core > 15% and deep < 80% instead of requiring the classifier to decline or flag low confidence, so fabricated stage minutes on such nights are pinned as correct.",
-     "evidence": [
-      "EmuquTests/HRVSleepStageClassifierTests.swift:367",
-      "EmuquTests/HRVSleepStageClassifierTests.swift:393",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:403"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "80bb01ba2101f6ef"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e05b80b17e575703",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "ea9de4af34a0889c"
    }
   },
   {
@@ -586,11 +499,10 @@
      "effect": "false: XCTFail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "ce51885aefa36890"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e05b80b17e575703",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.generateSleepNight(durationHours:deepPercent:remPercent:awakePercent:)": "66319a992cfe53f4"
    }
   },
   {
@@ -604,9 +516,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -620,9 +531,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -636,9 +546,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -652,9 +561,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -668,9 +576,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -684,9 +591,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -700,9 +606,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -716,9 +621,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "71eed27c9e0d6f24"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.percentile(_:p:)": "e735d0bae8409f95"
    }
   },
   {
@@ -732,7 +636,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5"
    }
@@ -749,10 +652,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -767,10 +669,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -796,10 +697,9 @@
      "effect": "appends a beat"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "e5152bee7dc8280c",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c"
    }
   },
   {
@@ -811,7 +711,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -825,9 +724,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -847,9 +745,8 @@
      "effect": "compares to population SDNN"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -863,9 +760,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -879,9 +775,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -901,9 +796,8 @@
      "effect": "asserts zeros"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -917,9 +811,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -933,9 +826,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c"
    }
   },
   {
@@ -949,9 +841,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "80bb01ba2101f6ef"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.deterministicOffset(step:min:max:)": "ea9de4af34a0889c"
    }
   },
   {
@@ -965,9 +856,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "21b30303ee6cdb18"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "b827c03f32e8f6ae"
    }
   },
   {
@@ -982,11 +872,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "78be3984cd923d72",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "569622e319719e06",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "df157eee13e0cb17",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "9346b7446d60938f",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -1001,11 +890,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "78be3984cd923d72",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "569622e319719e06",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "df157eee13e0cb17",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "9346b7446d60938f",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -1019,9 +907,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680"
    }
   },
   {
@@ -1039,14 +926,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "78be3984cd923d72",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.firstStretchSpectrum(_:)": "18f34e83006d5434",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "569622e319719e06",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "9b911e7eaa305d81",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "df157eee13e0cb17",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.firstStretchSpectrum(_:)": "ee94557a3811f6f3",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "9346b7446d60938f",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "f8b22c1c76bec5b7",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -1060,9 +946,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219"
    }
   },
   {
@@ -1079,13 +964,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "78be3984cd923d72",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "569622e319719e06",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "9b911e7eaa305d81",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "df157eee13e0cb17",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "9346b7446d60938f",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "f8b22c1c76bec5b7",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -1107,12 +991,11 @@
      "effect": "sets an invalid 150 ms beat"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "78be3984cd923d72",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "569622e319719e06",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "9b911e7eaa305d81",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "df157eee13e0cb17",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "9346b7446d60938f",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "f8b22c1c76bec5b7",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   },
   {
@@ -1129,13 +1012,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "78be3984cd923d72",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "569622e319719e06",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "9b911e7eaa305d81",
-    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "63c5db98800a6d6a"
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.contiguousBeats(_:startMs:)": "df157eee13e0cb17",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.singleWindow(_:)": "9346b7446d60938f",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.variedRRs(count:from:)": "f8b22c1c76bec5b7",
+    "EmuquTests/HRVSleepStageClassifierTests.swift::func HRVSleepStageClassifierTests.window(at:from:)": "abb80a58d5a8149f"
    }
   }
  ],

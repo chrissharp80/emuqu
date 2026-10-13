@@ -12,7 +12,6 @@
   "mem:WorkoutDescriptor.maxNarrativeDurationMinutes=360 (private static)"
  ],
  "toplevel": "Memberwise inits only; no globals.",
- "flags": [],
  "units": [
   {
    "key": "func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
@@ -40,24 +39,11 @@
      "effect": "return morningOnly (score == recoveryScore, no drift)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Readiness is also computed separately in TrainingReadinessCard.computedReadiness when no frozen value exists, with different inputs: no ATL/CTL interpolation, no recent workout loads (flat todayTrimp*0.35), and morningATL = snapshotATL. The morning card and the dashboard hero can show different readiness for the same moment.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift:30",
-      "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift:35",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:96"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "9177220142f1a5bd",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "8667949d1f70f899",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "64819d6a737c3eda",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "5be6152f2133c2ea",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "312a650844565803",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "4b0a5707f61c717d",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "302fee87cf8a05fe",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "89c6035f516c2de9",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -84,14 +70,13 @@
      "effect": "pick from live.recentWorkouts (still filtered to today by todayPrimary); else todayWorkouts"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "39b7dcf4fc1e9db9",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "82a56d92e0f8907a",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "934486c05d509c28",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "43820eb4a430824b",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "65e7cfbcfed7a66f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -103,7 +88,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -117,10 +101,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "a6b35f2b63a48874",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -140,9 +123,8 @@
      "effect": "ACR = ATL/CTL; else nil (no ACWR penalty)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819"
    }
   },
   {
@@ -180,22 +162,9 @@
      "effect": "freshness anchor = interpolated ATL (bonus collapses to 0); else morningATL"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When the morning training snapshot is missing, morning ATL and CTL default to 0, so at hour 0 effective CTL is 0 and readiness runs the novel-load model (CTL < 3.2) for an athlete with real history; the comment acknowledges the choice.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:171",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:172",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:172"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -229,12 +198,11 @@
      "effect": "'Fatigue is dissipating...up about N'; else ReadinessScoring.readinessMessage"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "39b7dcf4fc1e9db9",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "934486c05d509c28",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "b947f319e70fff14",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "298b8b4866490148",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -267,10 +235,9 @@
      "effect": "'Body is using the day to recover'; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "b947f319e70fff14",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -303,7 +270,6 @@
      "effect": "return nil; else array"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
    }
@@ -333,9 +299,8 @@
      "effect": "return nil; else the filtered loads"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "4d7fbc2f366fb7fc"
    }
   },
   {
@@ -353,13 +318,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "fed959549d338e09",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)": "03b90942a0e14fdd",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "945ba9dd8fc7c7d8",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "1d8662e16c13d8e7",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "6f6ce547af89acf6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)": "600be8d259de3ef6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -388,10 +352,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "fed959549d338e09",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "945ba9dd8fc7c7d8",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "1d8662e16c13d8e7",
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
@@ -471,7 +434,6 @@
      "effect": "'workout'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -499,7 +461,6 @@
      "effect": "'hard'; else 'very hard'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -541,9 +502,8 @@
      "effect": "returns word unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -567,11 +527,10 @@
      "effect": "localized 'workout'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.commonType(_:)": "330ba4744e423f8b",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.commonType(_:)": "513b510797a92be3",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -623,9 +582,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
   {
@@ -677,9 +635,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   }
  ],

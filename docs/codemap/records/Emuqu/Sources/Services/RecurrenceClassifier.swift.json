@@ -15,19 +15,6 @@
   "static let minimumElapsedSecondsForMatch = 300 (:109)"
  ],
  "toplevel": "Header comment (lines 4-57) documents the approach; no executable top-level code.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "match/scoreCandidates/clusterMatch/signature/resample have no tests; RecurrenceClassifierTests only covers roundCoord, median and cumulativeDistances, so the user-facing 'usual route' claim the AI repeats is unverified.",
-   "evidence": [
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift:120",
-    "EmuquTests/RecurrenceClassifierTests.swift:16",
-    "EmuquTests/RecurrenceClassifierTests.swift:105"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func RecurrenceClassifier.match(current:archive:)",
@@ -71,15 +58,14 @@
      "effect": "false: nil; true: return clusterMatch over the cluster"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)": "d413d3222fd285bc",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.coherentCluster(_:)": "57774dac2157311a",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "cea970a1d88774f0",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)": "a5d986b82f24f48c",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "f5564c3178c03d2d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)": "7f903353231e824d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.coherentCluster(_:)": "c14cc1d6cdb5db80",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "95a9b35bc290d09f",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)": "9b9beefb2c24377a",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "77422005ec698f9a",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -105,11 +91,10 @@
      "effect": "[]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.averagePerPointDistance(_:_:)": "e79250ccef7ac4ef",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73"
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.averagePerPointDistance(_:_:)": "2410a8c4e1f6c77b",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "77422005ec698f9a",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305"
    }
   },
   {
@@ -123,10 +108,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "73dd7f5315c16ef2",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "f27e6c1b6a78cf96",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -152,10 +136,9 @@
      "effect": "false: drop; true: keep as ScoredTrail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.averagePerPointDistance(_:_:)": "e79250ccef7ac4ef",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0"
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.averagePerPointDistance(_:_:)": "2410a8c4e1f6c77b",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "77422005ec698f9a"
    }
   },
   {
@@ -192,13 +175,12 @@
      "effect": "0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)": "462fd7bef75129d2",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)": "90b90f779a840a26",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "f5564c3178c03d2d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)": "ed59d5354afec99a",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)": "14968ca88f7686d5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -223,10 +205,9 @@
      "effect": "hour band 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)": "75db7a14c31de924",
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)": "b1040c7b891b2e8c",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab"
    }
   },
   {
@@ -244,7 +225,6 @@
      "effect": "true: metersPerDeg = lat metres × cos(latitudeForCorrection); false: latitude metres per degree"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -275,11 +255,10 @@
      "effect": "false: return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.cumulativeDistances(along:)": "437d003ef89933d2",
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.resample(_:cumulative:total:)": "a897c516f590bdc9",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.cumulativeDistances(along:)": "840e405bdc6ff00b",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.resample(_:cumulative:total:)": "b57f97400a5aef2c",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },
   {
@@ -304,7 +283,6 @@
      "effect": "append running total"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -327,7 +305,6 @@
      "effect": "advance segment index"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -352,7 +329,6 @@
      "effect": "accumulate distance"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -373,18 +349,6 @@
      "at": "+4",
      "cond": "count even",
      "effect": "average of middle pair; else middle"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same median helper exists privately in BreadcrumbNamespace (AppFactResolver+Breadcrumbs.swift:156) and several other files.",
-     "evidence": [
-      "Emuqu/Sources/Services/RecurrenceClassifier.swift:322",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:156"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -429,7 +393,6 @@
      "effect": "no ' near …' suffix"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

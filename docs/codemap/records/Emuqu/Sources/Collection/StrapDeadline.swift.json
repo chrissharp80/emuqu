@@ -12,7 +12,6 @@
   "ResumeOnce.resumed: OSAllocatedUnfairLock<Bool> (per race)"
  ],
  "toplevel": "No code outside units.",
- "flags": [],
  "units": [
   {
    "key": "func StrapDeadline.race(seconds:timeout:operation:)",
@@ -27,11 +26,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.begin(_:seconds:timeout:operation:)": "ccdcda245c476ee0",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()": "bb305350e48a7200",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::init ResumeOnce(_:)": "9db9ba3369f5e6b1"
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.begin(_:seconds:timeout:operation:)": "b7af443c93a203bc",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()": "fd20279c9c2b94eb",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::init ResumeOnce(_:)": "7b0edfc7efd04475"
    }
   },
   {
@@ -60,13 +58,12 @@
      "effect": "true: cancel() resumes (no-op if already resumed) and cancels both tasks; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()": "bb305350e48a7200",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.expire(after:with:)": "26c320476c1c925b",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.run(_:finish:clock:)": "42754f5961031d80",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "01fd9741658f3722",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()": "fd20279c9c2b94eb",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.expire(after:with:)": "7bb52ffd7ff530cb",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.run(_:finish:clock:)": "f34be8e2634a4c07",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -80,10 +77,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "01fd9741658f3722",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -104,11 +100,10 @@
      "effect": "catch: return silently — expected when the operation finished first; no throw: deadline reached, caller resumed with timeout"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "01fd9741658f3722",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -129,10 +124,9 @@
      "effect": "catch: caller resumed with that error (dropped if deadline/cancel already resumed); no throw: resumed with value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "01fd9741658f3722",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -144,7 +138,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -164,7 +157,6 @@
      "effect": "true: continuation resumed with the result; false: result dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

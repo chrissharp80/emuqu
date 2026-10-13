@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "§ Architecture decision records",
@@ -34,58 +33,24 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR 001 says the plaintext window 'is bounded by one app launch'; reencryptPendingSessions returns early (keeps the ledger) when the key is still unavailable, and reencryptOne leaves a session queued when its read fails (e.g. a locked background launch), so plaintext can persist across several launches; the stated bound is not guaranteed.",
-     "evidence": [
-      "docs/adr/README.md:39",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:43",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:57"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR 001 says the fallback window 'is logged at .error'; the common fallback (encryptionManager unavailable before first unlock) calls onFailure() and returns nil with no log, and archiveWriteOptions records the ledger silently. Only an encrypt() throw, or a launch where the key is still unavailable, logs at .error; the normal fallback goes unlogged.",
-     "evidence": [
-      "docs/adr/README.md:39",
-      "Emuqu/Sources/Storage/Archive+SessionCodec.swift:120",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:26"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR 002 says the script gates run 'on a Linux runner on every push'; gates.yml triggers on push to main only (plus pull_request and workflow_dispatch), so pushes to other branches with no PR run no gates.",
-     "evidence": [
-      "docs/adr/README.md:47",
-      ".github/workflows/gates.yml:25"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
-    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
+    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
     ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "35e8a427fb74b719",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "be6622dcbf06e136",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a6f10f434000c214",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "267af528614df645",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
-    "Makefile::target sendable-guard": "16583da771b94003",
-    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a1d67d0c48c3ba9e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "b2d76b7ce6014d3e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "f600c993f4a905de",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74",
+    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target no-unowned-guard": "25ed7c1d3b02dd7c",
+    "Makefile::target sendable-guard": "c009f552884c46bc",
+    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832"
    }
   },
   {
@@ -107,29 +72,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR says the plaintext window is 'bounded by one app launch', but reencryptPendingSessions returns early (leaving entries queued) when the key is still unavailable at launch, and pendingSession defers when the file is unreadable (background launch while locked), so the window spans any number of launches.",
-     "evidence": [
-      "docs/adr/README.md:38",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:43",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:89"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func pendingSession(_:in:)": "916edc2b800cbdaa",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "d6cceffd6ffc982d",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a6f10f434000c214",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "267af528614df645",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "4d01bc9e69ee0ada"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "e97adee60a9352fe",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func pendingSession(_:in:)": "d18c90a7a2a7fd0f",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "0f29e46f2a8b104d",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a1d67d0c48c3ba9e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "b2d76b7ce6014d3e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "f600c993f4a905de",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "e6099c40e631f44d",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "adb9e6a4a9583739"
    }
   },
   {
@@ -143,9 +95,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7"
+    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64"
    }
   },
   {
@@ -159,20 +110,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR says each allowlisted escape names the queue/lock/contract that owns its state and the count is 'stated nowhere else', but check_unchecked_sendable.sh:106-118 still justifies escapes in SettingsManager.swift:16, LanguageManager.swift:35/47 and RRCollector.swift:303 that no longer exist in the tree (the grep finds no annotation in those files).",
-     "evidence": [
-      "docs/adr/README.md:53",
-      "scripts/check_unchecked_sendable.sh:107"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749"
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca"
    }
   },
   {
@@ -184,7 +123,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -198,9 +136,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references": "818a60b78cdaaace"
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references": "47cd48e03e74800a"
    }
   }
  ],

@@ -18,18 +18,6 @@
   "kc:Tavily service key (APIKeyStore.serviceKey(.tavilyWebSearch))"
  ],
  "toplevel": "Static domain lists are compile-time arrays. Accessed via AppDependencies.providers.webSearchService (AppDependencies.swift:683-685) and called from AppFactResolver+Settings racedSearch with a 15 s timeout.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The caller's comment says 'URLSession errors are wrapped by WebSearchService', but search() lets URLSession.data errors propagate unwrapped; the caller's generic catch re-wraps them as .network, so behaviour is correct but the claim is false.",
-   "evidence": [
-    "Emuqu/Sources/Services/WebSearchService.swift:152",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:217"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init WebSearchService()",
@@ -40,7 +28,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -78,7 +65,6 @@
      "effect": "'Tavily rate limit hit'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -112,28 +98,15 @@
      "effect": "false: throws .missingKey; true: continue (URLSession errors propagate unwrapped)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ARCHITECTURE.md says the resolver bridges sync->async via Task.detached + DispatchSemaphore around WebSearchService; the actual caller is a suspending @MainActor 15 s timeout race (FactResolveTimeout.withTimeout) with no semaphore.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:1372",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:204",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:209"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.serviceKey(for:)": "4c8fcc142e1431ac",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)": "f540ffb707f2f95d",
-    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.parse(data:)": "aede26bfd63057cb",
-    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)": "cb9f7b023c4ea0c8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)": "b8fe439f59472502",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.parse(data:)": "d05728c0e49553fb",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)": "62604ee88c69dcce",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -159,9 +132,8 @@
      "effect": "false: throws .network('malformed endpoint') (unreachable for the constant literal); true: continue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "17ab71f76b164165"
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "2d1c9c7f522800b8"
    }
   },
   {
@@ -189,7 +161,6 @@
      "effect": "[]"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -219,9 +190,8 @@
      "effect": "false: logs warning, throws .network('HTTP code'); true: returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -251,7 +221,6 @@
      "effect": "score 0 used when Tavily omits score"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

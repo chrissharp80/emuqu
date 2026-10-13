@@ -13,18 +13,6 @@
   "mem:AppleToolDispatcher.refusedTools = [\"web_search\"]"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references AppleToolDispatcher (grep of EmuquTests); the budget/refusal/allowance logic has no coverage.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:87",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:109"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init AppleToolDispatcher()",
@@ -35,7 +23,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,7 +36,6 @@
     "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -63,7 +49,6 @@
     "mem:AppleToolDispatcher.shared (currentRegistry, callsThisTurn, outputAllowance)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,7 +62,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -110,13 +94,12 @@
      "effect": "returns and charges the refusal JSON; else resolves the tool"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "abe88f24be3ad452",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "91acb46f4275096a",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "2a0cf8feb56eb33d",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)": "7235a36d374e5f20"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "69d4ca3bd2c472d3",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "60e838044614935f",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "d3863d8890919dcd",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "d59073392e0a5c2a",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)": "fa2174b183c238db"
    }
   },
   {
@@ -141,7 +124,6 @@
      "effect": "nil (allowed); else missing(.rateLimited, \"tool budget exceeded…\")"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

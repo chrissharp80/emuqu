@@ -23,19 +23,6 @@
   "wc:type=watchHRSample {heartRate} (sent :263)"
  ],
  "toplevel": "Instance created by WatchApp @StateObject (EmuquWatch Watch App/WatchApp.swift:12). Stored-property initializers only; lastPhoneContact starts at Date().",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests/EmuquUITests references WatchWorkoutManager (start/stop idempotence, pending-auth start, phone-silence end/restart, sport mapping are untested; only WatchMessageDecoding helpers are).",
-   "evidence": [
-    "EmuquWatch Watch App/WatchWorkoutManager.swift:82",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift:241",
-    "EmuquTests/WatchMessageDecodingTests.swift:529"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WatchWorkoutManager.requestAuthorizationIfNeeded()",
@@ -65,30 +52,6 @@
      "at": "+11",
      "cond": "catch requestAuthorization error",
      "effect": "sets lastStartError message; hasRequestedAuth stays false so a later call asks again"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "On the pending-start path the authorization-failed message written here is immediately overwritten: finishPendingStart still calls startWorkoutSession, which sets lastStartError=nil on success or replaces it with the generic 'Wrist HR fallback not started' message.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:69",
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:93",
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:109",
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/USERS_MANUAL.md says the Watch app prompts for HealthKit 'the first time you tap Start'; WatchApp.wireUp requests it on the first onAppear of the root view, before any Start.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1427",
-      "EmuquWatch Watch App/WatchApp.swift:66"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -125,11 +88,10 @@
      "effect": "true: startWorkoutSession now and return; false: set startPending, store sport and await authorization Task"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishPendingStart()": "f78be15eee30df74",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "42513ab83b997254",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.startWorkoutSession(sportRaw:)": "7b5567011471aa75"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishPendingStart()": "a15c9c4eacea8258",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "f8c9538d39f28688",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.startWorkoutSession(sportRaw:)": "809812fca69b8a6c"
    }
   },
   {
@@ -159,9 +121,8 @@
      "effect": "true: startWorkoutSession(pendingSportRaw); false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.startWorkoutSession(sportRaw:)": "7b5567011471aa75"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.startWorkoutSession(sportRaw:)": "809812fca69b8a6c"
    }
   },
   {
@@ -185,11 +146,10 @@
      "effect": "noteStartFailure(error) sets lastStartError; no retry"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.beginSession(with:)": "ee4778864f5e51a7",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.configuration(forSport:)": "4f14cffd6933247d",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteStartFailure(_:)": "dbd0ee613f08b714"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.beginSession(with:)": "aeb89f5787c05967",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.configuration(forSport:)": "d34b6cb152e4953c",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteStartFailure(_:)": "dbff608de1f8bb4f"
    }
   },
   {
@@ -203,9 +163,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.activityAndLocation(forSport:)": "33cb0fd91a6b7679"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.activityAndLocation(forSport:)": "011c6c86a3fbf891"
    }
   },
   {
@@ -263,7 +222,6 @@
      "effect": "(.other, .unknown)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -286,20 +244,9 @@
     "hk:HKWorkoutSession (live, not saved)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "beginCollection's completion ignores success and error (`{ _, _ in }`), so a collection failure leaves the session running without HR samples and no lastStartError.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:153"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.watchForPhoneSilence()": "e0bd811233e2fee8",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.workoutBuilder(_:didCollectDataOf:)": "2c4a18116e249f7a"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.watchForPhoneSilence()": "afca9836ea233530",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.workoutBuilder(_:didCollectDataOf:)": "133e2b522ce2da3c"
    }
   },
   {
@@ -313,7 +260,6 @@
     "mem:WatchWorkoutManager.lastStartError"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -344,7 +290,6 @@
      "effect": "false: return after clearing flags (second stop is a no-op); true: tear down and end"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -365,10 +310,9 @@
      "effect": "false: return (phone's stop reply will end it); true: stop()"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)": "be4fe8b4c5423c3f",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "ea441f9c66156de2"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)": "4fd3a3d28cab8851",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "0f502a307a6d40fc"
    }
   },
   {
@@ -403,9 +347,8 @@
      "effect": "phoneRecording falls back to false"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.notePhoneContact(phoneRecording:)": "b9dce3c19b768cb7"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.notePhoneContact(phoneRecording:)": "893f78d1649a2214"
    }
   },
   {
@@ -436,21 +379,8 @@
      "effect": "true: start(sportRaw: sessionSportRaw); false: no restart"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The silence restart calls start() without checking displayOnlyMode, while WatchSessionManager.startWorkoutIfAllowed documents that display-only mode must NOT start an HKWorkoutSession on the Watch (Apple Health 'Record a workout' offer). The keep-alive path driveKeepAliveSession likewise starts in both modes, so the rule is only enforced on the startWorkout command.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:222",
-      "EmuquWatch Watch App/WatchSessionManager.swift:788",
-      "EmuquWatch Watch App/WatchSessionManager.swift:749"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "62683aaa1d9ec970"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "8f27288f5191f848"
    }
   },
   {
@@ -467,9 +397,8 @@
     "mem:WatchWorkoutManager.lastPhoneContact"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.checkForPhoneSilence()": "6f10c1cb0d366f56"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.checkForPhoneSilence()": "4df0eee9fb99362d"
    }
   },
   {
@@ -495,10 +424,9 @@
      "effect": "return silently — stop() or a restart cancelled the watch"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.endIfPhoneSilent()": "a0d482c68d4fb2b9"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.endIfPhoneSilent()": "85493f6b307df2e1"
    }
   },
   {
@@ -529,10 +457,9 @@
      "effect": "false: return false (keep watching); true: stop(), endedForPhoneSilence=true, return true"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)": "35bb96d6ebaabadf",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "ea441f9c66156de2"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)": "968554cc893f78a9",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "0f502a307a6d40fc"
    }
   },
   {
@@ -557,18 +484,6 @@
      "effect": "false: return, sample dropped; true: send"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "sendMessage is called with no errorHandler, so failed HR fallback sends vanish without a log; and there is no activationState check, unlike WatchStrapConnector.forwardSampleToiPhone.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:263",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:667"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -588,9 +503,8 @@
      "effect": "false: return; true: forget(workoutSession)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.forget(_:)": "217655d1f955b8f7"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.forget(_:)": "c2608cd8d5afde5e"
    }
   },
   {
@@ -604,9 +518,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.forget(_:)": "217655d1f955b8f7"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.forget(_:)": "c2608cd8d5afde5e"
    }
   },
   {
@@ -629,19 +542,6 @@
      "effect": "false: return (already torn down by stop()); true: release references"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "When watchOS ends or fails the session mid-workout (e.g. another workout app takes over), the references are released but nothing restarts it: start() is only called on a recording transition or startWorkout command (WatchSessionManager.swift:749, :797), and endedForPhoneSilence is not set, so the keep-alive and wrist-HR fallback stay off for the rest of that workout. The didFailWithError error is also not shown in lastStartError.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:284",
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:281",
-      "EmuquWatch Watch App/WatchSessionManager.swift:749"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -653,7 +553,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -681,9 +580,8 @@
      "effect": "false: nothing sent; true: forwardLatestHR(rounded bpm)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.forwardLatestHR(_:)": "d1c47aa2f184ea85"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.forwardLatestHR(_:)": "6f099e8125f5756c"
    }
   }
  ],

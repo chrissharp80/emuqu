@@ -1,6 +1,6 @@
 {
  "file": "scripts/verify_gates_fail.sh",
- "hash": "78e806e0faf65b39",
+ "hash": "70f3e0d13be356cd",
  "role": "Meta-gate (make verify-gates; ci.yml lint-and-budgets 'Gates actually fail'; not in gates.yml) that, for 67 named cases, confirms a gate is green, plants a violation in a tracked file via a python one-liner, requires the gate to exit non-zero, and restores the file; then requires every scripts/check_*.sh and enforce_*.sh to be mentioned in this file.",
  "types": [],
  "state": [
@@ -11,21 +11,7 @@
   "file:build/planted-notes.md (created, never removed)",
   "file:Emuqu/Sources/Utilities/PlantedOrphan.swift (created; removed at line 580)"
  ],
- "toplevel": "set -uo pipefail; cd to repo root. Acquires the tree lock, sets the EXIT/INT/TERM/HUP trap (restore_all, rm the backup dir if set, release lock) before creating the backup dir with gate_mktemp_dir (|| exit), so a failed creation cannot leave the lock behind. Runs each `check` call in order (cases listed at lines 99-528 cover copy linter, doc links, CloudKit, privacy manifest, developer endpoint, strict concurrency, gate preflight, snapshot refs, empty ranges, doc counts, date-ms, SBOM, spec conformance, localization (bundle, resolution, orphans, format args, coverage), log redaction, sendable, orphan swift, comment citations, gates wired, eager prompts, locale formatting, fixed fonts, skip budget, budget monotonicity (with HEAD), aggregate type size, tech-debt, leaked mutations, infoplist drift, perimeter sync, swiftlint budget, sbom drift, science register, scoring governance, no-unowned, HR feed, CoreMotion isolation, licence headers, logger self-reference, dated comments, shared-outside-root, uitest fresh install, and three code-map cases: an appended unrecorded function in Errors.swift, a changed body of DurationFormatter.hoursMinutes in Extensions.swift, and a high-severity flag appended to the Errors.swift record (breaks the open-findings ratchet); a TODO(codemap-recheck) comment marks where the re-check case returns once re-check lines fail the check again; their gate command uses .venv-codemap/bin/python when it exists, else python3, which without tree-sitter makes the precondition red and the case a SKIP). Prints PASS/FAIL/SKIP totals. Meta-check: for every scripts/check_*.sh and enforce_*.sh except check_gate_preflight.sh and NEEDS_BUILD (check_coverage.sh, check_thread_sanitizer.sh), `grep -q <basename> $0` must match (a mention in a comment would satisfy it; at 8d32097 every gate has a real `check` call); unplanted -> exit 1. Then removes PlantedOrphan.swift; exits 1 if FAIL>0, and exits 1 if SKIP>0 (a gate already red or a plant that could not be applied is not a verified gate), the same rule as verify_tests_fail.sh. All plant anchors were confirmed present at 8d32097.",
- "flags": [
-  {
-   "kind": "data-loss",
-   "sev": "low",
-   "text": "PlantedOrphan.swift is created by the orphan_swift case (backup is of Errors.swift, so restore_all cannot remove it) and is deleted only at line 580, after the meta-check's `exit 1` at 576 and outside the EXIT trap; an unplanted-gate failure or a killed run leaves a planted Swift file in Emuqu/Sources/Utilities. build/planted-notes.md from doc_links/ignored_target is never removed.",
-   "evidence": [
-    "scripts/verify_gates_fail.sh:264",
-    "scripts/verify_gates_fail.sh:576",
-    "scripts/verify_gates_fail.sh:580",
-    "scripts/verify_gates_fail.sh:107"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "set -uo pipefail; cd to repo root. Acquires the tree lock, sets the EXIT/INT/TERM/HUP trap (restore_all, rm the backup dir if set, release lock) before creating the backup dir with gate_mktemp_dir (|| exit), so a failed creation cannot leave the lock behind. Runs each `check` call in order (cases listed at lines 99-528 cover copy linter, doc links, CloudKit, privacy manifest, developer endpoint, strict concurrency, gate preflight, snapshot refs, empty ranges, doc counts, date-ms, SBOM, spec conformance, localization (bundle, resolution, orphans, format args, coverage), log redaction, sendable, orphan swift, comment citations, gates wired, eager prompts, locale formatting, fixed fonts, skip budget, budget monotonicity (with HEAD), aggregate type size, tech-debt, leaked mutations, infoplist drift, perimeter sync, swiftlint budget, sbom drift, science register, scoring governance, no-unowned, HR feed, CoreMotion isolation, licence headers, logger self-reference, dated comments, shared-outside-root, uitest fresh install, and three code-map cases: an appended unrecorded function in Errors.swift, a changed body of DurationFormatter.hoursMinutes in Extensions.swift, and a high-severity flag added to the Errors.swift findings in a temporary overlay under the backup directory (a copy of the local do_not_ship/codemap overlay when it exists, else one with budgets of 0) that the gate is pointed at through CODEMAP_OVERLAY, which breaks the open-findings ratchet; with no overlay at that path the ratchet does not run, so the gate is green before the plant; a TODO(codemap-recheck) comment marks where the re-check case returns once re-check lines fail the check again; their gate command uses .venv-codemap/bin/python when it exists, else python3, which without tree-sitter makes the precondition red and the case a SKIP). Prints PASS/FAIL/SKIP totals. Meta-check: for every scripts/check_*.sh and enforce_*.sh except check_gate_preflight.sh and NEEDS_BUILD (check_coverage.sh, check_thread_sanitizer.sh), `grep -q <basename> $0` must match (a mention in a comment would satisfy it; at 8d32097 every gate has a real `check` call); unplanted -> exit 1. Then removes PlantedOrphan.swift; exits 1 if FAIL>0, and exits 1 if SKIP>0 (a gate already red or a plant that could not be applied is not a verified gate), the same rule as verify_tests_fail.sh. All plant anchors were confirmed present at 8d32097.",
  "units": [
   {
    "key": "fn backup",
@@ -38,7 +24,6 @@
     "file:backup dir"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -63,7 +48,6 @@
      "effect": "cp back; else silently skipped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -103,74 +87,61 @@
      "effect": "PASS++; else FAIL++ 'STAYED GREEN'"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Any non-zero exit after the plant counts as PASS, including a gate crashing or exiting 2 on a config/parse error unrelated to the violation it is named for (e.g. copy_perimeter/malformed_catalogue only proves the linter dies on invalid JSON). Unlike verify_tests_fail.sh's run_suite, exit codes are not distinguished.",
-     "evidence": [
-      "scripts/verify_gates_fail.sh:83",
-      "scripts/verify_gates_fail.sh:87",
-      "scripts/verify_gates_fail.sh:102"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
-    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+    "scripts/verify_gates_fail.sh::fn backup": "7d768c7178d9b770",
+    "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde"
    }
   }
  ],
  "deps": {
-  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
-  "scripts/check_aggregate_type_size.sh::": "ea67dcc6c27b71aa",
-  "scripts/check_budget_monotonicity.sh::": "f78d5c3c8b01662a",
-  "scripts/check_codemap.sh::": "7556633b3058e90d",
-  "scripts/check_comment_citations.sh::": "99c1d983d588b637",
-  "scripts/check_coremotion_handler_isolation.sh::": "e1820a0b293a5622",
-  "scripts/check_date_ms_conversion.sh::": "26dec346a2c1e95f",
-  "scripts/check_dated_comment_budget.sh::": "e5194e37497f904b",
-  "scripts/check_doc_file_counts.sh::": "8c626a38aff199a4",
-  "scripts/check_doc_links.sh::": "e3bc412afabf1b5c",
-  "scripts/check_empty_range_loops.sh::": "715a366e4f2afbd3",
-  "scripts/check_fixed_font_budget.sh::": "485551e64c6c0c25",
-  "scripts/check_gate_preflight.sh::": "022bce1a14ca644a",
-  "scripts/check_gates_wired.sh::": "215121718ef381d7",
-  "scripts/check_hr_feed_subscribes_on_link.sh::": "dcedaea81a26ff73",
-  "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
-  "scripts/check_locale_formatting.sh::": "96a666d87fb5e41e",
-  "scripts/check_localization_bundle.sh::": "b70e17c752f04f59",
-  "scripts/check_localization_coverage.sh::": "a76c5b2cb76a68de",
-  "scripts/check_localization_format_args.sh::": "54561d38badb5daa",
-  "scripts/check_localization_orphans.sh::": "4a6cab6e6ccd2727",
-  "scripts/check_localization_resolution.sh::": "c8001ae03f8fcc39",
-  "scripts/check_log_redaction.sh::": "ae830737878383f1",
-  "scripts/check_logger_self_reference.sh::": "b714e96b1ff9ad5d",
-  "scripts/check_no_developer_endpoint.sh::": "b3d18516ababdf26",
-  "scripts/check_no_eager_permission_prompts.sh::": "ecee804f3a613728",
-  "scripts/check_no_health_data_in_cloudkit.sh::": "a7192ff8ba6579ab",
-  "scripts/check_no_leaked_mutations.sh::": "11ee1b28e94d42a3",
-  "scripts/check_no_license_headers.sh::": "85097fb14eb2543d",
-  "scripts/check_no_orphan_swift.sh::": "1a11afef3b12ca35",
-  "scripts/check_no_shared_outside_root.sh::": "cab515af0ba31668",
-  "scripts/check_no_unowned.sh::": "de28bde2906e92ad",
-  "scripts/check_perimeter_sync.sh::": "7165505a7b74db4c",
-  "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862",
-  "scripts/check_refactor_spec_conformance.sh::": "303aa5ec3963835a",
-  "scripts/check_sbom_drift.sh::": "7233f619148a0f19",
-  "scripts/check_science_register.sh::": "788a8f29f19e0252",
-  "scripts/check_scoring_governance.sh::": "8b57afcd9324615c",
-  "scripts/check_snapshot_references.sh::": "3af8d2a44ee0bf3d",
-  "scripts/check_strict_concurrency_enabled.sh::": "be05d3aac3d60d4e",
-  "scripts/check_test_skip_budget.sh::": "86d14e669b19a306",
-  "scripts/check_uitest_fresh_install.sh::": "a2fe736d46ea7d35",
-  "scripts/check_unchecked_sendable.sh::": "c41e2a91a6664081",
-  "scripts/codemap/codemap.py::": "5d018c610440e0c2",
-  "scripts/enforce_swiftlint_budget.sh::": "4827a351792f7b9c",
-  "scripts/enforce_tech_debt_budgets.sh::": "fc8b1c0f54d45d15",
-  "scripts/generate_sbom.py::": "1468a1f316fb0f1e",
-  "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
-  "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+  "Tools/copy_linter/lint.py::": "5373b51ca6189fff",
+  "scripts/check_aggregate_type_size.sh::": "1dfe32804b21d692",
+  "scripts/check_budget_monotonicity.sh::": "200e7799c911c1e5",
+  "scripts/check_codemap.sh::": "d855ae4972e708aa",
+  "scripts/check_comment_citations.sh::": "654a392c3e27a0eb",
+  "scripts/check_coremotion_handler_isolation.sh::": "09e3e9de6dc960ec",
+  "scripts/check_date_ms_conversion.sh::": "8446d50cb14a307d",
+  "scripts/check_dated_comment_budget.sh::": "021242d89d92bc8c",
+  "scripts/check_doc_file_counts.sh::": "ea5d071473f0cfbc",
+  "scripts/check_doc_links.sh::": "e124dbf75252d374",
+  "scripts/check_empty_range_loops.sh::": "b355c6f84b50aeef",
+  "scripts/check_fixed_font_budget.sh::": "8b5e55ad1dda074c",
+  "scripts/check_gate_preflight.sh::": "50d2bc54de2f5eb5",
+  "scripts/check_gates_wired.sh::": "16a4971f63a61cc9",
+  "scripts/check_hr_feed_subscribes_on_link.sh::": "3a4b6775e61cd076",
+  "scripts/check_infoplist_key_drift.sh::": "28c4fd1293c2d3b3",
+  "scripts/check_locale_formatting.sh::": "836a8d969e591749",
+  "scripts/check_localization_bundle.sh::": "53f82d0998cff660",
+  "scripts/check_localization_coverage.sh::": "f29337aa25d2b83b",
+  "scripts/check_localization_format_args.sh::": "6f32eef275c3de4b",
+  "scripts/check_localization_orphans.sh::": "f4f6d7ed9c2dd88c",
+  "scripts/check_localization_resolution.sh::": "0994aa3d0f8a2b88",
+  "scripts/check_log_redaction.sh::": "dffb5fb4909cf78f",
+  "scripts/check_logger_self_reference.sh::": "a38e378f33900911",
+  "scripts/check_no_developer_endpoint.sh::": "61535c5e3dcd18ef",
+  "scripts/check_no_eager_permission_prompts.sh::": "93fc5ff46b1049fa",
+  "scripts/check_no_health_data_in_cloudkit.sh::": "3f21dbc8feb1aedf",
+  "scripts/check_no_leaked_mutations.sh::": "1d0616035c6dbf6a",
+  "scripts/check_no_license_headers.sh::": "b361e7f82a9fe754",
+  "scripts/check_no_orphan_swift.sh::": "7bd1f096b72cfdf9",
+  "scripts/check_no_shared_outside_root.sh::": "4cf9b97d58099ab1",
+  "scripts/check_no_unowned.sh::": "a9acd83ee2004086",
+  "scripts/check_perimeter_sync.sh::": "6e88cbf7aa146c46",
+  "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759",
+  "scripts/check_refactor_spec_conformance.sh::": "cf7a79cba32064e7",
+  "scripts/check_sbom_drift.sh::": "efdd5410eaab6533",
+  "scripts/check_science_register.sh::": "1f484723766cdba1",
+  "scripts/check_scoring_governance.sh::": "453a0db21a943bab",
+  "scripts/check_snapshot_references.sh::": "dcd09bdaa160b649",
+  "scripts/check_strict_concurrency_enabled.sh::": "69b0218a099f204d",
+  "scripts/check_test_skip_budget.sh::": "a9daed719ffa6836",
+  "scripts/check_uitest_fresh_install.sh::": "09e01c2621c92788",
+  "scripts/check_unchecked_sendable.sh::": "616a67749fc8ebe0",
+  "scripts/codemap/codemap.py::": "124fefe07124e0ad",
+  "scripts/enforce_swiftlint_budget.sh::": "78a35b6942b2f21a",
+  "scripts/enforce_tech_debt_budgets.sh::": "199fdaf4697daea6",
+  "scripts/generate_sbom.py::": "e3c8a0bdb0e501f7",
+  "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
+  "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde"
  }
 }

@@ -19,19 +19,6 @@
   "mem:PDFReportGenerator.config (let), mem:PDFReportGenerator.settingsProvider (let closure, default reads AppDependencies.current.app.settingsManager.settingsSnapshot)"
  ],
  "toplevel": "Config stored-property initialisers fix page size 612x792 (US Letter), 40pt margins, system fonts 22/14/11/10/8 and mono 9, primary blue (0.2,0.4,0.8), secondary green (0.3,0.7,0.4), accent red (0.9,0.3,0.3). VitalsData.wristTemperatureLacksBaseline defaults false. ReportSections conforms to OptionSet+Sendable. File-scope private helpers reportInputs/mergedTrainingContext/reportRendererFormat are listed as units.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "PDFReportGenerator.SleepData duplicates AnalysisSleepInput's fields and its HealthKit mapping (init(from:)) and adds sleepStart/sleepEnd and two formatted strings; the shared fields must be kept in sync by hand. (SleepTrendData is now a typealias of AnalysisSleepTrendInput.)",
-   "evidence": [
-    "Emuqu/Sources/Export/PDFReportGenerator.swift:72",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift:109",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:51"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var PDFReportGenerator.ReportSections.sectionLabels",
@@ -46,9 +33,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -64,9 +50,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -82,9 +67,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -96,7 +80,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -117,12 +100,11 @@
      "effect": "nil → self = .empty (all zeros/nil); non-nil → copies fields"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971"
    }
   },
   {
@@ -139,11 +121,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -155,7 +136,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -167,7 +147,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -185,7 +164,6 @@
      "effect": "nil → self = .empty; else map fields"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -208,12 +186,11 @@
      "effect": "returns nil (no report; generateReportURL then returns nil and callers show no share sheet); otherwise renders and returns PDF Data"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawReportPages(_:in:pageRect:)": "3046d8e5dd5d1c66",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)": "56f8212550ba3480",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportRendererFormat()": "11e1d35c7e6e39c1"
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "423a33f01886bd16",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawReportPages(_:in:pageRect:)": "df859e350dcd9821",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)": "fcec79b62a161400",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportRendererFormat()": "27a39a5d118aa825"
    }
   },
   {
@@ -240,13 +217,12 @@
      "effect": "true → deep-dive pages + analysis summary page; false → report ends after page 1/2"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepDivePages(_:pageNumber:in:pageRect:)": "d033ebf968abe77e",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)": "84550a2c796a4b8d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)": "32487705848280fa",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f"
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "e485da0234977362",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepDivePages(_:pageNumber:in:pageRect:)": "e01b59fb7cab916d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)": "aa07852069042b33",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)": "ea273c35815e9066",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "8a0220387434a45f"
    }
   },
   {
@@ -263,12 +239,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "b32272ff1b99920a",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)": "94635ee146176ac2"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "6d0e3a4b017f8745",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "5569686b32ac8826",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)": "55397a7574a7222d"
    }
   },
   {
@@ -283,10 +258,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "b32272ff1b99920a",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)": "94635ee146176ac2"
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "5569686b32ac8826",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)": "55397a7574a7222d"
    }
   },
   {
@@ -300,7 +274,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -322,9 +295,8 @@
      "effect": "'Imported from <source>. Raw RR data not available - visualizations omitted.'; else 'Summary data only. Raw RR intervals not available for visualization.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -354,13 +326,12 @@
      "effect": "adviceLiveLoad is nil, so the summary and advice gate read the frozen load"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func mergedTrainingContext(frozen:live:session:)": "773538766336d24d",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func mergedTrainingContext(frozen:live:session:)": "0c92fc962237a474",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "9c1c51ce35bf3a6b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "497254c576bf8794",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "de2201cf5d984288"
    }
   },
   {
@@ -391,11 +362,10 @@
      "effect": "yesterdayTrimp = 0; vo2Max/daysSinceHardWorkout/recentWorkouts nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "a9d6ffe38efc1df5",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -411,9 +381,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

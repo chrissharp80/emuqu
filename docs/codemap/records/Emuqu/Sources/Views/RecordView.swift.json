@@ -18,32 +18,6 @@
   "@Binding selectedTab: MainTabView.Tab; var scrollToTopToken: UUID"
  ],
  "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "The pre-score feeling prompt (preScoreCover) is presented only via pendingMorningPresentation, which is set only by presentFullReport ← viewFullReportButton ← morningResultsPreview ← morningResultsPreviewSection, and that section excludes overnight and nap sessions. Overnight/nap readings auto-accept and jump to the Dashboard (routeOvernightAcceptance), so the 'Marco Altini moment' never fires for the overnight reading that docs say it gates; the morning feeling for overnight is only collectable from the Dashboard chip.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView.swift:24",
-    "Emuqu/Sources/Views/RecordView.swift:216",
-    "Emuqu/Sources/Views/RecordView+Results.swift:83",
-    "Emuqu/Sources/Views/RecordView+Sections.swift:268",
-    "docs/USERS_MANUAL.md:112",
-    "docs/FEATURES.md:21"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "data-loss",
-   "sev": "low",
-   "text": "Tags and notes picked before an overnight/nap recording live only in RecordView @State until auto-accept writes them (preSessionTagged); if the view or the app is recreated during the night they are lost.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView.swift:18",
-    "Emuqu/Sources/Views/RecordView+Results.swift:117"
-   ],
-   "found": "fix batch b24"
-  }
- ],
  "units": [
   {
    "key": "init RecordView.ResultsPresentation(session:result:)",
@@ -54,9 +28,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.ExtendedCaptureMode.id": "b8a33070820fb46b"
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.ExtendedCaptureMode.id": "838793454f8a6034"
    }
   },
   {
@@ -68,7 +41,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -96,9 +68,8 @@
      "effect": "returns localized 'Both'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -122,19 +93,18 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "b6f3d6796cbd4d75",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.presentErrorIfActionable(_:)": "bdcf67b1f64c931f",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()": "912efcdf347253e9",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)": "26e0d34f4064b4ec",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "374e1bd8ba5e5b59",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage": "f6bdd812f1593326",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "bac878fbf3598606"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "2936138062040b0c",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.presentErrorIfActionable(_:)": "f0ac77e1b4c8558e",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()": "c0e3d3ee16806e6b",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)": "c752bd806cbc23f9",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "e1d305f60a8057e8",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage": "4ad6626348d4fb91",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "a76721b65c3ca0cb"
    }
   },
   {
@@ -152,15 +122,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "590e0fd29ef8d706",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "3ad5e4a704cd0364",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)": "3ebc978c2064a31b",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll": "6fb5526f6ca0aa53",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.tagPickerSheet": "cc661372802919ab",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "294fcc406edd9198",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "b42aaa0d984fb527",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)": "e42d4ab6c12e1334",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll": "d87abb2ed5a490d1",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.tagPickerSheet": "e91475bb5a1865e5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -176,11 +145,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.scrollToTop(_:)": "dccf289295b2922f",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.resolveInterruptedWorkout()": "f90c897d41888626",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordStack": "e873ac3e26317063"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.scrollToTop(_:)": "0d0e84bdc5fa3765",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.resolveInterruptedWorkout()": "f475cf896cd84c73",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordStack": "65b15696e4504fda"
    }
   },
   {
@@ -206,21 +174,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceSectionIfNeeded": "73c3ed46f2c6af0f",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.activeSessionSection": "62e071f819d201cc",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection": "31ee34418cdf8f3c",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.liveDataSection": "f865953d36a7ecfd",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningProcessingSection": "caf7e008b594017c",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningResultsPreviewSection": "22897ab8ca338e14",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.preSessionTagSection": "df61c1ade6ab0eb6",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickResultsSection": "2961dec1e1a19d1f",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection": "ebaea2433191da38",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.selectedSessionSection": "31d20a81e30afe67",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sessionTypeSection": "aa3439e53603aa42",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "1e92995f71a968ec",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.workoutRecoverySection": "81771fd3512f6ca9"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceSectionIfNeeded": "b42e8ba5fb27d1a1",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.activeSessionSection": "1b25a41646d4bcb8",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection": "80c4b41c294d267b",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.liveDataSection": "88328c81fb89efcf",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningProcessingSection": "a1c38c74ef9ef627",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningResultsPreviewSection": "f22e8672ffe339a5",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.preSessionTagSection": "698a3b5942e6e659",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickResultsSection": "c03a3d023235fc0e",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection": "6d1d05e5e1a7ff9a",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.selectedSessionSection": "97d7b0873184de5f",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sessionTypeSection": "545ea28f7b3651ed",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "4067683cf08fce31",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.workoutRecoverySection": "9e4d85e2821d1b10"
    }
   },
   {
@@ -238,9 +205,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.findInterruptedWorkoutSessionId()": "e9514b562530aaec"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.findInterruptedWorkoutSessionId()": "a460b2f565776371"
    }
   },
   {
@@ -256,9 +222,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "f7e94e6fb3a9db3b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "bf24d9f0be7b980e"
    }
   },
   {
@@ -272,9 +237,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyMorningFeelingAnswers(_:to:)": "aa8685af26e23aae"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyMorningFeelingAnswers(_:to:)": "1f14702f40b826dc"
    }
   },
   {
@@ -289,10 +253,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.acknowledgeError()": "de9adc51f913928b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.acknowledgeError()": "9a3c0309cfa7c69b"
    }
   },
   {
@@ -323,10 +286,9 @@
      "effect": "true: collector.resetSession()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ef2f6ec8bd862038"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be"
    }
   },
   {
@@ -348,11 +310,10 @@
      "effect": "true: Text(PolarErrorMessages.humanize(error)); false: 'Unknown error'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "7c6011f8bc4ab70b",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "cf98c7ff58f9e5ea",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -372,9 +333,8 @@
      "effect": "true: showingError=true; false: nothing (errors during overnight streaming are never re-shown later by this handler)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055"
    }
   },
   {
@@ -398,10 +358,9 @@
      "effect": "true: selectedTab=.dashboard, autoAcceptOvernight(); false (quick/other types, or no result): nothing, the in-view acceptance sections handle it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "4b18858f05716750"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "788751aefe610ef4"
    }
   },
   {
@@ -442,11 +401,10 @@
      "effect": "unknown/garbage stored raw value falls back to .both"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedCaptureMode()": "a83fde355621fc97",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "b6f3d6796cbd4d75"
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "2936138062040b0c"
    }
   },
   {
@@ -466,9 +424,8 @@
      "effect": "true: mode=.streaming; false: no-op"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
    }
   },
   {
@@ -485,15 +442,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.startWorkoutRecovery()": "70372c03f3e0ab7e",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverBorder": "6828fead5959c2f5",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverButtonLabel": "284054802ab087ce",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverError": "c4432be9306215b3",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverHeader": "029a1215f2be4f0b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.startWorkoutRecovery()": "97d5424661f43f64",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverBorder": "71146871e9ef25d1",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverButtonLabel": "c4e499506398a430",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverError": "addd4f1b00c6d2b5",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.workoutRecoverHeader": "92d1b8fc9fcfc479",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -505,10 +461,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -520,7 +475,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -538,9 +492,8 @@
      "effect": "true: renders the message; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "a97b4b25212e5466"
    }
   },
   {
@@ -563,10 +516,9 @@
      "effect": "true: 'Recovering…'; false: 'Recover workout from strap'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -590,10 +542,9 @@
      "effect": "true: interruptedWorkoutId=nil (card hides); false: workoutRecoverMessage set, card stays"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverInterruptedWorkoutFromStrap()": "30335a0b38a7e172",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverInterruptedWorkoutFromStrap()": "6d4d0466ebd7be0c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -621,11 +572,10 @@
      "effect": "true: await scoreLatestVersion; false: log 'currentSession is nil — skipping' and still clear acceptance state"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()": "34ab520d2fde1bb8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "d681cc247f7c3599"
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()": "8db7372d1ebc39be",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "0f112193ac5da9a8"
    }
   },
   {
@@ -665,13 +615,12 @@
      "effect": "log text 'FAILED — using in-memory session' vs 'OK'; second ?? on same line logs 'nil' source"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "ca5433c14d9521d5",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.preSessionTagged(_:)": "0be9f316ab97a166"
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "1e223db4bb2fa1ab",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "151db517594e3b0d",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.preSessionTagged(_:)": "cf6e5122b431f6c4"
    }
   }
  ],

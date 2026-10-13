@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "No stored state. All drawing is absolute-positioned with no page-break logic; both pages end with drawFooter (page 1 via drawGlanceTomorrow, page 2 via drawHelpingHurting).",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Page 1 and page 2 lay out content top-down with no bounds check against the footer at pageHeight−margin+6 (762pt); a long or translated verdict blurb, loop paragraph or tomorrow line pushes content into or past the footer/disclaimer, since nothing paginates.",
-   "evidence": [
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:175",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:204",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:462"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)",
@@ -36,13 +23,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceColumns(y:contentW:bundle:)": "6ee6dab91d910dbf",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceHeader(y:contentW:bundle:)": "00ab6f5625b51675",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceHero(y:contentW:bundle:)": "cc062b74dd7558dd",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceColumns(y:contentW:bundle:)": "37a96d953344b786",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceHeader(y:contentW:bundle:)": "9cbd93633628ee16",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceHero(y:contentW:bundle:)": "01500d6b924f0beb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "1fe55bb771aafd5a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -60,15 +46,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "e4552ad94caf6dc9",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawLoadAsOf(y:contentW:)": "c6d37535d2feb368",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.headerDate(_:)": "ae068511a0eaf44d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "9c28f04cc866ba97",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawLoadAsOf(y:contentW:)": "020d9f9ebf393aef",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.headerDate(_:)": "aab7a6433d961037",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -89,11 +74,10 @@
      "effect": "returns without drawing; otherwise draws it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.loadAsOfDisplay()": "09c84963faa3d831",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.loadAsOfDisplay()": "59770a51ca58846d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -107,9 +91,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -128,14 +111,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.verdict": "a5a4e965c10c5732",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.verdictTone": "25d3e0a345d5da36",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceHeroText(_:heroColor:in:)": "7c2fb27684bf30ce",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.wrappedTextHeight(_:width:font:lineHeight:)": "451dfa0bb54a3d12",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "24f1333d4ea788a5",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.toneColor(_:)": "fbb800e71874a9e9"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.verdict": "862e55ba5d63056d",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.verdictTone": "e42d101aca69d936",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceHeroText(_:heroColor:in:)": "d3a8318985bd7396",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.wrappedTextHeight(_:width:font:lineHeight:)": "ce4f6c9682299490",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "8d8e5bfb7d4a1cde",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.toneColor(_:)": "007cd7d02a4a2edb"
    }
   },
   {
@@ -150,11 +132,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "8b68a76574d9f90a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "0e419ea92c951038",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -171,12 +152,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceLoopParagraph(y:contentW:bundle:)": "e193b9b053391129",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceMorningColumn(y:colW:bundle:)": "762013df920131cb",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceTomorrow(y:contentW:bundle:)": "be173acf0539be34",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceWorkoutColumn(y:colW:rightX:bundle:)": "2e84c3ea6edd4279"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceLoopParagraph(y:contentW:bundle:)": "50ecbdd11a5d38c3",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceMorningColumn(y:colW:bundle:)": "a94bebf22f41a75d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceTomorrow(y:contentW:bundle:)": "b5e9fa8b6eaa427b",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceWorkoutColumn(y:colW:rightX:bundle:)": "3180875b12ff6f7c"
    }
   },
   {
@@ -193,13 +173,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "e4552ad94caf6dc9",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceRecoveryRows(leftY:colW:bundle:)": "0c10c1c403853a56",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "9c28f04cc866ba97",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceRecoveryRows(leftY:colW:bundle:)": "c4673f8f5598e05b",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -214,10 +193,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceStatRows(_:x:y:)": "e5b960270b262183",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningRecoveryRows()": "7b7b2c98a3e09e63"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceStatRows(_:x:y:)": "8345235ebafb8dbd",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningRecoveryRows()": "32808f1aead33ad7"
    }
   },
   {
@@ -238,12 +216,11 @@
      "effect": "draws label, value and sub-line, advancing y"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceStatSubline(_:x:y:)": "f352989d1da6e0e6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceStatSubline(_:x:y:)": "220fb157589517a0",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -268,10 +245,9 @@
      "effect": "?? config.textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -287,12 +263,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceWorkoutRows(rightY:colW:rightX:bundle:)": "c2d3336aff29fda9",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceWorkoutRows(rightY:colW:rightX:bundle:)": "29c06df2918d86cd",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -308,11 +283,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "e4552ad94caf6dc9",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceStatRows(_:x:y:)": "e5b960270b262183",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutOutputRows()": "2017b6d36b3a7290"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "9c28f04cc866ba97",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawGlanceStatRows(_:x:y:)": "8345235ebafb8dbd",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutOutputRows()": "223b0ac00d312331"
    }
   },
   {
@@ -329,14 +303,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "8b68a76574d9f90a",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.loopParagraph()": "1a9f6a27e8759965",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "0e419ea92c951038",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.loopParagraph()": "06bdc1f12a862704",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -352,12 +325,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "8df506fb8ae80561",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTomorrowAction(y:contentW:)": "0b1dc77b64971ad8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "894873dc1d8aeb24",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTomorrowAction(y:contentW:)": "32cf74a61e4aafc4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -374,13 +346,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "8b68a76574d9f90a",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.tomorrowAction()": "9fa39a07bd558737",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "dc3518292cfe2e31",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "0e419ea92c951038",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.tomorrowAction()": "63395aefbc951cec",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "ba4bff5eded41994",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -396,10 +367,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "a0f14cd5e49b9046"
    }
   },
   {
@@ -423,13 +393,12 @@
      "effect": "returns the single \"No morning data\" row; otherwise the three optional rows"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningHRVRow(bundle:)": "1a8925717af343ad",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningSleepRow(bundle:)": "3595365e921ebc60",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningTrainingBalanceRow(bundle:)": "33a75d325ec6b1e1",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningHRVRow(bundle:)": "eb20a353d130220b",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningSleepRow(bundle:)": "a81d17bcb7a92c4b",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.morningTrainingBalanceRow(bundle:)": "4b37cf14eb1b476d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -467,14 +436,13 @@
      "effect": "sage / primary; otherwise textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "bec284afd11203ef",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "24f1333d4ea788a5",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "2b3b6397cf80f431",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "8d8e5bfb7d4a1cde",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -503,15 +471,14 @@
      "effect": "\"<n>% efficiency\"; otherwise \"Efficiency not measured\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "6ca79957ea77362e",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -544,14 +511,13 @@
      "effect": "Tired — go easy or rest / primary; otherwise Balanced load / secondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "1c6e389c407d198e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "cdca7f2dd2afe34f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -569,13 +535,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutHRRRow(bundle:)": "5ad1c6b33149c515",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutInternalLoadRow(bundle:)": "653abaae516d77d5",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutSummaryRow(bundle:)": "8bc8ce9f3f6feb83",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutTSSRow(bundle:)": "6ad88319ffe880ef",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutHRRRow(bundle:)": "a649388a34b2a55e",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutInternalLoadRow(bundle:)": "46a26c19f1fd079a",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutSummaryRow(bundle:)": "b5ff2e9cf9206af4",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.workoutTSSRow(bundle:)": "c3975ea3f4d21051",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -610,14 +575,13 @@
      "effect": "?? 0 — prints \"0:00\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.formatDuration(_:)": "3d303b28608da11e",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "dbe667c792d47f39",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.formatDuration(_:)": "b971b3f31f319c61",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -655,13 +619,12 @@
      "effect": "\"Hard / threshold\", primary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "b5682ac548b17fd6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "24f1333d4ea788a5",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "583042c97d1e2368",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "8d8e5bfb7d4a1cde",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -682,11 +645,10 @@
      "effect": "returns nil (row omitted)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -718,12 +680,11 @@
      "effect": "\"At or above 12 bpm (cut-off from maximal testing)\", sage; otherwise \"Below 12 bpm…\", amber"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "19def421c0cf4f43",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::init HolisticDailyReport.GlanceRow(_:_:_:_:)": "e55b45ce046b26e3",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "15bb92387dc3ac3c"
    }
   },
   {
@@ -738,10 +699,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopParagraph": "c8900657ae500cad",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "24f1333d4ea788a5"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopParagraph": "9bb038ed71bbfda4",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "8d8e5bfb7d4a1cde"
    }
   },
   {
@@ -756,10 +716,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.tomorrowAction": "a6575e803384ca13",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "24f1333d4ea788a5"
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.tomorrowAction": "a79df65f8304ebbf",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "8d8e5bfb7d4a1cde"
    }
   },
   {
@@ -780,17 +739,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionBars(_:y:contentW:)": "78ada813bab10da7",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "e4552ad94caf6dc9",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawHelpingHurting(y:contentW:bundle:)": "5b6a47b5458396e3",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawScoreSynthesis(_:y:contentW:)": "d2667fa4690eb187",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.combinedReadinessScore()": "66d43c648619507c",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionBars(_:y:contentW:)": "76a45371dcc613de",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawDivider(at:x:width:strong:)": "9c28f04cc866ba97",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawHelpingHurting(y:contentW:bundle:)": "632fdd38e33daaff",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawScoreSynthesis(_:y:contentW:)": "bfa3f604578c3bab",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.combinedReadinessScore()": "6df613aa83dfe240",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "1fe55bb771aafd5a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -805,10 +763,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawScoreSynthesisLabels(readiness:scoreColor:in:)": "583bae52e13d0f45",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.readinessBandColour(_:)": "7ba58a283e0602dc"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawScoreSynthesisLabels(readiness:scoreColor:in:)": "a898109614e7ed91",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.readinessBandColour(_:)": "9f59dedb4d145c41"
    }
   },
   {
@@ -824,13 +781,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -853,13 +809,12 @@
      "effect": "draws one bar"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionBar(contribution:scoreColor:y:contentW:)": "b8294bdfd1c51b53",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.readinessBandColour(_:)": "7ba58a283e0602dc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionBar(contribution:scoreColor:y:contentW:)": "2efd4f546dfa357a",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.readinessBandColour(_:)": "9f59dedb4d145c41",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -876,14 +831,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionSubline(contribution:y:contentW:)": "6c6e46e1686d6246",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionTrack(contribution:scoreColor:y:contentW:)": "e42a308b6674539e",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionSubline(contribution:y:contentW:)": "79c2fc6c6685b45c",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawContributionTrack(contribution:scoreColor:y:contentW:)": "80665f8d4b3417ac",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -895,9 +849,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21"
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "4e79ddb163cbdfc0"
    }
   },
   {
@@ -911,11 +864,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "01f488e1eda4cecb",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -939,14 +891,13 @@
      "effect": "adds 10pt spacing before the hurting section; otherwise none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "8df506fb8ae80561",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawHelpingHurtingSection(title:points:limit:bulletColour:y:contentW:)": "6c8fc7858bd20d58",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.whatsHelpingPoints()": "8269b30464b95184",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.whatsHurtingPoints()": "d5f4699690eba02f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "894873dc1d8aeb24",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawHelpingHurtingSection(title:points:limit:bulletColour:y:contentW:)": "e8cad25959c961a2",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.whatsHelpingPoints()": "8e22def66eb1de82",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.whatsHurtingPoints()": "749e287bf1b85888",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -972,12 +923,11 @@
      "effect": "draws a dot and wrapped text, advancing y; extra points are dropped silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "c10acba5a4dface6",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "8b68a76574d9f90a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWrappedText(_:at:width:font:color:lineHeight:)": "0e419ea92c951038",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -991,9 +941,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawText(_:at:font:color:)": "719d524566adf04f"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawText(_:at:font:color:)": "10a54844fa1d9d6b"
    }
   },
   {
@@ -1007,9 +956,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawWrappedText(_:at:width:font:color:lineHeight:)": "b17e94d3bf4f5e0e"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawWrappedText(_:at:width:font:color:lineHeight:)": "7cfe144be6b491ef"
    }
   },
   {
@@ -1023,9 +971,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "0fcff693748d4802"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "093e82aec62e2102"
    }
   },
   {
@@ -1045,11 +992,10 @@
      "effect": "starts at config.margin"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)": "292430342b319b5a",
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)": "1ccb5f4c3e1860f2",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "4e79ddb163cbdfc0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -1064,13 +1010,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawFooter(_:page:)": "e538da86ca729ff7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawFooter(_:page:)": "e7b70a981074cfe3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "4e79ddb163cbdfc0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1084,9 +1029,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.formatDuration(_:)": "1fdd9b751254227c"
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.formatDuration(_:)": "06a6d86490f278cd"
    }
   }
  ],

@@ -12,7 +12,6 @@
   "mem:LiveStatsCard.liveSeriesId (static let UUID placeholder)"
  ],
  "toplevel": "#Preview builds 50 random RR points around 800 ms and renders both views. Used by StreamingLiveView.waveformAndStats (StreamingLiveView.swift:249,255) only when recentRRPoints.count > 10, and by CardSnapshotTests.",
- "flags": [],
  "units": [
   {
    "key": "init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)",
@@ -23,7 +22,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -41,7 +39,6 @@
      "effect": "all points; else suffix(maxPoints)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,10 +74,9 @@
      "effect": "fallback unused; hi = min(2000, max + padding)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.nonDegenerateSpan(lo:hi:)": "3f42a4db6125ad75",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.nonDegenerateSpan(lo:hi:)": "02056094df56f97e",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba"
    }
   },
   {
@@ -98,7 +94,6 @@
      "effect": "return (lo, hi); else (mid-0.5, mid+0.5)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -118,9 +113,8 @@
      "effect": "nil (HR readout hidden); else Int(60000/rr)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba"
    }
   },
   {
@@ -134,9 +128,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba"
    }
   },
   {
@@ -153,13 +146,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformCanvas": "f45aaf6c67042f75",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformHeader": "7d11a0b69eb1ff1b",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformCanvas": "3f40bd94c8c7fb3b",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformHeader": "564b4496895c35d3",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "0881cf4a296d8096",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -174,10 +166,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHRReadout": "cc329806437d11ca",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRRReadout": "f1536753ba23432d"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHRReadout": "e98981c8d0f6cd86",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRRReadout": "7be218a7cba5900d"
    }
   },
   {
@@ -198,11 +189,10 @@
      "effect": "show readout; nil: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHR": "d4522605cf306e80",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHR": "ac6f2303414d094a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -223,11 +213,10 @@
      "effect": "show readout; nil: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRR": "0d4b8ac21df71f55",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRR": "2cc897644f440382",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -255,12 +244,11 @@
      "effect": "draw currentMarker; empty: no marker (avoids index -1)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.currentMarker(size:)": "3485ef9f960e514a",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.gridView(size:)": "7bc21857c28ef933",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformPath(size:)": "a70badc444fb6f64",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.currentMarker(size:)": "7e32f10c7d51bf68",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.gridView(size:)": "2ae3f3842ae981ad",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformPath(size:)": "6abf7b985ff332aa",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba"
    }
   },
   {
@@ -277,12 +265,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformLayers(size:)": "52275980b8726bf7",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformLayers(size:)": "becc528199099842",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "0881cf4a296d8096"
    }
   },
   {
@@ -307,9 +294,8 @@
      "effect": "vertical line at width*i/6 per iteration"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.strokeGridLine(_:from:to:)": "17ff9d83ec72842e"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.strokeGridLine(_:from:to:)": "3869ffdbd7efa490"
    }
   },
   {
@@ -321,7 +307,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -353,11 +338,10 @@
      "effect": "move(to:) first point; else addLine(to:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)": "287ead76fc7e5b51",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)": "c822869dfa82a657",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "0881cf4a296d8096"
    }
   },
   {
@@ -369,7 +353,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -385,12 +368,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)": "287ead76fc7e5b51",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)": "c822869dfa82a657",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "eabf473ada7738ba",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "0881cf4a296d8096",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -421,10 +403,9 @@
      "effect": "rmssd nil (no valid adjacent pair, e.g. every pair touches an artifact or a recording break); SDNN/HR still returned"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "7033ee2115866c44",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "6ff0056a23efaabf"
    }
   },
   {
@@ -438,9 +419,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -460,9 +440,8 @@
      "effect": "returns '—'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -487,15 +466,14 @@
      "effect": "three StatItems; nil: 'Collecting data...' caption"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveStatsCard.rmssdText(_:)": "efa188f7dac35f01",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.msUnit": "ee0c47d42f994e72",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.stats": "df852f2e0cde4939",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var StatItem.body": "9c810db2456ad257",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveStatsCard.rmssdText(_:)": "45cab605461e9aa8",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.msUnit": "901af5f78491158f",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.stats": "bbd8c54a4b72053e",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var StatItem.body": "243c48a6b28b7363",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -509,10 +487,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   }
  ],

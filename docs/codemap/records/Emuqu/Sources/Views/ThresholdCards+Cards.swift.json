@@ -18,7 +18,6 @@
   "ThresholdCards.alpha1SustainSec = 180 (static)"
  ],
  "toplevel": "File header notes the removed LTHR-update suggestion (LT1 ≠ LTHR). File-scope private helpers: gradeAdjustedSecondsPerMetre, lt1Readout, arm, derivedMetricsList/Row/Sublabel, movingTimeRow, stepCount, movingSeconds, isMoving, hasMovementSignal, zoneCardHeader.",
- "flags": [],
  "units": [
   {
    "key": "var ThresholdCards.alpha1LT1EstimateCard",
@@ -45,27 +44,14 @@
      "effect": "true: LT1 card; false: empty"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md:1405-1406 still says the UI surfaces the α1 LT1 estimate as a suggested LTHR override; the code (and ARCHITECTURE.md:1446+) deliberately shows it only as an estimate with no suggestion.",
-     "evidence": [
-      "docs/FLOWCHART.md:1405",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:8",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "10a49c142b438673",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func lt1Readout(lt1HR:offsetSec:)": "835a6d74d7727411",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "df033a3e5a600785"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "5a6901efb47d64c5",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func lt1Readout(lt1HR:offsetSec:)": "cb6d317e98a623dd",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "b85c3d8add2c744d"
    }
   },
   {
@@ -77,11 +63,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -107,10 +92,9 @@
      "effect": "true: EmptyView; false: list card"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)": "1256f2aea963f9de",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "ef9c79e9211736ad"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)": "e8bce8662aa24ae8",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "c559c56d407c8548"
    }
   },
   {
@@ -124,12 +108,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.alpha1CrossingRow(_:)": "5d6292eef6027b72"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.alpha1CrossingRow(_:)": "42a041e0709099f4"
    }
   },
   {
@@ -156,22 +139,10 @@
      "effect": "skip (records it as previous via defer)"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test calls detectAlpha1Crossings (grep of EmuquTests finds only derivedMetricRows), so the detector that produces the LT1 HR estimate and the crossings card has no coverage, including the dropout-gap case.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:129",
-      "EmuquTests/ViewSnapshotTests.swift:103"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "36a3c2fe1f0be971",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.advance(_:prev:current:sample:dt:into:)": "09c803422060c406"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "32f6ca3a38a52d09",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.advance(_:prev:current:sample:dt:into:)": "25bf91de52613885"
    }
   },
   {
@@ -193,11 +164,10 @@
      "effect": "true: arm with crossedNow = prev ≥ threshold; false: release (emit up-crossing if a committed down existed, reset)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.commitIfSustained(_:into:)": "f39d4a4380b41546",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.release(_:current:sample:into:)": "916e3d301b9872d3",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func arm(_:current:sample:dt:crossedNow:)": "da457ad62556e2a5"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.commitIfSustained(_:into:)": "a9f8a3f107e773b8",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.release(_:current:sample:into:)": "0815a2e6d07de214",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func arm(_:current:sample:dt:crossedNow:)": "efe9d396b37151fb"
    }
   },
   {
@@ -215,7 +185,6 @@
      "effect": "true: append up-kind event at this sample; false: nothing emitted (short dip discarded)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -233,7 +202,6 @@
      "effect": "true: append; false: return"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -249,9 +217,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -267,14 +234,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingColor(_:)": "e29fa4bddf58cc5a",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingDetail(_:)": "1d4e4d5e865fa1b9",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingLabel(_:)": "b838163356c26bbf",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingColor(_:)": "1a3d032bc7454383",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingDetail(_:)": "99514f6ea653cd59",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingLabel(_:)": "486bd99b381d1765",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -300,12 +266,11 @@
      "effect": "show pace; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "6de5ad1068925473"
    }
   },
   {
@@ -338,9 +303,8 @@
      "effect": "'Back above AT2 ↑'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -373,7 +337,6 @@
      "effect": "yellow"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -404,10 +367,9 @@
      "effect": "true: card; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)": "10171a0c6657e0f3",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricsList(_:)": "5fc6b9571989d703"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)": "5b3a154df27337e5",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricsList(_:)": "2e384a81adcaedc5"
    }
   },
   {
@@ -433,15 +395,14 @@
      "effect": "no endDate: duration 0 → every duration-gated row returns nil (only power:HR can appear)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.calorieRateRow(samples:duration:)": "60a1b612ca4695c1",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "d1569d9ab4731991",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.powerToHRRow(meta:)": "2930e40a31d83190",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.strideLengthRow(samples:meta:duration:)": "f160b56ded349420",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.vamRow(meta:duration:)": "fd369e379e51d5ef",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingTimeRow(samples:duration:)": "ff51b95756bf7e32"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.calorieRateRow(samples:duration:)": "bbabf9ebfacfc984",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "32506fe499fc9a52",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.powerToHRRow(meta:)": "b646b80d12ef525a",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.strideLengthRow(samples:meta:duration:)": "f627829195842753",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.vamRow(meta:duration:)": "851f224657408e32",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingTimeRow(samples:duration:)": "417d1a5455fa620f"
    }
   },
   {
@@ -474,14 +435,13 @@
      "effect": "m/h"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "6de5ad1068925473"
    }
   },
   {
@@ -507,14 +467,13 @@
      "effect": "netClimbAdjustedPaceRow"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples:)": "445c47bb3b0ff4e4",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.netClimbAdjustedPaceRow(samples:meta:duration:)": "f450297785df4072",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.netClimbAdjustedPaceRow(samples:meta:duration:)": "2fad47604827e5d8",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "6de5ad1068925473"
    }
   },
   {
@@ -554,25 +513,13 @@
      "effect": "nil (no row)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The 'average pace' being grade-adjusted is total elapsed duration ÷ distance (gradeAdjustedSecondsPerMetre), so stops/pauses inflate it; a workout with a long stop shows a grade-adjusted pace slower than any pace actually run.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:304",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:575"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)": "fc68e56f56166fcf",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "bfa9541378ee4ed8",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)": "950cbbc4a3db0386",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "c2f223863c444033",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "6de5ad1068925473"
    }
   },
   {
@@ -599,13 +546,12 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "b9111aa256097aa1"
    }
   },
   {
@@ -645,14 +591,13 @@
      "effect": "metres"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "9a93aaea45f42fab",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)": "540942cff4253f1a"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "f667e9c830dac994",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "6de5ad1068925473",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)": "d9c9cc38bdfc6dcf"
    }
   },
   {
@@ -672,12 +617,11 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -706,12 +650,11 @@
      "effect": "true: card; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)": "09a2884ba4c224ba",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneDistributionBody(zoneSecs:total:)": "5387d514dc82b206",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)": "f957079cf573356e",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneDistributionBody(zoneSecs:total:)": "885beaa1c7cb5216",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "b9111aa256097aa1"
    }
   },
   {
@@ -734,15 +677,14 @@
      "effect": "empty array impossible here (5 zones); fallback zone 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegend(zoneSecs:)": "8dd4f0036d163d42",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneNarrative(zoneSecs:dominant:)": "d408575fcddfb066",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneStackedBar(zoneSecs:total:)": "72d39c3db33890e3",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func zoneCardHeader(dominantZone:dominantPct:)": "c3bf2673a55906f7",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegend(zoneSecs:)": "a99b759d439508fe",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneNarrative(zoneSecs:dominant:)": "d33040a9ab30d7b0",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneStackedBar(zoneSecs:total:)": "a8d33bc9dc178aa6",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func zoneCardHeader(dominantZone:dominantPct:)": "5af38060f419486f",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
    }
   },
   {
@@ -756,9 +698,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneBarSegments(zoneSecs:total:width:)": "deb33706c85b59ab"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneBarSegments(zoneSecs:total:width:)": "c6b6fba76d683cc1"
    }
   },
   {
@@ -778,10 +719,9 @@
      "effect": "width proportional; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "7911b0c05881cf9d",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "35ff85476db7049a",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -798,11 +738,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegendRow(idx:secs:maxHR:)": "8e39189bc80f67ff",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegendRow(idx:secs:maxHR:)": "3df9a8934ba5958a",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "b9111aa256097aa1"
    }
   },
   {
@@ -823,14 +762,13 @@
      "effect": "true: row; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "7911b0c05881cf9d",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneRangeLabel(idx:maxHR:)": "d8f086c6a1644880",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "35ff85476db7049a",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneRangeLabel(idx:maxHR:)": "1623561ea72c4805",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -873,9 +811,8 @@
      "effect": "empty string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -895,9 +832,8 @@
      "effect": "z5 colour"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HRZone.swift::var HRZone.color": "08df8497ff6f56c8"
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.color": "a2ccc8be093983f4"
    }
   },
   {
@@ -915,7 +851,6 @@
      "effect": "return '≥lo bpm'; else 'lo–hi bpm'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -935,14 +870,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -963,7 +897,6 @@
      "effect": "true: cachedValue; false: nil (miss)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -978,7 +911,6 @@
     "mem:Alpha1StatsCache.cachedValue"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1001,9 +933,8 @@
      "effect": "missing loss → 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce"
    }
   },
   {
@@ -1017,12 +948,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1040,7 +970,6 @@
      "effect": "true: create pending event at this sample; false: keep existing/none"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1054,12 +983,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricRow(_:)": "e169dc4093e7f5f7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricRow(_:)": "c4a7151f0ac0bacf"
    }
   },
   {
@@ -1073,11 +1001,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricSublabel(_:)": "a6d0e789a32ae3dd"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricSublabel(_:)": "97bc3724d7d4651c"
    }
   },
   {
@@ -1095,9 +1022,8 @@
      "effect": "Text shown; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1118,12 +1044,11 @@
      "effect": "false: nil (no row)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func hasMovementSignal(_:)": "e7d9310489d5c73b",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "bfa9541378ee4ed8"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func hasMovementSignal(_:)": "f32f6dc4f238d813",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "c2f223863c444033"
    }
   },
   {
@@ -1148,10 +1073,9 @@
      "effect": "adds steps; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "47f684bf3c8b4c47"
    }
   },
   {
@@ -1177,10 +1101,9 @@
      "effect": "adds dt; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)": "30ec5a019c6877eb"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "47f684bf3c8b4c47",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)": "635a8852d295d5a6"
    }
   },
   {
@@ -1198,21 +1121,9 @@
      "effect": "true moving; false not"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical rule to WorkoutAnalysisSnapshotBuilder.isMoving; two copies must stay in sync for card and stored snapshot moving time.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:705",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:132"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -1224,10 +1135,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -1239,11 +1149,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   }
  ],

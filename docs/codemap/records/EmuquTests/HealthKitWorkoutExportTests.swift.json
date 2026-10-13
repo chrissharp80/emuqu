@@ -11,7 +11,6 @@
   "mem:HealthKitWorkoutExportTests.pausedClock (computed: WorkoutWallClock at start, one 600 s pause at active second 15)"
  ],
  "toplevel": "Stored property start = Date(timeIntervalSince1970: 1_622_534_400) used as every workout's start.",
- "flags": [],
  "units": [
   {
    "key": "var HealthKitWorkoutExportTests.clock",
@@ -24,9 +23,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "0178746b65427069"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "d21ee09d30eb856c"
    }
   },
   {
@@ -40,9 +38,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -59,12 +56,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -81,12 +77,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -103,23 +98,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Uses `try? XCTUnwrap(out.first)` in a non-throwing test, so an empty result does not fail at the unwrap; it only fails later via the nil-vs-value XCTAssertEqual, losing the unwrap's message.",
-     "evidence": [
-      "EmuquTests/HealthKitWorkoutExportTests.swift:36"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -134,10 +118,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -154,12 +137,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -174,10 +156,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6"
    }
   },
   {
@@ -198,17 +179,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "d62a52b956d07164",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "f1a4266e2463267c",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.appleHealthSamples": "79d71a3530cf9efe",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "5e1f9ba5d32a7d68",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "ea103f8703967ccd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.appleHealthSamples": "b3f33845ce47332e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -225,13 +205,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)": "4d8e8841365948c4"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)": "8b2251901a5c9005"
    }
   },
   {
@@ -248,13 +227,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)": "4d8e8841365948c4"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)": "8b2251901a5c9005"
    }
   },
   {
@@ -269,11 +247,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   },
   {
@@ -292,15 +269,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -319,15 +295,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -346,15 +321,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -371,12 +345,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -395,14 +368,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -422,28 +394,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Asserts energy.count == 3, which pins that the first tick (no previous tick) emits a zero-length energy sample charged as a 1-second interval (HealthKitWorkoutExport.swift:316-317 prevOffset = 0 for the first tick at offset 0, durationSec = max(1, 0)); the extra kcal for time that did not elapse is enshrined rather than questioned.",
-     "evidence": [
-      "EmuquTests/HealthKitWorkoutExportTests.swift:169",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:316",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:317"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -461,13 +420,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -485,14 +443,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -509,12 +466,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -532,14 +488,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -557,14 +512,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -581,12 +535,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -603,12 +556,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   },
   {
@@ -622,9 +574,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "0178746b65427069"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "d21ee09d30eb856c"
    }
   },
   {
@@ -642,13 +593,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "56c1791f0b77dff0"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "4c4f33a82d84ec45",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "2e62249d6ff48fd6"
    }
   },
   {
@@ -666,14 +616,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "ccbfff2ab170f70f",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "56c1791f0b77dff0"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "0d0cf2bc44fe4080",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "2e62249d6ff48fd6"
    }
   },
   {
@@ -692,15 +641,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "ccbfff2ab170f70f",
-    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "56c1791f0b77dff0"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "0d0cf2bc44fe4080",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef24bd427f749d29",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "2e62249d6ff48fd6"
    }
   },
   {
@@ -717,12 +665,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "36d488b202403d5a",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutEvent(_:at:)": "fc08f799bf7aee5a",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.pauses()": "8ca537ade9d27d9f",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "0178746b65427069"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "05d5c0c59b30c3f5",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutEvent(_:at:)": "9759df3bd708625b",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.pauses()": "6e44b53d62e627a5",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "d21ee09d30eb856c"
    }
   },
   {
@@ -737,10 +684,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "36d488b202403d5a",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "56c1791f0b77dff0"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "05d5c0c59b30c3f5",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.pausedClock": "2e62249d6ff48fd6"
    }
   },
   {
@@ -755,10 +701,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "36d488b202403d5a",
-    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "a82cdeac56c28083"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "05d5c0c59b30c3f5",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::var HealthKitWorkoutExportTests.clock": "b165feb6413913f2"
    }
   }
  ],

@@ -19,7 +19,6 @@
   "archive:ScoreBreakdown Codable keys compositeScore,tier,factors,penalties,spo2PenaltyApplied,scoringVersion (persisted inside HRVSession.scoreBreakdown)"
  ],
  "toplevel": "Static lets scoringParametersV1/V2/defaultScoringParameters (V1 is referenced only by EmuquTests/ScoringCharacterizationTests.swift:589). ScoreBreakdown.scoringVersion stored-property default ScoringVersion.current. ScoreFactor and ScoreFactorFacts use synthesized Codable; ScoreBreakdown has custom decode and synthesized encode via CodingKeys.",
- "flags": [],
  "units": [
   {
    "key": "init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
@@ -32,9 +31,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "6b9334b0b7601406"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "fd9a005962746c26"
    }
   },
   {
@@ -46,7 +44,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -60,7 +57,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -80,9 +76,8 @@
      "effect": "nil argument: inferred from English penalty text (a non-English legacy line yields false); explicit value used otherwise"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "3c05a01a02ab05c3"
    }
   },
   {
@@ -107,9 +102,8 @@
      "effect": "absent: ScoringVersion.unversioned"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "3c05a01a02ab05c3"
    }
   },
   {
@@ -123,22 +117,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "ScoreBreakdown.message has no production reader: every production screen calls ScoreBreakdownCopy.message(for:loadLevel:) directly; only EmuquTests/ScoreBreakdownMessageTests.swift reads .message.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:156",
-      "Emuqu/Sources/Views/MorningResultsView.swift:253",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:56",
-      "EmuquTests/ScoreBreakdownMessageTests.swift:28"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "d8250d40992f0f6e"
    }
   },
   {
@@ -152,9 +132,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "a885486a54084f3d"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "658c46609c4e6757"
    }
   },
   {
@@ -168,9 +147,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "f095427b34b57411"
    }
   },
   {
@@ -189,10 +167,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4fdc3002bba9b633"
    }
   },
   {
@@ -204,7 +181,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -224,18 +200,6 @@
      "effect": "returns neutralScore 50; else 0.5*(1+erf(z/√2))*100"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Doc says 'Not used for recovery scoring'; only EmuquTests (RecoveryScoreCalculatorTests, ScoringCharacterizationTests) call zToPercentileScore.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:222",
-      "EmuquTests/RecoveryScoreCalculatorTests.swift:79"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -247,7 +211,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -259,7 +222,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -271,7 +233,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -311,9 +272,8 @@
      "effect": "nil (no bracketing band, excluded by guards) falls back to highest score"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "43ecf86d32ca55d9"
    }
   },
   {
@@ -331,7 +291,6 @@
      "effect": "first match returns lo.score + t*(hi.score-lo.score); no match returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -343,7 +302,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -357,9 +315,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "dcfe2903310294ab"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "cb55bfe450fdd72f"
    }
   },
   {
@@ -382,7 +339,6 @@
      "effect": "true: baseline nil; false: baseline 0 (idempotent)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -396,30 +352,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "referenceDate defaults to Date(); callers that omit it score the staleness penalty against the wall clock instead of the session's night, so the same session can score differently on different days.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:458",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:80"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production code calls the trainingMetrics overload any more; only EmuquTests/ScoringCharacterizationTests.swift:278 does. Every app caller uses the trainingContext overload.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:457",
-      "EmuquTests/ScoringCharacterizationTests.swift:278"
-     ],
-     "found": "fix pass b03"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "260269964760c014"
    }
   },
   {
@@ -454,27 +388,13 @@
      "effect": "false: returns computed breakdown; true: returns blendingPerceivedReadiness(...)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "referenceDate defaults to Date(); RecoveryScoreDetailView.liveBreakdown, MorningProcessingService+Merging and RRCollector+Analysis still omit it, so their staleness term uses today rather than the night scored.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:488",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:183",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
-      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:27"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)": "d61172f6bfb07ff4",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.substitutingHRV(_:)": "4888f1b610040da4",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)": "d0620f0c8638139f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "a0db52565e02ade0",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:)": "e376fb98af1e5ea0"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)": "6dafed6445287dcb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.substitutingHRV(_:)": "17c4b87bddf17b2e",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)": "e3d0790eb1157e25",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "260269964760c014",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "c11e75f042d0c4e5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:)": "13896b1638eacbc2"
    }
   },
   {
@@ -507,7 +427,6 @@
      "effect": "non-finite → nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -519,7 +438,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -539,9 +457,8 @@
      "effect": "returns self unchanged (raw sanitised readings)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:unchecked:)": "182e25957f76a047"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:unchecked:)": "575cb818a36afa3b"
    }
   },
   {
@@ -558,12 +475,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)": "b7f5bd297f5b23da",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)": "adb0bf5b0e2093f5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "faf72d5927f25302",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "f095427b34b57411"
    }
   },
   {
@@ -587,13 +503,12 @@
      "effect": "false: factor unchanged; true: rebuilt with blended score, same weight, impact from hrvImpact(blended)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)": "4d2ec64f284e2b74",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvImpact(_:)": "55f26a01bbe2237c",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)": "e75ae69725eec00b",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "e1d316e2213c2af0"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)": "3662f408193c9440",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvImpact(_:)": "7e07bd934d108fd8",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)": "aabc3ee45f6d8ef7",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "ccaa5ad1d3a51b2d"
    }
   },
   {
@@ -611,7 +526,6 @@
      "effect": "false: returns 50; true: clamp(0,1)*100"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -631,10 +545,9 @@
      "effect": "true: deduct missingSleepPenalty 10; false: 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)": "43c7b65751c41958",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)": "f0397d7baeeb3345",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "01e1f4dc67163696"
    }
   },
   {
@@ -669,20 +582,19 @@
      "effect": "nil vitals → spo2PenaltyApplied false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.buildTierComposite(_:)": "83c2f2d8b97bfa6a",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "b59dd8519dd71d65",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.vitalsPenaltyDescriptions(_:)": "f999067fc753885a",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.scoringWristTemperatureAgainstBaseline()": "80f5ec1a436e6a7f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.logScoreTriage(tier:composite:hasHRV:hasSleep:hasVitals:comebackModeActive:)": "6f582e26ae69f410",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "a0db52565e02ade0",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)": "3a49d7e1e08f9271",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.missingSleepPenaltyDescription": "7fe4b93ee9185313",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.buildTierComposite(_:)": "c2827b24133b187e",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "45d5f1c6d9b0c98c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.vitalsPenaltyDescriptions(_:)": "0ea700efdb37767c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.scoringWristTemperatureAgainstBaseline()": "390b8836042ba96a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "faf72d5927f25302",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.logScoreTriage(tier:composite:hasHRV:hasSleep:hasVitals:comebackModeActive:)": "c1115a6791e8ac4f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "c11e75f042d0c4e5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)": "e0418f0f09be47ce",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.missingSleepPenaltyDescription": "6f4269b0979d765d",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24"
    }
   },
   {
@@ -709,12 +621,11 @@
      "effect": "false: sleepScore nil (forces tier 1 even with vitals); true: calculateSleepScore"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "4923fa3d00ee27f9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "df732f4d66d187be",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "e7951116886bd63e",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "66428e2a8eef0a0b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24"
    }
   },
   {
@@ -726,7 +637,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -740,9 +650,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "01e1f4dc67163696"
    }
   },
   {
@@ -758,9 +667,8 @@
     "file:DebugLogger log (DEBUG builds only)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

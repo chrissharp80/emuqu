@@ -16,19 +16,6 @@
   "mem:BM25Index.b = 0.75"
  ],
  "toplevel": "Static lets: indexCache lock initialised to (nil, nil, []); essentialToolNames {get_today, get_session, get_workout_live, get_training_load, get_user, lookup_fact, location_situation, location_current, location_current_detailed}; stopWords (English stop words, question words, LLM boilerplate incl. 'user', 'data', 'show'); doubledFinals.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "retrieve()'s whole ranking path (index build, BM25, floor, essentials) is unreachable in production: its only caller passes the compact schema (~20 read + ≤18 action tools) with targetK 40, so the guard at line 111 always returns the tools unchanged, as the file's own doc admits.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:111",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:6",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:550"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
@@ -72,28 +59,14 @@
      "effect": "false: essentialsOnly; true: top-K + essentials"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The only caller passes registry.catalogHash() as the catalogHash argument, and Swift evaluates it before retrieve's guard runs. That means every send JSON-encodes the whole fact schema and SHA-256-hashes it, and then the guard at line 111 discards the result because the compact schema is always ≤ targetK.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:551",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:228",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:232",
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:111"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)": "c72f55dd2a50924c",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.essentialsOnly(from:)": "dada2b4598504d60",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.topScoring(_:targetK:scoreFloor:)": "1baa106962ebeaa1",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.withEssentials(_:from:)": "be9a8cced9bc2925",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "9e6accec7f6baf09",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)": "e2bb8e363e0c115b",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.essentialsOnly(from:)": "5a99c7d2688f6778",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "10c4b778835a0f16",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.topScoring(_:targetK:scoreFloor:)": "14515d224fadc4d6",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.withEssentials(_:from:)": "e3fb52356a014d86",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -126,12 +99,11 @@
      "effect": "appended in input order"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "ae28dbedd3b1cf02",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "1ddd2faf1274de10"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "9e6accec7f6baf09",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "dec3c9aa4a02b244",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "10c4b778835a0f16",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "c2141c0b85f48a78"
    }
   },
   {
@@ -156,9 +128,8 @@
      "effect": "false: skip tool (continue); true: keep and add price"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "e799060c3c4e6da6"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "0bd75129e67a18aa"
    }
   },
   {
@@ -181,7 +152,6 @@
      "effect": "break; else append"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -201,9 +171,8 @@
      "effect": "append and record name"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "ae28dbedd3b1cf02"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "dec3c9aa4a02b244"
    }
   },
   {
@@ -217,7 +186,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -231,9 +199,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "ae28dbedd3b1cf02"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.isEssential(_:)": "dec3c9aa4a02b244"
    }
   },
   {
@@ -257,11 +224,10 @@
      "effect": "true: keep cached index; false: rebuild and store"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "1ddd2faf1274de10",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
-    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "c2141c0b85f48a78",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "1987e98d1e24873d"
    }
   },
   {
@@ -296,9 +262,8 @@
      "effect": "flush last token"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.appendToken(_:to:)": "c884dc894a0ff333"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.appendToken(_:to:)": "21898c3314740d7b"
    }
   },
   {
@@ -325,9 +290,8 @@
      "effect": "dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.stem(_:)": "c130171e74fc63e6"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.stem(_:)": "bcfd6baec99e9c60"
    }
   },
   {
@@ -357,9 +321,8 @@
      "effect": "undoubled(base); else base"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.undoubled(_:)": "63400e4eef603c1c"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.undoubled(_:)": "edc7c8a9c23f89e2"
    }
   },
   {
@@ -379,7 +342,6 @@
      "effect": "drops one; else base"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -409,9 +371,8 @@
      "effect": "true: avgDocLength 1; false: totalLen / count"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.termFrequencies(for:)": "f92b78de5cbbd5ff"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.termFrequencies(for:)": "1711da0646e71a1d"
    }
   },
   {
@@ -425,9 +386,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "10c4b778835a0f16"
    }
   },
   {
@@ -468,10 +428,9 @@
      "effect": "+1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.nameTokens(of:)": "19f859db40caf9ea",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.nameTokens(of:)": "d270a352a5276a1b",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "10c4b778835a0f16"
    }
   },
   {
@@ -496,9 +455,8 @@
      "effect": "append; zero-score tools omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.bm25(_:queryTokens:)": "2031bca7bbf85ee3"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.bm25(_:queryTokens:)": "028af866378f58df"
    }
   },
   {
@@ -526,9 +484,8 @@
      "effect": "term absent from df (impossible when tf > 0) -> 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "9e6accec7f6baf09"
    }
   }
  ],

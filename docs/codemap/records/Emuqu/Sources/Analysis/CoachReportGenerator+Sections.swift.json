@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func CoachReportGenerator.formatDistance(_:units:)",
@@ -26,9 +25,8 @@
      "effect": "returns '—'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b"
    }
   },
   {
@@ -44,19 +42,6 @@
      "at": "+5",
      "cond": "hours > 0",
      "effect": "'h:mm:ss'; else 'm:ss'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical h:mm:ss / m:ss formatting to WorkoutStatsCards.formatDuration(sec:); GPXExporter.durationLabel and TCXExporter.humanSummary durLabel do the m:ss form without hours.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:23",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:66",
-      "Emuqu/Sources/Analysis/TCXExporter.swift:61"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}

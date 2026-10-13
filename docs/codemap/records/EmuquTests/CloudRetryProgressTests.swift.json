@@ -9,18 +9,6 @@
   "workedExampleUUID: static UUID whose stableRetryBucket is 1"
  ],
  "toplevel": "Static workedExampleUUID fixture.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Every 'fix' test evaluates the test's own copy of the backoff expression (defers(), with literals 6 and 32) instead of CloudKitSyncManager.shouldDeferForBackoff (private, using maxBackoffExponent/maxBackoffCycles and the real pushCycleCounter); a regression in the production expression or its constants passes this suite. Only stableRetryBucket is production code here.",
-   "evidence": [
-    "EmuquTests/CloudRetryProgressTests.swift:33",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:208"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CloudRetryProgressTests.defers(bucket:failCount:cycle:)",
@@ -31,18 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Duplicates the body of CloudKitSyncManager.shouldDeferForBackoff with hard-coded caps instead of calling it.",
-     "evidence": [
-      "EmuquTests/CloudRetryProgressTests.swift:33",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:208"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -54,7 +30,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,10 +50,9 @@
      "effect": "asserts oldDefers(1, 1) is true each time (constant inputs, so iterations add nothing)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "4e02b72514715785",
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.oldDefers(bucket:failCount:)": "d004cfbf76e99966"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "91c292ac0d6dfa42",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.oldDefers(bucket:failCount:)": "cebe457c4fef6f21"
    }
   },
   {
@@ -103,9 +77,8 @@
      "effect": "asserts some cycle in 0..<period does not defer"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "4f34edb3f7deeec7"
    }
   },
   {
@@ -126,11 +99,10 @@
      "effect": "increments attempts; deferred cycles are skipped by the where clause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "4e02b72514715785",
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "996d210a1b353bb7",
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "91c292ac0d6dfa42",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "8a9a9ee0181917c5",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "4f34edb3f7deeec7"
    }
   },
   {
@@ -144,9 +116,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "996d210a1b353bb7"
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "8a9a9ee0181917c5"
    }
   },
   {
@@ -160,9 +131,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "4f34edb3f7deeec7"
    }
   },
   {
@@ -176,9 +146,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "4f34edb3f7deeec7"
    }
   },
   {
@@ -198,19 +167,8 @@
      "effect": "evaluates defers inside XCTAssertNoThrow"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTAssertNoThrow around a non-throwing Bool expression can never fail; an over-wide shift would trap the process rather than throw, so the assertion adds nothing and the test checks the local copy, not production.",
-     "evidence": [
-      "EmuquTests/CloudRetryProgressTests.swift:111"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "43fcb82975e36e16"
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.defers(bucket:failCount:cycle:)": "4f34edb3f7deeec7"
    }
   }
  ],

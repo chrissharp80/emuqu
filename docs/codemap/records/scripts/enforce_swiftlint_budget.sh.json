@@ -10,20 +10,6 @@
   "env:GITHUB_STEP_SUMMARY (append)"
  ],
  "toplevel": "set -euo pipefail; no cd. exit 66 if budget missing, 65 if empty. Runs `swiftlint lint --reporter json` into the report (if swiftlint is absent or exits non-zero on error-severity violations, set -e aborts here). Python prints count/budget and top-10 rules and exits 1 if count > int(float(budget)). Because `summary=\"$(python3 ...)\"` runs under set -e, an over-budget result aborts the script at the assignment: the captured summary (count and top rules) is never echoed, so the failing run prints nothing about why. Passing run echoes the summary and appends to GITHUB_STEP_SUMMARY.",
- "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "Over budget, python exits 1 inside `summary=\"$(...)\"` and set -e terminates before `echo \"$summary\"`, so CI shows a bare exit 1 with no count or rule breakdown.",
-   "evidence": [
-    "scripts/enforce_swiftlint_budget.sh:2",
-    "scripts/enforce_swiftlint_budget.sh:22",
-    "scripts/enforce_swiftlint_budget.sh:44",
-    "scripts/enforce_swiftlint_budget.sh:49"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

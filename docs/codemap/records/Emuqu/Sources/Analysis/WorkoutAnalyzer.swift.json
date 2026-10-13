@@ -16,7 +16,6 @@
   "static let edwardsBins — five %HRmax bands (0.50-0.60 w1 … 0.90-2.00 w5)"
  ],
  "toplevel": "edwardsBins static table; ClosedRange bands share endpoints so a boundary fraction (e.g. 0.60) falls in the lower band via first(where:).",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)",
@@ -37,12 +36,11 @@
      "effect": "GPS-derived metrics attached; else metadata has no distance/splits/polyline/decoupling"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.attachGPSDerived(to:track:rrPoints:startDate:splitDistanceMeters:pauses:)": "836a9e07d1f765b7",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.attachGPSDerived(to:track:rrPoints:startDate:splitDistanceMeters:pauses:)": "24750c32ac890c99",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "dbca3958b68fa5b2",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "fb025816dc1f63c5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   },
   {
@@ -59,12 +57,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)": "7c71a4625a60ade0",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "64701d6eb47a668f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)": "c1fe4608c2ed50f3",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)": "e00a7b20d1978b75",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "7a7fd6d3f190ba61",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)": "49d4dd6fecf44000",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c"
    }
   },
   {
@@ -100,10 +97,9 @@
      "effect": "Edwards fallback with userMaxHR; else Banister"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "412f3de0a63ea817",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.edwardsTRIMPFallback(hrs:userMaxHR:)": "91070ad90b7ff62a"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.edwardsTRIMPFallback(hrs:userMaxHR:)": "237eed38bd155d62"
    }
   },
   {
@@ -123,9 +119,8 @@
      "effect": "return 0; else sum over beats"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(minutes:heartRateReserve:sex:)": "afc48af7eed18557"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(minutes:heartRateReserve:sex:)": "1fc5da2116c618ca"
    }
   },
   {
@@ -146,19 +141,6 @@
      "at": "+2",
      "cond": "sex == .male",
      "effect": "male weighting; else female"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Banister per-minute weighting (scale * e^(weighting*HRR), HRR clamped 0..1) is reimplemented in HealthWorkoutSummary.calculateTrimp/banisterIntensityFactor (average-HR form, sex read from the settings singleton instead of a parameter); the constants are shared but the formula is maintained twice. This function is now the shared form (minutes, HRR, sex) for HealthWorkoutSummary to call (handed off).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:265",
-      "Emuqu/Sources/Collection/HealthDataTypes.swift:369",
-      "Emuqu/Sources/Collection/HealthDataTypes.swift:384"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -188,9 +170,8 @@
      "effect": "beat adds nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4"
    }
   },
   {
@@ -226,10 +207,9 @@
      "effect": "nil; else ratio × 100"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)": "704785dd3e3b719c"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "fb025816dc1f63c5",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)": "5b6b9f623393607d"
    }
   },
   {
@@ -243,9 +223,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "412f3de0a63ea817"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073"
    }
   },
   {
@@ -275,9 +254,8 @@
      "effect": "skipped; else added"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746"
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "2eda8f0134d3bc59"
    }
   },
   {
@@ -305,7 +283,6 @@
      "effect": "added to gain"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -338,12 +315,11 @@
      "effect": "continue; else emit split and reset"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "fedbc12036a337a7",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitRun.add(step:of:pauses:beats:)": "befcb78256ff196f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)": "19d504fb906feb34"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "d37deda0096fc96e",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitRun.add(step:of:pauses:beats:)": "1f1d15eeb2df0f95",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "2a3a0fa1d0c4c6a7",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)": "d5754492740f39fa"
    }
   },
   {
@@ -373,9 +349,8 @@
      "effect": "distance only; else distance, time and HR"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "fedbc12036a337a7"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "d37deda0096fc96e"
    }
   },
   {
@@ -400,9 +375,8 @@
      "effect": "pace computed; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.splitElevationGain(_:)": "0e43b76c4383c4f8"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.splitElevationGain(_:)": "adfaeada5b8988ef"
    }
   },
   {
@@ -423,10 +397,9 @@
      "effect": "raw computeElevationGain; else smoothed gain"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)": "afe0809148449b12"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeElevationGain(track:)": "8cff950a2b979d76"
    }
   },
   {
@@ -452,10 +425,9 @@
      "effect": "empty track → enrichment falls back to per-split durations"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "8bf8d7e73e673ac6",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)": "fa9ae4d41c9013b8"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)": "039f4155f4718580"
    }
   },
   {
@@ -491,12 +463,11 @@
      "effect": "average α1 over [start, start + moving duration), then advance"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.alphaOffsets(of:)": "6e571fb9498e9bda",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)": "8c410993eceaae95",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)": "19d504fb906feb34",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.alphaOffsets(of:)": "304356f1c43a14c6",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)": "72d2856dacc3f521",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)": "d5754492740f39fa",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "651b546e1fa68836"
    }
   },
   {
@@ -514,7 +485,6 @@
      "effect": "sample skipped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -532,7 +502,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -561,13 +530,12 @@
      "effect": "empty result; else values"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.MovingHalf.merged(with:)": "19bd05cd93a30f28",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.movingHalves(track:hrSamples:pauses:)": "8280c8287885f5d9",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.trackIsLongEnoughForDecoupling(_:)": "8aeb888bebc0910f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::var WorkoutAnalyzer.MovingHalf.efficiency": "0d014a9edb588d93"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.MovingHalf.merged(with:)": "a6d47d81e17edd50",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "2a3a0fa1d0c4c6a7",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.movingHalves(track:hrSamples:pauses:)": "1372a9a95f168fad",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.trackIsLongEnoughForDecoupling(_:)": "72cdb62afae0bd1d",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::var WorkoutAnalyzer.MovingHalf.efficiency": "5ce917c44c15585b"
    }
   },
   {
@@ -590,7 +558,6 @@
      "effect": "ratio; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -602,7 +569,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -638,11 +604,10 @@
      "effect": "add to first; else second"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "fedbc12036a337a7",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.MovingHalf.merged(with:)": "19bd05cd93a30f28",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.movingSeconds(track:pauses:)": "77f919e4a142e354",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "d37deda0096fc96e",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.MovingHalf.merged(with:)": "a6d47d81e17edd50",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.movingSeconds(track:pauses:)": "50bb7a10a336801e",
     "Emuqu/Sources/Utilities/Extensions.swift::var Collection.sum": "2fe43e623affcba2"
    }
   },
@@ -666,7 +631,6 @@
      "effect": "excluded"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -689,7 +653,6 @@
      "effect": "added to sum/count; else dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -712,7 +675,6 @@
      "effect": "add distance"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -733,10 +695,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "ae5d06ec36600f9f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "4ea5deebee96fecb"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "53fe101c35f9b351",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "270a49bc0f29ae45"
    }
   },
   {
@@ -754,7 +715,6 @@
      "effect": "0; else clamp to ±2⁶⁰ and convert"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -775,10 +735,9 @@
      "effect": "append lat and lon deltas"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "6265f3bc2d063b67",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "777eacd17a45dc20"
    }
   },
   {
@@ -799,10 +758,9 @@
      "effect": "append delta"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "6265f3bc2d063b67",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "777eacd17a45dc20"
    }
   },
   {
@@ -835,7 +793,6 @@
      "effect": "append; else skipped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -855,9 +812,8 @@
      "effect": "dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.gapCorrectedOffsetsMs(_:)": "97b2a35ced5bf004"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.gapCorrectedOffsetsMs(_:)": "cf6f601c006fc3be"
    }
   },
   {
@@ -875,9 +831,8 @@
      "effect": "update running correction; else keep previous"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   }
  ],

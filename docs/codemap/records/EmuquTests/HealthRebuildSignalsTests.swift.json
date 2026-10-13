@@ -7,18 +7,6 @@
  ],
  "state": [],
  "toplevel": "private typealias Importer = HealthWorkoutImporter.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "HealthWorkoutImporter.passiveDistanceType (HealthWorkoutImporter+Rebuild.swift:397) and HealthKitWorkoutExport.distanceType (HealthKitWorkoutExport.swift:258) are the same Sport→distance-type switch maintained twice; these tests and HealthKitWorkoutExportTests each pin one copy only.",
-   "evidence": [
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:397",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:258"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func HealthRebuildSignalsTests.testFlightClimbedIsTenFeetInMetres()",
@@ -29,19 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Tautology: compares a static constant (HealthWorkoutImporter+Rebuild.swift:307) to its own literal value; it does not exercise the elevation computation at line 303 that uses it.",
-     "evidence": [
-      "EmuquTests/HealthRebuildSignalsTests.swift:16",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:307",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:303"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -53,18 +28,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Arithmetic on the same constant as testFlightClimbedIsTenFeetInMetres; adds no coverage of the rebuild code that applies it.",
-     "evidence": [
-      "EmuquTests/HealthRebuildSignalsTests.swift:20",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:307"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -84,9 +47,8 @@
      "effect": "asserts walking/running distance type"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "67df3f89996db45f"
    }
   },
   {
@@ -106,9 +68,8 @@
      "effect": "asserts cycling distance type"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "67df3f89996db45f"
    }
   },
   {
@@ -128,9 +89,8 @@
      "effect": "asserts nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "67df3f89996db45f"
    }
   },
   {
@@ -144,9 +104,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "024555b660039acb"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "3071e50881245758"
    }
   },
   {
@@ -160,10 +119,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "024555b660039acb"
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "2b4e4b627b5bc193",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "3071e50881245758"
    }
   }
  ],

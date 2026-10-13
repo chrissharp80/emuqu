@@ -8,18 +8,6 @@
   "file:Emuqu/Sources/Collection/StrapHeartRateFeed.swift"
  ],
  "toplevel": "cd to repo root. COORDINATOR=$1 or Emuqu/Sources/Collection/StrapLinkCoordinator.swift; FEED=$2 or .../StrapHeartRateFeed.swift; missing -> 2. Python strips // tails; brace-matches the body of `func linkEstablished(` (missing -> 2); requires `struct StrapHeartRateFeed` (else 2); problems if no `feed.start(` or WAITS regex (awaitFeature/whenFeatureUsable/.../state(.heartRate, isHrStreamingReady, Task.sleep, sleepQuietly, sleepIgnoringCancellation) hits anywhere in the feed file -> exit 1. Wired: ci.yml and Makefile hr-feed-link-guard; not in gates.yml push run.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Not run by the push workflow gates.yml; only manual ci.yml / local make ci.",
-   "evidence": [
-    ".github/workflows/gates.yml:60",
-    "Makefile:53"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

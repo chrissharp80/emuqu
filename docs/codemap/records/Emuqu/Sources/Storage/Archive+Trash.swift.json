@@ -10,7 +10,6 @@
   "file:<archiveDirectory>/Trash/<uuid>.session"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "var ArchiveStore.trashDirectory",
@@ -21,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -35,9 +33,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "8647bc36e5d0a669"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479"
    }
   },
   {
@@ -73,13 +70,12 @@
      "effect": "log warning, removeQuietly (file deleted, only the raw backup remains)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)": "76ab93b3b8e97508",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "8647bc36e5d0a669",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)": "2449ae879b8ac7c3",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -102,9 +98,8 @@
      "effect": "log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -132,12 +127,11 @@
      "effect": "log warning, return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "46c976f3cbac7ee0",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0",
-    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "ca0eef42258b468f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -164,10 +158,9 @@
      "effect": "log warning, return []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "8647bc36e5d0a669",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -199,21 +192,11 @@
      "effect": "falls back to file mtime; if none, now, so the id is kept"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Files trashed before moveToTrash dated them keep the session's last-write date; without a recorded deletion time such a file of an old session is still expired at the next launch rather than after 90 days.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Trash.swift"
-     ]
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "321394cc916f6032",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds": "7828e04f3b31abf9",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)": "47f0b3c2c17a24fc",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "160713aed5eced1c"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "3c8649a475c3b8ae",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds": "02e5bf363e3401d7",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)": "f178671c415254ca",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "641541460b98c8fa"
    }
   },
   {
@@ -235,9 +218,8 @@
      "effect": "return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a"
    }
   },
   {
@@ -268,10 +250,9 @@
      "effect": "log warning"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

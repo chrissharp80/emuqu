@@ -7,40 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/DataDeletionUITests.swift:30",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc says the success summary surfacing every category is asserted and that XCTSkipUnless guards the destructive button; neither exists in the tests (no purge is run, no skip on the button)",
-   "evidence": [
-    "EmuquUITests/DataDeletionUITests.swift:15",
-    "EmuquUITests/DataDeletionUITests.swift:20"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc cites widget data purge as the reason this surface is critical and says the explanatory copy lists the widget purge; the app has no widget (DataPurgeService.swift:647-649 only erases legacy keys) and no test checks for it",
-   "evidence": [
-    "EmuquUITests/DataDeletionUITests.swift:6",
-    "EmuquUITests/DataDeletionUITests.swift:108",
-    "Emuqu/Sources/Services/DataPurgeService.swift:647"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func DataDeletionUITests.setUp()",
@@ -55,11 +21,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8"
    }
   },
   {
@@ -71,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -95,13 +59,12 @@
      "effect": "return (assertion already failed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "49f96428e9dbf386",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "9934cd4d819fd2ee",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -129,24 +92,12 @@
      "effect": "swipe up and re-query"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Never types the phrase, so it does not prove the button enables with the correct phrase (or stays disabled with a wrong one); the 'remove' predicate matches nearly any explanatory copy",
-     "evidence": [
-      "EmuquUITests/DataDeletionUITests.swift:93",
-      "EmuquUITests/DataDeletionUITests.swift:113"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "66638f3d277f40cd",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "8aace2705eee5bde",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "3afc95d3936f4933",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -170,34 +121,12 @@
      "effect": "throw XCTSkip"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "navigationBars.buttons.first is assumed to be Back; any leading bar button would be tapped instead",
-     "evidence": [
-      "EmuquUITests/DataDeletionUITests.swift:128"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The 'returned to Advanced Data Controls' check uses UITestFind.row, whose label fallback (buttons CONTAINS[c] 'Delete All My Data') also matches the Delete page's own destructive button (label at DeleteAllDataPage.swift:144); when that button is in the accessibility tree the assertion passes even if the back tap did nothing",
-     "evidence": [
-      "EmuquUITests/DataDeletionUITests.swift:135",
-      "EmuquUITests/EmuquUITests.swift:359",
-      "Emuqu/Sources/Views/DeleteAllDataPage.swift:144"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "66638f3d277f40cd",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)": "b4902c0b81652495",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "8aace2705eee5bde",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)": "96b1b76bc7f4b9b5",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   }
  ],

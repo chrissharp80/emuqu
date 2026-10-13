@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Markdown only. Four checklist items (≤20-line functions, nesting ≤2, no commented-out code, no empty catches) are measured by scripts/check_refactor_spec_conformance.sh against .ci/spec_* budgets; the rest are judgement calls with no gate.",
- "flags": [],
  "units": [
   {
    "key": "§ Code Refactor Specification",
@@ -16,7 +15,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -28,7 +26,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -40,7 +37,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -52,7 +48,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -64,7 +59,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,7 +70,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -91,10 +84,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0"
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
+    "Makefile::target shared-root-guard": "a9263da85d483554"
    }
   },
   {
@@ -106,7 +98,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -120,22 +111,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The '<=20 lines (rare, justified exceptions only)' rule is gated by check_refactor_spec_conformance.sh, whose header says the waiver budget 'is zero'; .ci/spec_justified_long_budget.txt is 7, so seven waived long functions pass the gate while its documentation claims none can.",
-     "evidence": [
-      "docs/REFACTOR_SPEC.md:392",
-      "scripts/check_refactor_spec_conformance.sh:43",
-      "scripts/check_refactor_spec_conformance.sh:491",
-      ".ci/spec_justified_long_budget.txt:1"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
@@ -147,7 +124,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -162,24 +138,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Spec says 'No empty catch blocks' without exception; the repo sanctions a `swallow-ok:` waiver marker for empty catches (documented in MAINTAINERS §10) and uses it in production code, and keeps 170 permitted silent try? sites.",
-     "evidence": [
-      "docs/REFACTOR_SPEC.md:92",
-      "docs/MAINTAINERS.md:1012",
-      "Emuqu/Sources/Services/MorningProcessingService.swift:87",
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:353",
-      ".ci/try_optional_budget.txt:1"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
-    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "f16c6c713183c00b"
    }
   },
   {
@@ -196,12 +157,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
-    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target shared-root-guard": "a9263da85d483554",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "f16c6c713183c00b"
    }
   },
   {
@@ -213,7 +173,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -225,7 +184,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -237,7 +195,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -249,7 +206,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -261,7 +217,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -273,7 +228,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -292,14 +246,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "a6d3111d8d9e2535",
-    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "af93a701edc65875",
-    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
-    "Makefile::target spec-conformance": "060f9ad7c55731da"
+    ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "578ecd21844f6985",
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target empty-range-guard": "d2cc5a46df38f2e0",
+    "Makefile::target spec-conformance": "76fac68887ff9527"
    }
   },
   {
@@ -311,7 +264,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -326,22 +278,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Spec says to group by feature/domain, not by generic technical layer names; the app source is grouped exactly by technical layer (Views/, ViewModels/, Services/, Utilities/, Models/, Protocols/), which MAINTAINERS §2 presents as the intended structure.",
-     "evidence": [
-      "docs/REFACTOR_SPEC.md:163",
-      "docs/MAINTAINERS.md:146",
-      "docs/MAINTAINERS.md:168"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "a024421bbc294c8c",
-    "Makefile::target orphan-swift-guard": "d0594e16841f6376"
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "4986a8f812605eb7",
+    "Makefile::target orphan-swift-guard": "274019c065545658"
    }
   },
   {
@@ -353,7 +292,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -368,10 +306,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "c45a4875dda79b61",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "9923e6c35385c5ed"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca"
    }
   },
   {
@@ -383,7 +320,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -395,7 +331,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -407,7 +342,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -419,7 +353,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -431,7 +364,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -450,14 +382,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
-    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
-    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
-    "Makefile::target debt-budget": "8e30dd4714319a14",
-    "Makefile::target sendable-guard": "16583da771b94003",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0"
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
+    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target sendable-guard": "c009f552884c46bc",
+    "Makefile::target shared-root-guard": "a9263da85d483554"
    }
   },
   {
@@ -478,16 +409,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "5ccee4bede8d012d",
-    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "a024421bbc294c8c",
-    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "615c037990bc9a52",
-    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "aa07b7efdb5828f5",
-    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
-    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
-    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
-    "Makefile::target sbom-guard": "66e379cb76f4a7ec"
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "620c84ee17554303",
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "4986a8f812605eb7",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "01e85aecb6178d45",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "242b5be18b5a6ab6",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
+    "Makefile::target aggregate-type-size": "185103618755699f",
+    "Makefile::target orphan-swift-guard": "274019c065545658",
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca"
    }
   },
   {
@@ -501,7 +431,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "scripts/check_no_orphan_swift.sh::fn is_synced": "858518fd5f060177"
    }
@@ -515,7 +444,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -527,7 +455,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -547,15 +474,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "615c037990bc9a52",
-    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "aa07b7efdb5828f5",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "01e85aecb6178d45",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "242b5be18b5a6ab6",
     ".github/workflows/security.yml::job dependency-review": "4665797cb224b382",
     ".github/workflows/security.yml::step dependency-review/Review dependencies": "2ad042b1c466a046",
-    "Makefile::target sbom-check": "e1a31616864cff02",
-    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
-    "scripts/generate_sbom.py::def main": "9f1f3c45d4110b37"
+    "Makefile::target sbom-check": "46aecc781adb961a",
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca",
+    "scripts/generate_sbom.py::def main": "b4f89810431d3b58"
    }
   },
   {
@@ -569,9 +495,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "f16c6c713183c00b"
    }
   },
   {
@@ -586,10 +511,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::job strict-concurrency": "973e976fafe9cc2c",
-    "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+    ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "8d5dfcf6ca16c0ba"
    }
   },
   {
@@ -603,9 +527,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target test-coverage": "06ed85ce10572ea0"
+    "Makefile::target test-coverage": "2f52b6f381055f27"
    }
   },
   {
@@ -617,7 +540,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -631,9 +553,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea"
+    "scripts/check_log_redaction.sh::fn report": "7c45ae04a5ea39b6"
    }
   },
   {
@@ -647,9 +568,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/performance.yml::job performance-tests": "ea47f6c01763284e"
+    ".github/workflows/performance.yml::job performance-tests": "330868dd344a0c70"
    }
   },
   {
@@ -663,7 +583,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f"
    }
@@ -679,9 +598,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312"
    }
   },
   {
@@ -693,7 +611,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -708,10 +625,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target ci": "b679f3a8965b735e",
-    "Makefile::target ci-local": "2f301710427d57ea"
+    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target ci-local": "e2b0391dda4db254"
    }
   },
   {
@@ -726,10 +642,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target ci": "b679f3a8965b735e",
-    "Makefile::target ci-local": "2f301710427d57ea"
+    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target ci-local": "e2b0391dda4db254"
    }
   },
   {
@@ -741,7 +656,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -755,9 +669,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target ci": "b679f3a8965b735e"
+    "Makefile::target ci": "de372d3ddd101741"
    }
   },
   {
@@ -769,7 +682,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -783,9 +695,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
@@ -804,26 +715,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "doc's hard gate requires the suite to pass with zero new warnings; the SwiftLint gate only fails when total violations exceed the fixed budget of 81 and, unlike other budgets, reports no slack, so new lint warnings pass silently whenever the count is below 81",
-     "evidence": [
-      "docs/REFACTOR_SPEC.md:376",
-      "scripts/enforce_swiftlint_budget.sh:44",
-      ".ci/swiftlint_warning_budget.txt:1"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint": "9b9312f3d243ac5e",
-    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget": "47bc283c67a4a75a",
-    ".github/workflows/ci.yml::step tests/Release configuration compiles": "2c70c8bd2c942079",
-    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
-    "Makefile::target ci-local": "2f301710427d57ea",
-    "Makefile::target lint-budget": "1a28f599153715e4"
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint": "35c6c868767d2eea",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget": "515c1929a594e7dd",
+    ".github/workflows/ci.yml::step tests/Release configuration compiles": "e6d6e1382f096c80",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
+    "Makefile::target ci-local": "e2b0391dda4db254",
+    "Makefile::target lint-budget": "83ede4e7a455a929"
    }
   },
   {
@@ -842,14 +740,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
-    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "7dd78ff65eb72412",
-    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "4b3a2a343a755ae0",
-    "Makefile::target sendable-guard": "16583da771b94003",
-    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
-    "Makefile::target thread-sanitizer": "5a3ae899b4053a7b"
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "ce44a5cbbe2657c3",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "7eee23ecc349ef14",
+    "Makefile::target sendable-guard": "c009f552884c46bc",
+    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
+    "Makefile::target thread-sanitizer": "b83b5193474b0ddb"
    }
   },
   {
@@ -865,11 +762,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
-    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
-    "Makefile::target shared-root-guard": "ebba2b132335fbf0"
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
+    "Makefile::target shared-root-guard": "a9263da85d483554"
    }
   },
   {
@@ -885,11 +781,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "0de5a6f27d744502",
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "c9507fb0c711b5de",
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
@@ -904,10 +799,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea",
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+    "scripts/check_log_redaction.sh::fn report": "7c45ae04a5ea39b6",
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
@@ -921,23 +815,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The hard-gate item 'No magic numbers in logic' is claimed covered by SwiftLint in the conformance gate's header, but no SwiftLint config enables a magic-number rule, so the item is unmeasured and inline thresholds persist in scoring/selection code.",
-     "evidence": [
-      "docs/REFACTOR_SPEC.md:403",
-      "scripts/check_refactor_spec_conformance.sh:24",
-      ".swiftlint.yml:1",
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:213",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:218"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
@@ -951,9 +830,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
@@ -968,22 +846,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "doc lists 'performance measured post-refactor' under a Hard Gate; the only harness is a workflow_dispatch-only workflow running one measure() test with no committed .xcbaseline, so a performance regression never fails any CI run",
-     "evidence": [
-      "docs/REFACTOR_SPEC.md:414",
-      ".github/workflows/performance.yml:3",
-      "EmuquTests/AnalysisPerformanceTests.swift:49"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    ".github/workflows/performance.yml::job performance-tests": "ea47f6c01763284e",
-    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "1990c882a1546ea1"
+    ".github/workflows/performance.yml::job performance-tests": "330868dd344a0c70",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "b6c290cb6bff71cf"
    }
   },
   {
@@ -999,11 +864,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "af93a701edc65875",
-    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
-    "Makefile::target spec-conformance": "060f9ad7c55731da"
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
+    "Makefile::target spec-conformance": "76fac68887ff9527"
    }
   }
  ],
