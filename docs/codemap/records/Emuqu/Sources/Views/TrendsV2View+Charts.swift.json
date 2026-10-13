@@ -580,10 +580,12 @@
   },
   {
    "key": "func TrendsV2View.metricValue(_:in:)",
-   "hash": "cfb9caf94bff7445",
-   "does": "Extracts the metric from a session: recoveryScore×10 (0–10 → 0–100), rmssd/sdnn/meanHR from timeDomain, LF/HF and HF from frequencyDomain, Baevsky stressIndex from ansMetrics; nil when missing.",
+   "hash": "c04900952a2bd984",
+   "does": "Extracts the metric from a session: recoveryScore×10 (0–10 → 0–100), rmssd/meanHR from timeDomain, SDNN via measuredSDNN (nil when estimated), LF/HF and HF from frequencyDomain, Baevsky stressIndex from ansMetrics; nil when missing.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -600,7 +602,7 @@
     {
      "at": "+4",
      "cond": ".sdnn",
-     "effect": "timeDomain.sdnn"
+     "effect": "analysisResult.measuredSDNN (nil for an estimate)"
     },
     {
      "at": "+5",
@@ -627,6 +629,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
    }
   },

@@ -1,7 +1,7 @@
 {
  "file": "Tools/validation/test_ports.py",
- "hash": "8fbfbdbad1218c99",
- "role": "Re-runs Emuqu unit-test expectations (EmuquTests @ e028039: DFAAnalysisTests, DFAReferenceValidationTests, FrequencyDomainTests, HRVSleepStageClassifierTests, ArtifactDetectionTests, LiveDFAAnalyzerTests, TimeDomainTests, HRVReferenceValidationTests) against the Python ports; each @case registers a runner that records PASS/FAIL; exits 1 on any failure. Output is committed as test_ports_output.txt (114/114).",
+ "hash": "81b74eb348827096",
+ "role": "Re-runs Emuqu unit-test expectations (EmuquTests @ e028039: DFAAnalysisTests, DFAReferenceValidationTests, FrequencyDomainTests, HRVSleepStageClassifierTests, ArtifactDetectionTests, LiveDFAAnalyzerTests, TimeDomainTests, HRVReferenceValidationTests) against the Python ports; each @case registers a runner that records PASS/FAIL; exits 1 on any failure. Output is committed as test_ports_output.txt (121/121; the seven HRVSleepStageClassifierTests gap cases are appended after the other suites so earlier case numbers are unchanged).",
  "types": [],
  "state": [
   "RESULTS list of (suite, name, ok, detail) (line 21)",
@@ -2692,10 +2692,201 @@
     "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab",
     "Tools/validation/test_ports.py::def series": "fbfc5c461704c07e"
    }
+  },
+  {
+   "key": "def _contiguous",
+   "hash": "a485bb1f894b108d",
+   "does": "Helper: (t_ms, rr) points back to back from start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _varied",
+   "hash": "50e7a5cf97721e91",
+   "does": "Helper: count RRs 900 + deterministic_offset(step + i, -60, 60) (the Swift test LCG).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def deterministic_offset"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8"
+   }
+  },
+  {
+   "key": "def _single_window",
+   "hash": "efb63b22605ef761",
+   "does": "Helper: build_feature_windows over [0, 300000); the window when exactly one, else None.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def build_feature_windows": "e5efde449d3d895e"
+   }
+  },
+  {
+   "key": "def _ #115",
+   "hash": "2dced10ce4f89e3b",
+   "does": "Mirrors testAnArtifactGapDoesNotProduceASuccessiveDifference: 10x1000, 250, 10x1100 -> window rmssd 0 (1e-9).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def _single_window",
+    "Tools/validation/test_ports.py::def _contiguous"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
+    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #116",
+   "hash": "d3d218cf0a994d43",
+   "does": "Mirrors testARecordingBreakDoesNotProduceASuccessiveDifference: 10x1000 then 10x1100 from 70000 ms -> rmssd 0 (1e-9).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def _single_window",
+    "Tools/validation/test_ports.py::def _contiguous"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
+    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #117",
+   "hash": "ea328a857964ac12",
+   "does": "Mirrors testWindowVariabilitySkipsPairsThatAreNotAdjacent: window_variability with follows false at 2 -> rmssd 0; all false -> rmssd 0, sdnn 100.",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "6beca26f8d23fc15",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #118",
+   "hash": "90389118d7052847",
+   "does": "Mirrors testAlpha1AndSpectrumDoNotSpanARecordingBreak: 150 + 90 varied beats with a 30 s break; alpha1 equals DFA of the first run (1e-12), differs from the joined DFA (> 1e-9), LF/HF equals compute_from_clean_pairs of the first run on the beat-sum clock (1e-12).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def _varied",
+    "Tools/validation/test_ports.py::def _single_window",
+    "Tools/validation/test_ports.py::def _contiguous",
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f",
+    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
+    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
+    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #119",
+   "hash": "54d057ecdee27826",
+   "does": "Mirrors testAlpha1InterpolatesAnArtifactRatherThanJoiningItsNeighbours: beat 100 of 200 set to 150 ms; alpha1 equals DFA with it replaced by the mean of its neighbours (1e-12).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def _varied",
+    "Tools/validation/test_ports.py::def _single_window",
+    "Tools/validation/test_ports.py::def _contiguous",
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
+    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
+    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
+  },
+  {
+   "key": "def _ #120",
+   "hash": "e6caf72919bb5563",
+   "does": "Mirrors testAlpha1IsWithheldWhenTooMuchOfTheStretchIsInterpolated: every tenth of 200 beats invalid -> alpha1 None.",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def _varied",
+    "Tools/validation/test_ports.py::def _single_window",
+    "Tools/validation/test_ports.py::def _contiguous"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
+    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
+    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2"
+   }
+  },
+  {
+   "key": "def _ #121",
+   "hash": "70d2f1e3747cfa5e",
+   "does": "Mirrors testGapFreeAlpha1IsDFAOverEveryBeat: 200 clean varied beats -> alpha1 equals DFA over all (1e-12).",
+   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
+   "calls": [
+    "Tools/validation/test_ports.py::def _varied",
+    "Tools/validation/test_ports.py::def _single_window",
+    "Tools/validation/test_ports.py::def _contiguous",
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/test_ports.py::def _contiguous": "2413bd22815bd808",
+    "Tools/validation/test_ports.py::def _single_window": "33ce57c3d8c177f9",
+    "Tools/validation/test_ports.py::def _varied": "a0ca3e25fa03caa2",
+    "Tools/validation/test_ports.py::def approx": "0df7cbc3aca9d5b6"
+   }
   }
  ],
  "deps": {
   "Tools/validation/swift_rng.py::def deterministic_offset": "e3a870aefd09c4c8",
-  "Tools/validation/test_ports.py::def case": "ec4717160ed3d622"
+  "Tools/validation/test_ports.py::def case": "ec4717160ed3d622",
+  "Tools/validation/test_ports.py::def fix": "25bc2fcf86bce0ab"
  }
 }

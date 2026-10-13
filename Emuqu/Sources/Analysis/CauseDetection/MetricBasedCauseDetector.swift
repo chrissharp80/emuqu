@@ -254,7 +254,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         }
 
         if context.rmssd < HRVThresholds.rmssdGood,
-           context.pnn50 < HRVThresholds.pnn50Low,
+           let pnn50 = context.pnn50, pnn50 < HRVThresholds.pnn50Low,
            context.dfaAlpha1 > Self.trainingLoadDFAAlpha1 {
             causes.append(DetectedCause(
                 cause: String(localized: "Accumulated Training Load", bundle: NarrativeLanguage.bundle),

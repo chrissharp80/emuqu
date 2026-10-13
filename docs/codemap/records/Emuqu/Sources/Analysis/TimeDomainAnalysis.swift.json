@@ -1,8 +1,9 @@
 {
  "file": "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift",
- "hash": "1d2eb98b89df5e3c",
- "role": "Stateless TimeDomainAnalyzer: RMSSD estimators (clean-array, masked, point/break-aware, peak-scan), ectopic local-median gate, recording-break detection, and the canonical computeTimeDomain (RMSSD/SDNN/pNN50/SDSD/HR stats/triangular index) used by HRVAnalysisPipeline and imports.",
+ "hash": "d5f23525c60477ce",
+ "role": "Stateless TimeDomainAnalyzer: RMSSD estimators (clean-array, masked, point/break-aware, peak-scan), ectopic local-median gate, recording-break detection, the shared clean-window builder (CleanBeatWindow: clean beats, series indices, breaks) and successive-difference builder that NonlinearAnalyzer also uses, and the canonical computeTimeDomain (RMSSD/SDNN/pNN50/SDSD/HR stats/triangular index) used by HRVAnalysisPipeline and imports.",
  "types": [
+  "CleanBeatWindow: struct (file scope) — a window's clean RR, their series indices, and the break-follower indices; isAdjacentToPrevious is the shared adjacency rule",
   "TimeDomainAnalyzer: enum — static time-domain HRV functions"
  ],
  "state": [
@@ -12,6 +13,24 @@
  "toplevel": "Two private static constants: localMedianWindow=10 (the one ectopic gate's neighbourhood; the window selector calls ectopicKeepMask itself) and recordingBreakToleranceMs=2000.",
  "flags": [],
  "units": [
+  {
+   "key": "func CleanBeatWindow.isAdjacentToPrevious(_:)",
+   "hash": "0a3ec28200152855",
+   "does": "Whether clean beat k and clean beat k-1 were neighbours in the series (consecutive series indices) with no recording break between them (indices[k] not in breaks); false for k = 0. The one adjacency rule time-domain differences, Poincaré SD1, entropy runs and DFA segmentation read.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "k > 0, consecutive indices, and indices[k] not a break-follower",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
   {
    "key": "func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
    "hash": "8b1febdc20a34ae9",
@@ -274,12 +293,12 @@
   },
   {
    "key": "func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
-   "hash": "e6d017411015e854",
-   "does": "Canonical time-domain metrics for points[windowStart..<windowEnd]: drops flagged artifacts, requires ≥10 clean beats, takes successive diffs only between originally adjacent, ectopic-gate-kept, non-break beats (falling back to ungated adjacent pairs), returns TimeDomainMetrics with HR stats (computed with the window's clean RR); nil on bad bounds or insufficient data.",
+   "hash": "90538555402d371b",
+   "does": "Canonical time-domain metrics for points[windowStart..<windowEnd]: takes the window's clean beats from cleanWindow (nil on bad bounds), requires ≥10 clean beats, takes successive diffs via successiveDifferences(in:) (originally adjacent, ectopic-gate-kept, non-break pairs, falling back to ungated adjacent pairs), returns TimeDomainMetrics with HR stats (computed with the window's clean RR); nil on bad bounds or insufficient data.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(of:originalIndices:breaks:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)"
    ],
@@ -287,27 +306,44 @@
    "writes": [],
    "branches": [
     {
-     "at": "+10",
-     "cond": "window bounds valid against points and flags",
-     "effect": "false → nil"
-    },
-    {
-     "at": "+14",
-     "cond": "beat not flagged artifact",
-     "effect": "appended to cleanRR"
-    },
-    {
-     "at": "+19",
-     "cond": "≥10 clean beats and diffs available",
-     "effect": "false → nil"
+     "at": "+6",
+     "cond": "cleanWindow nil (bounds), fewer than 10 clean beats, or no adjacent pair",
+     "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "9dbe7e5a8b81c4f1",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)": "1a859548dc25dece",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)": "d7b17e8c1de6d93f",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(of:originalIndices:breaks:)": "f1761667b0fd7d3c"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "0819a2e676679e45"
+   }
+  },
+  {
+   "key": "func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)",
+   "hash": "2754864d5a5396e4",
+   "does": "Validates the window bounds against both series.points and flags, then returns a CleanBeatWindow of the non-artifact beats' RR, their series indices, and the indices in the window that follow a recording break (beatsAfterRecordingBreak). Shared by computeTimeDomain and NonlinearAnalyzer.computeNonlinear so both read the same beats and adjacency.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "bounds invalid (start<0, start>end, end beyond points or flags)",
+     "effect": "nil"
+    },
+    {
+     "at": "+11",
+     "cond": "for each index in the window whose flag is not artifact",
+     "effect": "append RR and index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6"
    }
   },
   {
@@ -334,56 +370,60 @@
    }
   },
   {
-   "key": "func TimeDomainAnalyzer.successiveDifferences(of:originalIndices:breaks:)",
-   "hash": "6a90470b70286609",
-   "does": "Ectopic-gated adjacent diffs; if none, ungated adjacent diffs; nil when neither yields a pair.",
+   "key": "func TimeDomainAnalyzer.successiveDifferences(in:)",
+   "hash": "d84f435bdbf4dd77",
+   "does": "Successive differences between originally adjacent clean beats with no recording break between them, after the ectopic gate (ectopicKeepMask over the window's clean RR); when the gate leaves no adjacent pair, the ungated adjacent pairs; nil when there are none. Feeds RMSSD/pNN50/SDSD and, through NonlinearAnalyzer, Poincaré SD1.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.adjacentDifferences(_:originalIndices:breaks:isKept:)"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.adjacentDifferences(in:isKept:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "gated diffs non-empty",
-     "effect": "true → return gated"
+     "at": "+3",
+     "cond": "gated differences non-empty",
+     "effect": "return them"
     },
     {
-     "at": "+7",
-     "cond": "ungated empty",
-     "effect": "true → nil; false → ungated (ectopic beats included silently)"
+     "at": "+5",
+     "cond": "ungated differences empty",
+     "effect": "nil; else return them"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.adjacentDifferences(_:originalIndices:breaks:isKept:)": "c0a58c26b6f1e65c",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.adjacentDifferences(in:isKept:)": "3be9019f91376f2d",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "4416f76b49e1dabe"
    }
   },
   {
-   "key": "func TimeDomainAnalyzer.adjacentDifferences(_:originalIndices:breaks:isKept:)",
-   "hash": "85c62f44b707122a",
-   "does": "Diffs rr[k]−rr[k−1] for k where both kept, originally consecutive indices, and k not after a break.",
+   "key": "func TimeDomainAnalyzer.adjacentDifferences(in:isKept:)",
+   "hash": "9b4153b78b3a735c",
+   "does": "rr[k] - rr[k-1] for every k whose beat and predecessor are both kept by isKept and adjacent per CleanBeatWindow.isAdjacentToPrevious (neighbours in the series, no break).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "rr.count > 1",
-     "effect": "false → []"
+     "at": "+2",
+     "cond": "fewer than 2 beats",
+     "effect": "[]"
     },
     {
-     "at": "+9",
-     "cond": "pair kept, adjacent, no break",
-     "effect": "diff appended"
+     "at": "+5",
+     "cond": "both kept and adjacent",
+     "effect": "append the difference"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)": "b8f138edd91e20cf"
+   }
   },
   {
    "key": "func TimeDomainAnalyzer.standardDeviationOfDifferences(_:)",

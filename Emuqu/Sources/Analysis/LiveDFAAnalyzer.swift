@@ -503,8 +503,9 @@ final class LiveDFAAnalyzer {
 
     /// Pass 2: replace artifact beats with linear interpolation from the
     /// nearest surrounding clean beats, preserving the series length so DFA
-    /// window semantics don't shift.
-    nonisolated private static func interpolatingArtifacts(_ rrs: [Double], isArtifact: [Bool]) -> [Double] {
+    /// window semantics don't shift. Internal, not private: the sleep-stage
+    /// classifier's per-window α1 interpolates its invalid beats with it.
+    nonisolated static func interpolatingArtifacts(_ rrs: [Double], isArtifact: [Bool]) -> [Double] {
         var out = rrs
         for i in 0 ..< rrs.count where isArtifact[i] {
             let leftIdx = stride(from: i - 1, through: 0, by: -1).first { !isArtifact[$0] }

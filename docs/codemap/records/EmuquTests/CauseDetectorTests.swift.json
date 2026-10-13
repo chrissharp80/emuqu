@@ -47,8 +47,8 @@
   },
   {
    "key": "func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
-   "hash": "a5a3783a7cabc56c",
-   "does": "Builds a CauseDetectionContext from the given metrics/tags/sleep minutes with fixed TrendStats (avgRMSSD 45, baselineRMSSD 42, avgHR 58, 7 sessions over 14 days), an AnalysisSleepInput derived from totalSleepMinutes, a fresh HRVSession(), nil sleepTrend and no recent sessions.",
+   "hash": "41a7bc3201dcaddd",
+   "does": "Builds a CauseDetectionContext from the given metrics (pNN50 optional, default 15)/tags/sleep minutes with fixed TrendStats (avgRMSSD 45, baselineRMSSD 42, avgHR 58, 7 sessions over 14 days), an AnalysisSleepInput derived from totalSleepMinutes, a fresh HRVSession(), nil sleepTrend and no recent sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
@@ -452,6 +452,26 @@
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testTrainingLoadRuleReadsOnlyAMeasuredPNN50()",
+   "hash": "9bd9f92b65b3f865",
+   "does": "Asserts MetricBasedCauseDetector reports 'Accumulated Training Load' for low RMSSD, DFA α1 1.2 and a measured pNN50 of 5, and not when pNN50 is nil (an estimate).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)": "cfd96a14928f5c22",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "eafc110510de9577"
    }
   },
   {

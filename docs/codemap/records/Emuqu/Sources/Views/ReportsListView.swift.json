@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ReportsListView.swift",
- "hash": "588cc08e67762235",
+ "hash": "5a98be03a05769ca",
  "role": "'All Reports' list: decodes the last 90 days of workout and overnight sessions, emits one row per workout (holistic if a reliable overnight started within 36 h before it, else workout-only) and one Recovery/HRV row per overnight, and renders the chosen PDF on tap into a temp file shown in a PDF preview sheet.",
  "types": [
   "ReportsListView: struct (View) — list, load, generation",
@@ -615,8 +615,8 @@
   },
   {
    "key": "func ReportsListView.generationInputs(for:)",
-   "hash": "29f24abc3b51da04",
-   "does": "Snapshots on the main actor: row kind/sessions, the baseline as it stood for the reported night (baselineStats(for:settings:)), GPS polyline, start/duration, temp PDF URL, units, max/resting HR, LTHR and temperature unit from settings.",
+   "hash": "9e6417d72e1218cf",
+   "does": "Snapshots on the main actor: row kind/sessions, the baseline as it stood for the reported night (baselineStats(for:settings:)), GPS polyline, start/duration, temp PDF URL, units, max/resting HR, LTHR, sleep schedule and temperature unit from settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.baselineStats(for:settings:)",
@@ -624,7 +624,8 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule"
    ],
    "reads": [
     "mem:SettingsManager.settings",
@@ -640,6 +641,7 @@
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "8de4d6a741ac1366",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.baselineStats(for:settings:)": "6537ab043775758a",
@@ -726,13 +728,13 @@
   },
   {
    "key": "func ReportsListView.withFullSessions(_:)",
-   "hash": "77d445e18761754f",
-   "does": "Nonisolated: replaces overnight (and, except for a .recovery row, workout) with full RR-bearing archive reads, falling back to the lightweight copies, and fills recentOvernight with ReportBaselineNights.before the reported night (or the workout's start when there is no overnight): the nights before it, read until 60 are reliable.",
+   "hash": "5ba70afc253bcfed",
+   "does": "Nonisolated: replaces overnight (and, except for a .recovery row, workout) with full RR-bearing archive reads, falling back to the lightweight copies, and fills recentOvernight with ReportBaselineNights.before the reported night (or the workout's start when there is no overnight) with the inputs' sleep schedule: the nights before it, read until they hold 60 baseline nights.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:sleepSchedule:)"
    ],
    "reads": [
     "archive:retrieve",
@@ -752,7 +754,7 @@
      "effect": "lightweight copy"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "no overnight (??)",
      "effect": "workout start as the cutoff"
     }
@@ -774,7 +776,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)": "1ff6f104c1019b50",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:sleepSchedule:)": "c8c4570546e3b00b",
     "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
    }
   },
@@ -821,8 +823,8 @@
   },
   {
    "key": "func ReportsListView.profile(_:)",
-   "hash": "0927806033592aaa",
-   "does": "The inputs' max/resting HR, LTHR, units and temperature unit as a ReportRenderer.Profile. Nonisolated.",
+   "hash": "67197a1a08dc9cb1",
+   "does": "The inputs' max/resting HR, LTHR, units, sleep schedule and temperature unit as a ReportRenderer.Profile. Nonisolated.",
    "entry": null,
    "calls": [],
    "reads": [],

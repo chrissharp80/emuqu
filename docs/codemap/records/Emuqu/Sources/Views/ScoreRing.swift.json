@@ -1,11 +1,12 @@
 {
  "file": "Emuqu/Sources/Views/ScoreRing.swift",
- "hash": "d23da39a364bc3de",
- "role": "Reusable 0-100 score ring view (hero/card/inline sizes) with five display states, reveal/digit-roll/breathing animations and a combined VoiceOver label. Used by Dashboard hero, Recovery score detail, ReadinessExplainView, QuickResultsCard and Appearance settings preview.",
+ "hash": "ceccc33f92a12255",
+ "role": "Reusable 0-100 score ring view (hero/card/inline sizes) with five display states, reveal/digit-roll/breathing animations and a combined VoiceOver label. Used by Dashboard hero, Recovery score detail, ReadinessExplainView, Sleep detail, QuickResultsCard and Appearance settings preview; `metric` names the score for VoiceOver.",
  "types": [
   "ScoreRing: struct (View) — the ring component",
   "ScoreRing.DisplayState: enum — default(score,verdict)/loading/buildingBaseline(day,target)/noData/error(message)",
-  "ScoreRing.Size: enum — hero 210pt / card 90pt / inline 44pt geometry"
+  "ScoreRing.Size: enum — hero 210pt / card 90pt / inline 44pt geometry",
+  "ScoreRing.Metric: enum — recovery/readiness/sleep: the score the ring shows, named in the VoiceOver label"
  ],
  "state": [
   "mem:ScoreRing.revealedFraction (@State, view-local)",
@@ -13,7 +14,7 @@
   "mem:ScoreRing.breathingScale (@State, view-local)",
   "env:accessibilityReduceMotion read"
  ],
- "toplevel": "Stored props state/size/snappy (default false). Header doc lines 3-23 describe states, 600ms easeOutQuart reveal, 200ms digit roll, breathing at score>67 disabled under Reduce Motion, 400ms snappy reveal.",
+ "toplevel": "Stored props state/size/snappy (default false)/metric (default .recovery). Header doc lines 3-23 describe states, 600ms easeOutQuart reveal, 200ms digit roll, breathing at score>67 disabled under Reduce Motion, 400ms snappy reveal.",
  "flags": [
   {
    "kind": "dead",
@@ -703,12 +704,13 @@
   },
   {
    "key": "var ScoreRing.accessibilityLabel",
-   "hash": "5f79679f93c981c5",
-   "does": "Builds the localized VoiceOver label per state: 'Recovery score N, <verdict>, ring filled N percent.', 'Recovery score loading.', 'Building baseline. Day X of N.', 'No reading yet.', or 'Error: <msg>'.",
+   "hash": "1b4fe43a61f32515",
+   "does": "Builds the localized VoiceOver label per state: the .default sentence from scoreSentence for the ring's metric ('Recovery score|Readiness|Sleep score N, <verdict>, ring filled N percent.'), 'Recovery score loading.', 'Building baseline. Day X of N.', 'No reading yet.', or 'Error: <msg>'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)"
    ],
    "reads": [],
    "writes": [],
@@ -716,7 +718,7 @@
     {
      "at": "+3",
      "cond": "state .default",
-     "effect": "recovery-score sentence with score/verdict"
+     "effect": "scoreSentence(metric, score, verdict word)"
     },
     {
      "at": "+5",
@@ -739,35 +741,30 @@
      "effect": "'Error: message' (never constructed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The .default label always says 'Recovery score', but QuickResultsCard feeds the ring session.recoveryScore ?? ANS readinessScore, so when only ANS readiness exists VoiceOver announces it as a recovery score.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:354",
-      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:41",
-      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:50"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The .default label always says \"Recovery score\", but SleepDetailV2View feeds the ring the sleep score and ReadinessExplainView the readiness, so VoiceOver announces a sleep score as a recovery score.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:354",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:287",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:288",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:52"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)": "05917d7a648872c6"
    }
+  },
+  {
+   "key": "func ScoreRing.scoreSentence(_:score:verdict:bundle:)",
+   "hash": "3392579d8795db82",
+   "does": "The .default state's localized VoiceOver sentence naming the metric: 'Recovery score N, <verdict>, ring filled N percent.', 'Readiness N, …' or 'Sleep score N, …'.",
+   "entry": "Called by ScoreRing.accessibilityLabel; pinned by RecoveryScoreDisplayTests.testTheRingNamesTheScoreItShows.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metric",
+     "effect": "recovery / readiness / sleep sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

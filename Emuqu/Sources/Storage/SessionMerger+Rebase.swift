@@ -126,7 +126,7 @@ extension SessionMerger {
             analysisSegmentLabel: result.analysisSegmentLabel, isReanalysis: result.isReanalysis,
             overnightNadirHR: result.overnightNadirHR, overnightNadirTimeMs: result.overnightNadirTimeMs,
             overnightMinHR: result.overnightMinHR, overnightMaxHR: result.overnightMaxHR,
-            overnightMeanHR: result.overnightMeanHR
+            overnightMeanHR: result.overnightMeanHR, estimatedMetrics: result.estimatedMetrics
         )
     }
 

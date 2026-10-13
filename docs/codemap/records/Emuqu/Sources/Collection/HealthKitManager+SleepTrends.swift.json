@@ -359,13 +359,14 @@
   },
   {
    "key": "func HealthWriteAndObserve.exportHRVMetrics(session:result:)",
-   "hash": "320ce3672d9982c7",
-   "does": "Exports the windowed SDNN series (windowedHRVWritten); when it wrote nothing (fewer than 30 beats, or no 5-minute window with enough clean beats) writes a single SDNN at endDate (or startDate) instead. Returns nil, or the logged error.",
+   "hash": "cfdd88e7397ef8a8",
+   "does": "Exports the windowed SDNN series (windowedHRVWritten); when it wrote nothing (fewer than 30 beats, or no 5-minute window with enough clean beats) writes a single SDNN at endDate (or startDate) instead, unless the result's SDNN is an estimate, which is never written. Returns nil, or the logged error.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.windowedHRVWritten(_:)",
     "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
    ],
    "reads": [],
    "writes": [
@@ -374,7 +375,7 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "windowed series wrote samples",
+     "cond": "windowed series wrote samples, or measuredSDNN nil (estimate)",
      "effect": "return nil; else single SDNN"
     },
     {
@@ -392,6 +393,7 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)": "00a9060158c34297",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.windowedHRVWritten(_:)": "c9db19b1c08926d5",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

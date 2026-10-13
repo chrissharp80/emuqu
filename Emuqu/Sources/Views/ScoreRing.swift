@@ -18,7 +18,8 @@ import SwiftUI
 ///   • Day-30+ users get 400ms snappier reveal
 ///
 /// Accessibility: combined element via `.accessibilityElement(children:
-/// .combine)`, label "Recovery score 94, Excellent, ring filled 94 percent."
+/// .combine)`, label "Recovery score 94, Excellent, ring filled 94 percent.",
+/// naming the score the ring shows (`metric`).
 /// Pair colour with `ScoreVerdict.glyphName` glyph + verdict word — never
 /// colour alone.
 struct ScoreRing: View {
@@ -68,9 +69,19 @@ struct ScoreRing: View {
         }
     }
 
+    /// The score the ring shows, which VoiceOver names: the ring is reused
+    /// for the morning recovery score, the live readiness and the sleep
+    /// score, and every one of them used to be read as a recovery score.
+    enum Metric {
+        case recovery
+        case readiness
+        case sleep
+    }
+
     let state: DisplayState
     let size: Size
     var snappy: Bool = false   // true → 400ms reveal (Day-30+ users)
+    var metric: Metric = .recovery
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var revealedFraction: Double = 0
@@ -359,7 +370,7 @@ struct ScoreRing: View {
         let bundle = LanguageManager.appBundle
         switch state {
         case let .default(score, verdict):
-            return String(localized: "Recovery score \(score), \(verdict.localizedWord), ring filled \(score) percent.", bundle: bundle)
+            return Self.scoreSentence(metric, score: score, verdict: verdict.localizedWord, bundle: bundle)
         case .loading:
             return String(localized: "Recovery score loading.", bundle: bundle)
         case let .buildingBaseline(day, target):
@@ -368,6 +379,15 @@ struct ScoreRing: View {
             return String(localized: "No reading yet.", bundle: bundle)
         case let .error(message):
             return String(localized: "Error: \(message)", bundle: bundle)
+        }
+    }
+
+    /// The `.default` state's VoiceOver sentence for `metric`.
+    static func scoreSentence(_ metric: Metric, score: Int, verdict: String, bundle: Bundle) -> String {
+        switch metric {
+        case .recovery: String(localized: "Recovery score \(score), \(verdict), ring filled \(score) percent.", bundle: bundle)
+        case .readiness: String(localized: "Readiness \(score), \(verdict), ring filled \(score) percent.", bundle: bundle)
+        case .sleep: String(localized: "Sleep score \(score), \(verdict), ring filled \(score) percent.", bundle: bundle)
         }
     }
 }

@@ -67,12 +67,11 @@ extension DeepDiveReportRenderer {
         in context: UIGraphicsPDFRendererContext,
         pageRect: CGRect
     ) -> CGFloat {
-        let td = result.timeDomain
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let bundle = LanguageManager.appBundle
         var y = ensureSpace(needed: 80, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         y = drawSubsectionHeading(String(localized: "Time Domain Metrics", bundle: bundle), yPosition: y, pageRect: pageRect)
-        for metric in timeDomainRows(td: td, session: session, bundle: bundle) {
+        for metric in timeDomainRows(result: result, session: session, bundle: bundle) {
             y = drawMetricWithExplanation(
                 metric, y: y, contentWidth: contentWidth,
                 pageNumber: &pageNumber, context: context, pageRect: pageRect
@@ -113,7 +112,6 @@ extension DeepDiveReportRenderer {
         in context: UIGraphicsPDFRendererContext,
         pageRect: CGRect
     ) -> CGFloat {
-        let nl = result.nonlinear
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let bundle = LanguageManager.appBundle
         var y = ensureSpace(needed: 80, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
@@ -122,7 +120,7 @@ extension DeepDiveReportRenderer {
             String(localized: "Nonlinear analysis describes the complexity and fractal structure of heart-rate regulation — patterns that linear metrics (RMSSD, SDNN) cannot capture. These metrics describe how regular or complex last night's beat pattern was. They add context; they are not a verdict.", bundle: bundle),
             style: .explanation, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
         )
-        for metric in nonlinearRows(nl: nl, bundle: bundle) {
+        for metric in nonlinearRows(result: result, bundle: bundle) {
             y = drawMetricWithExplanation(
                 metric, y: y, contentWidth: contentWidth,
                 pageNumber: &pageNumber, context: context, pageRect: pageRect
@@ -131,11 +129,13 @@ extension DeepDiveReportRenderer {
         return y
     }
 
-    private func nonlinearRows(nl: NonlinearMetrics, bundle: Bundle) -> [DeepDiveMetric] {
-        [
-            sd1Row(nl: nl, bundle: bundle),
-            sd2Row(nl: nl, bundle: bundle),
-            sd1Sd2RatioRow(nl: nl, bundle: bundle),
+    /// The Poincaré rows are marked, and not read, when they are estimates.
+    private func nonlinearRows(result: HRVAnalysisResult, bundle: Bundle) -> [DeepDiveMetric] {
+        let nl = result.nonlinear
+        return [
+            estimable(sd1Row(nl: nl, bundle: bundle), as: .sd1, in: result),
+            estimable(sd2Row(nl: nl, bundle: bundle), as: .sd2, in: result),
+            estimable(sd1Sd2RatioRow(nl: nl, bundle: bundle), as: .sd1Sd2Ratio, in: result),
             dfaAlpha1Row(nl: nl, bundle: bundle),
             dfaAlpha2Row(nl: nl, bundle: bundle),
             sampleEntropyRow(nl: nl, bundle: bundle),
@@ -445,15 +445,29 @@ private func bandedAscending(_ value: Double, _ cases: [(Double, String)], else 
 // its parts across every file, so code that does not need the type inflates
 // that number without making the type do more.
 
-private func timeDomainRows(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> [DeepDiveReportRenderer.DeepDiveMetric] {
-    [
+/// SDNN, pNN50 and SDSD are marked, and not read, when they are estimates.
+private func timeDomainRows(result: HRVAnalysisResult, session: HRVSession, bundle: Bundle) -> [DeepDiveReportRenderer.DeepDiveMetric] {
+    let td = result.timeDomain
+    return [
         rmssdRow(td: td, session: session, bundle: bundle),
-        sdnnRow(td: td, session: session, bundle: bundle),
+        estimable(sdnnRow(td: td, session: session, bundle: bundle), as: .sdnn, in: result),
         meanRRRow(td: td, session: session, bundle: bundle),
-        pnn50Row(td: td, session: session, bundle: bundle),
-        sdsdRow(td: td, session: session, bundle: bundle),
+        estimable(pnn50Row(td: td, session: session, bundle: bundle), as: .pnn50, in: result),
+        estimable(sdsdRow(td: td, session: session, bundle: bundle), as: .sdsd, in: result),
         triangularIndexRow(td: td, session: session, bundle: bundle)
     ].compactMap { $0 }
+}
+
+/// `metric` with its value marked as an estimate, and no reading, when
+/// `result` holds it as one: an estimate is not read against bands.
+private func estimable(
+    _ metric: DeepDiveReportRenderer.DeepDiveMetric, as estimated: EstimatedMetric, in result: HRVAnalysisResult
+) -> DeepDiveReportRenderer.DeepDiveMetric {
+    guard result.isEstimated(estimated) else { return metric }
+    return DeepDiveReportRenderer.DeepDiveMetric(
+        name: metric.name, value: result.markingEstimate(metric.value, for: estimated),
+        explanation: metric.explanation, interpretation: nil
+    )
 }
 
 private func rmssdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {

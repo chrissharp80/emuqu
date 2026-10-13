@@ -286,9 +286,11 @@ extension ImportDataView {
             Text(String(format: String(localized: "RMSSD: %.1f", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, session.rmssd))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.primary)
-            Text(String(localized: "\(session.beatCount) beats", bundle: LanguageManager.appBundle))
-                .font(.caption)
-                .foregroundColor(AppTheme.textTertiary)
+            if let beats = session.beatCount {
+                Text(String(localized: "\(beats) beats", bundle: LanguageManager.appBundle))
+                    .font(.caption)
+                    .foregroundColor(AppTheme.textTertiary)
+            }
         }
     }
 

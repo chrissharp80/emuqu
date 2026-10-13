@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/RecoveryScoreDisplayTests.swift",
- "hash": "9b136ca4462f7d84",
- "role": "XCTest suite pinning RecoveryScoreCalculator.displayScore (round half away from zero, clamp 0...100, non-finite → 0) and its parity with ScoreVerdict.safeDisplayScore across raw and 0–10-scaled scores.",
+ "hash": "e067deee69611c3b",
+ "role": "XCTest suite pinning RecoveryScoreCalculator.displayScore (round half away from zero, clamp 0...100, non-finite → 0) and its parity with ScoreVerdict.safeDisplayScore across raw and 0–10-scaled scores, and the ScoreRing VoiceOver sentence for each metric.",
  "types": [
   "RecoveryScoreDisplayTests: class — XCTestCase for the raw→display score conversion"
  ],
@@ -131,6 +131,26 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDisplayTests.testTheRingNamesTheScoreItShows()",
+   "hash": "6b2f9fc5d747e20c",
+   "does": "With English pinned, asserts ScoreRing.scoreSentence reads 'Recovery score', 'Readiness' and 'Sleep score' for the three metrics.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)": "05917d7a648872c6",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
    }
   }
  ],

@@ -223,13 +223,14 @@
   },
   {
    "key": "var SessionHRVDetailView.hrStatsRow",
-   "hash": "997d19dc8d53bd5f",
-   "does": "Four stat tiles: Min, Avg, Max HR (bpm) and SDNN (ms).",
+   "hash": "8d9ebdc4b13c4df6",
+   "does": "Four stat tiles: Min, Avg, Max HR (bpm) and SDNN (ms); the Min/Max and SDNN titles carry '(estimate)' when the result holds them as estimates.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::func SessionHRVDetailView.hrStatCard(title:value:unit:color:)",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle"
@@ -238,6 +239,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit": "6595c34d5af5cd9b",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit": "72e78014b19a0321",
@@ -315,12 +317,13 @@
   },
   {
    "key": "var SessionHRVDetailView.tachogramSection",
-   "hash": "f00fdb330dbb9f4b",
-   "does": "Card 'Heart Rate Variability'/'RR Intervals' with 120pt TachogramView and accessibility value of Int-truncated RMSSD/SDNN.",
+   "hash": "aef8689b706aeec9",
+   "does": "Card 'Heart Rate Variability'/'RR Intervals' with 120pt TachogramView and accessibility value of Int-truncated RMSSD/SDNN (marked '(estimate)' when SDNN is one).",
    "entry": null,
    "calls": [
     "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:142",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle"
@@ -329,6 +332,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
@@ -359,10 +363,12 @@
   },
   {
    "key": "var SessionHRVDetailView.poincareHeader",
-   "hash": "b225e5be914aae1c",
-   "does": "Title 'Poincaré Plot' with SD1/SD2 values (%.1f ms).",
+   "hash": "9fcb4952b460c00a",
+   "does": "Title 'Poincaré Plot' with SD1/SD2 values (%.1f ms), each marked '(estimate)' when it is one.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
+   ],
    "reads": [
     "mem:LanguageManager.shared.bundle",
     "mem:LanguageManager.shared.locale"
@@ -371,6 +377,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
@@ -379,11 +386,12 @@
   },
   {
    "key": "var SessionHRVDetailView.poincarePlot",
-   "hash": "10a56cf493d005f9",
-   "does": "250pt PoincarePlotView with accessibility SD1/SD2 summary.",
+   "hash": "2a53845d0921e62f",
+   "does": "250pt PoincarePlotView with accessibility SD1/SD2 summary, marked '(estimate)' when they are estimates.",
    "entry": null,
    "calls": [
-    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:39"
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:39",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle",
@@ -393,6 +401,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }

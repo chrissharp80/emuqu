@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/RRModels.swift",
- "hash": "9bba59086509a85b",
+ "hash": "1a17f37daca2c9f4",
  "role": "Core RR-interval and HRV-result model types: the beat point/series with timing helpers, artifact flags, time/frequency/nonlinear/ANS metric structs, training-context snapshot, the persisted HRVAnalysisResult, and localisation of its stored English window classification/selection-reason strings.",
  "types": [
   "RRPoint: struct — one RR beat (t_ms cumulative start, rr_ms, optional wallClockMs and device HR), Codable/Equatable",
@@ -14,8 +14,10 @@
   "PeakCapacity: struct — highest sustained RMSSD window summary",
   "TrainingContext: struct — ATL/CTL/TSB/yesterday TRIMP/VO2max/five most recent workouts snapshot frozen with a session",
   "WorkoutSnapshot: struct — date/type/duration/load (userScaledLoad, stored as `trimp`) of one workout",
-  "HRVAnalysisResult: struct — complete persisted analysis for a window incl. window-selection provenance and overnight HR summary",
+  "HRVAnalysisResult: struct — complete persisted analysis for a window incl. window-selection provenance, overnight HR summary and estimatedMetrics (raw EstimatedMetric names an importer filled without a measurement)",
   "HRVAnalysisResult.TimeRange: struct — Codable ms range for organized-recovery zones",
+  "EstimatedMetric: enum String — sdnn, pnn50, sdsd, sdHR, hrRange, sd1, sd2, sd1Sd2Ratio, beatCount (unknown count, 0 stored)",
+  "HRVAnalysisResult: extension — estimated-metric provenance (isEstimated, measured values, legacy Elite marking, display marker)",
   "HRVAnalysisResult: extension — display (localized) window classification and selection reason",
   "WindowSelectionReasonText: enum — parses WindowSelector's English reason strings back into numbers and re-renders them localized",
   "WindowSelectionReasonText.Numbers: struct — parsed value/α1/CV/position"
@@ -791,6 +793,214 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "5d7b7cae1db5737e",
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
+   }
+  },
+  {
+   "key": "func HRVAnalysisResult.isEstimated(_:)",
+   "hash": "3e0fb08ba86eb331",
+   "does": "True when estimatedMetrics contains the metric's raw value; false when it does not or estimatedMetrics is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisResult.measured(_:as:)",
+   "hash": "2242739a3cacd081",
+   "does": "Returns `value` (the caller's reading of `metric` from this result), or nil when the result marks that metric as estimated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isEstimated(metric)",
+     "effect": "nil; else value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.measuredSDNN",
+   "hash": "11e85fde517944fd",
+   "does": "timeDomain.sdnn, or nil when SDNN is marked estimated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.measuredCleanBeatCount",
+   "hash": "5c9f5e570a0c9229",
+   "does": "cleanBeatCount, or nil when the result marks the beat count as unknown (.beatCount).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isEstimated(.beatCount)",
+     "effect": "nil; else cleanBeatCount"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.cleanBeatCountText",
+   "hash": "5d5cacf95d260912",
+   "does": "The clean beat count as text for display, or '—' when it is unknown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "measuredCleanBeatCount nil (??)",
+     "effect": "'—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "ee4a2ef206d35aab"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.measuredPNN50",
+   "hash": "39e5c5122f3f7c8d",
+   "does": "timeDomain.pnn50, or nil when pNN50 is marked estimated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+   }
+  },
+  {
+   "key": "func HRVAnalysisResult.withLegacyImportProvenance(source:)",
+   "hash": "d4cfc9f734b4551a",
+   "does": "Marks an Elite HRV import saved before estimatedMetrics existed (isLegacyEliteImport): returns a copy with ansMetrics nil (the old stress index/readiness were made from RMSSD) and every EstimatedMetric marked except the two the old importer took from the file when it could: hrRange is marked only when legacyEliteRangeWasDerived, beatCount only when windowEnd is the made-up 100. Otherwise returns self.",
+   "entry": "Called from HRVSession.init(from:) on every session decode",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.legacyEliteRangeWasDerived"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not a legacy Elite import (marker present, other source, or SDSD != RMSSD)",
+     "effect": "returns self (recorded analysis and new imports untouched)"
+    },
+    {
+     "at": "+4",
+     "cond": "legacyEliteRangeWasDerived",
+     "effect": "hrRange marked"
+    },
+    {
+     "at": "+5",
+     "cond": "windowEnd == 100",
+     "effect": "beatCount marked"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "8e65d83bbf9eb543",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.legacyEliteRangeWasDerived": "69362856d1f1e399",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)": "ec830f673ebc57a9"
+   }
+  },
+  {
+   "key": "var HRVAnalysisResult.legacyEliteRangeWasDerived",
+   "hash": "7c5762bbd41a5bcd",
+   "does": "Whether minHR/maxHR hold the old Elite importer's stand-ins: exactly 60–100 bpm (its 600/1000 ms default) or a pair whose ratio is 1.15/0.85 (mean RR ×0.85/×1.15), within 1e-6.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "60/100 bpm default",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "minHR > 0 and maxHR/minHR = 1.15/0.85",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisResult.isLegacyEliteImport(source:)",
+   "hash": "de1a96a8f7428ee9",
+   "does": "True for an unmarked Elite HRV import from before estimatedMetrics: no marker, `source` is ImportedMetrics.eliteHRVSource and SDSD equals RMSSD exactly (the old importer's shape, which RR analysis never yields).",
+   "entry": "Called from HRVSession.init(from:) on every session decode",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisResult.markingEstimate(_:for:)",
+   "hash": "d71a957e5c9ed518",
+   "does": "Returns `text` unchanged for a measured metric; for an estimated one appends ' (estimate)' with the word localized from the 'estimate' catalogue key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metric not estimated",
+     "effect": "returns text as is"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {

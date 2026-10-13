@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/TrendAnalysis.swift",
- "hash": "f89c871051011e38",
+ "hash": "8fd02a666dfb3228",
  "role": "TrendAnalyzer: builds per-metric TrendStatistics (mean/SD/percentiles/CV/slope/7-day baseline/verdict) and English insight lines from reliable overnight sessions over a period; consumed by the assistant (AssistantContextSource, AppFactResolver+Sleep).",
  "types": [
   "TrendAnalyzer: enum — trend statistics",
-  "TrendAnalyzer.TrendDataPoint: struct Codable Identifiable — one session's metrics",
+  "TrendAnalyzer.TrendDataPoint: struct Codable Identifiable — one session's metrics (sdnn nil when the reading holds it as an estimate)",
   "TrendDataPoint.Metrics: private struct — defaults for unanalysed sessions",
   "TrendAnalyzer.TrendStatistics: struct — per-metric stats",
   "TrendAnalyzer.TrendDirection: enum String — improving/stable/declining/rising/falling/insufficient",
@@ -20,10 +20,12 @@
  "units": [
   {
    "key": "init TrendAnalyzer.TrendDataPoint.Metrics(_:)",
-   "hash": "1a15e8817dd3b776",
-   "does": "Copies time-domain, frequency, DFA, ANS and artifact% from an HRVAnalysisResult; with nil result leaves rmssd/sdnn/meanHR 0 and artifactPercent 100.",
+   "hash": "3954cdfdc4933532",
+   "does": "Copies time-domain, frequency, DFA, ANS and artifact% from an HRVAnalysisResult, SDNN through measuredSDNN (nil when estimated); with nil result leaves rmssd/meanHR 0, sdnn nil and artifactPercent 100.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -37,6 +39,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
    }
   },
@@ -239,8 +242,8 @@
   },
   {
    "key": "func TrendAnalyzer.computeAllStatistics(dataPoints:)",
-   "hash": "32b4a3123104db8a",
-   "does": "Computes RMSSD/SDNN (log, higher better), Mean HR (linear, lower better), and optional LF/HF (log, lower better), DFA α1 (linear, no direction), Stress Index (linear, lower better), Readiness (linear, higher better).",
+   "hash": "fa4d13ce0868d946",
+   "does": "Computes RMSSD (log, higher better) over every point, SDNN (log, higher better) over the points with a measured SDNN and their dates, Mean HR (linear, lower better), and optional LF/HF (log, lower better), DFA α1 (linear, no direction), Stress Index (linear, lower better), Readiness (linear, higher better).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",

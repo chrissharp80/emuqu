@@ -378,7 +378,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 **File:** `Emuqu/Sources/Assistant/Chat/UserFactsStore.swift`
 
-`Assistant/user_facts.json` in the App Group container. API: `add(_:)` (deduped after normalizing case), `remove(_:)`, `clear()`, `systemPromptBlock()`.
+`Assistant/user_facts.json` in the App Group container. API: `add(_:)` (deduped after normalizing case), `remove(_:)`, `clear()` (erases everything, including any backup), `clearKeepingBackup()` and `restoreCleared()` (the assistant's wipe and its undo; the copy lives in memory only, until the app quits), `systemPromptBlock()`.
 
 ### 14.1 Auto-extraction
 
@@ -386,7 +386,7 @@ When `autoExtractEnabled` is on, `runAutoFactExtraction(userText:assistantText:)
 
 ### 14.2 Model-driven memory
 
-The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove` and `.clear` let the model save or forget a memory when the user asks.
+The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove`, `.clear` and `.restore` let the model save or forget a memory when the user asks. `.remove` and `.clear` (like `assistant.contacts.remove`) only record a pending request on the first call and return an app-written question; the change runs when the same call comes back and the user's next message is an explicit yes (`AssistantActionConfirmations`). `.restore` puts back the facts the last confirmed `.clear` erased.
 
 ---
 

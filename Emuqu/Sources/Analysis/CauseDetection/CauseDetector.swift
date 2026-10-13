@@ -67,7 +67,8 @@ struct CauseDetectionContext {
     let stressIndex: Double
     let lfHfRatio: Double
     let dfaAlpha1: Double
-    let pnn50: Double
+    /// Nil when the reading holds pNN50 as an estimate: no rule reads it then.
+    let pnn50: Double?
     let isGoodReading: Bool
     let isExcellentReading: Bool
     let selectedTags: Set<ReadingTag>

@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/NonlinearAnalysis.swift",
- "hash": "b21dbe9e780ba22e",
- "role": "Nonlinear HRV metrics over the clean part of an analysis window: Poincaré SD1/SD2, sample entropy, approximate entropy and DFA alpha1/alpha2 (via DFAAnalyzer).",
+ "hash": "df7ea83c7f249ef1",
+ "role": "Nonlinear HRV metrics over the clean part of an analysis window: Poincaré SD1/SD2 (SD1 from the time domain's adjacent-pair differences), sample and approximate entropy (templates inside runs of neighbouring beats) and DFA alpha1/alpha2 (via DFAAnalyzer.compute(window:), removed beats interpolated, split at recording breaks). No metric treats a removed beat or a recording break as adjacency.",
  "types": [
-  "NonlinearAnalyzer: enum — static nonlinear metric computation"
+  "NonlinearAnalyzer: enum — static nonlinear metric computation",
+  "NonlinearAnalyzer.BeatRuns: struct (private) — entropy values with per-beat run lengths"
  ],
  "state": [],
  "toplevel": "imports Accelerate for vDSP_meanvD; no globals.",
@@ -11,73 +12,98 @@
  "units": [
   {
    "key": "func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
-   "hash": "52b2b4abb7e8f3f4",
-   "does": "Validates window bounds against series and flags, collects non-artifact RR in the window, and returns NonlinearMetrics or nil when fewer than 10 clean beats. Called by HRVAnalysisPipeline+Metrics.swift:61 and ImportDataView+Actions.swift:223/472.",
+   "hash": "57628972519aa2d2",
+   "does": "Takes the window's clean beats from TimeDomainAnalyzer.cleanWindow (bounds checked against points and flags), requires ≥10 clean beats and at least one adjacent clean pair (TimeDomainAnalyzer.successiveDifferences(in:), the time domain's pairs), and returns NonlinearMetrics; nil otherwise. Called by HRVAnalysisPipeline+Metrics.swift computeNonlinear and imports.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+10",
-     "cond": "bounds invalid (start<0, start>end, end beyond points or flags)",
-     "effect": "return nil"
-    },
-    {
-     "at": "+13",
-     "cond": "for each index in window where flag not artifact",
-     "effect": "append RR"
-    },
-    {
-     "at": "+16",
-     "cond": "cleanRR.count < 10",
-     "effect": "return nil"
+     "at": "+8",
+     "cond": "cleanWindow nil (bounds), fewer than 10 clean beats, or no adjacent clean pair",
+     "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)": "1d6cc8f3ef15d6c8",
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)": "143c1e176b22c969",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "9dbe7e5a8b81c4f1",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "0819a2e676679e45"
    }
   },
   {
-   "key": "func NonlinearAnalyzer.metrics(forCleanRR:)",
-   "hash": "4294fe1cd59c7577",
-   "does": "Computes SD1/SD2, DFA (alpha1, alpha2, alpha1 R2), SD1/SD2 ratio, sample and approximate entropy (m=2, r=0.2) into NonlinearMetrics.",
+   "key": "func NonlinearAnalyzer.metrics(for:successiveDifferences:)",
+   "hash": "cc82ac89dc9551a0",
+   "does": "Computes SD1/SD2 from the adjacent-pair differences and all clean RR, DFA via DFAAnalyzer.compute(window:) (removed beats interpolated, split at breaks), the SD1/SD2 ratio, and sample and approximate entropy (m=2, r=0.2) with templates kept inside runs of neighbouring beats (followsGap from CleanBeatWindow.isAdjacentToPrevious) into NonlinearMetrics.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:successiveDifferences:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:followsGap:m:r:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:followsGap:m:r:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "sd2 > 0",
      "effect": "ratio sd1/sd2; else 0"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)": "860ec59b6f358221",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)": "1d8f6a93f23a8f8e",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)": "d4690332e5fc5195"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:followsGap:m:r:)": "907785ad4fc24d5a",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:successiveDifferences:)": "d78d9e8fd012360d",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:followsGap:m:r:)": "aab401aab19f1009",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)": "b8f138edd91e20cf"
    }
   },
   {
-   "key": "func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)",
-   "hash": "bd97351fe6f7eb02",
-   "does": "Approximate entropy: tolerance 0.2*sample SD of full series, phi(m)-phi(m+1) on up-to-1000-point subsample; nil if too short or phi nil.",
+   "key": "init NonlinearAnalyzer.BeatRuns(values:followsGap:)",
+   "hash": "5bce71dc2f9c3cec",
+   "does": "Stores the values and, scanning backwards, each beat's run length to the end of its run (a run ends where the next beat follows a gap). followsGap must have values.count entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i from count-2 down to 0 where beat i+1 does not follow a gap",
+     "effect": "runLength[i] = runLength[i+1] + 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.BeatRuns.templateStarts(length:)",
+   "hash": "49c7387d6665129e",
+   "does": "Indices whose run has at least `length` beats from them: the starts of every template that lies inside one run (0 ... count-length with no gap).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.computeApproxEntropy(_:followsGap:m:r:)",
+   "hash": "8f6acc962ce9cb12",
+   "does": "Approximate entropy: tolerance 0.2*sample SD of all clean beats, phi(m)-phi(m+1) on the up-to-1000-point subsample, templates only inside runs of neighbouring beats; nil if too short or either phi nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)"
    ],
    "reads": [],
@@ -96,17 +122,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)": "4c73785b9d6b324a",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)": "d38b174421ccd092",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)": "d589aabba4c56fd4",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)": "f0515cd7eae0d94d",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
    }
   },
   {
    "key": "func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)",
-   "hash": "5e9e89db71b8495c",
-   "does": "Pincus phi: mean log of per-template match fraction (self-match included) over n-m+1 templates.",
+   "hash": "c7ed6d516972ff9f",
+   "does": "Pincus phi over the templates of templateLength lying inside a run (BeatRuns.templateStarts): mean log of each template's match fraction (self-match included); nil with fewer than two templates.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)"
    ],
    "reads": [],
@@ -114,13 +141,13 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "n <= templateLength",
+     "cond": "fewer than 2 templates",
      "effect": "nil"
     },
     {
      "at": "+5",
-     "cond": "for each template i",
-     "effect": "count matches over all j"
+     "cond": "for each template start i",
+     "effect": "count matches over all starts j"
     },
     {
      "at": "+11",
@@ -130,6 +157,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)": "6e1f2033f19e30f0",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "1b6395258b3c2a03"
    }
   },
@@ -152,9 +180,9 @@
    "deps": {}
   },
   {
-   "key": "func NonlinearAnalyzer.computePoincareMetrics(_:)",
-   "hash": "5c66606162578f57",
-   "does": "SD1 = sqrt(var(successive diffs)/2), SD2 = sqrt(max(0, 2*var(RR) - SD1^2)) using population variance (Brennan 2001).",
+   "key": "func NonlinearAnalyzer.computePoincareMetrics(_:successiveDifferences:)",
+   "hash": "cae5014f46c3bcd9",
+   "does": "SD1 = sqrt(popVar(diffs)/2) over the time domain's adjacent-pair differences (so SD1² = SDSD²·(n-1)/(2n) over the same n pairs), SD2 = sqrt(max(0, 2*popVar(all clean RR) - SD1^2)) (Brennan 2001).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)",
@@ -164,18 +192,18 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "rr.count < 2",
-     "effect": "(0,0)"
+     "effect": "(0,0); unreachable from computeNonlinear (≥10 beats)"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "SD1/SD2 are computed a second time for the HRV detail chart's Poincaré ellipse, by rotating centred (RRn, RRn+1) pairs. The ellipse drawn can differ from the SD1/SD2 numbers this unit stores (different centring and pairs).",
+     "text": "SD1/SD2 are computed a second time for the HRV detail chart's Poincaré ellipse, by rotating centred (RRn, RRn+1) pairs. The ellipse drawn can differ from the SD1/SD2 numbers this unit stores (different centring and pairs: this unit uses only originally adjacent, ectopic-gated pairs).",
      "evidence": [
-      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:111",
+      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:148",
       "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:193",
       "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:207"
      ],
@@ -184,27 +212,27 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)": "9557738a591c4f20",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5ae2c4a8d547b16b"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5aad7b940e8f42c5"
    }
   },
   {
    "key": "func NonlinearAnalyzer.successiveDifferenceVariance(_:)",
-   "hash": "9c46da6bba13faf0",
-   "does": "Population variance of successive RR differences.",
+   "hash": "e267e7ace34e48d2",
+   "does": "Population variance (sum d²/n - mean²) of a series of successive differences.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "rr.count < 2",
+     "at": "+2",
+     "cond": "no differences",
      "effect": "0"
     },
     {
-     "at": "+6",
-     "cond": "for each adjacent pair",
-     "effect": "accumulate diff sum and square sum"
+     "at": "+5",
+     "cond": "for each difference",
+     "effect": "accumulate sum and square sum"
     }
    ],
    "flags": [],
@@ -251,32 +279,42 @@
    "deps": {}
   },
   {
-   "key": "func NonlinearAnalyzer.entropySubsample(_:)",
-   "hash": "c5ac9d1552010225",
-   "does": "Evenly-strided subsample to 1000 points when longer.",
+   "key": "func NonlinearAnalyzer.entropySubsample(_:followsGap:)",
+   "hash": "1aa8bf24f0b32dd5",
+   "does": "BeatRuns for entropy: the series unchanged when ≤1000 beats; otherwise an evenly-strided 1000-point subsample in which a pick starts a new run when a gap lies between the beats it and the previous pick came from (cumulative gap counts).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::init NonlinearAnalyzer.BeatRuns(values:followsGap:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "rr.count <= 1000",
-     "effect": "return unchanged"
+     "effect": "runs over the whole series"
+    },
+    {
+     "at": "+8",
+     "cond": "for each beat",
+     "effect": "accumulate gaps through it"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::init NonlinearAnalyzer.BeatRuns(values:followsGap:)": "5e1c3c6faf6bee4b"
+   }
   },
   {
-   "key": "func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)",
-   "hash": "4ce9b859f7dd33f8",
-   "does": "Sample entropy -ln(A/B) with m=2, tolerance 0.2*SD of full series, on subsample; B and A are both counted over the same N − m templates (Richman & Moorman); nil when either count is 0.",
+   "key": "func NonlinearAnalyzer.computeSampleEntropy(_:followsGap:m:r:)",
+   "hash": "3a2496ed76e94c73",
+   "does": "Sample entropy -ln(A/B) with m=2, tolerance 0.2*SD of all clean beats, on the subsample; B and A are counted over the same templates — starts with room for m+1 beats inside their run (the first N − m with no gap; Richman & Moorman); nil when either count is 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:starts:templateLength:tolerance:)"
    ],
    "reads": [],
    "writes": [],
@@ -287,22 +325,23 @@
      "effect": "nil"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "countM == 0 or countM1 == 0",
      "effect": "nil (undefined entropy surfaced as missing)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)": "7b59465cbff290f6",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)": "d38b174421ccd092",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)": "6e1f2033f19e30f0",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:starts:templateLength:tolerance:)": "f8909d0eab2fa689",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)": "f0515cd7eae0d94d",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
    }
   },
   {
-   "key": "func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)",
-   "hash": "76fa37c87fd55c99",
-   "does": "Counts template pairs (i<j, self-matches excluded) within tolerance among the first templateCount templates of templateLength; 0 when templateCount <= 0 or the templates would run past the data.",
+   "key": "func NonlinearAnalyzer.countTemplateMatches(_:starts:templateLength:tolerance:)",
+   "hash": "98cfce308ff76e60",
+   "does": "Counts template pairs (later start after earlier, self-matches excluded) within tolerance among the templates of templateLength at `starts`; callers pass starts that leave room for templateLength beats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)"
@@ -311,14 +350,9 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no templates or templates past the data",
-     "effect": "0"
-    },
-    {
-     "at": "+3",
-     "cond": "for each i",
-     "effect": "count matches for j>i"
+     "at": "+2",
+     "cond": "for each start",
+     "effect": "count matches with every later start"
     }
    ],
    "flags": [],

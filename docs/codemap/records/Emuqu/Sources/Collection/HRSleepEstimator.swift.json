@@ -11,11 +11,11 @@
   {
    "kind": "duplicate",
    "sev": "low",
-   "text": "Three HR-onset detectors with the same midpoint-threshold + 20-min clamp logic exist (this file's RR path, this file's passive-HR path, SleepBoundaryResolver.detectSleepOnset); the header comment records the clamp having to be fixed three separate times.",
+   "text": "Three HR-onset detectors with the same midpoint-threshold logic exist (this file's RR path, this file's passive-HR path, SleepBoundaryResolver.detectSleepOnset); the latency cap is now one shared test (SleepConstants.isPlausibleHROnsetLatency) but the detectors themselves are still separate copies.",
    "evidence": [
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift:133",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift:210",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:219"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift:156",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift:237",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:225"
    ],
    "found": "first read, upheld on second"
   }
@@ -23,13 +23,13 @@
  "units": [
   {
    "key": "func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)",
-   "hash": "9d6e2d19027a730c",
-   "does": "RR path: needs >=100 RR points and >=3 five-minute HR windows; detects onset/wake by HR midpoint threshold, clamps onset to 20 min (SleepConstants.maxHREstimatedOnsetLatencyMin) of wall-clock time after recording start (clampedOnsetMs), runs HRVSleepStageClassifier over onset..wake and assembles SleepData (.hrEstimated). Called via HealthKitManager/SleepHealthQueries.estimateSleepFromHR from MorningProcessingService+Sleep:193, MorningResultsViewModel:491, SleepBoundaryResolver:311, DemoSessionSeeder:94.",
+   "hash": "3b8e6f3c1d602817",
+   "does": "RR path: needs >=100 RR points and >=3 five-minute HR windows; detects onset/wake by HR midpoint threshold; plausibleOnsetMs keeps the onset when its wall-clock latency is within SleepConstants.maxHREstimatedOnsetLatencyMin (20 min), else replaces it with the recording start (beat-sum 0: onset undetermined, so sleepStart = recordingStart and SleepData.sleepLatencyMinutes reads nil); runs HRVSleepStageClassifier over onset..wake and assembles SleepData (.hrEstimated). Called via HealthKitManager/SleepHealthQueries.estimateSleepFromHR from MorningProcessingService+Sleep, MorningResultsViewModel, SleepBoundaryResolver.resolveFromHREstimation and DemoSessionSeeder.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedOnsetMs(_:in:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleOnsetMs(_:in:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)"
    ],
@@ -49,7 +49,7 @@
     {
      "at": "+5",
      "cond": "onset detected",
-     "effect": "clamped on the wall clock; none: nil onset"
+     "effect": "kept if within the 20-min wall-clock cap, else recording start (0); none detected: nil onset"
     },
     {
      "at": "+8",
@@ -65,35 +65,42 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedOnsetMs(_:in:)": "327cc80016321c10",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)": "f5e8d6f45b4ae323",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)": "383647fc72c68104",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)": "ef325193ba4d33b8",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)": "7a862ca077cb51c4",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleOnsetMs(_:in:)": "de938246600dc43e",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.windowedHR(_:from:to:)": "af9e8088a9778198"
    }
   },
   {
-   "key": "func HRSleepEstimator.clampedOnsetMs(_:in:)",
-   "hash": "4b7776b165f296f4",
-   "does": "Clamps a beat-sum onset so its wall-clock time is at most SleepConstants.maxHREstimatedOnsetLatencyMin after the recording start: unchanged when within the ceiling, else the smaller of itself and the beat-sum time of the ceiling (beatSumMs(forWallClockMs:)). Measured on the wall clock so beats lost early in the night cannot push the onset past the ceiling.",
+   "key": "func HRSleepEstimator.plausibleOnsetMs(_:in:)",
+   "hash": "4606c87dee61239c",
+   "does": "Measures a beat-sum onset's latency on the wall clock (wallClockMs(forBeatSumMs:)) and returns the onset unchanged when SleepConstants.isPlausibleHROnsetLatency accepts it; otherwise logs and returns 0, the recording start: a detection past the 20-min ceiling is a misfire (the light-to-deep transition), so onset is undetermined rather than fabricated at minute 20.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.beatSumMs(forWallClockMs:in:)"
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "onset's wall-clock time within the ceiling",
+     "cond": "wall-clock latency within the ceiling",
      "effect": "return onset unchanged"
+    },
+    {
+     "at": "+3",
+     "cond": "past the ceiling",
+     "effect": "log, return 0 (recording start)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.beatSumMs(forWallClockMs:in:)": "0361dd7a5640694c",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)": "53b82fffa0910db5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -288,28 +295,6 @@
    }
   },
   {
-   "key": "func HRSleepEstimator.beatSumMs(forWallClockMs:in:)",
-   "hash": "fd104327a27037a7",
-   "does": "Inverse of wallClockMs(forBeatSumMs:in:): shifts a wall-clock time onto the beat-sum clock by the offset (exportTimeMs - t_ms) of the first beat at/after it on the wall clock, or the last beat.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "first beat with exportTimeMs >= ms ?? last beat",
-     "effect": "no later beat: uses last beat; empty array: returns ms unchanged"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5"
-   }
-  },
-  {
    "key": "func HRSleepEstimator.hrSleepThreshold(_:)",
    "hash": "9c1b0c32455461e7",
    "does": "Passive path threshold: midpoint of smoothed max and min HR; nil (logged) when range < 8 bpm or input empty.",
@@ -342,11 +327,12 @@
    }
   },
   {
-   "key": "func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)",
-   "hash": "158b549d3f018538",
-   "does": "Passive path onset: first of 2 consecutive smoothed points below threshold, clamped to windowStart + 20 min; nil (logged) when none.",
+   "key": "func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)",
+   "hash": "685af24b6cca5aaa",
+   "does": "Passive path onset: first of 2 consecutive smoothed points below threshold; nil (logged) when none. Kept when its latency after windowStart (bedtime) passes SleepConstants.isPlausibleHROnsetLatency (<= 20 min); a later detection is logged as a misfire and windowStart is returned (onset undetermined, falls back to bedtime) instead of windowStart + 20 min.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -360,11 +346,17 @@
     {
      "at": "+13",
      "cond": "onset found",
-     "effect": "false: log, nil; true: min(onset, windowStart+20min)"
+     "effect": "false: log, nil"
+    },
+    {
+     "at": "+18",
+     "cond": "latency within the ceiling",
+     "effect": "true: detected onset; false: log, windowStart"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)": "53b82fffa0910db5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

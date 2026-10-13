@@ -36,23 +36,23 @@
  ],
  "units": [
   {
-   "key": "init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
-   "hash": "3fbe025254901885",
-   "does": "Stores all inputs; keeps liveLoadSnapshot only when the workout (endDate, else startDate) is today in the current calendar, so a past day's report uses the frozen session load; then builds the shared DailyLoopAnalysis once (makeLoopAnalysis) from the same inputs and that load.",
+   "key": "init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)",
+   "hash": "4761cd1395fba4c1",
+   "does": "Stores all inputs; keeps liveLoadSnapshot only when the workout (endDate, else startDate) is today in the current calendar, so a past day's report uses the frozen session load; then builds the shared DailyLoopAnalysis once (makeLoopAnalysis) from the same inputs, the sleep schedule (not stored) and that load.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:liveLoad:)"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:sleepSchedule:liveLoad:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+24",
+     "at": "+25",
      "cond": "workoutSession.endDate is nil",
      "effect": "?? falls back to startDate for the \"is today\" test"
     },
     {
-     "at": "+25",
+     "at": "+26",
      "cond": "isToday",
      "effect": "stores and analyses with the passed liveLoadSnapshot; otherwise nil"
     }
@@ -64,14 +64,14 @@
      "text": "docs/TRAINING_LOAD.md says the PDF/holistic reports read cache.current (the live numbers), but the initializer drops the caller-captured live snapshot unless the workout ended today. Any past-day daily report prints the frozen session load and gates advice on it.",
      "evidence": [
       "docs/TRAINING_LOAD.md:289",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:111",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:112"
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:116",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:117"
      ],
      "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:liveLoad:)": "f6c7476f472dea76"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:sleepSchedule:liveLoad:)": "0aa87161146b5e45"
    }
   },
   {
@@ -325,9 +325,9 @@
    "deps": {}
   },
   {
-   "key": "func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:liveLoad:)",
-   "hash": "588916f9387ee322",
-   "does": "Builds the DailyLoopAnalysis: the workout, the overnight session, the recent overnight sessions that started on or before the reported night (overnight start, else workout start), max HR, and the advice-gate load from adviceGateLoad(live:workoutSession:overnightSession:).",
+   "key": "func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:sleepSchedule:liveLoad:)",
+   "hash": "b8bd99d14c8cd402",
+   "does": "Builds the DailyLoopAnalysis: the workout, the overnight session, the recent overnight sessions that started on or before the reported night (overnight start, else workout start), max HR, the sleep schedule that assigns nights for its baseline, and the advice-gate load from adviceGateLoad(live:workoutSession:overnightSession:).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad(live:workoutSession:overnightSession:)"

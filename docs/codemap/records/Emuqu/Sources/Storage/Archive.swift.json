@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/Archive.swift",
- "hash": "e2cffb8098b22bd8",
+ "hash": "ab6c031ab15d742d",
  "role": "Defines SessionArchive, the lock-guarded facade over the on-disk session archive (index.json, deleted.json, per-session encrypted JSON files in the App Group archive directory): init/boot, orphan adoption, archive/update/retrieve API and read-health counters.",
  "types": [
   "SessionArchive: class (@unchecked Sendable) — archive facade; all index/tombstone/counter state guarded by archiveLock",
@@ -17,6 +17,7 @@
   "mem:SessionArchive.deletedSessionIds",
   "mem:SessionArchive.indexReadFailed",
   "mem:SessionArchive.indexDecodeFailed",
+  "mem:SessionArchive.newerBuildIndexEntries (IndexEntriesFromNewerBuild: index.json entries a newer build wrote, kept raw for saveIndex)",
   "mem:SessionArchive.deletedIndexReadFailed",
   "mem:SessionArchive.totalReadAttempts",
   "mem:SessionArchive.permissionDeniedReadFailures",
@@ -74,8 +75,8 @@
   },
   {
    "key": "func SessionArchive.resetInMemoryStateAfterPurge()",
-   "hash": "aa5944e4fe123b5a",
-   "does": "After 'Delete All My Data' removed files, clears in-memory index, deletedSessionIds, sortedEntriesCache and sessionIdLookup under archiveLock, then resets the read-health counters. Does not touch disk.",
+   "hash": "763e95a0b9ab7ac0",
+   "does": "After 'Delete All My Data' removed files, clears in-memory index, newerBuildIndexEntries, deletedSessionIds, sortedEntriesCache and sessionIdLookup under archiveLock, then resets the read-health counters. Does not touch disk.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()"
@@ -83,6 +84,7 @@
    "reads": [],
    "writes": [
     "mem:SessionArchive.index",
+    "mem:SessionArchive.newerBuildIndexEntries",
     "mem:SessionArchive.deletedSessionIds",
     "mem:SessionArchive.sortedEntriesCache",
     "mem:SessionArchive.sessionIdLookup"
@@ -90,6 +92,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init IndexEntriesFromNewerBuild()": "c15455a925203692",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()": "591e07ca81320f48"
    }
   },

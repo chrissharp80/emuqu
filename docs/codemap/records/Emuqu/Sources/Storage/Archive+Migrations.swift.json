@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+Migrations.swift",
- "hash": "aa6c72a816815e8d",
- "role": "ArchiveMigrations' deferred repairs: flag-gated index backfills (recovery score, endDate, meanHR/stress, sleep index fields), duplicate quarantine of same-night overnights, and re-linking of same-night split segments, plus the reupload notification name.",
+ "hash": "bade0aa5324a23d0",
+ "role": "ArchiveMigrations' deferred repairs: flag-gated index backfills (recovery score, endDate, meanHR/stress, sleep index fields, legacy Elite HRV stress/score), duplicate quarantine of same-night overnights, and re-linking of same-night split segments, plus the reupload notification name.",
  "types": [
   "ArchiveMigrations: extension — migrations over SessionArchive state",
   "ArchiveMigrations.MigrationFlag: enum (private) — UserDefaults done-flag keys",
@@ -17,15 +17,16 @@
   "notif:flowRecoveryArchiveSessionsNeedReupload (declared here; userInfo['sessionIds']: Set<UUID>)",
   "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>.json and README.txt",
   "static ArchiveMigrations.quarantineReadme (README text)",
-  "static ArchiveMigrations.relinkEncoder (iso8601, prettyPrinted+sortedKeys)"
+  "static ArchiveMigrations.relinkEncoder (iso8601, prettyPrinted+sortedKeys)",
+  "ud:FlowRecovery.migration.legacyEliteIndex.v1.done"
  ],
  "toplevel": "relinkEncoder and quarantineReadme static initialisers; Notification.Name.flowRecoveryArchiveSessionsNeedReupload = 'flowRecoveryArchiveSessionsNeedReupload'. The header says migrations are one-time, but runDeferredMigrations runs at every launch housekeeping and after every CloudKit pull.",
  "flags": [],
  "units": [
   {
    "key": "func ArchiveMigrations.runDeferredMigrations()",
-   "hash": "4bd79b0221bf4216",
-   "does": "Runs, in order: re-encryption of pending plaintext sessions, recovery-score/endDate/metrics/sleep-index index backfills, duplicate quarantine, and same-night relink. Each step takes/releases the archive lock itself.",
+   "hash": "429473b67279e367",
+   "does": "Runs, in order: re-encryption of pending plaintext sessions, recovery-score/endDate/metrics/sleep-index/legacy-Elite index backfills, duplicate quarantine, and same-night relink. Each step takes/releases the archive lock itself.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)",
@@ -33,6 +34,7 @@
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()"
    ],
@@ -54,6 +56,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()": "95ee8e24e58266d8",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "e84148b00578230a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()": "fce1630db0c9bbad",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()": "acb603d60c244341",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()": "ff24114f2e704a1b",
@@ -87,6 +90,70 @@
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)": "836ec1f15fdf12d0",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.sleepIndexPatch(entry:session:)": "6a2bbbccd8e3352a",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.migrateLegacyEliteImportIndex()",
+   "hash": "701f54958df82d47",
+   "does": "Flag-gated one-time pass over overnight and quick entries that carry a stress index or score: reads each session (which decodes with a legacy Elite import's made-up stress index and score dropped) and patches the entries of Elite imports whose index still holds them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.migration.legacyEliteIndex.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "ud:FlowRecovery.migration.legacyEliteIndex.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "overnight/quick and stress index or score present",
+     "effect": "entry in the work list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)": "4c77a67474e58d1e",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)": "836ec1f15fdf12d0"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.legacyElitePatch(entry:session:)",
+   "hash": "5f289d3b9ff39340",
+   "does": "For an Elite HRV import whose entry's stress index or score differs from the decoded session's, the entry rebuilt with the session's stressIndex and recoveryScore (every other field from the entry, plus sleep mirrors); nil for every other session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "not an Elite import, or entry already matches the session",
+     "effect": "nil (no patch)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)": "29432208cba72021",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b"
    }
   },

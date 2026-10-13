@@ -43,7 +43,7 @@ struct PoincarePlotView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Poincaré plot showing beat-to-beat heart rate variability. SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) milliseconds, SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(result.markingEstimate(String(localized: "Poincaré plot showing beat-to-beat heart rate variability. SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) milliseconds, SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle), for: .sd2))
     }
 
     private func drawPoincarePlot(_ context: inout GraphicsContext, size: CGSize) {

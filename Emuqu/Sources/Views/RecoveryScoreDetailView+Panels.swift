@@ -186,7 +186,7 @@ extension RecoveryScoreDetailView {
         if let series = effectiveRRSeries {
             detailRow(String(localized: "Beats recorded", bundle: LanguageManager.appBundle), value: "\(series.points.count)")
         }
-        detailRow(String(localized: "Beats analysed", bundle: LanguageManager.appBundle), value: "\(result.cleanBeatCount)")
+        detailRow(String(localized: "Beats analysed", bundle: LanguageManager.appBundle), value: result.cleanBeatCountText)
         detailRow(String(localized: "Artifact rate", bundle: LanguageManager.appBundle), value: String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage))
         dataLossRow
     }

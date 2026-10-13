@@ -22,6 +22,11 @@ import HealthKit
 // The post-summary card applies it once to the average METs over the active
 // time, so the two totals can differ when ticks lack METs or have gaps.
 // Reference: Ainsworth 2011, Compendium of Physical Activities.
+//
+// Pauses: `WorkoutSample.offsetSec` counts active seconds only, while
+// Health keeps the wall clock. Every sample is placed at its wall-clock
+// moment (`WorkoutWallClock`), and each pause goes in as a pause/resume
+// event pair, so Health's duration and pace leave the paused time out.
 
 enum HealthKitWorkoutExport {
     /// Save a finished workout to HealthKit. Idempotent only by caller —
@@ -112,10 +117,13 @@ enum HealthKitWorkoutExport {
         let builder = HKWorkoutBuilder(
             healthStore: store, configuration: workoutConfiguration(for: metadata.sport), device: .local()
         )
+        let clock = WorkoutWallClock(startDate: startDate, pauseSpans: metadata.pauseSpans)
         try await builder.beginCollection(at: startDate)
-        try await addSampleSeries(
-            metadata: metadata, startDate: startDate, options: options, store: store, to: builder
-        )
+        try await addSampleSeries(metadata: metadata, clock: clock, options: options, store: store, to: builder)
+        let events = pauseEvents(of: clock, endDate: endDate)
+        if !events.isEmpty {
+            try await builder.addWorkoutEvents(events)
+        }
         try await builder.endCollection(at: endDate)
         guard let workout = try await builder.finishWorkout() else {
             throw ExportError.workoutNotSaved
@@ -155,16 +163,16 @@ enum HealthKitWorkoutExport {
     @MainActor
     private static func addSampleSeries(
         metadata: WorkoutMetadata,
-        startDate: Date,
+        clock: WorkoutWallClock,
         options: SampleOptions,
         store: HKHealthStore,
         to builder: HKWorkoutBuilder
     ) async throws {
         let samples = options.writesDistanceAndEnergy ? metadata.samples ?? [] : []
         let series = [
-            options.writesHeartRate ? heartRateSamples(of: metadata, startDate: startDate) : [],
-            distanceSamples(from: samples, sport: metadata.sport, startDate: startDate),
-            activeEnergySamples(from: samples, startDate: startDate, bodyWeightKg: options.bodyWeightKg)
+            options.writesHeartRate ? heartRateSamples(of: metadata, clock: clock) : [],
+            distanceSamples(from: samples, sport: metadata.sport, clock: clock),
+            activeEnergySamples(from: samples, clock: clock, bodyWeightKg: options.bodyWeightKg)
         ]
         var skipped: [String] = []
         for batch in series {
@@ -184,6 +192,24 @@ enum HealthKitWorkoutExport {
         store.authorizationStatus(for: type) == .sharingAuthorized
     }
 
+    /// A pause event where each pause began and a resume event where the
+    /// workout went on, so Health's duration and pace leave the paused time
+    /// out. A pause still running at `endDate` (stopped while paused) gets no
+    /// resume, and the builder counts it as paused to the end; one that began
+    /// at or after `endDate` is left out, as the builder takes no event
+    /// outside the workout.
+    static func pauseEvents(of clock: WorkoutWallClock, endDate: Date) -> [HKWorkoutEvent] {
+        clock.pauses().filter { $0.start < endDate }.flatMap { pause -> [HKWorkoutEvent] in
+            let resume: [HKWorkoutEvent] = pause.end < endDate ? [workoutEvent(.resume, at: pause.end)] : []
+            return [workoutEvent(.pause, at: pause.start)] + resume
+        }
+    }
+
+    /// Pause and resume events are moments: a zero-length interval.
+    private static func workoutEvent(_ type: HKWorkoutEventType, at date: Date) -> HKWorkoutEvent {
+        HKWorkoutEvent(type: type, dateInterval: DateInterval(start: date, duration: 0), metadata: nil)
+    }
+
     // MARK: - Sample builders
     //
     // Kept out of `export` for its cyclomatic complexity.
@@ -198,21 +224,22 @@ enum HealthKitWorkoutExport {
     private static let minimumKcalPerSample = 0.01
 
     /// The workout's own heart rate: the rows Apple Health filled are left out.
-    private static func heartRateSamples(of metadata: WorkoutMetadata, startDate: Date) -> [HKQuantitySample] {
+    private static func heartRateSamples(of metadata: WorkoutMetadata, clock: WorkoutWallClock) -> [HKQuantitySample] {
         heartRateSamples(
-            from: metadata.samples ?? [], startDate: startDate, skipping: Set(metadata.healthKitHROffsets ?? [])
+            from: metadata.samples ?? [], clock: clock, skipping: Set(metadata.healthKitHROffsets ?? [])
         )
     }
 
-    /// Per-tick heart rate, as instantaneous (zero-length) samples, leaving
-    /// out the rows at `skipping` offsets (heart rate read from Apple Health).
+    /// Per-tick heart rate, as instantaneous (zero-length) samples at each
+    /// tick's wall-clock moment, leaving out the rows at `skipping` offsets
+    /// (heart rate read from Apple Health).
     static func heartRateSamples(
-        from samples: [WorkoutSample], startDate: Date, skipping healthKitOffsets: Set<Int> = []
+        from samples: [WorkoutSample], clock: WorkoutWallClock, skipping healthKitOffsets: Set<Int> = []
     ) -> [HKQuantitySample] {
         guard let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return [] }
         return samples.compactMap { s in
             guard let bpm = s.heartRate, !healthKitOffsets.contains(s.offsetSec) else { return nil }
-            let when = startDate.addingTimeInterval(TimeInterval(s.offsetSec))
+            let when = clock.date(atActiveOffset: s.offsetSec)
             return HealthSampleFactory.quantitySample(
                 type: hrType, value: Double(bpm), unit: HKUnit(from: "count/min"), start: when, end: when
             )
@@ -229,14 +256,15 @@ enum HealthKitWorkoutExport {
     /// even when a merged or recovered list arrives out of order. A span
     /// starts where the last written delta ended (the workout start before
     /// the first), so a delta that built up over ticks that did not advance
-    /// covers all of them, not just the last tick interval.
+    /// covers all of them, not just the last tick interval. Spans sit on the
+    /// wall clock and never cross a pause (`WorkoutWallClock.interval`).
     /// `delta.isFinite` defends against the (unlikely) case where
     /// dist arithmetic produces an infinity. NaN already short-circuits on
     /// `dist > lastDistance` (NaN > x is always false).
     static func distanceSamples(
         from samples: [WorkoutSample],
         sport: Sport,
-        startDate: Date
+        clock: WorkoutWallClock
     ) -> [HKQuantitySample] {
         guard let distanceTypeId = distanceType(for: sport),
               let distType = HKQuantityType.quantityType(forIdentifier: distanceTypeId) else { return [] }
@@ -248,10 +276,9 @@ enum HealthKitWorkoutExport {
             let delta = dist - lastDistance
             guard delta.isFinite, delta > 0 else { continue }
             lastDistance = dist
+            let span = clock.interval(fromActiveOffset: spanStart, to: s.offsetSec)
             let sample = HealthSampleFactory.quantitySample(
-                type: distType, value: delta, unit: .meter(),
-                start: startDate.addingTimeInterval(TimeInterval(spanStart)),
-                end: startDate.addingTimeInterval(TimeInterval(s.offsetSec))
+                type: distType, value: delta, unit: .meter(), start: span.start, end: span.end
             )
             spanStart = s.offsetSec
             if let sample { out.append(sample) }
@@ -271,10 +298,12 @@ enum HealthKitWorkoutExport {
 
     /// Per-window active energy. Better than one session total because it
     /// lets Apple Health plot calorie burn over time and attribute it to the
-    /// right activity-ring minute.
+    /// right activity-ring minute. The kcal are worked out over the active
+    /// seconds between ticks; the sample sits on the wall clock and never
+    /// crosses a pause (`WorkoutWallClock.interval`).
     static func activeEnergySamples(
         from samples: [WorkoutSample],
-        startDate: Date,
+        clock: WorkoutWallClock,
         bodyWeightKg: Double
     ) -> [HKQuantitySample] {
         guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return [] }
@@ -289,10 +318,9 @@ enum HealthKitWorkoutExport {
             let minutes = Double(durationSec) / 60.0
             let kcal = (mets * mlOxygenPerKgPerMET * bodyWeightKg * minutes) / mlOxygenPerKcal
             guard kcal > minimumKcalPerSample else { continue }
+            let span = clock.interval(fromActiveOffset: prevOffset, to: s.offsetSec)
             let sample = HealthSampleFactory.quantitySample(
-                type: energyType, value: kcal, unit: .kilocalorie(),
-                start: startDate.addingTimeInterval(TimeInterval(prevOffset)),
-                end: startDate.addingTimeInterval(TimeInterval(s.offsetSec))
+                type: energyType, value: kcal, unit: .kilocalorie(), start: span.start, end: span.end
             )
             if let sample { out.append(sample) }
         }
@@ -308,6 +336,12 @@ enum HealthKitWorkoutExport {
 
     /// Attaches the GPS polyline to an already-persisted workout. No-op for
     /// indoor sports, a missing polyline, or a polyline that decodes empty.
+    ///
+    /// The route keeps `GPXExporter.decode`'s evenly spread times and is not
+    /// moved around pauses: the polyline stores no fix times, and fixes keep
+    /// coming while paused (the map shows where the user went), at a rate
+    /// that cannot be told from the active one, so there is no correct way
+    /// to split the points between active and paused time.
     private static func attachRoute(
         metadata: WorkoutMetadata,
         duration: TimeInterval?,
@@ -361,6 +395,56 @@ enum HealthKitWorkoutExport {
             case .authorizationNotGranted: return String(localized: "Apple Health permission was not granted for workout export.", bundle: LanguageManager.appBundle)
             case .workoutNotSaved: return String(localized: "Apple Health finished the workout without saving it.", bundle: LanguageManager.appBundle)
             }
+        }
+    }
+}
+
+// MARK: - Wall clock
+
+/// Where a workout's active (pause-excluded) seconds, the clock of
+/// `WorkoutSample.offsetSec`, fall on the wall clock Apple Health keeps. The
+/// same rule as `WorkoutMetadata.wallClockSeconds(forActiveOffset:)`, from a
+/// start date: the active second plus every pause that began before it.
+struct WorkoutWallClock {
+    let startDate: Date
+    /// The workout's pauses, in the order they began.
+    let pauseSpans: [WorkoutPauseSpan]
+
+    init(startDate: Date, pauseSpans: [WorkoutPauseSpan]? = nil) {
+        self.startDate = startDate
+        self.pauseSpans = (pauseSpans ?? []).sorted { $0.atElapsed < $1.atElapsed }
+    }
+
+    /// The moment of active second `offset`. A tick at the second a pause
+    /// began was taken before that pause.
+    func date(atActiveOffset offset: Int) -> Date {
+        let pausedBefore = pauseSpans.filter { $0.atElapsed < offset }.reduce(0.0) { $0 + $1.seconds }
+        return startDate.addingTimeInterval(Double(offset) + pausedBefore)
+    }
+
+    /// The stretch of a quantity that built up between active seconds
+    /// `start` and `end`. It ends at `end`'s moment. When a pause began in
+    /// it, it starts where the last such pause ended, so no sample spans a
+    /// pause and Health never counts paused time as moving: the amount from
+    /// before that pause is put after it. With 1 Hz ticks that is the one
+    /// tick interval the pause interrupted.
+    func interval(fromActiveOffset start: Int, to end: Int) -> (start: Date, end: Date) {
+        let endDate = date(atActiveOffset: end)
+        guard let lastPause = pauseSpans.last(where: { $0.atElapsed >= start && $0.atElapsed < end }) else {
+            return (start: date(atActiveOffset: start), end: endDate)
+        }
+        return (start: endDate.addingTimeInterval(-Double(end - lastPause.atElapsed)), end: endDate)
+    }
+
+    /// Each pause on the wall clock: the moment it began and the moment the
+    /// workout resumed. Pauses that began at the same active second follow
+    /// one another.
+    func pauses() -> [(start: Date, end: Date)] {
+        var pausedBefore = 0.0
+        return pauseSpans.map { span in
+            let began = startDate.addingTimeInterval(Double(span.atElapsed) + pausedBefore)
+            pausedBefore += span.seconds
+            return (start: began, end: began.addingTimeInterval(span.seconds))
         }
     }
 }

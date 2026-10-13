@@ -259,7 +259,135 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertThrowsError(try importer.parseEliteHRVSummary(csv, fileName: "test.csv"))
     }
 
+    // MARK: - Elite HRV measured and estimated metrics
+
+    private static let eliteNewFormat = """
+    Member,Type,Position,Date Time Start,Duration,HRV,HR,lnRmssd,Rmssd,Nn50,Pnn50,Sdnn
+    John,Morning,Seated,2024-01-15 06:30:00,120,65,60,3.75,42.5,30,18.2,55.1
+    """
+
+    private static let eliteOldFormat = """
+    datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr,rr_min_ms,rr_max_ms,file
+    2024-01-15 06:30:00,45.2,48.1,3.2,300,600,1200,session1.csv
+    """
+
+    func testEliteNewFormatReadsTheFilesSDNNAndPNN50() throws {
+        let summary = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteNewFormat, fileName: "e.csv").sessions.first)
+        XCTAssertEqual(summary.sdnn, 55.1)
+        XCTAssertEqual(summary.pnn50, 18.2)
+        XCTAssertFalse(summary.rrRangeStated, "The new format states mean HR, not the RR extremes")
+
+        let result = try XCTUnwrap(importer.createAnalyzedSession(from: summary, originalFileName: "e.csv").analysisResult)
+        XCTAssertEqual(result.timeDomain.sdnn, 55.1)
+        XCTAssertEqual(result.timeDomain.pnn50, 18.2)
+        XCTAssertEqual(result.measuredSDNN, 55.1)
+        XCTAssertEqual(result.measuredPNN50, 18.2)
+        XCTAssertFalse(result.isEstimated(.sdnn))
+        XCTAssertFalse(result.isEstimated(.pnn50))
+        XCTAssertTrue(result.isEstimated(.hrRange))
+        XCTAssertTrue(result.isEstimated(.sdsd))
+        XCTAssertTrue(result.isEstimated(.sd2))
+    }
+
+    func testEliteOldFormatMarksWhatTheFileDoesNotState() throws {
+        let summary = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteOldFormat, fileName: "e.csv").sessions.first)
+        XCTAssertNil(summary.sdnn)
+        XCTAssertNil(summary.pnn50)
+        XCTAssertTrue(summary.rrRangeStated)
+
+        let session = importer.createAnalyzedSession(from: summary, originalFileName: "e.csv")
+        let result = try XCTUnwrap(session.analysisResult)
+        XCTAssertEqual(result.timeDomain.rmssd, 45.2, "RMSSD is the file's own value")
+        XCTAssertTrue(result.isEstimated(.sdnn))
+        XCTAssertTrue(result.isEstimated(.pnn50))
+        XCTAssertFalse(result.isEstimated(.hrRange), "Both RR extremes are stated")
+        XCTAssertNil(result.measuredSDNN)
+        XCTAssertNil(result.measuredPNN50)
+        XCTAssertNil(result.ansMetrics, "No stress index or readiness is made from RMSSD")
+        XCTAssertNil(session.stressIndex)
+        XCTAssertEqual(session.importedMetrics?.source, HRVSession.ImportedMetrics.eliteHRVSource)
+    }
+
+    func testEliteRowWithNoHeartRateIsSkippedNotGivenOne() {
+        let csv = """
+        Member,Type,Date Time Start,HRV,Rmssd
+        John,Morning,2024-01-15 06:30:00,65,42.5
+        """
+        XCTAssertThrowsError(try importer.parseEliteHRVSummary(csv, fileName: "e.csv"), "No mean HR and no RR extremes")
+    }
+
+    func testEliteRowWithNoBeatCountGetsNoMadeUpCount() throws {
+        let csv = """
+        datetime,rmssd_clean_ms,rr_min_ms,rr_max_ms
+        2024-01-15 06:30:00,45.2,600,1200
+        """
+        let summary = try XCTUnwrap(importer.parseEliteHRVSummary(csv, fileName: "e.csv").sessions.first)
+        XCTAssertNil(summary.beatCount)
+
+        let session = importer.createAnalyzedSession(from: summary, originalFileName: "e.csv")
+        let result = try XCTUnwrap(session.analysisResult)
+        XCTAssertTrue(result.isEstimated(.beatCount))
+        XCTAssertNil(result.measuredCleanBeatCount)
+        XCTAssertEqual(result.cleanBeatCountText, "—")
+        XCTAssertEqual(session.endDate, session.startDate, "No beat count, no length")
+        XCTAssertFalse(session.notes?.contains("100") ?? true)
+    }
+
+    func testEliteRowWithABeatCountKeepsIt() throws {
+        let summary = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteOldFormat, fileName: "e.csv").sessions.first)
+        let result = try XCTUnwrap(importer.createAnalyzedSession(from: summary, originalFileName: "e.csv").analysisResult)
+        XCTAssertEqual(summary.beatCount, 300)
+        XCTAssertFalse(result.isEstimated(.beatCount))
+        XCTAssertEqual(result.measuredCleanBeatCount, Int(300 * (1.0 - 3.2 / 100.0)))
+    }
+
+    func testEstimatedValueIsMarkedForDisplayAndMeasuredOneIsNot() throws {
+        let old = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteOldFormat, fileName: "e.csv").sessions.first)
+        let estimated = try XCTUnwrap(importer.createAnalyzedSession(from: old, originalFileName: "e.csv").analysisResult)
+        let new = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteNewFormat, fileName: "e.csv").sessions.first)
+        let measured = try XCTUnwrap(importer.createAnalyzedSession(from: new, originalFileName: "e.csv").analysisResult)
+
+        XCTAssertNotEqual(estimated.markingEstimate("81.4 ms", for: .sdnn), "81.4 ms")
+        XCTAssertTrue(estimated.markingEstimate("81.4 ms", for: .sdnn).hasPrefix("81.4 ms ("))
+        XCTAssertEqual(measured.markingEstimate("55.1 ms", for: .sdnn), "55.1 ms")
+    }
+
+    func testEstimatedMetricsStayOutOfTheAssistantsHRVRecord() throws {
+        let old = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteOldFormat, fileName: "e.csv").sessions.first)
+        let session = importer.createAnalyzedSession(from: old, originalFileName: "e.csv")
+        guard case .record(let fields) = HRVNamespace.hrvRecord(for: session) else {
+            return XCTFail("Expected a record")
+        }
+        XCTAssertNotNil(fields["rmssd_ms"])
+        for key in ["sdnn_ms", "pnn50_percent", "sdsd_ms", "sd_hr_bpm", "sd1_ms", "sd2_ms", "sd1_sd2_ratio"] {
+            XCTAssertNil(fields[key], "\(key) is an estimate")
+        }
+        XCTAssertNotNil(fields["window_min_hr_bpm"], "The old format states the RR extremes")
+    }
+
+    @MainActor
+    func testEstimatedSDNNIsNoPointOnTheSDNNTrendChart() throws {
+        let importer = RRDataImporter()
+        let old = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteOldFormat, fileName: "e.csv").sessions.first)
+        let new = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteNewFormat, fileName: "e.csv").sessions.first)
+        let estimated = importer.createAnalyzedSession(from: old, originalFileName: "e.csv")
+        let measured = importer.createAnalyzedSession(from: new, originalFileName: "e.csv")
+
+        XCTAssertNil(TrendsV2View.metricValue(.sdnn, in: estimated))
+        XCTAssertEqual(TrendsV2View.metricValue(.sdnn, in: measured), 55.1)
+        XCTAssertEqual(TrendsV2View.metricValue(.rmssd, in: estimated), 45.2)
+    }
+
     // MARK: - resolveEliteHRVColumns
+
+    func testResolveEliteHRVColumns_newFormatSDNNAndPNN50() {
+        let headers = ["member", "type", "date time start", "hr", "lnrmssd", "rmssd", "nn50", "pnn50", "sdnn"]
+        let indices = importer.resolveEliteHRVColumns(headers: headers)
+        XCTAssertEqual(indices.rmssd, 5)
+        XCTAssertEqual(indices.pnn50, 7)
+        XCTAssertEqual(indices.sdnn, 8)
+        XCTAssertEqual(indices.hr, 3)
+    }
 
     func testResolveEliteHRVColumns_oldFormat() {
         let headers = ["datetime", "rmssd_clean_ms", "rmssd_raw_ms", "removed_rr_pct", "n_rr", "rr_min_ms", "rr_max_ms", "file"]

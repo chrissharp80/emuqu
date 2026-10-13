@@ -97,4 +97,12 @@ struct AnalysisSleepTrendInput {
         nightsAnalyzed = hk.nightsAnalyzed
         trend = hk.trend
     }
+
+    /// The week of nights before `session`, from the sleep archived with
+    /// `sessions` (`SleepTrendStats.recentNights`); nil without a session or
+    /// a night with measured sleep, which the generator reads as "no trend".
+    static func recentNights(before session: HRVSession?, in sessions: [HRVSession]) -> AnalysisSleepTrendInput? {
+        guard let session, let stats = SleepTrendStats.recentNights(before: session, in: sessions) else { return nil }
+        return AnalysisSleepTrendInput(from: stats)
+    }
 }

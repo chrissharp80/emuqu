@@ -1,17 +1,16 @@
 {
  "file": "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift",
- "hash": "5570eaf8e7d99c26",
- "role": "Value-typed 'today in one glance' loop classifier for the Holistic Daily Report PDF: compares this morning's ln(RMSSD) z-score (vs up to 60 earlier reliable overnights) with today's workout intensity to pick one of six LoopStates, and produces the localized verdict, Loop paragraph and Tomorrow line.",
+ "hash": "36f950faa900142a",
+ "role": "Value-typed 'today in one glance' loop classifier for the Holistic Daily Report PDF: compares this morning's ln(RMSSD) z-score (vs the nights the recovery score's baseline holds for it, BaselineTracker.baselineRMSSDs) with today's workout intensity to pick one of six LoopStates, and produces the localized verdict, Loop paragraph and Tomorrow line.",
  "types": [
-  "DailyLoopAnalysis: struct — inputs (workout, overnight, recent overnights, max HR, advice load) and derived copy",
+  "DailyLoopAnalysis: struct — inputs (workout, overnight, recent overnights, max HR, sleep schedule, advice load) and derived copy",
   "DailyLoopAnalysis.LoopState: enum — absorbing/underloading/sustainable/backedOff/highStrain/undetermined",
   "DailyLoopAnalysis.IntensityClass: enum — easy/moderate/hard",
   "DailyLoopAnalysis.VerdictTone: enum — positive/neutral/caution",
   "DailyLoopAnalysis.RecoveryBand: private enum — above/within/below the ±0.5 SD SWC band"
  ],
  "state": [
-  "mem:DailyLoopAnalysis.swcSDMultiple = 0.5",
-  "mem:DailyLoopAnalysis.baselineNightLimit = 60"
+  "mem:DailyLoopAnalysis.swcSDMultiple = 0.5"
  ],
  "toplevel": "Constructed by HolisticDailyReport.analysis() (Export/HolisticDailyReport.swift:269-278) and EmuquTests/DailyLoopAnalysisTests.swift. Stored inputs only; everything else is computed.",
  "flags": [
@@ -380,11 +379,11 @@
   },
   {
    "key": "var DailyLoopAnalysis.lnRmssdBaseline",
-   "hash": "3b2ba29e80c12476",
-   "does": "ln(RMSSD) baseline (mean, SD) from up to 60 most recent reliable overnight sessions that started before today's overnight, with SD = max(BaselineTracker.widenedLnSD, lnRmssdSDFloor 0.10); nil without today's overnight or with fewer than 3 positive RMSSD values.",
+   "hash": "bd18f6bda9b24854",
+   "does": "ln(RMSSD) baseline (mean, SD) over the nights BaselineTracker.baselineRMSSDs selects from recentOvernightSessions for today's overnight with the stored sleepSchedule — the recovery score's own selection: complete, HRV-reliable, structurally sound overnights, one per night by the score's replacement rule, only nights before today's (an earlier segment of today's night is excluded), the 60 most recent. SD = max(BaselineTracker.widenedLnSD, lnRmssdSDFloor 0.10). Nil without today's overnight, or with fewer than RecoveryBaselineStats.minimumDays (3) nights or positive RMSSD values.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)"
    ],
    "reads": [],
@@ -393,18 +392,18 @@
     {
      "at": "+1",
      "cond": "overnightSession exists",
-     "effect": "false: nil; true: filters history"
+     "effect": "false: nil; true: selects the baseline nights"
     },
     {
-     "at": "+12",
-     "cond": "lnValues.count >= 3",
+     "at": "+7",
+     "cond": "nights.count >= 3 and lnValues.count >= 3",
      "effect": "false: nil; true: returns mean/sd"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)": "236fc4f1f7638bfe",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c"
    }
   },
   {

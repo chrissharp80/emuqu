@@ -232,9 +232,10 @@ extension AnalysisSummaryGenerator {
 
     /// The cause rules take every marker as a number, so a missing one goes in
     /// at a resting value no rule fires on by itself (stress 150, LF/HF 1.0,
-    /// DFA α1 1.0). Good and excellent are decided from the real markers:
-    /// either one returns only the positive causes, so both need every other
-    /// marker measured and settled, not RMSSD alone.
+    /// DFA α1 1.0); pNN50 goes in as nil when it is an estimate, and the one
+    /// rule that reads it then stays quiet. Good and excellent are decided
+    /// from the real markers: either one returns only the positive causes,
+    /// so both need every other marker measured and settled, not RMSSD alone.
     private var causeContext: CauseDetectionContext {
         let rmssd = result.timeDomain.rmssd
         let isExcellent = stats.hasData && rmssd > stats.avgRMSSD * RecentAverageRatio.excellentReading
@@ -243,7 +244,7 @@ extension AnalysisSummaryGenerator {
             stressIndex: result.ansMetrics?.stressIndex ?? 150,
             lfHfRatio: result.frequencyDomain?.lfHfRatio ?? 1.0,
             dfaAlpha1: result.nonlinear.dfaAlpha1 ?? 1.0,
-            pnn50: result.timeDomain.pnn50,
+            pnn50: result.measuredPNN50,
             isGoodReading: isGoodReading(rmssd: rmssd),
             isExcellentReading: isExcellent && otherMarkersAreSettled,
             selectedTags: selectedTags,
@@ -433,7 +434,8 @@ extension AnalysisSummaryGenerator {
     /// the ratio sits instead of what it proves about the reader.
     var ansBalanceFindings: [String] {
         let rmssd = result.timeDomain.rmssd
-        let pnn50 = result.timeDomain.pnn50
+        // An estimated pNN50 is no evidence of strong vagal tone.
+        let pnn50 = result.measuredPNN50 ?? 0
         let hasStrongVagalTone = pnn50 > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
         guard let ratio = result.frequencyDomain?.lfHfRatio else { return [] }
         if ratio > HRVThresholds.lfHfSympatheticDominance {
@@ -452,7 +454,8 @@ extension AnalysisSummaryGenerator {
 
     var heartRhythmFindings: [String] {
         let rmssd = result.timeDomain.rmssd
-        let pnn50 = result.timeDomain.pnn50
+        // An estimated pNN50 is no evidence of strong vagal tone.
+        let pnn50 = result.measuredPNN50 ?? 0
         let hasStrongVagalTone = pnn50 > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
         guard let alpha = result.nonlinear.dfaAlpha1 else { return [] }
         if alpha > HRVThresholds.dfaAlpha1ClearlyElevated {
@@ -488,8 +491,9 @@ extension AnalysisSummaryGenerator {
         }
     }
 
+    /// None when pNN50 is an estimate: there is no beat-to-beat variation to read.
     var beatVariationFindings: [String] {
-        let pnn50 = result.timeDomain.pnn50
+        guard let pnn50 = result.measuredPNN50 else { return [] }
         if pnn50 < HRVThresholds.pnn50VeryLow {
             return [String(localized: "Very low beat-to-beat variation — your nervous system recovery signals are weak", bundle: NarrativeLanguage.bundle)]
         } else if pnn50 > HRVThresholds.pnn50Strong {

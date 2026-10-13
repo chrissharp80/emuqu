@@ -58,6 +58,7 @@ None of these code paths is used in the results below.
 - The ported classifier runs once per record on its RR-only path. It does not use Watch data.
 - `sleepStartMs` is the start of the first scored 30-s epoch and `sleepEndMs` is the end of the last. This is the "whole scored recording", from lights-out to the end of the recording. It mimics the app's fallback of using recording boundaries.
 - A second variant restricts the input to the PSG sleep period, from the first to the last non-wake epoch. This mimics the app receiving correct onset and wake times.
+- **Not yet re-run after the per-window gap fix.** The classifier and its port were later changed so that a window's beat-to-beat features no longer join beats across a dropped (out-of-range) beat or a recording break. RMSSD now differences only adjacent valid beats. α1 and LF/HF now use the window's longest break-free stretch, with dropped beats interpolated for α1. The port fidelity table above includes the seven new cases for this. The agreement numbers in this section came from the port before that change and have not been reproduced since: the PhysioNet data were not available where the change was made. The change only affects windows with an out-of-range RR or a pause longer than one RR plus 2 s. An NN-only interval omitted around a non-normal beat leaves a gap of about one RR, which is not a break, so the slpdb NN variants should move least.
 
 **Stage mapping and scoring.**
 - Reference stages map to four classes: W→Wake, 1+2→Core, 3+4→Deep, R→REM. MT and unscored epochs are excluded.

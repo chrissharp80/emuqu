@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift",
  "hash": "b079215f3be97a5f",
- "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
+ "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove; remove runs only after the user confirms, via DestructiveActionContext.gate) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
  "types": [
   "AssistantMemoryNamespace: extension (struct declared in AppFactResolver+AssistantMemory.swift) — contacts + email-compose entries"
  ],
@@ -219,8 +219,8 @@
   },
   {
    "key": "var AssistantMemoryNamespace.assistantContactsRemoveEntry",
-   "hash": "462e866155c7fc3c",
-   "does": "Builds the action entry `assistant.contacts.remove` (params name, user_quote) executing resolveAssistantContactsRemove.",
+   "hash": "188ff97cb1ccf998",
+   "does": "Builds the action entry `assistant.contacts.remove` (params name, user_quote) executing resolveAssistantContactsRemove; its description tells the model the first call only returns confirmation_required and to call again on the user's plain yes.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
@@ -231,34 +231,34 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)": "91f9d559a6d1375b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)": "c83c55ec54117526",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)",
-   "hash": "2b9e581b582999a6",
-   "does": "Requires a non-empty name and a user_quote present in the latest user message, looks up contacts by case-insensitive name; when exactly one matches, removes it from EmailContactStore (persisted) and returns {status:'removed',name,email}, or contactsUnreadable() when the store refused because the file can't be read.",
+   "hash": "1568e8829f794bfa",
+   "does": "Requires a non-empty name and the user_quote check, then on the main actor hands over to removeContact(named:store:context:.live) with the live EmailContactStore.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)",
-    "ext:MainActor.assumeIsolated",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.removeContact(named:store:context:)",
+    "ext:MainActor.assumeIsolated"
    ],
    "reads": [
     "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:AssistantViewModel.turns"
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "writes": [
     "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts"
+    "mem:EmailContactStore.contacts",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "branches": [
     {
@@ -270,34 +270,69 @@
      "at": "+6",
      "cond": "user_quote found in latest user message",
      "effect": "continues; else returns userRequestRequired('remove a contact')"
-    },
-    {
-     "at": "+10",
-     "cond": "exactly one contact matches",
-     "effect": "removes it and returns the record; else returns ambiguousContact (0 → notRecorded, >1 → invalidParameter)"
-    },
-    {
-     "at": "+14",
-     "cond": "store.remove returned false (address book unreadable)",
-     "effect": "returns contactsUnreadable(); nothing removed"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)": "5856b38840ca9407",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()": "2f6ca542e654d1ee",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "1f0589f5d9166f6b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.removeContact(named:store:context:)": "17402927df0835f4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "96e368549befe712",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "d1edfcafcc796ec8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "a4d36bd886431daf"
    }
   },
   {
+   "key": "func AssistantMemoryNamespace.removeContact(named:store:context:)",
+   "hash": "b6895b15d3a15d42",
+   "does": "Finds contacts by case-insensitive name; unless exactly one matches returns ambiguousContact. Gates on \"assistant.contacts.remove\"/contact id with the question naming the contact and address; once confirmed removes it (contactsUnreadable when the store refuses) and returns {status:\"removed\",name,email}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()"
+   ],
+   "reads": [
+    "mem:EmailContactStore.contacts",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not exactly one contact matches",
+     "effect": "returns ambiguousContact (0 → notRecorded, >1 → invalidParameter)"
+    },
+    {
+     "at": "+6",
+     "cond": "gate returned a result (not yet confirmed)",
+     "effect": "returns it, nothing removed"
+    },
+    {
+     "at": "+7",
+     "cond": "store.remove returned false (address book unreadable)",
+     "effect": "returns contactsUnreadable(); nothing removed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "fbfac5e6137413ea",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)": "5856b38840ca9407",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()": "2f6ca542e654d1ee",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "d1edfcafcc796ec8"
+   }
+  },
+  {
    "key": "func AssistantMemoryNamespace.ambiguousContact(name:matches:)",
-   "hash": "02cd65ebf6c8e435",
+   "hash": "2c47e9320cbf2db8",
    "does": "Maps a non-unique match count to a refusal: 0 matches → .missing(.notRecorded,'no contact named …'), >1 → .missing(.invalidParameter,'multiple contacts named …').",
    "entry": null,
    "calls": [],

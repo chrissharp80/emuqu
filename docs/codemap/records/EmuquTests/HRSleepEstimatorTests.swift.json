@@ -109,102 +109,109 @@
   },
   {
    "key": "func HRSleepEstimatorTests.testOnsetIsTheFirstOfTwoConsecutiveBelowThresholdPoints()",
-   "hash": "0b9989cf54dc5ed3",
-   "does": "Asserts passive onset is the first of two consecutive points below 65 (minute 10).",
+   "hash": "00ccd839d62e4098",
+   "does": "Asserts passive onset (plausibleSleepOnset) is the first of two consecutive points below 65 (minute 10).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)": "ac0424bcddf7b5ab"
    }
   },
   {
    "key": "func HRSleepEstimatorTests.testASingleDipBelowThresholdIsNotOnset()",
-   "hash": "5f204b82bfee41cf",
-   "does": "Asserts a single dip below threshold is not onset (nil).",
+   "hash": "d8c6ce736acda44c",
+   "does": "Asserts a single dip below threshold is not onset (plausibleSleepOnset nil).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)": "ac0424bcddf7b5ab"
    }
   },
   {
-   "key": "func HRSleepEstimatorTests.testALateDetectedOnsetIsClampedToPlausibleSleepLatency()",
-   "hash": "fd60cfc99b52b1e8",
-   "does": "Asserts a raw 69-minute detected onset is clamped to start + SleepConstants.maxHREstimatedOnsetLatencyMin.",
+   "key": "func HRSleepEstimatorTests.testALateDetectedOnsetFallsBackToBedtime()",
+   "hash": "6f7bf57fc9c1a4f9",
+   "does": "A raw 69-minute passive detection is past the latency ceiling: asserts plausibleSleepOnset returns the window start (bedtime), not the 69-minute detection and not minute 20.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "med",
-     "text": "The clamp min(detected, start + max latency) rewrites any later detection to the ceiling regardless of the HR trace, so a night where the user genuinely lay awake for over an hour is reported with a short onset and inflated sleep time; the test pins the clamp rather than a detector that finds real onset.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HRSleepEstimator.swift:228",
-      "EmuquTests/HRSleepEstimatorTests.swift:74"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
+    "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)": "ac0424bcddf7b5ab"
+   }
+  },
+  {
+   "key": "func HRSleepEstimatorTests.testAnOnsetAtTheCeilingIsKept()",
+   "hash": "6de41cb52182d708",
+   "does": "Asserts a passive detection exactly maxHREstimatedOnsetLatencyMin after the start is kept (the cap is inclusive).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)": "ac0424bcddf7b5ab"
    }
   },
   {
    "key": "func HRSleepEstimatorTests.testAnEarlyOnsetIsLeftAlone()",
-   "hash": "6b849e60a2fcfaab",
-   "does": "Asserts an onset at minute 0 is left unchanged (clamp is a ceiling).",
+   "hash": "6d687e1af11480df",
+   "does": "Asserts an onset at minute 0 is returned unchanged by plausibleSleepOnset.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)": "ac0424bcddf7b5ab"
    }
   },
   {
    "key": "func HRSleepEstimatorTests.testTooFewPointsReturnsNilWithoutTrapping()",
-   "hash": "341bba35d4def6e1",
-   "does": "Asserts clampedSleepOnset returns nil for 0 or 1 points without trapping.",
+   "hash": "0eeda37059c0d365",
+   "does": "Asserts plausibleSleepOnset returns nil for 0 or 1 points without trapping.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "EmuquTests/HRSleepEstimatorTests.swift::func HRSleepEstimatorTests.samples(_:)": "ac0424bcddf7b5ab"
    }
   },
@@ -565,13 +572,14 @@
    }
   },
   {
-   "key": "func HRSleepEstimatorTests.testEndToEndOnsetNeverExceedsThePlausibleLatencyCeiling()",
-   "hash": "e112ee4f40fa021d",
-   "does": "Builds 60 min at 833 ms then 6 h at 1090 ms and asserts the estimated sleepStart is ≤ maxHREstimatedOnsetLatencyMin after start.",
+   "key": "func HRSleepEstimatorTests.testEndToEndALateOnsetIsUndeterminedAndItsLatencyUnknown()",
+   "hash": "3da453c55c297999",
+   "does": "Builds 60 min at 833 ms then 6 h at 1090 ms; the first sleep window is 62.5 min in, past the cap, so asserts estimateSleepFromHR's sleepStart equals the recording start and sleepLatencyMinutes is nil.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
    ],
    "reads": [],
    "writes": [],
@@ -589,8 +597,56 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "80312c4bf28d1463",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79"
+   }
+  },
+  {
+   "key": "func HRSleepEstimatorTests.testEndToEndAnOnsetWithinTheCeilingIsKept()",
+   "hash": "f56c0643f61f6cfa",
+   "does": "Builds 15 min at 833 ms then 6 h at 1090 ms and asserts estimateSleepFromHR's onset is 17.5 min (the middle of the first of three 5-minute windows below the threshold), kept because it is within the cap.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "1080 awake beats",
+     "effect": "appends 833 ms beats"
+    },
+    {
+     "at": "+4",
+     "cond": "19680 asleep beats",
+     "effect": "appends 1090 ms beats"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "80312c4bf28d1463",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func HRSleepEstimatorTests.testTheOnsetCeilingIsMeasuredOnTheWallClock()",
+   "hash": "7034b2385aa4dab4",
+   "does": "With 25 min of packets lost five minutes in (wall clock = t_ms + 1.5e6 from 300 s), asserts plausibleOnsetMs turns a 12.5-min beat-sum onset (37.5 min on the wall clock) into 0 and keeps a 4-min onset before the gap.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleOnsetMs(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleOnsetMs(_:in:)": "de938246600dc43e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
    }
   },
   {

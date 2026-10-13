@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift",
- "hash": "d4b58dacb1f0edbb",
- "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<ts>.json backups) when backup_index.json does not decode.",
+ "hash": "b8cdedb118a686f3",
+ "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<stamp>.json backups) when backup_index.json does not decode, plus OneShotBackupName, the single place one-shot file names are made and parsed (millisecond stamps, never reused; legacy second stamps still parse).",
  "types": [
-  "RawRRBackup: extension — index recovery"
+  "RawRRBackup: extension — index recovery",
+  "OneShotBackupName: enum — makes and parses one-shot backup file names"
  ],
  "state": [],
  "toplevel": "",
@@ -85,37 +86,35 @@
   },
   {
    "key": "func RawRRBackup.recoveredEntry(fromOneShotNamed:)",
-   "hash": "30d083e6b7f5ac37",
-   "does": "Parses <uuid>_<digits>.json names, decodes the (possibly encrypted) one-shot backup and returns an index row with its fileName, beat count and hash.",
+   "hash": "d3390be230ad2f0e",
+   "does": "Accepts only one-shot names OneShotBackupName.parse reads (<uuid>_<digits>.json, seconds or milliseconds stamp), decodes the (possibly encrypted) one-shot backup and returns an index row with its fileName, beat count and hash.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
    ],
    "reads": [
-    "file:<backupDir>/<uuid>_<ts>.json",
+    "file:<backupDir>/<uuid>_<stamp>.json",
     "kc:session-encryption-key (FR files)"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "name ends .json",
-     "effect": "continue; else nil"
+     "cond": "OneShotBackupName.parse(name) != nil",
+     "effect": "continue; else nil (header, points and other files)"
     },
     {
      "at": "+3",
-     "cond": "two parts, valid UUID, numeric suffix",
-     "effect": "continue; else nil"
-    },
-    {
-     "at": "+6",
      "cond": "decode succeeded",
      "effect": "row; else nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)": "ff36a16448d4bf3e",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "8aa91e1609fa7b46",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "fc8e5d2d1f1cbf7e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
@@ -124,19 +123,107 @@
   },
   {
    "key": "func RawRRBackup.latestOneShotPerSession(_:)",
-   "hash": "4eb241b53c24e12c",
-   "does": "Groups entries by id and keeps the one with the greatest fileName string per id.",
+   "hash": "0b1dbb12b79fadbe",
+   "does": "Groups entries by id and keeps, per id, the one whose file name has the latest write time (OneShotBackupName.writtenMs, so a seconds stamp and a milliseconds stamp compare as times, not as text).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fileName nil or not a one-shot name",
+     "effect": "writtenMs 0, sorts lowest"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "89546bc812f222f9"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.make(for:at:isTaken:)",
+   "hash": "7615e48fa82c0871",
+   "does": "Returns <uuid>_<stamp>.json with stamp = floor(now in ms since 1970), incremented by 1 ms until isTaken rejects the name, so a caller that marks every existing name taken never reuses a file name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isTaken(name)",
+     "effect": "stamp += 1 and retry"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.name(_:_:)": "ff36a16448d4bf3e"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.parse(_:)",
+   "hash": "c0aef4c1ac5340a3",
+   "does": "Parses a one-shot backup file name <uuid>_<digits>.json into its session id and write time in ms: a stamp under 12 digits is seconds (files written before millisecond names) and is multiplied by 1000. Nil for any other name (_header.json, _points.jsonl, index files).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "fileName nil",
-     "effect": "?? \"\" sorts lowest"
+     "at": "+1",
+     "cond": "ends with .json",
+     "effect": "else nil"
+    },
+    {
+     "at": "+3",
+     "cond": "exactly two '_' parts, valid UUID, all-digit stamp that fits Int64",
+     "effect": "else nil"
+    },
+    {
+     "at": "+5",
+     "cond": "stamp has fewer than 12 digits",
+     "effect": "seconds: ×1000; else already ms"
     }
    ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OneShotBackupName.writtenMs(_:)",
+   "hash": "ca54e7f826e7db62",
+   "does": "Write time in ms of a one-shot file name via parse; 0 for nil or a name parse rejects.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fileName nil or unparseable",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "8aa91e1609fa7b46"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.name(_:_:)",
+   "hash": "e5dc0dcdfa59494a",
+   "does": "Formats \"<uuid>_<stamp>.json\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
    "flags": [],
    "deps": {}
   }

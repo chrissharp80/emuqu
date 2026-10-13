@@ -195,11 +195,15 @@ extension HealthWriteAndObserve {
     /// With 30, ANY recording long enough for one analysable window gets the
     /// full series in Apple Health, which is what the beta tester (and
     /// Athlytic / Training Today integrators) need.
+    ///
+    /// An estimated SDNN (`HRVAnalysisResult.estimatedMetrics`, from an
+    /// Elite HRV summary) is never written as the summary: Health would show
+    /// it as a reading.
     private func exportHRVMetrics(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         do {
-            guard try await windowedHRVWritten(session) == 0 else { return nil }
+            guard try await windowedHRVWritten(session) == 0, let sdnn = result.measuredSDNN else { return nil }
             let date = session.endDate ?? session.startDate
-            try await exportSDNN(value: result.timeDomain.sdnn, at: date, sessionId: session.id)
+            try await exportSDNN(value: sdnn, at: date, sessionId: session.id)
             return nil
         } catch {
             debugLog("[HealthKit Export] HRV export failed: \(error)")

@@ -272,6 +272,7 @@ extension MainTabView {
         let restingHR: Int
         let lthr: Int
         let units: UnitsPreference
+        let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
@@ -292,6 +293,7 @@ extension MainTabView {
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
             units: UnitsPreferenceStore.current.resolved,
+            sleepSchedule: settings.sleepSchedule,
             temperatureUnit: settings.temperatureUnit
         )
     }
